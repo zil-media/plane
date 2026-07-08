@@ -1,6 +1,7 @@
 {
   "account_settings": {
     "profile": {
+      "identity_managed_by_zil_workspace": "Hồ sơ của bạn được quản lý bởi Zil Workspace.",
       "change_email_modal": {
         "title": "Đổi email",
         "description": "Nhập địa chỉ email mới để nhận liên kết xác minh.",

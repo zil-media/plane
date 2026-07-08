@@ -98,6 +98,10 @@ export enum EAuthenticationErrorCodes {
   ADMIN_USER_ALREADY_EXIST = "5180",
   ADMIN_USER_DOES_NOT_EXIST = "5185",
   ADMIN_USER_DEACTIVATED = "5190",
+  // Zil Workspace SSO
+  ZIL_SSO_NOT_CONFIGURED = "5200",
+  ZIL_SSO_INVALID_TOKEN = "5201",
+  ZIL_SSO_TOKEN_REUSED = "5202",
   // Rate limit
   RATE_LIMIT_EXCEEDED = "5900",
 }
@@ -371,6 +375,20 @@ const errorCodeMessages: {
     title: `Admin user deactivated`,
     message: () => <div>Your account is deactivated</div>,
   },
+
+  // Zil Workspace SSO
+  [EAuthenticationErrorCodes.ZIL_SSO_NOT_CONFIGURED]: {
+    title: `Sign-in unavailable`,
+    message: () => `Zil Workspace sign-in is not configured. Please contact your administrator.`,
+  },
+  [EAuthenticationErrorCodes.ZIL_SSO_INVALID_TOKEN]: {
+    title: `Sign-in failed`,
+    message: () => `Your Zil Workspace session could not be verified. Please try signing in again.`,
+  },
+  [EAuthenticationErrorCodes.ZIL_SSO_TOKEN_REUSED]: {
+    title: `Sign-in link already used`,
+    message: () => `This sign-in link was already used. Please try signing in again.`,
+  },
   [EAuthenticationErrorCodes.RATE_LIMIT_EXCEEDED]: {
     title: "",
     message: () => `Rate limit exceeded. Please try again later.`,
@@ -431,6 +449,9 @@ export const authErrorHandler = (errorCode: EAuthenticationErrorCodes, email?: s
     EAuthenticationErrorCodes.ADMIN_USER_DEACTIVATED,
     EAuthenticationErrorCodes.RATE_LIMIT_EXCEEDED,
     EAuthenticationErrorCodes.PASSWORD_TOO_WEAK,
+    EAuthenticationErrorCodes.ZIL_SSO_NOT_CONFIGURED,
+    EAuthenticationErrorCodes.ZIL_SSO_INVALID_TOKEN,
+    EAuthenticationErrorCodes.ZIL_SSO_TOKEN_REUSED,
   ];
 
   if (bannerAlertErrorCodes.includes(errorCode))

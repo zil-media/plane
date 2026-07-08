@@ -1,6 +1,7 @@
 {
   "account_settings": {
     "profile": {
+      "identity_managed_by_zil_workspace": "Váš profil spravuje Zil Workspace.",
       "change_email_modal": {
         "title": "Změnit e-mail",
         "description": "Zadejte novou e-mailovou adresu a obdržíte ověřovací odkaz.",

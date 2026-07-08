@@ -11,6 +11,7 @@ from io import BytesIO
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.db import IntegrityError
 from plane.utils.url_security import pinned_fetch_following_redirects
 
 # Django imports
@@ -101,6 +102,15 @@ class Adapter:
 
     def __check_signup(self, email):
         """Check if sign up is enabled or not and raise exception if not enabled"""
+
+        # Zil Workspace SSO is not public self-registration: the caller
+        # (ZilSSOEndpoint) already verified a signed, short-lived JWT minted by
+        # Zil Workspace, which is the trusted source of truth for identity. The
+        # ENABLE_SIGNUP gate exists to block *unsolicited* account creation
+        # (native email/password, OAuth from anyone with a Google/GitHub
+        # account); it must not also lock out BU members provisioned via SSO.
+        if self.provider == "zil-sso":
+            return True
 
         # Get configuration value
         (ENABLE_SIGNUP,) = get_configuration_value([
@@ -373,21 +383,33 @@ class Adapter:
             user.first_name = first_name if first_name else ""
             user.last_name = last_name if last_name else ""
 
-            user.save()
+            try:
+                user.save()
+            except IntegrityError:
+                # Concurrent signup (e.g. a double-clicked SSO bounce) created
+                # the same email first. Fall back to the winner's row and
+                # continue as a login instead of raising — the account exists
+                # either way, and the loser doesn't need to redo signup setup.
+                existing = User.objects.filter(email=email).first()
+                if not existing:
+                    raise
+                user = existing
+                is_signup = False
 
-            # Download and upload avatar
-            avatar = self.user_data.get("user", {}).get("avatar", "")
-            if avatar:
-                avatar_asset = self.download_and_upload_avatar(avatar_url=avatar, user=user)
-                if avatar_asset:
-                    user.avatar_asset = avatar_asset
-                    user.avatar = avatar
-                # If avatar upload fails, set the avatar to the original URL
-                else:
-                    user.avatar = avatar
+            if is_signup:
+                # Download and upload avatar
+                avatar = self.user_data.get("user", {}).get("avatar", "")
+                if avatar:
+                    avatar_asset = self.download_and_upload_avatar(avatar_url=avatar, user=user)
+                    if avatar_asset:
+                        user.avatar_asset = avatar_asset
+                        user.avatar = avatar
+                    # If avatar upload fails, set the avatar to the original URL
+                    else:
+                        user.avatar = avatar
 
-            # Create profile
-            Profile.objects.create(user=user)
+                # Create profile
+                Profile.objects.create(user=user)
 
         # Check if IDP sync is enabled and user is not signing up
         if self.check_sync_enabled() and not is_signup:

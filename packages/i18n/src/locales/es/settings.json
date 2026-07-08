@@ -1,6 +1,7 @@
 {
   "account_settings": {
     "profile": {
+      "identity_managed_by_zil_workspace": "Tu perfil se gestiona desde Zil Workspace.",
       "change_email_modal": {
         "title": "Cambiar correo electrónico",
         "description": "Introduce una nueva dirección de correo electrónico para recibir un enlace de verificación.",

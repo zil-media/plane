@@ -1,6 +1,7 @@
 {
   "account_settings": {
     "profile": {
+      "identity_managed_by_zil_workspace": "Ваш профиль управляется через Zil Workspace.",
       "change_email_modal": {
         "title": "Изменить email",
         "description": "Введите новый адрес электронной почты, чтобы получить ссылку для подтверждения.",

@@ -65,7 +65,7 @@ export const ProductUpdatesChangelog = observer(function ProductUpdatesChangelog
   if (shouldShowFallback) {
     return (
       <ProductUpdatesFallback
-        description="We're having trouble fetching the updates. Please visit our changelog to view the latest updates."
+        description="We're having trouble fetching the updates. Please try again later."
         variant={config?.is_self_managed ? "self-managed" : "cloud"}
       />
     );
@@ -80,6 +80,8 @@ export const ProductUpdatesChangelog = observer(function ProductUpdatesChangelog
       )}
       <iframe
         src={changeLogUrl}
+        title="Product updates"
+        sandbox="allow-scripts allow-popups"
         className={`h-full w-full ${isLoading ? "opacity-0" : "opacity-100"} transition-opacity duration-200`}
         onLoad={handleIframeLoad}
         onError={handleIframeError}

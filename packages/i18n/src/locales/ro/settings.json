@@ -1,6 +1,7 @@
 {
   "account_settings": {
     "profile": {
+      "identity_managed_by_zil_workspace": "Profilul dumneavoastră este gestionat de Zil Workspace.",
       "change_email_modal": {
         "title": "Schimbă e-mailul",
         "description": "Introduceți o nouă adresă de e-mail pentru a primi un link de verificare.",

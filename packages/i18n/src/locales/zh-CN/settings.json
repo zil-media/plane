@@ -1,6 +1,7 @@
 {
   "account_settings": {
     "profile": {
+      "identity_managed_by_zil_workspace": "您的个人资料由 Zil Workspace 管理。",
       "change_email_modal": {
         "title": "更改邮箱",
         "description": "请输入新的邮箱地址以接收验证链接。",

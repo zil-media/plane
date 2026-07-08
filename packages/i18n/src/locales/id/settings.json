@@ -1,6 +1,7 @@
 {
   "account_settings": {
     "profile": {
+      "identity_managed_by_zil_workspace": "Profil Anda dikelola oleh Zil Workspace.",
       "change_email_modal": {
         "title": "Ubah email",
         "description": "Masukkan alamat email baru untuk menerima tautan verifikasi.",

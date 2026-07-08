@@ -1,6 +1,7 @@
 {
   "account_settings": {
     "profile": {
+      "identity_managed_by_zil_workspace": "Profiliniz Zil Workspace tarafından yönetiliyor.",
       "change_email_modal": {
         "title": "E-postayı değiştir",
         "description": "Doğrulama bağlantısı almak için yeni bir e-posta adresi girin.",

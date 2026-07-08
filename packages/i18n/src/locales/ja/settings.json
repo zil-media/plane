@@ -1,6 +1,7 @@
 {
   "account_settings": {
     "profile": {
+      "identity_managed_by_zil_workspace": "プロフィールはZil Workspaceによって管理されています。",
       "change_email_modal": {
         "title": "メールアドレスを変更",
         "description": "確認リンクを受け取るには、新しいメールアドレスを入力してください。",
