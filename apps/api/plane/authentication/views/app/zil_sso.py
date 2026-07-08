@@ -141,7 +141,11 @@ class ZilSSOEndpoint(View):
             # Failure here must not block login — the user still lands on Plane's
             # onboarding as a fallback.
             try:
-                provision_user_workspaces(user, claims.get("workspaces") or [])
+                provision_user_workspaces(
+                    user,
+                    claims.get("workspaces") or [],
+                    authoritative=bool(claims.get("workspaces_authoritative")),
+                )
             except Exception as e:
                 log_exception(e)
 

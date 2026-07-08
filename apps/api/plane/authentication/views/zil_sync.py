@@ -110,7 +110,14 @@ class ZilUserSyncEndpoint(ZilServiceView):
                 deactivate_user(email)
                 return Response({"status": "deactivated", "email": email}, status=status.HTTP_200_OK)
 
-            provision_user_workspaces(user, request.data.get("workspaces") or [])
+            # A sync/user call is Zil's confirmed desired state for the user, so
+            # it's authoritative by default (empty list ⇒ revoke all). Zil may
+            # send authoritative:false to explicitly signal a non-confirmed list.
+            provision_user_workspaces(
+                user,
+                request.data.get("workspaces") or [],
+                authoritative=request.data.get("authoritative", True),
+            )
             return Response({"status": "synced", "email": email}, status=status.HTTP_200_OK)
         except Exception as e:
             log_exception(e)
@@ -155,7 +162,11 @@ class ZilReconcileEndpoint(ZilServiceView):
                     deactivate_user(email)
                     users_deactivated += 1
                 else:
-                    provision_user_workspaces(existing, u.get("workspaces") or [])
+                    # Reconcile is the authoritative nightly snapshot of desired
+                    # state, so empty ⇒ revoke all for that user.
+                    provision_user_workspaces(
+                        existing, u.get("workspaces") or [], authoritative=u.get("authoritative", True)
+                    )
                     users_synced += 1
             except Exception as e:
                 log_exception(e)

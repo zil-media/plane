@@ -177,18 +177,25 @@ def _upsert_membership(workspace, user, role):
     return wm
 
 
-def provision_user_workspaces(user, workspaces):
+def provision_user_workspaces(user, workspaces, authoritative=False):
     """Reconcile a user's workspace memberships against the desired list.
 
     `workspaces` is a list of dicts:
         {slug, name, color, logo_url, role, is_owner}
     where `role` is either a Plane int (5/15/20) or a Zil role string.
 
+    `authoritative` says whether the list is Zil's *confirmed* full desired
+    state. When True, memberships NOT in the list are deactivated — including
+    the case of an empty list (user removed from every BU → revoke all). When
+    False (the default — e.g. Zil's workspace computation failed and we only
+    have an empty/partial list), existing access is left untouched so a
+    transient error can never silently wipe a user's workspaces.
+
     - creates/updates the Workspace for each BU
     - adds/updates the user's membership with the mapped role
     - transfers ownership to the user when they are the BU director and the
       workspace is still owned by the service account
-    - deactivates memberships for workspaces no longer in the desired list
+    - deactivates memberships not in the desired list (only if authoritative)
     - marks the profile onboarded and points last_workspace at the primary one
       so the user skips onboarding and lands inside a workspace
 
@@ -247,9 +254,11 @@ def provision_user_workspaces(user, workspaces):
             continue
 
     # Deactivate memberships for workspaces the user should no longer be in
-    # (BU removed on the Zil side). Only when we actually have a desired list —
-    # an empty list means "unknown / no BUs" and must NOT wipe existing access.
-    if desired_ws_ids:
+    # (BU removed on the Zil side). Only when the list is authoritative — a
+    # non-authoritative empty list means "unknown" (compute error) and must NOT
+    # wipe access. An authoritative empty list DOES revoke everything (user
+    # removed from all BUs).
+    if authoritative:
         WorkspaceMember.objects.filter(member=user, is_active=True).exclude(
             workspace_id__in=desired_ws_ids
         ).update(is_active=False)
@@ -323,7 +332,11 @@ def provision_user_from_zil(user, request=None):
 
     if data.get("suspended"):
         return deactivate_user(user.email)
-    return provision_user_workspaces(user, data.get("workspaces") or [])
+    # provision-context always reflects Zil's computed state (200 with the
+    # user's current BUs), so it is authoritative.
+    return provision_user_workspaces(
+        user, data.get("workspaces") or [], authoritative=bool(data.get("authoritative"))
+    )
 
 
 def deactivate_workspace(slug):
