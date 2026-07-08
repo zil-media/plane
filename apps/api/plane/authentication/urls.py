@@ -21,6 +21,7 @@ from .views import (
     MagicGenerateEndpoint,
     MagicSignInEndpoint,
     MagicSignUpEndpoint,
+    ZilSSOEndpoint,
     SignInAuthEndpoint,
     SignOutAuthEndpoint,
     SignUpAuthEndpoint,
@@ -115,6 +116,8 @@ urlpatterns = [
         GitLabCallbackSpaceEndpoint.as_view(),
         name="space-gitlab-callback",
     ),
+    # Zil Workspace SSO (trusted federated login)
+    path("zil/", ZilSSOEndpoint.as_view(), name="zil-sso"),
     # Email Check
     path("email-check/", EmailCheckEndpoint.as_view(), name="email-check"),
     path("spaces/email-check/", EmailCheckSpaceEndpoint.as_view(), name="email-check"),

@@ -293,8 +293,10 @@ TIME_ZONE = "UTC"
 # Default Auto Field
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Email settings
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# Email settings. Overridable via env so outbound mail can be relayed through
+# Zil Workspace's email service (plane.settings.zil_email_backend.ZilEmailBackend)
+# instead of SMTP.
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
 
 # Storage Settings
 # Use Minio settings

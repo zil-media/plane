@@ -57,11 +57,8 @@ export const GROUPED_PROFILE_SETTINGS: Record<
   PROFILE_SETTINGS_CATEGORY,
   { key: TProfileSettingsTabs; i18n_label: string }[]
 > = {
-  [PROFILE_SETTINGS_CATEGORY.YOUR_PROFILE]: [
-    PROFILE_SETTINGS["general"],
-    PROFILE_SETTINGS["preferences"],
-    PROFILE_SETTINGS["notifications"],
-    PROFILE_SETTINGS["security"],
-  ],
+  // "general" (identity) and "security" (password) are intentionally omitted:
+  // identity/credentials come from Zil Workspace SSO and are not editable in Ops.
+  [PROFILE_SETTINGS_CATEGORY.YOUR_PROFILE]: [PROFILE_SETTINGS["preferences"], PROFILE_SETTINGS["notifications"]],
   [PROFILE_SETTINGS_CATEGORY.DEVELOPER]: [PROFILE_SETTINGS["api-tokens"]],
 };

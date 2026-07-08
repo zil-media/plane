@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { useEffect } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { PROFILE_SETTINGS_TABS } from "@plane/constants";
@@ -15,10 +16,15 @@ import { PageHead } from "@/components/core/page-title";
 import { ProfileSettingsContent } from "@/components/settings/profile/content";
 import { ProfileSettingsSidebarRoot } from "@/components/settings/profile/sidebar";
 // hooks
-import { useUser } from "@/hooks/store/user";
+import { useUser, useUserSettings } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 // local imports
 import type { Route } from "../+types/layout";
+
+// Identity and credentials are owned by Zil Workspace (SSO), so these tabs are
+// disabled in Ops: users must not edit their own name/email or manage passwords
+// here. Requests for them bounce back to the workspace.
+const REDIRECTED_PROFILE_TABS: string[] = new Set(["general", "security"]);
 
 function ProfileSettingsPage(props: Route.ComponentProps) {
   const { profileTabId } = props.params;
@@ -26,12 +32,21 @@ function ProfileSettingsPage(props: Route.ComponentProps) {
   const router = useAppRouter();
   // store hooks
   const { data: currentUser } = useUser();
+  const { data: userSettings } = useUserSettings();
   // translation
   const { t } = useTranslation();
   // derived values
   const isAValidTab = PROFILE_SETTINGS_TABS.includes(profileTabId as TProfileSettingsTabs);
+  const isRedirectedTab = REDIRECTED_PROFILE_TABS.has(profileTabId);
 
-  if (!currentUser || !isAValidTab)
+  // Bounce disabled identity/security tabs to the user's workspace.
+  useEffect(() => {
+    if (!isRedirectedTab) return;
+    const slug = userSettings?.workspace?.last_workspace_slug || userSettings?.workspace?.fallback_workspace_slug;
+    router.push(slug ? `/${slug}` : "/");
+  }, [isRedirectedTab, userSettings, router]);
+
+  if (!currentUser || !isAValidTab || isRedirectedTab)
     return (
       <div className="grid size-full place-items-center px-4">
         <LogoSpinner />

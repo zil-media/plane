@@ -6,7 +6,10 @@
 
 import type { TLanguage, ILanguageOption } from "../types";
 
-export const FALLBACK_LANGUAGE: TLanguage = "en";
+// Zil Ops defaults to Spanish (the company works in Spanish). Per-user language
+// still comes from their profile; this is the fallback before that loads and for
+// anyone without an explicit preference.
+export const FALLBACK_LANGUAGE: TLanguage = "es";
 
 export const SUPPORTED_LANGUAGES: ILanguageOption[] = [
   { label: "English", value: "en" },

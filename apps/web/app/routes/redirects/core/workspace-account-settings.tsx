@@ -10,7 +10,7 @@ import type { Route } from "./+types/workspace-account-settings";
 export const clientLoader = ({ params, request }: Route.ClientLoaderArgs) => {
   const searchParams = new URL(request.url).searchParams;
   const splat = params["*"] || "";
-  throw redirect(`/settings/profile/${splat || "general"}?${searchParams.toString()}`);
+  throw redirect(`/settings/profile/${splat || "preferences"}?${searchParams.toString()}`);
 };
 
 export default function WorkspaceAccountSettings() {
