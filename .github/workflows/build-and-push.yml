@@ -20,20 +20,20 @@ jobs:
       matrix:
         include:
           - image: plane-backend
-            context: "."
-            dockerfile: apps/api/Dockerfile.api
+            context: apps/api
+            dockerfile: Dockerfile.api
           - image: plane-web
-            context: "."
-            dockerfile: apps/web/Dockerfile.web
+            context: apps/web
+            dockerfile: Dockerfile.web
           - image: plane-space
-            context: "."
-            dockerfile: apps/space/Dockerfile.space
+            context: apps/space
+            dockerfile: Dockerfile.space
           - image: plane-admin
-            context: "."
-            dockerfile: apps/admin/Dockerfile.admin
+            context: apps/admin
+            dockerfile: Dockerfile.admin
           - image: plane-live
-            context: "."
-            dockerfile: apps/live/Dockerfile.live
+            context: apps/live
+            dockerfile: Dockerfile.live
           - image: plane-proxy
             context: apps/proxy
             dockerfile: Dockerfile.ce
@@ -55,7 +55,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
+          file: ${{ matrix.context }}/${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
