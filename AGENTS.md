@@ -1,5 +1,11 @@
 # Agent Development Guide
 
+> **⚠️ This is a rebranded fork — "Plane" is branded as "Zil Ops".**
+> Before touching branding, copy, i18n, logos, favicons, colors, or merging upstream Plane
+> changes, **read [`docs/ZIL_OPS_REBRAND.md`](docs/ZIL_OPS_REBRAND.md)** and re-apply its rules.
+> Short version: user-facing `Plane` → `Zil Ops`; keep the Zil logo/palette/favicon overrides;
+> strip Plane marketing; never touch copyright headers, `@plane/*` imports, or `Plane*` component names.
+
 ## Commands
 
 - `pnpm dev` - Start all dev servers (web:3000, admin:3001)

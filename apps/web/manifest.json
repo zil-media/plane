@@ -1,12 +1,12 @@
 {
-  "theme_color": "#3579f6",
+  "theme_color": "#000000",
   "background_color": "#ffffff",
   "display": "standalone",
   "scope": "/",
   "start_url": "/",
-  "name": "Plane | Accelerate software development with peace.",
-  "short_name": "Plane",
-  "description": "Plane accelerated the software development by order of magnitude for agencies and product companies.",
+  "name": "Zil | Gestión de proyectos",
+  "short_name": "Zil",
+  "description": "Zil — plataforma interna de gestión de proyectos y trabajo del equipo.",
   "icons": [
     {
       "src": "/icon-192x192.png",

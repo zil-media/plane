@@ -23,12 +23,11 @@ export function IssueEmbedUpgradeCard(props: any) {
       <div className="flex items-center gap-4">
         <ProIcon className="size-4 flex-shrink-0" />
         <p className="!text-14 text-secondary">
-          Embed and access issues in pages seamlessly, upgrade to Plane Pro now.
+          Embed and access issues in pages seamlessly, upgrade to Zil Ops Pro now.
         </p>
       </div>
       <a
-        href="https://plane.so/pro"
-        target="_blank"
+        href="#"
         rel="noopener noreferrer"
         className={cn(getButtonStyling("primary", "base"), "no-underline")}
       >

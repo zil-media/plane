@@ -4,14 +4,13 @@
  * See the LICENSE file for details.
  */
 
-export const SITE_NAME = "Plane | Simple, extensible, open-source project management tool.";
-export const SITE_TITLE = "Plane | Simple, extensible, open-source project management tool.";
-export const SITE_DESCRIPTION =
-  "Open-source project management tool to manage work items, cycles, and product roadmaps easily";
+export const SITE_NAME = "Zil";
+export const SITE_TITLE = "Zil | Gestión de proyectos";
+export const SITE_DESCRIPTION = "Zil — plataforma interna de gestión de proyectos y trabajo del equipo.";
 export const SITE_KEYWORDS =
-  "software development, plan, ship, software, accelerate, code management, release management, project management, work items tracking, agile, scrum, kanban, collaboration";
+  "gestión de proyectos, tareas, ciclos, roadmap, colaboración, equipo, zil, project management";
 export const SITE_URL = "https://app.plane.so/";
-export const TWITTER_USER_NAME = "Plane | Simple, extensible, open-source project management tool.";
+export const TWITTER_USER_NAME = "Zil";
 
 // Plane Sites Metadata
 export const SPACE_SITE_NAME = "Plane Publish | Make your Plane boards and roadmaps pubic with just one-click. ";

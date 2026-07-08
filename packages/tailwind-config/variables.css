@@ -163,18 +163,18 @@
     --neutral-1200: oklch(0.2378 0.0029 230.83);
     --neutral-black: oklch(0.1472 0.0034 230.83);
     /* Brand colors */
-    --brand-100: oklch(0.9847 0.0083 236.56);
-    --brand-200: oklch(0.9715 0.0167 230.9);
-    --brand-300: oklch(0.9428 0.0341 230.22);
-    --brand-400: oklch(0.9008 0.0587 232);
-    --brand-500: oklch(0.8414 0.0947 233.08);
-    --brand-600: oklch(0.7649 0.1392 236.3);
-    --brand-700: oklch(0.6766 0.1665 243.91);
-    --brand-900: oklch(0.4347 0.104093 242.4823);
-    --brand-1000: oklch(0.3399 0.0783 240.32);
-    --brand-1100: oklch(0.2626 0.0578 237.5);
-    --brand-1200: oklch(0.2093 0.0438 234.02);
-    --brand-default: oklch(0.4799 0.1158 242.91);
+    --brand-100: oklch(0.9847 0.0108 272.00);
+    --brand-200: oklch(0.9715 0.0217 272.00);
+    --brand-300: oklch(0.9428 0.0443 272.00);
+    --brand-400: oklch(0.9008 0.0763 272.00);
+    --brand-500: oklch(0.8414 0.1231 272.00);
+    --brand-600: oklch(0.7649 0.1810 272.00);
+    --brand-700: oklch(0.6766 0.2000 272.00);
+    --brand-900: oklch(0.5900 0.1720 272.00); /* accent hover (darker than default) */
+    --brand-1000: oklch(0.5300 0.1560 272.00); /* accent active */
+    --brand-1100: oklch(0.2626 0.0751 272.00);
+    --brand-1200: oklch(0.2093 0.0569 272.00);
+    --brand-default: oklch(0.6601 0.1804 272.00); /* Zil brand blue #6D86FF */
     /* Green/Success colors */
     --green-100: oklch(0.9819 0.0181 155.83);
     --green-200: oklch(0.9624 0.0434 156.74);
@@ -399,33 +399,34 @@
     /* ---------- Dark mode color tokens ---------- */
     @variant dark {
       /* Neutral colors */
-      --neutral-black: oklch(0.1689 0.0021 230.81);
-      --neutral-100: oklch(0.1932 0.002 230.81);
-      --neutral-200: oklch(0.2158 0.0025 230.82);
-      --neutral-300: oklch(0.2378 0.0029 230.83);
-      --neutral-400: oklch(0.2593 0.0033 230.84);
-      --neutral-500: oklch(0.3011 0.0041 230.85);
-      --neutral-600: oklch(0.3415 0.0049 230.86);
-      --neutral-700: oklch(0.3999 0.0059 230.87);
-      --neutral-800: oklch(0.5989 0.0096 230.88);
-      --neutral-900: oklch(0.6835 0.0074 230.81);
-      --neutral-1000: oklch(0.7655 0.0054 230.76);
-      --neutral-1100: oklch(0.8455 0.0035 230.72);
-      --neutral-1200: oklch(0.9235 0.001733 230.6853);
+      /* Zil near-black ramp (dark-first identity) */
+      --neutral-black: oklch(0.1448 0.0040 286.00); /* #0A0A0A base bg */
+      --neutral-100: oklch(0.1785 0.0041 286.00); /* #111113 card/surface */
+      --neutral-200: oklch(0.2011 0.0039 286.00); /* #161618 elevated */
+      --neutral-300: oklch(0.2195 0.0077 285.74); /* #1A1A1E hover/border */
+      --neutral-400: oklch(0.2450 0.0090 280.00);
+      --neutral-500: oklch(0.2700 0.0100 275.00);
+      --neutral-600: oklch(0.2936 0.0112 271.01); /* #2A2C32 dark-grey */
+      --neutral-700: oklch(0.3750 0.0180 271.00);
+      --neutral-800: oklch(0.4691 0.0267 271.65); /* #555A6A mid-grey-2 */
+      --neutral-900: oklch(0.5500 0.0260 270.00);
+      --neutral-1000: oklch(0.6305 0.0250 269.29); /* #838999 mid-grey */
+      --neutral-1100: oklch(0.8000 0.0100 260.00);
+      --neutral-1200: oklch(0.9637 0.0017 247.84); /* #F2F3F4 primary text */
       --neutral-white: oklch(0.9702 0 0);
       /* Brand colors */
-      --brand-100: oklch(0.2029 0.03 232.24);
-      --brand-200: oklch(0.2513 0.0418 234.6);
-      --brand-300: oklch(0.3208 0.05806 236.44);
-      --brand-400: oklch(0.4088 0.077702 237.13);
-      --brand-500: oklch(0.4511 0.087024 237.37);
-      --brand-700: oklch(0.7408 0.100309 233.89);
-      --brand-800: oklch(0.8318 0.065614 232.07);
-      --brand-900: oklch(0.8969 0.040089 231.35);
-      --brand-1000: oklch(0.9409 0.022883 231.01);
-      --brand-1100: oklch(0.9704 0.011421 230.82);
-      --brand-1200: oklch(0.9856 0.005 228.82);
-      --brand-default: oklch(0.6311 0.126281 238.01);
+      --brand-100: oklch(0.2029 0.0390 272.00);
+      --brand-200: oklch(0.2513 0.0543 272.00);
+      --brand-300: oklch(0.3208 0.0755 272.00);
+      --brand-400: oklch(0.4088 0.1010 272.00);
+      --brand-500: oklch(0.4511 0.1131 272.00);
+      --brand-700: oklch(0.7408 0.1304 272.00);
+      --brand-800: oklch(0.8318 0.0853 272.00);
+      --brand-900: oklch(0.8969 0.0521 272.00);
+      --brand-1000: oklch(0.9409 0.0297 272.00);
+      --brand-1100: oklch(0.9704 0.0148 272.00);
+      --brand-1200: oklch(0.9856 0.0065 272.00);
+      --brand-default: oklch(0.6601 0.1804 272.00); /* Zil brand blue #6D86FF */
       /* Green colors */
       --green-100: oklch(0.2721 0.067322 152.52);
       --green-200: oklch(0.3935 0.0957 152.28);
