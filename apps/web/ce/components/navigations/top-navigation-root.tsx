@@ -16,8 +16,10 @@ import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
 import { Tooltip } from "@plane/propel/tooltip";
 import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 import { InboxIcon } from "@plane/propel/icons";
+import { ExternalLink } from "lucide-react";
 import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
+import { getZilWorkspaceUrl } from "@/helpers/zil-workspace";
 
 export const TopNavigationRoot = observer(function TopNavigationRoot() {
   // router
@@ -44,8 +46,8 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
 
   return (
     <div
-      className={cn("z-[27] flex min-h-10 w-full items-center bg-canvas px-3.5 transition-all duration-300", {
-        "px-2": !showLabel,
+      className={cn("z-[27] flex min-h-10 w-full items-center bg-canvas pr-2 pl-3.5 transition-all duration-300", {
+        "pl-2": !showLabel,
       })}
     >
       {/* Workspace Menu */}
@@ -79,6 +81,15 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
         <div className="flex size-8 items-center justify-center rounded-md hover:bg-layer-1-hover">
           <UserMenuRoot />
         </div>
+        {/* Open Zil Workspace — placed right of the profile avatar. System secondary-button style. */}
+        <a
+          href={getZilWorkspaceUrl()}
+          aria-label="Abrir Zil Workspace"
+          className="inline-flex h-6 items-center gap-1 rounded-md border border-strong bg-layer-2 px-2 text-body-xs-medium text-secondary shadow-raised-100 transition-colors hover:bg-layer-2-hover"
+        >
+          <ExternalLink className="size-3.5" />
+          Workspace
+        </a>
       </div>
     </div>
   );

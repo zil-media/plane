@@ -89,7 +89,7 @@ const Half = ({ path, className, color }: { path: string; className?: string; co
   </svg>
 );
 
-export function LogoSpinner({ size = 84 }: { size?: number }) {
+export function LogoSpinner({ size = 40 }: { size?: number }) {
   return (
     // text-primary drives the main mark (currentColor): black on light, white on dark — like leads.
     <div className="zil-ll zil-ll-pulse text-primary" style={{ width: size }} aria-label="Loading">

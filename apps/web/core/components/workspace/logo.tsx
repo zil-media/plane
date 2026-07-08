@@ -30,7 +30,7 @@ export const WorkspaceLogo = observer(function WorkspaceLogo(props: Props) {
       {props.logo && props.logo !== "" ? (
         <img
           src={getFileURL(props.logo)}
-          className="absolute top-0 left-0 h-full w-full rounded-md object-cover"
+          className="absolute top-0 left-0 h-full w-full rounded-md object-contain"
           alt={t("aria_labels.projects_sidebar.workspace_logo")}
         />
       ) : (
