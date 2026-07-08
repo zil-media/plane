@@ -20,19 +20,19 @@ jobs:
       matrix:
         include:
           - image: plane-backend
-            context: ${{ matrix.context }}
+            context: "."
             dockerfile: apps/api/Dockerfile.api
           - image: plane-web
-            context: .
+            context: "."
             dockerfile: apps/web/Dockerfile.web
           - image: plane-space
-            context: .
+            context: "."
             dockerfile: apps/space/Dockerfile.space
           - image: plane-admin
-            context: .
+            context: "."
             dockerfile: apps/admin/Dockerfile.admin
           - image: plane-live
-            context: .
+            context: "."
             dockerfile: apps/live/Dockerfile.live
           - image: plane-proxy
             context: apps/proxy
