@@ -28,9 +28,12 @@ import { LogoSpinner } from "@/components/common/logo-spinner";
 import { CustomErrorComponent } from "./error";
 import { AppProvider } from "./provider";
 // fonts
+// eslint-disable-next-line no-unassigned-import
 import "@fontsource-variable/inter";
 import interVariableWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
+// eslint-disable-next-line no-unassigned-import
 import "@fontsource/material-symbols-rounded";
+// eslint-disable-next-line no-unassigned-import
 import "@fontsource/ibm-plex-mono";
 
 const APP_TITLE = "Zil Ops | Gestión de proyectos";
@@ -45,6 +48,12 @@ export const links: LinksFunction = () => [
   { rel: "apple-touch-icon", sizes: "512x512", href: icon512 },
   { rel: "manifest", href: "/manifest.json" },
   { rel: "stylesheet", href: globalStyles },
+  { rel: "preconnect", href: "https://fonts.googleapis.com" },
+  { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+  {
+    rel: "stylesheet",
+    href: "https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@300;400;500;600;700;800&display=swap",
+  },
   {
     rel: "preload",
     href: interVariableWoff2,

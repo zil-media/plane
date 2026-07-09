@@ -65,7 +65,10 @@ export class ProfileStore implements IUserProfileStore {
     created_at: "",
     updated_at: "",
     language: "",
-    start_of_the_week: EStartOfTheWeek.SUNDAY,
+    // Product decision: the first day of the week is forced to Monday everywhere and is
+    // no longer user-configurable. This default (and the overrides below) ensure Monday
+    // is used regardless of what value is stored on the backend for existing users.
+    start_of_the_week: EStartOfTheWeek.MONDAY,
   };
 
   // services
@@ -87,12 +90,22 @@ export class ProfileStore implements IUserProfileStore {
     this.userService = new UserService();
   }
 
+  /**
+   * @description The first day of the week is forced to Monday app-wide and is no longer
+   * user-configurable (product decision). This guards against the backend returning a
+   * different stored value (e.g. Sunday) for existing users by always overriding
+   * `start_of_the_week` to Monday whenever profile data is written into the store.
+   */
+  private static readonly FORCED_START_OF_THE_WEEK = EStartOfTheWeek.MONDAY;
+
   // helper action
   mutateUserProfile = (data: Partial<TUserProfile>) => {
     if (!data) return;
     Object.entries(data).forEach(([key, value]) => {
       if (key in this.data) set(this.data, key, value);
     });
+    // Always force Monday, regardless of what was just written.
+    set(this.data, "start_of_the_week", ProfileStore.FORCED_START_OF_THE_WEEK);
   };
 
   // actions
@@ -107,6 +120,8 @@ export class ProfileStore implements IUserProfileStore {
         this.error = undefined;
       });
       const userProfile = await this.userService.getCurrentUserProfile();
+      // Force Monday as the first day of the week regardless of the backend value.
+      userProfile.start_of_the_week = ProfileStore.FORCED_START_OF_THE_WEEK;
       runInAction(() => {
         this.isLoading = false;
         this.data = userProfile;

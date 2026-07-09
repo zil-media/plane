@@ -295,12 +295,17 @@ class Adapter:
 
         # Get display name
         display_name = self.user_data.get("user", {}).get("display_name")
-        # If display name is not provided, generate a random display name
-        if not display_name:
-            display_name = User.get_display_name(email)
-
-        # Set display name
-        user.display_name = display_name
+        # Regenerate the display name from the identity provider's real name so
+        # that provisioned users self-heal on each sync (profile identity is
+        # managed by Zil Workspace). Fall back to any provided display name,
+        # then the email local-part / a random string.
+        user.display_name = User.build_display_name(
+            first_name=user.first_name,
+            last_name=user.last_name,
+            email=email,
+        )
+        if not user.first_name and not user.last_name and display_name:
+            user.display_name = display_name
 
         # Download and upload avatar only if the avatar is different from the one in the storage
         avatar = self.user_data.get("user", {}).get("avatar", "")

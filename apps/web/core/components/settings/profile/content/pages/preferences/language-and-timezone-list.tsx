@@ -11,7 +11,6 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { CustomSelect } from "@plane/ui";
 // components
 import { TimezoneSelect } from "@/components/global";
-import { StartOfWeekPreference } from "@/components/profile/start-of-week-preference";
 import { SettingsControlItem } from "@/components/settings/control-item";
 // hooks
 import { useUser, useUserProfile } from "@/hooks/store/user";
@@ -95,12 +94,6 @@ export const ProfileSettingsLanguageAndTimezonePreferencesList = observer(
               ))}
             </CustomSelect>
           }
-        />
-        <StartOfWeekPreference
-          option={{
-            title: "First day of the week",
-            description: "This will change how all calendars in your app look.",
-          }}
         />
       </div>
     );

@@ -53,14 +53,14 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
         <div className="flex items-center justify-between gap-1 rounded-sm p-1 text-13 text-primary">
           <div className="relative flex w-[80%] items-center justify-start gap-2.5">
             <span
-              className={`relative flex h-8 w-8 flex-shrink-0 items-center justify-center border-subtle p-2 text-14 font-medium uppercase ${
-                !workspace?.logo_url && "rounded-md bg-[#026292] text-on-color"
+              className={`relative flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-sm border-subtle text-14 font-medium uppercase ${
+                !workspace?.logo_url && "bg-[#026292] p-2 text-on-color"
               }`}
             >
               {workspace?.logo_url && workspace.logo_url !== "" ? (
                 <img
                   src={getFileURL(workspace.logo_url)}
-                  className="absolute top-0 left-0 h-full w-full rounded-sm object-cover"
+                  className="absolute top-0 left-0 h-full w-full object-contain"
                   alt={t("workspace_logo")}
                 />
               ) : (

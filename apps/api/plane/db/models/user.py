@@ -175,10 +175,8 @@ class User(AbstractBaseUser, PermissionsMixin):
             self.token_updated_at = timezone.now()
 
         if not self.display_name:
-            self.display_name = (
-                self.email.split("@")[0]
-                if len(self.email.split("@"))
-                else "".join(random.choice(string.ascii_letters) for _ in range(6))
+            self.display_name = self.build_display_name(
+                self.first_name, self.last_name, self.email
             )
 
         if self.is_superuser:
@@ -195,6 +193,18 @@ class User(AbstractBaseUser, PermissionsMixin):
             if len(email.split("@")) == 2
             else "".join(random.choice(string.ascii_letters) for _ in range(6))
         )
+
+    @classmethod
+    def build_display_name(cls, first_name=None, last_name=None, email=None):
+        # Prefer the user's real name (First + Last), collapsing extra
+        # whitespace so a missing part doesn't leave stray spaces.
+        full_name = " ".join(
+            f"{first_name or ''} {last_name or ''}".split()
+        )
+        if full_name:
+            return full_name
+        # Fall back to the email local-part, then a random string.
+        return cls.get_display_name(email)
 
 
 class Profile(TimeAuditModel):

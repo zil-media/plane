@@ -22,15 +22,15 @@ export const WorkspaceLogo = observer(function WorkspaceLogo(props: Props) {
   return (
     <div
       className={cn(
-        `relative grid h-6 w-6 flex-shrink-0 place-items-center uppercase ${
-          !props.logo && "rounded-md bg-accent-primary text-on-color"
+        `relative grid h-6 w-6 flex-shrink-0 place-items-center overflow-hidden rounded-md uppercase ${
+          !props.logo && "bg-accent-primary text-on-color"
         } ${props.classNames ? props.classNames : ""}`
       )}
     >
       {props.logo && props.logo !== "" ? (
         <img
           src={getFileURL(props.logo)}
-          className="absolute top-0 left-0 h-full w-full rounded-md object-contain"
+          className="absolute top-0 left-0 h-full w-full object-contain"
           alt={t("aria_labels.projects_sidebar.workspace_logo")}
         />
       ) : (

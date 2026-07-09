@@ -10,7 +10,6 @@ import { observer } from "mobx-react";
 import type { TPowerKPageType } from "@/components/power-k/core/types";
 // local imports
 import { PowerKPreferencesLanguagesMenu } from "./languages-menu";
-import { PowerKPreferencesStartOfWeekMenu } from "./start-of-week-menu";
 import { PowerKPreferencesThemesMenu } from "./themes-menu";
 import { PowerKPreferencesTimezonesMenu } from "./timezone-menu";
 
@@ -26,7 +25,6 @@ export const PowerKAccountPreferencesPages = observer(function PowerKAccountPref
     <>
       {activePage === "update-theme" && <PowerKPreferencesThemesMenu onSelect={handleSelection} />}
       {activePage === "update-timezone" && <PowerKPreferencesTimezonesMenu onSelect={handleSelection} />}
-      {activePage === "update-start-of-week" && <PowerKPreferencesStartOfWeekMenu onSelect={handleSelection} />}
       {activePage === "update-language" && <PowerKPreferencesLanguagesMenu onSelect={handleSelection} />}
     </>
   );

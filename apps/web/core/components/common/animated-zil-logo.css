@@ -1,0 +1,236 @@
+/**
+ * Copyright (c) 2023-present Plane Software, Inc. and contributors
+ * SPDX-License-Identifier: AGPL-3.0-only
+ * See the LICENSE file for details.
+ */
+
+/* Ported from leads' AnimatedZilLogo ("Edición Mundial Argentina") — same
+ * keyframes/choreography, just relocated to Plane's component tree. */
+
+.animated-zil-logo {
+  display: inline-block;
+  position: relative;
+}
+
+.animated-zil-logo svg {
+  overflow: visible;
+}
+
+/* ============================================================
+   Coreografía POR ETAPAS (ciclo). El contenedor lleva data-stage y
+   cada etapa activa sus animaciones. Para sumar una etapa nueva:
+   agregá el id en STAGES (tsx) y su bloque [data-stage="id"] acá.
+
+   Estados base (ocultos): cada elemento aparece solo en su etapa.
+   ============================================================ */
+.zil-sol-move {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* Etapa "sun" → el Sol sube (mientras las estrellas suben y se van) y flota */
+[data-stage="sun"] .zil-sol-move {
+  animation:
+    zilSunEnter 2.4s ease-in-out both,
+    zilSunFloat 7s ease-in-out 2.4s infinite;
+}
+
+/* Etapa "stars" → el Sol baja (mientras las estrellas entran desde arriba) */
+[data-stage="stars"] .zil-sol-move {
+  animation: zilSunExit 2.4s ease-in-out both;
+}
+
+@keyframes zilSunEnter {
+  0% {
+    transform: translateY(60px) scale(0.8) rotate(-10deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0px) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes zilSunExit {
+  0% {
+    transform: translateY(0px) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(64px) scale(0.85) rotate(8deg);
+    opacity: 0;
+  }
+}
+
+@keyframes zilSunFloat {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+  25% {
+    transform: translate(0.6px, -1.2px) rotate(0.5deg);
+  }
+  50% {
+    transform: translate(-0.4px, 0.8px) rotate(-0.4deg);
+  }
+  75% {
+    transform: translate(0.5px, -1px) rotate(0.3deg);
+  }
+  100% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+}
+
+/* ============================================================
+   Etapa 3 · stars → caen las tres estrellas (una tras otra) DENTRO del
+   clip de las letras (forma estilo AFA, la del medio más grande; se
+   recortan a las letras a propósito). Etapa 4 · hold → quedan quietas
+   hasta reiniciar. Cada estrella es un nodo independiente.
+   ============================================================ */
+.zil-star {
+  fill: #ffffff;
+  stroke: none;
+}
+
+/* Las tres se mueven JUNTAS como un solo bloque, coordinadas con el sol:
+   mismo 2.4s ease-in-out. Fuera de escena quedan arriba (translateY -40px). */
+.zil-stars {
+  transform: translateY(-40px);
+  will-change: transform;
+}
+
+/* Etapa "stars": entran desde arriba mientras el sol baja, y luego flotan como el sol */
+[data-stage="stars"] .zil-stars {
+  animation:
+    zilStarsEnter 2.4s ease-in-out both,
+    zilStarsFloat 7s ease-in-out 2.4s infinite;
+}
+
+@keyframes zilStarsFloat {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+  25% {
+    transform: translate(0.6px, -1.2px) rotate(0.5deg);
+  }
+  50% {
+    transform: translate(-0.4px, 0.8px) rotate(-0.4deg);
+  }
+  75% {
+    transform: translate(0.5px, -1px) rotate(0.3deg);
+  }
+  100% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+}
+
+/* Etapa "sun": suben y se van mientras el sol aparece */
+[data-stage="sun"] .zil-stars {
+  animation: zilStarsExit 2.4s ease-in-out both;
+}
+
+@keyframes zilStarsEnter {
+  0% {
+    transform: translateY(-40px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes zilStarsExit {
+  0% {
+    transform: translateY(0px);
+  }
+  100% {
+    transform: translateY(-40px);
+  }
+}
+
+/* Sin movimiento: mostrar el estado con estrellas visibles */
+@media (prefers-reduced-motion: reduce) {
+  .zil-sol-move {
+    opacity: 1;
+    animation: none;
+  }
+  .zil-stars {
+    transform: none;
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Blob movement — hardware-accelerated CSS transforms
+   ============================================================ */
+.zil-blob {
+  will-change: transform;
+}
+
+.zil-blob-white1 {
+  animation: zilBlob1 4s ease-in-out infinite;
+}
+
+.zil-blob-cel1 {
+  animation: zilBlob2 4.8s ease-in-out infinite;
+}
+
+.zil-blob-white2 {
+  animation: zilBlob3 5.5s ease-in-out infinite;
+}
+
+.zil-blob-cel2 {
+  animation: zilBlob4 4.2s ease-in-out infinite;
+}
+
+@keyframes zilBlob1 {
+  0%,
+  100% {
+    transform: translate(0px, 0px);
+  }
+  40% {
+    transform: translate(24px, 12px);
+  }
+  70% {
+    transform: translate(-12px, 18px);
+  }
+}
+
+@keyframes zilBlob2 {
+  0%,
+  100% {
+    transform: translate(0px, 0px);
+  }
+  35% {
+    transform: translate(-26px, -14px);
+  }
+  70% {
+    transform: translate(16px, -18px);
+  }
+}
+
+@keyframes zilBlob3 {
+  0%,
+  100% {
+    transform: translate(0px, 0px);
+  }
+  40% {
+    transform: translate(20px, -15px);
+  }
+  70% {
+    transform: translate(-16px, 10px);
+  }
+}
+
+@keyframes zilBlob4 {
+  0%,
+  100% {
+    transform: translate(0px, 0px);
+  }
+  45% {
+    transform: translate(18px, -18px);
+  }
+  80% {
+    transform: translate(-18px, 8px);
+  }
+}
