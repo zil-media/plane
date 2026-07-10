@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e
 python manage.py wait_for_db
-# Wait for migrations
-python manage.py wait_for_migrations
+# Apply migrations on startup so deploys are self-contained: Watchtower
+# recreates this container on every new image but never re-runs the one-shot
+# migrator, which used to leave the API waiting forever on pending migrations.
+# Single API replica; worker/beat still wait_for_migrations, so no migrate races.
+python manage.py migrate --noinput
 
 # Create the default bucket
 #!/bin/bash
