@@ -225,6 +225,12 @@ from .notification.base import (
 
 from .exporter.base import ExportIssuesEndpoint
 
+from .importer.notion import (
+    NotionImportJobEndpoint,
+    NotionImportJobDetailEndpoint,
+    NotionImportJobRunEndpoint,
+)
+
 
 from .webhook.base import (
     WebhookEndpoint,
