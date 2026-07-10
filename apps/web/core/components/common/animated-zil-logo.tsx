@@ -41,7 +41,9 @@ const STAR_PATH =
  * Ported 1:1 from leads' `src/components/AnimatedZilLogo.tsx` — same
  * choreography/keyframes (see animated-zil-logo.css), only relocated into
  * Plane's component tree and pointed at a copy of the Sol de Mayo asset
- * under `public/zil/`.
+ * under `public/brand/` (NOT `public/zil/` — that path would become a real
+ * `/zil/` directory in the static web root and collide with the `zil`
+ * workspace slug, making nginx 403 the whole `/zil/` route).
  */
 export function AnimatedZilLogo({ size = 48, className = "" }: TAnimatedZilLogoProps) {
   const uniqueId = useId().replace(/:/g, "_");
@@ -97,7 +99,7 @@ export function AnimatedZilLogo({ size = 48, className = "" }: TAnimatedZilLogoP
           {/* Sol de Mayo — etapa "sun": sube y flota; etapa "sun-out": se va. */}
           <g className="zil-sol-move">
             <image
-              href="/zil/Sol_de_Mayo-Bandera_de_Argentina.svg"
+              href="/brand/Sol_de_Mayo-Bandera_de_Argentina.svg"
               x="-5.5"
               y="1"
               width="68"

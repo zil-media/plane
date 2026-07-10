@@ -185,11 +185,17 @@ def provision_user_workspaces(user, workspaces, authoritative=False):
     where `role` is either a Plane int (5/15/20) or a Zil role string.
 
     `authoritative` says whether the list is Zil's *confirmed* full desired
-    state. When True, memberships NOT in the list are deactivated — including
-    the case of an empty list (user removed from every BU → revoke all). When
-    False (the default — e.g. Zil's workspace computation failed and we only
-    have an empty/partial list), existing access is left untouched so a
-    transient error can never silently wipe a user's workspaces.
+    state. When True, memberships NOT in the list are deactivated. When False
+    (the default — e.g. Zil's workspace computation failed and we only have an
+    empty/partial list), existing access is left untouched so a transient error
+    can never silently wipe a user's workspaces.
+
+    Safety guard: an authoritative-but-EMPTY list never revokes anything. An
+    empty desired list is almost always a truncated/partial payload (a Zil
+    compute glitch or a dropped list), not a genuine "removed from every BU".
+    Revoking on it wipes a live user's access mid-session, so we refuse it —
+    real full-deprovision is explicit elsewhere (suspended → deactivate_user,
+    BU deactivated → deactivate_workspace).
 
     - creates/updates the Workspace for each BU
     - adds/updates the user's membership with the mapped role
@@ -255,10 +261,17 @@ def provision_user_workspaces(user, workspaces, authoritative=False):
 
     # Deactivate memberships for workspaces the user should no longer be in
     # (BU removed on the Zil side). Only when the list is authoritative — a
-    # non-authoritative empty list means "unknown" (compute error) and must NOT
-    # wipe access. An authoritative empty list DOES revoke everything (user
-    # removed from all BUs).
-    if authoritative:
+    # non-authoritative (or empty) list means "unknown/partial" and must NOT
+    # wipe access.
+    if authoritative and not desired_ws_ids:
+        # Authoritative but empty ⇒ almost certainly a truncated/partial payload.
+        # Refuse to revoke-all; leave existing access intact. (See docstring.)
+        logger.warning(
+            "Zil provisioning: authoritative but EMPTY desired workspace list "
+            "for user %s — refusing to revoke memberships (treated as partial payload)",
+            getattr(user, "email", user.pk),
+        )
+    if authoritative and desired_ws_ids:
         WorkspaceMember.objects.filter(member=user, is_active=True).exclude(
             workspace_id__in=desired_ws_ids
         ).update(is_active=False)

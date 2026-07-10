@@ -110,13 +110,18 @@ class ZilUserSyncEndpoint(ZilServiceView):
                 deactivate_user(email)
                 return Response({"status": "deactivated", "email": email}, status=status.HTTP_200_OK)
 
-            # A sync/user call is Zil's confirmed desired state for the user, so
-            # it's authoritative by default (empty list ⇒ revoke all). Zil may
-            # send authoritative:false to explicitly signal a non-confirmed list.
+            # A per-user event webhook is a PARTIAL signal by nature (one user
+            # changed), so it is NON-authoritative by default: it adds/updates
+            # the memberships it names but never revokes the ones it omits. This
+            # prevents a partial/truncated payload from wiping a live user's
+            # access mid-session. Zil must send authoritative:true explicitly to
+            # request a full per-user reconcile; genuine deprovision also has
+            # explicit paths (suspended → deactivate_user, BU off →
+            # ZilWorkspaceSyncEndpoint), and the nightly reconcile is authoritative.
             provision_user_workspaces(
                 user,
                 request.data.get("workspaces") or [],
-                authoritative=request.data.get("authoritative", True),
+                authoritative=request.data.get("authoritative", False),
             )
             return Response({"status": "synced", "email": email}, status=status.HTTP_200_OK)
         except Exception as e:
@@ -163,7 +168,10 @@ class ZilReconcileEndpoint(ZilServiceView):
                     users_deactivated += 1
                 else:
                     # Reconcile is the authoritative nightly snapshot of desired
-                    # state, so empty ⇒ revoke all for that user.
+                    # state, so it revokes memberships not in the list. An empty
+                    # list is treated as a partial/truncated payload by
+                    # provision_user_workspaces's own guard and revokes nothing
+                    # (see its docstring) — it does NOT wipe the user's access.
                     provision_user_workspaces(
                         existing, u.get("workspaces") or [], authoritative=u.get("authoritative", True)
                     )
