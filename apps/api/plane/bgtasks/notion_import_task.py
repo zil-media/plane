@@ -17,11 +17,13 @@ import hashlib
 import io
 import mimetypes
 import posixpath
+import shutil
+import tempfile
 from html import escape as html_escape
+from uuid import uuid4
 
 from bs4 import BeautifulSoup
 from celery import shared_task
-from django.core.files.base import ContentFile
 
 from plane.db.models import (
     FileAsset,
@@ -32,10 +34,13 @@ from plane.db.models import (
     Label,
     Page,
     ProjectPage,
+    State,
 )
+from plane.settings.storage import S3Storage
 from plane.utils.content_validator import validate_html_content
 from plane.utils.exception_logger import log_exception
 from plane.utils.importers.notion import NotionExportParser
+from plane.utils.path_validator import sanitize_filename
 from plane.utils.importers.notion.transformer import (
     ASSET_SCHEME,
     PAGE_SCHEME,
@@ -63,27 +68,26 @@ def notion_import_task(job_id):
 
 
 def _run_import(job):
-    # Prefer streaming from the storage file (S3/local both return a seekable
-    # handle) so we don't hold the whole archive in RAM; only fall back to a
-    # full in-memory copy if the backend hands back a non-seekable stream.
-    raw_fh = job.zip_file.open("rb")
+    # S3Storage is a presigned-URL helper, not a Django FileField backend, so
+    # job.zip_file.open() would raise. Stream the object from storage into a temp
+    # file (seekable, low-RAM) and hand that to the parser instead of buffering
+    # the whole archive in memory. See the upload endpoint for context.
+    storage = S3Storage()
+    tmp = tempfile.NamedTemporaryFile(suffix=".zip")
     try:
-        seekable = raw_fh.seekable()
-    except (AttributeError, ValueError):
-        seekable = False
-    if seekable:
-        source, keep_open = raw_fh, raw_fh
-    else:
-        source, keep_open = io.BytesIO(raw_fh.read()), None
-        raw_fh.close()
-
-    parser = NotionExportParser(source)
-    try:
-        return _import_with_parser(job, parser)
+        body = storage.s3_client.get_object(
+            Bucket=storage.aws_storage_bucket_name, Key=job.zip_file.name
+        )["Body"]
+        shutil.copyfileobj(body, tmp)
+        tmp.flush()
+        tmp.seek(0)
+        parser = NotionExportParser(tmp)
+        try:
+            return _import_with_parser(job, parser)
+        finally:
+            parser.close()
     finally:
-        parser.close()
-        if keep_open is not None:
-            keep_open.close()
+        tmp.close()
 
 
 def _import_with_parser(job, parser):
@@ -203,14 +207,23 @@ def _import_with_parser(job, parser):
         )
 
     plane_issues = {}  # notion uuid -> Issue
-    row_labels = _database_row_labels(parser, databases, database_modes)
+    row_metadata = _database_row_metadata(parser, databases, database_modes)
+    # match Notion Status -> project State (by name) and Priority -> Plane priority
+    project_states = {s.name.strip().lower(): s for s in State.objects.filter(project=project)}
     for database_uuid, uuid in work_item_rows:
         page = pages[uuid]
+        meta = row_metadata.get(uuid, {})
+        matched_state = project_states.get((meta.get("status") or "").strip().lower())
+        matched_priority = _match_priority(meta.get("priority"))
         existing = Issue.objects.filter(
             project=project, external_source=EXTERNAL_SOURCE, external_id=uuid
         ).first()
         if existing:
             existing.name = page["title"][:255]
+            if matched_state:
+                existing.state = matched_state
+            if matched_priority:
+                existing.priority = matched_priority
             existing.save(created_by_id=user.id)
             plane_issues[uuid] = existing
             report["work_items_updated"] += 1
@@ -220,13 +233,15 @@ def _import_with_parser(job, parser):
                 project=project,
                 name=page["title"][:255],
                 description_html="<p></p>",
+                state=matched_state,  # None -> Issue.save assigns the default state
+                priority=matched_priority or "none",
                 external_source=EXTERNAL_SOURCE,
                 external_id=uuid,
             )
             issue.save(created_by_id=user.id)
             plane_issues[uuid] = issue
             report["work_items_created"] += 1
-        for label_name in row_labels.get(uuid, []):
+        for label_name in meta.get("tags", []):
             label, _ = Label.objects.get_or_create(
                 project=project,
                 name=label_name,
@@ -412,13 +427,37 @@ def _upload_asset(parser, asset_path, workspace, project, user, page=None, issue
         external_id=external_id,
         created_by=user,
     )
-    asset.asset.save(filename, ContentFile(data), save=True)
+    # Store the object key on the FileField and push the bytes through
+    # S3Storage.upload_file — assigning a File to the field would hit the
+    # unsupported storage _save() path (see the upload endpoint for context).
+    asset_key = f"{workspace.id}/{uuid4().hex}-{sanitize_filename(filename) or uuid4().hex}"
+    asset.asset = asset_key
+    storage = S3Storage()
+    if not storage.upload_file(io.BytesIO(data), object_name=asset_key, content_type=content_type):
+        return None
+    asset.save()
     return asset
 
 
-def _database_row_labels(parser, databases, database_modes):
-    """Map database row uuid -> label names, from the export CSV Tags column."""
-    labels = {}
+# Notion priority column values (EN/ES) -> Plane Issue.priority
+_PRIORITY_ALIASES = {
+    "urgent": "urgent", "urgente": "urgent", "critical": "urgent", "crítica": "urgent", "critica": "urgent",
+    "high": "high", "alta": "high", "alto": "high",
+    "medium": "medium", "media": "medium", "medio": "medium", "normal": "medium",
+    "low": "low", "baja": "low", "bajo": "low",
+    "none": "none", "ninguna": "none", "sin prioridad": "none", "no priority": "none",
+}
+
+
+def _match_priority(value):
+    """Map a Notion priority cell to a Plane priority, or None when unknown."""
+    return _PRIORITY_ALIASES.get((value or "").strip().lower())
+
+
+def _database_row_metadata(parser, databases, database_modes):
+    """Per work-item row uuid -> {"tags": [...], "status": str, "priority": str},
+    read from the export CSV (Tags / Status / Priority columns, EN or ES)."""
+    metadata = {}
     for database_uuid, database in databases.items():
         if database_modes.get(database_uuid, "pages") != "work_items":
             continue
@@ -430,21 +469,34 @@ def _database_row_labels(parser, databases, database_modes):
         except KeyError:
             continue
         reader = csv_module.DictReader(io.StringIO(raw))
-        tag_field = next((f for f in reader.fieldnames or [] if f.strip().lower() in ("tags", "etiquetas")), None)
-        name_field = next((f for f in reader.fieldnames or [] if f.strip().lower() in ("name", "nombre")), None)
-        if not tag_field or not name_field:
+        fields = reader.fieldnames or []
+
+        def field(*names):
+            return next((f for f in fields if f.strip().lower() in names), None)
+
+        name_field = field("name", "nombre")
+        if not name_field:
             continue
+        tag_field = field("tags", "etiquetas")
+        status_field = field("status", "estado")
+        priority_field = field("priority", "prioridad")
         # match CSV rows to row pages by title (order-stable for duplicates)
         rows_by_title = {}
         for row_uuid in database["rows"]:
             rows_by_title.setdefault(parser.pages[row_uuid].title.strip(), []).append(row_uuid)
         for csv_row in reader:
             title = (csv_row.get(name_field) or "").strip()
-            tags = [t.strip() for t in (csv_row.get(tag_field) or "").split(",") if t.strip()]
             candidates = rows_by_title.get(title)
-            if candidates:
-                labels[candidates.pop(0)] = tags
-    return labels
+            if not candidates:
+                continue
+            metadata[candidates.pop(0)] = {
+                "tags": [t.strip() for t in (csv_row.get(tag_field) or "").split(",") if t.strip()]
+                if tag_field
+                else [],
+                "status": (csv_row.get(status_field) or "").strip() if status_field else "",
+                "priority": (csv_row.get(priority_field) or "").strip() if priority_field else "",
+            }
+    return metadata
 
 
 def _render_database_block(soup, database, mode, page_url, slug, project_id, pages):

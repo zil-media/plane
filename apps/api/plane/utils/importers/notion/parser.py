@@ -29,6 +29,10 @@ import zipfile
 import zlib
 from dataclasses import dataclass, field
 
+# Notion database properties (long text/rollups) can exceed Python's default
+# 128 KB CSV field limit, which would otherwise raise _csv.Error mid-parse.
+csv.field_size_limit(10 * 1024 * 1024)
+
 # `<Title> <uuid>.<ext>` — the standard Notion export filename
 FILENAME_RE = re.compile(r"^(?P<title>.*?) (?P<uuid>[0-9a-f]{32})(?P<all>_all)?\.(?P<ext>html|csv|md)$")
 # Disambiguated child folder: `<Title> <first4>-<last4>`

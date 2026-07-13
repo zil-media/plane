@@ -2,10 +2,14 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+# Python imports
+from uuid import uuid4
+
 # Django imports
 from django.db import transaction
 
 # Third Party imports
+from botocore.exceptions import BotoCoreError, ClientError
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -14,8 +18,11 @@ from plane.app.permissions import allow_permission, ROLE
 from plane.app.serializers import ImportJobSerializer
 from plane.bgtasks.notion_import_task import notion_import_task
 from plane.db.models import ImportJob, Project, Workspace, WorkspaceMember
+from plane.settings.storage import S3Storage
+from plane.utils.exception_logger import log_exception
 from plane.utils.importers.notion import NotionExportParser, NotionExportError
 from plane.utils.importers.notion.transformer import extract_comment_authors
+from plane.utils.path_validator import sanitize_filename
 
 # Module imports
 from .. import BaseAPIView
@@ -81,13 +88,35 @@ class NotionImportJobEndpoint(BaseAPIView):
         finally:
             parser.close()
 
+        # Persist the export to object storage. Plane's S3Storage is a
+        # presigned-URL helper, not a Django FileField backend (its __init__
+        # skips super().__init__()), so assigning the upload to the FileField
+        # would trigger the storage _save() path and raise. Upload the bytes
+        # ourselves (server-side, no request -> internal endpoint) and store
+        # only the resulting object key.
         uploaded_file.seek(0)
+        safe_name = sanitize_filename(uploaded_file.name) or "export.zip"
+        zip_key = f"{workspace.id}/imports/{uuid4().hex}-{safe_name[-100:]}"
+        storage = S3Storage()
+        try:
+            stored = storage.upload_file(uploaded_file, object_name=zip_key, content_type="application/zip")
+        except (BotoCoreError, ClientError) as e:
+            log_exception(e)
+            stored = False
+        if not stored:
+            return Response(
+                {
+                    "error": "Could not store the export in object storage. "
+                    "Verify the API can reach AWS_S3_ENDPOINT_URL and that the bucket exists."
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         job = ImportJob.objects.create(
             workspace=workspace,
             initiated_by=request.user,
             source="notion",
             status=ImportJob.Status.ANALYZED,
-            zip_file=uploaded_file,
+            zip_file=zip_key,
             manifest=manifest,
         )
         serializer = ImportJobSerializer(job)
@@ -112,7 +141,8 @@ class NotionImportJobDetailEndpoint(BaseAPIView):
                 {"error": "A running import cannot be deleted."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        job.zip_file.delete(save=False)
+        if job.zip_file:
+            S3Storage().delete_files([job.zip_file.name])
         job.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
