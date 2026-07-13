@@ -26,6 +26,7 @@ import io
 import posixpath
 import re
 import zipfile
+import zlib
 from dataclasses import dataclass, field
 
 # `<Title> <uuid>.<ext>` — the standard Notion export filename
@@ -39,6 +40,37 @@ HTML_TITLE_RE = re.compile(r"<title>(.*?)</title>", re.S)
 NESTED_PART_RE = re.compile(r".*-Part-\d+\.zip$")
 
 ASSET_EXTENSIONS_IGNORED = {"html", "csv", "md", "zip"}
+
+# Uncompressed-size ceiling per zip entry. The upload endpoint only caps the
+# *compressed* archive, so without this a deflate bomb (trivially 1000:1) inside
+# the size budget could expand to hundreds of GB and OOM the worker. No single
+# Notion export file (page HTML, CSV, asset, or nested part) should exceed this.
+MAX_ENTRY_BYTES = 256 * 1024 * 1024  # 256MB
+
+
+def _read_bounded(fileobj, max_bytes, label):
+    """Read a decompressing file object, raising if it exceeds ``max_bytes``.
+
+    Reads in chunks so a bomb is stopped after ~max_bytes rather than fully
+    decompressed into memory.
+    """
+    chunks = []
+    total = 0
+    while True:
+        try:
+            chunk = fileobj.read(1 << 20)  # 1MB
+        except (zlib.error, EOFError, OSError) as exc:
+            raise NotionExportError(f"corrupt_entry: '{label}' could not be decompressed ({exc}).")
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise NotionExportError(
+                f"entry_too_large: '{label}' decompresses beyond the "
+                f"{max_bytes // (1024 * 1024)}MB per-file limit; the export may be corrupt or malicious."
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
 
 
 class NotionExportError(Exception):
@@ -142,10 +174,11 @@ class NotionExportParser:
             },
         }
 
-    def read_entry(self, path):
-        """Return the raw bytes of an entry referenced by the manifest."""
+    def read_entry(self, path, max_bytes=MAX_ENTRY_BYTES):
+        """Return the raw bytes of an entry, bounding decompression size."""
         zf, info = self._entries[path]
-        return zf.read(info)
+        with zf.open(info) as fileobj:
+            return _read_bounded(fileobj, max_bytes, posixpath.basename(path))
 
     def close(self):
         for zf in self._zips:
@@ -166,7 +199,14 @@ class NotionExportParser:
         part_infos = [i for i in infos if NESTED_PART_RE.match(i.filename)]
         if part_infos and len(part_infos) == len(infos):
             for part in part_infos:
-                inner = zipfile.ZipFile(io.BytesIO(outer.read(part)))
+                try:
+                    with outer.open(part) as fileobj:
+                        raw = _read_bounded(fileobj, MAX_ENTRY_BYTES, part.filename)
+                    inner = zipfile.ZipFile(io.BytesIO(raw))
+                except (zipfile.BadZipFile, zlib.error, EOFError, OSError) as exc:
+                    raise NotionExportError(
+                        f"invalid_zip: a nested export part could not be opened ({exc})."
+                    )
                 self._zips.append(inner)
                 self._index_zip(inner)
         else:
@@ -295,9 +335,13 @@ class NotionExportParser:
     def _read_page_headers(self):
         for page in self.pages.values():
             try:
-                head = self.read_entry(page.path)[:4096].decode("utf-8", errors="replace")
+                zf, info = self._entries[page.path]
             except KeyError:
                 continue
+            # stream only the first 4KB — never decompress the whole page just
+            # to read its <title> and icon meta (guards the synchronous path)
+            with zf.open(info) as fileobj:
+                head = fileobj.read(4096).decode("utf-8", errors="replace")
             icon_match = PAGE_ICON_RE.search(head)
             if icon_match:
                 page.icon = icon_match.group(1)

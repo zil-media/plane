@@ -216,6 +216,20 @@ class TestComments:
         result = transform("<p>solo</p>")
         assert result.comments == []
 
+    def test_comment_html_escapes_markup(self):
+        # entity-encoded markup in an export comment must not become live HTML
+        malicious = (
+            '<div class="comments" id="b1">'
+            '<div class="comment"><span class="comment-author">X</span>'
+            "<p>&lt;img src=x onerror=alert(1)&gt;</p></div>"
+            "</div>"
+        )
+        result = transform(malicious)
+        assert len(result.comments) == 1
+        html = result.comments[0]["html"]
+        assert "<img" not in html
+        assert "&lt;img src=x onerror=alert(1)&gt;" in html
+
 
 class TestOutputHygiene:
     def test_whitespace_paragraphs_emptied(self):

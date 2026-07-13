@@ -345,6 +345,8 @@ CELERY_IMPORTS = (
     "plane.bgtasks.email_notification_task",
     "plane.bgtasks.cleanup_task",
     "plane.license.bgtasks.telemetry_metrics",
+    # importers
+    "plane.bgtasks.notion_import_task",
     # management tasks
     "plane.bgtasks.dummy_data_task",
     # issue version tasks

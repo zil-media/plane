@@ -59,6 +59,7 @@ export const NotionImportWizard = observer(function NotionImportWizard() {
   const [step, setStep] = useState<TWizardStep>("upload");
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [databaseModes, setDatabaseModes] = useState<Record<string, TNotionDatabaseMode>>({});
@@ -78,8 +79,14 @@ export const NotionImportWizard = observer(function NotionImportWizard() {
     {
       refreshInterval: 3000,
       onSuccess: (data) => {
+        setError(null);
         setJob(data);
         if (data.status !== "processing") setStep("result");
+      },
+      // a transient failure self-heals on the next tick, but surface a
+      // persistent one instead of spinning silently forever
+      onError: (err: any) => {
+        setError(err?.error ?? t("workspace_settings.settings.imports.notion.run_failed"));
       },
     }
   );
@@ -136,8 +143,9 @@ export const NotionImportWizard = observer(function NotionImportWizard() {
   );
 
   const handleRun = useCallback(async () => {
-    if (!job || !projectId) return;
+    if (!job || !projectId || running) return;
     setError(null);
+    setRunning(true);
     try {
       const modes = { ...suggestedModes, ...databaseModes };
       const users = { ...suggestedAuthors, ...authorMapping };
@@ -149,8 +157,10 @@ export const NotionImportWizard = observer(function NotionImportWizard() {
       setJob(updated);
     } catch (err: any) {
       setError(err?.error ?? t("workspace_settings.settings.imports.notion.run_failed"));
+    } finally {
+      setRunning(false);
     }
-  }, [job, projectId, databaseModes, suggestedModes, authorMapping, suggestedAuthors, slug, t]);
+  }, [job, projectId, running, databaseModes, suggestedModes, authorMapping, suggestedAuthors, slug, t]);
 
   const reset = useCallback(() => {
     setJob(null);
@@ -188,6 +198,7 @@ export const NotionImportWizard = observer(function NotionImportWizard() {
           setAuthorMapping={(author, userId) => setAuthorMapping((prev) => ({ ...prev, [author]: userId }))}
           onBack={() => setStep("review")}
           onRun={handleRun}
+          running={running}
         />
       )}
 
@@ -396,6 +407,7 @@ function ConfigureStep({
   setAuthorMapping,
   onBack,
   onRun,
+  running,
 }: {
   manifest: TNotionManifest;
   projectId: string | null;
@@ -406,6 +418,7 @@ function ConfigureStep({
   setAuthorMapping: (author: string, userId: string) => void;
   onBack: () => void;
   onRun: () => void;
+  running: boolean;
 }) {
   const { t } = useTranslation();
   const databases = Object.entries(manifest.databases);
@@ -489,10 +502,10 @@ function ConfigureStep({
       )}
 
       <div className="flex justify-between">
-        <Button variant="secondary" onClick={onBack}>
+        <Button variant="secondary" onClick={onBack} disabled={running}>
           {t("common.back")}
         </Button>
-        <Button variant="primary" disabled={!projectId} onClick={onRun}>
+        <Button variant="primary" disabled={!projectId || running} loading={running} onClick={onRun}>
           {t("workspace_settings.settings.imports.notion.start_import")}
         </Button>
       </div>

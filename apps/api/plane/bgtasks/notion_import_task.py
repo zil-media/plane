@@ -17,6 +17,7 @@ import hashlib
 import io
 import mimetypes
 import posixpath
+from html import escape as html_escape
 
 from bs4 import BeautifulSoup
 from celery import shared_task
@@ -44,7 +45,9 @@ from plane.utils.importers.notion.transformer import (
 EXTERNAL_SOURCE = "notion"
 
 
-@shared_task
+# Bounded so a hung/runaway import surfaces as FAILED instead of sitting in
+# PROCESSING forever: SoftTimeLimitExceeded is an Exception and is caught below.
+@shared_task(soft_time_limit=3600, time_limit=3900)
 def notion_import_task(job_id):
     job = ImportJob.objects.select_related("workspace", "project", "initiated_by").get(pk=job_id)
     try:
@@ -60,6 +63,30 @@ def notion_import_task(job_id):
 
 
 def _run_import(job):
+    # Prefer streaming from the storage file (S3/local both return a seekable
+    # handle) so we don't hold the whole archive in RAM; only fall back to a
+    # full in-memory copy if the backend hands back a non-seekable stream.
+    raw_fh = job.zip_file.open("rb")
+    try:
+        seekable = raw_fh.seekable()
+    except (AttributeError, ValueError):
+        seekable = False
+    if seekable:
+        source, keep_open = raw_fh, raw_fh
+    else:
+        source, keep_open = io.BytesIO(raw_fh.read()), None
+        raw_fh.close()
+
+    parser = NotionExportParser(source)
+    try:
+        return _import_with_parser(job, parser)
+    finally:
+        parser.close()
+        if keep_open is not None:
+            keep_open.close()
+
+
+def _import_with_parser(job, parser):
     workspace = job.workspace
     project = job.project
     user = job.initiated_by
@@ -67,8 +94,6 @@ def _run_import(job):
     # Notion comment author display name -> workspace member id
     author_mapping = (job.config or {}).get("users", {})
 
-    with job.zip_file.open("rb") as f:
-        parser = NotionExportParser(io.BytesIO(f.read()))
     manifest = parser.parse()
 
     pages = manifest["pages"]
@@ -95,8 +120,12 @@ def _run_import(job):
         return database_modes.get(database_uuid, "pages")
 
     page_order = []  # parents before children
+    visited = set()
 
     def walk(uuid):
+        if uuid in visited:
+            return
+        visited.add(uuid)
         page_order.append(uuid)
         for child in pages[uuid]["children"]:
             walk(child)
@@ -107,6 +136,18 @@ def _run_import(job):
 
     for root in manifest["root_pages"]:
         walk(root)
+
+    # Top-level (parentless) databases in "pages" mode are reached by no page
+    # walk above — their parent is None. Seed their rows explicitly so they are
+    # imported as pages instead of being silently dropped.
+    for database_uuid, database in databases.items():
+        if database_mode(database_uuid) != "pages":
+            continue
+        parent = database["parent"]
+        if parent is not None and parent in pages:
+            continue  # already handled when its embedding page was walked
+        for row in database["rows"]:
+            walk(row)
 
     work_item_rows = [
         (database_uuid, row)
@@ -216,7 +257,14 @@ def _run_import(job):
             comment_html = comment["html"]
             if actor_id is None and comment["author"]:
                 # keep attribution visible when the author has no mapped member
-                comment_html = f"<p><strong>{comment['author']} (Notion):</strong></p>{comment_html}"
+                author = html_escape(comment["author"])
+                comment_html = f"<p><strong>{author} (Notion):</strong></p>{comment_html}"
+            # comment_html bypasses IssueCommentSerializer (and its nh3 pass),
+            # so sanitize here too; the body is already escaped in the
+            # transformer, so a validation failure safely keeps that string.
+            is_valid, _, clean_comment = validate_html_content(comment_html)
+            if is_valid and clean_comment:
+                comment_html = clean_comment
             IssueComment.objects.create(
                 workspace=workspace,
                 project=project,
@@ -309,7 +357,6 @@ def _run_import(job):
             issue.description_html = final_html
             issue.save(created_by_id=user.id)
 
-    parser.close()
     report["warnings"] = report["warnings"][:100]
     return report
 

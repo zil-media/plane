@@ -139,6 +139,25 @@ class TestNotionExportParser:
         content = parser.read_entry(manifest["pages"][ROOT_UUID]["path"])
         assert b"Root body" in content
 
+    def test_read_entry_bounds_decompression(self, export_files):
+        # guards against decompression bombs: a tight per-entry cap raises
+        # instead of decompressing the whole entry into memory
+        parser, manifest = parse(export_files)
+        path = manifest["pages"][ROOT_UUID]["path"]
+        assert parser.read_entry(path)  # full read still works
+        with pytest.raises(NotionExportError, match="entry_too_large"):
+            parser.read_entry(path, max_bytes=4)
+
+    def test_corrupt_nested_part_rejected(self):
+        # a *-Part-N.zip entry that is not a valid zip is a clean 400, not a 500
+        outer = io.BytesIO()
+        with zipfile.ZipFile(outer, "w") as zf:
+            zf.writestr("Export-1234-Part-1.zip", b"not a real zip")
+        outer.seek(0)
+        parser = NotionExportParser(outer)
+        with pytest.raises(NotionExportError, match="invalid_zip"):
+            parser.parse()
+
     def test_markdown_export_rejected(self):
         files = {f"Private & Shared/Root {ROOT_UUID}.md": b"# Root"}
         with pytest.raises(NotionExportError, match="markdown_export"):

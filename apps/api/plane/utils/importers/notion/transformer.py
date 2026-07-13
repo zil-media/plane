@@ -25,6 +25,7 @@ extensions in ``packages/editor``:
 import posixpath
 import re
 from dataclasses import dataclass, field
+from html import escape as html_escape
 from urllib.parse import unquote, urlparse
 
 from bs4 import BeautifulSoup, NavigableString, Tag
@@ -502,10 +503,14 @@ class NotionHTMLTransformer:
             comment_id = item.get("id") or container.get("id") or ""
             if not comment_id:
                 self._warn("comment_without_id")
+            # ``text`` is already flattened plain text (get_text stripped every
+            # tag), and get_text decodes HTML entities — so escape it before
+            # wrapping in <p> to keep entity-encoded markup from the export
+            # (e.g. &lt;img onerror=...&gt;) inert. No formatting is lost.
             yield {
                 "id": comment_id or f"{index}",
                 "author": author,
-                "html": f"<p>{text}</p>",
+                "html": f"<p>{html_escape(text)}</p>",
             }
 
     # ------------------------------------------------------------------
