@@ -19,11 +19,14 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
+import { Badge } from "@plane/propel/badge";
 import { Button } from "@plane/propel/button";
 import { cn } from "@plane/utils";
+import { CustomSelect } from "@plane/ui";
 // components
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";
+import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 // services
@@ -175,7 +178,7 @@ export const NotionImportWizard = observer(function NotionImportWizard() {
       <WizardStepIndicator step={step} processing={job?.status === "processing"} />
 
       {error && (
-        <div className="border-red-500/30 bg-red-500/10 text-sm text-red-500 flex items-center gap-2 rounded-md border p-3">
+        <div className="flex items-center gap-2 rounded-lg border border-subtle bg-danger-subtle p-3 text-body-sm-regular text-danger-primary">
           <AlertTriangle className="size-4 shrink-0" />
           {error}
         </div>
@@ -221,16 +224,11 @@ function WizardStepIndicator({ step, processing }: { step: TWizardStep; processi
   ];
   const activeIndex = processing ? 3 : steps.findIndex((s) => s.key === step);
   return (
-    <div className="text-sm flex items-center gap-2">
+    <div className="flex items-center gap-2 text-body-sm-regular">
       {steps.map((s, index) => (
         <div key={s.key} className="flex items-center gap-2">
-          {index > 0 && <ChevronRight className="text-custom-text-400 size-3.5" />}
-          <span
-            className={cn("rounded-full px-2.5 py-0.5", {
-              "bg-custom-primary-100/10 text-custom-primary-100 font-medium": index === activeIndex,
-              "text-custom-text-400": index !== activeIndex,
-            })}
-          >
+          {index > 0 && <ChevronRight className="size-3.5 text-tertiary" />}
+          <span className={cn("text-tertiary", { "text-body-sm-medium text-primary": index === activeIndex })}>
             {index + 1}. {s.label}
           </span>
         </div>
@@ -260,11 +258,11 @@ function UploadStep({
   ];
   return (
     <div className="flex flex-col gap-y-4">
-      <div className="border-custom-border-200 rounded-lg border p-4">
-        <h4 className="text-sm mb-3 font-medium">
+      <div className="rounded-lg border border-subtle bg-layer-2 p-4">
+        <h4 className="mb-3 text-body-sm-medium text-primary">
           {t("workspace_settings.settings.imports.notion.instructions_title")}
         </h4>
-        <ol className="text-sm text-custom-text-300 flex list-inside list-decimal flex-col gap-y-1.5">
+        <ol className="flex list-inside list-decimal flex-col gap-y-1.5 text-body-sm-regular text-tertiary">
           {instructions.map((instruction) => (
             <li key={instruction}>{instruction}</li>
           ))}
@@ -275,19 +273,21 @@ function UploadStep({
         disabled={uploading}
         onClick={() => fileInputRef.current?.click()}
         className={cn(
-          "border-custom-border-300 text-custom-text-300 hover:border-custom-primary-100 hover:text-custom-primary-100 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-10 transition-colors",
+          "flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-subtle bg-layer-2 p-10 text-tertiary transition-colors hover:bg-layer-2-hover hover:text-primary",
           { "pointer-events-none opacity-60": uploading }
         )}
       >
         {uploading ? (
           <>
             <Loader2 className="size-6 animate-spin" />
-            <span className="text-sm">{uploadProgress}%</span>
+            <span className="text-body-sm-regular">{uploadProgress}%</span>
           </>
         ) : (
           <>
             <FileUp className="size-6" />
-            <span className="text-sm">{t("workspace_settings.settings.imports.notion.dropzone_label")}</span>
+            <span className="text-body-sm-regular">
+              {t("workspace_settings.settings.imports.notion.dropzone_label")}
+            </span>
           </>
         )}
       </button>
@@ -312,8 +312,8 @@ function ManifestTree({ manifest, uuid, depth }: { manifest: TNotionManifest; uu
   const databases = Object.entries(manifest.databases).filter(([, database]) => database.parent === uuid);
   return (
     <div style={{ paddingLeft: depth === 0 ? 0 : 16 }}>
-      <div className="text-sm flex items-center gap-1.5 py-0.5">
-        <FileText className="text-custom-text-400 size-3.5 shrink-0" />
+      <div className="flex items-center gap-1.5 py-0.5 text-body-sm-regular">
+        <FileText className="size-3.5 shrink-0 text-tertiary" />
         <span className="truncate">
           {page.icon && !page.icon.startsWith("/") && !page.icon.startsWith("http") ? `${page.icon} ` : ""}
           {page.title}
@@ -324,7 +324,7 @@ function ManifestTree({ manifest, uuid, depth }: { manifest: TNotionManifest; uu
       ))}
       {databases.map(([databaseUuid, database]) => (
         <div key={databaseUuid} style={{ paddingLeft: 16 }}>
-          <div className="text-sm text-custom-primary-100 flex items-center gap-1.5 py-0.5">
+          <div className="flex items-center gap-1.5 py-0.5 text-body-sm-regular text-primary">
             <Database className="size-3.5 shrink-0" />
             <span className="truncate">
               {database.title} · {database.rows.length}
@@ -349,7 +349,7 @@ function ReviewStep({
   const databaseCount = manifest.stats.databases;
   return (
     <div className="flex flex-col gap-y-4">
-      <div className="text-sm flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2">
         <SummaryChip
           label={t("workspace_settings.settings.imports.notion.summary_pages")}
           value={manifest.stats.pages}
@@ -367,11 +367,11 @@ function ReviewStep({
           value={manifest.stats.assets}
         />
       </div>
-      <p className="text-sm text-custom-text-300">
+      <p className="text-body-sm-regular text-tertiary">
         {t("workspace_settings.settings.imports.notion.review_pages_hint")}
         {databaseCount > 0 ? ` ${t("workspace_settings.settings.imports.notion.review_databases_hint")}` : ""}
       </p>
-      <div className="border-custom-border-200 max-h-80 overflow-y-auto rounded-lg border p-4">
+      <div className="max-h-80 overflow-y-auto rounded-lg border border-subtle bg-layer-2 p-4">
         {manifest.root_pages.map((uuid) => (
           <ManifestTree key={uuid} manifest={manifest} uuid={uuid} depth={0} />
         ))}
@@ -390,10 +390,10 @@ function ReviewStep({
 
 function SummaryChip({ label, value }: { label: string; value: number }) {
   return (
-    <div className="border-custom-border-200 flex items-center gap-1.5 rounded-md border px-2.5 py-1">
+    <Badge variant="neutral" size="lg">
       <span className="font-semibold">{value}</span>
-      <span className="text-custom-text-300">{label}</span>
-    </div>
+      <span className="text-tertiary">{label}</span>
+    </Badge>
   );
 }
 
@@ -423,89 +423,117 @@ function ConfigureStep({
   const { t } = useTranslation();
   const databases = Object.entries(manifest.databases);
   const commentAuthors = manifest.comment_authors ?? [];
+  const modeLabel = (mode: TNotionDatabaseMode) =>
+    mode === "work_items"
+      ? t("workspace_settings.settings.imports.notion.mode_work_items_title")
+      : t("workspace_settings.settings.imports.notion.mode_pages_title");
+  const modeDescription = (mode: TNotionDatabaseMode) =>
+    mode === "work_items"
+      ? t("workspace_settings.settings.imports.notion.mode_work_items_description")
+      : t("workspace_settings.settings.imports.notion.mode_pages_description");
+
   return (
     <div className="flex flex-col gap-y-5">
-      <div className="flex flex-col gap-y-1.5">
-        <h4 className="text-sm font-medium">{t("workspace_settings.settings.imports.notion.destination_title")}</h4>
-        <p className="text-sm text-custom-text-300">
-          {t("workspace_settings.settings.imports.notion.destination_description")}
-        </p>
-        <div className="w-60">
-          <ProjectDropdown
-            value={projectId}
-            onChange={(value) => {
-              if (!Array.isArray(value) && value) setProjectId(value);
-            }}
-            multiple={false}
-            buttonVariant="border-with-text"
-          />
-        </div>
+      {/* Destination + database modes */}
+      <div className="rounded-lg border border-subtle bg-layer-2">
+        <SettingsBoxedControlItem
+          className="rounded-none border-0 border-b"
+          title={
+            <>
+              {t("workspace_settings.settings.imports.notion.destination_title")}
+              <span className="text-danger-primary"> *</span>
+            </>
+          }
+          description={t("workspace_settings.settings.imports.notion.destination_description")}
+          control={
+            <ProjectDropdown
+              value={projectId}
+              onChange={(value) => {
+                if (!Array.isArray(value) && value) setProjectId(value);
+              }}
+              multiple={false}
+              buttonVariant="border-with-text"
+            />
+          }
+        />
+
+        {databases.map(([uuid, database], index) => {
+          const mode = databaseModes[uuid] ?? "pages";
+          return (
+            <SettingsBoxedControlItem
+              key={uuid}
+              className={cn("rounded-none border-0", { "border-b": index < databases.length - 1 })}
+              title={
+                <span className="flex items-center gap-2">
+                  <Database className="size-4 text-primary" />
+                  {database.title}
+                  <span className="text-caption-md-regular text-tertiary">
+                    · {database.rows.length} {t("workspace_settings.settings.imports.notion.rows")}
+                  </span>
+                </span>
+              }
+              description={modeDescription(mode)}
+              control={
+                <CustomSelect
+                  value={mode}
+                  onChange={(value: TNotionDatabaseMode) => setDatabaseMode(uuid, value)}
+                  label={modeLabel(mode)}
+                  buttonClassName="py-2 text-13"
+                  optionsClassName="w-48"
+                  placement="bottom-end"
+                >
+                  <CustomSelect.Option value="pages">
+                    {t("workspace_settings.settings.imports.notion.mode_pages_title")}
+                  </CustomSelect.Option>
+                  <CustomSelect.Option value="work_items">
+                    {t("workspace_settings.settings.imports.notion.mode_work_items_title")}
+                  </CustomSelect.Option>
+                </CustomSelect>
+              }
+            />
+          );
+        })}
       </div>
 
-      {databases.length > 0 && (
-        <div className="flex flex-col gap-y-3">
-          <h4 className="text-sm font-medium">{t("workspace_settings.settings.imports.notion.databases_title")}</h4>
-          {databases.map(([uuid, database]) => (
-            <div key={uuid} className="border-custom-border-200 rounded-lg border p-4">
-              <div className="text-sm mb-2 flex items-center gap-2 font-medium">
-                <Database className="text-custom-primary-100 size-4" />
-                {database.title}
-                <span className="font-normal text-custom-text-400">
-                  · {database.rows.length} {t("workspace_settings.settings.imports.notion.rows")}
-                </span>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <ModeCard
-                  active={databaseModes[uuid] !== "work_items"}
-                  title={t("workspace_settings.settings.imports.notion.mode_pages_title")}
-                  description={t("workspace_settings.settings.imports.notion.mode_pages_description")}
-                  onClick={() => setDatabaseMode(uuid, "pages")}
-                />
-                <ModeCard
-                  active={databaseModes[uuid] === "work_items"}
-                  title={t("workspace_settings.settings.imports.notion.mode_work_items_title")}
-                  description={t("workspace_settings.settings.imports.notion.mode_work_items_description")}
-                  onClick={() => setDatabaseMode(uuid, "work_items")}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
+      {/* Comment author mapping */}
       {commentAuthors.length > 0 && (
-        <div className="flex flex-col gap-y-3">
+        <div className="flex flex-col gap-y-2">
           <div>
-            <h4 className="text-sm font-medium">{t("workspace_settings.settings.imports.notion.authors_title")}</h4>
-            <p className="text-sm text-custom-text-300">
+            <h4 className="text-body-sm-medium text-primary">
+              {t("workspace_settings.settings.imports.notion.authors_title")}
+            </h4>
+            <p className="text-caption-md-regular text-tertiary">
               {t("workspace_settings.settings.imports.notion.authors_description")}
             </p>
           </div>
-          {commentAuthors.map((author) => (
-            <div
-              key={author}
-              className="border-custom-border-200 flex items-center justify-between rounded-lg border px-4 py-2.5"
-            >
-              <span className="text-sm">{author}</span>
-              <MemberDropdown
-                value={authorMapping[author] ?? null}
-                onChange={(value) => {
-                  if (!Array.isArray(value) && value) setAuthorMapping(author, value);
-                }}
-                multiple={false}
-                buttonVariant="border-with-text"
-                placeholder={t("workspace_settings.settings.imports.notion.author_unmapped")}
+          <div className="rounded-lg border border-subtle bg-layer-2">
+            {commentAuthors.map((author, index) => (
+              <SettingsBoxedControlItem
+                key={author}
+                className={cn("rounded-none border-0", { "border-b": index < commentAuthors.length - 1 })}
+                title={author}
+                control={
+                  <MemberDropdown
+                    value={authorMapping[author] ?? null}
+                    onChange={(value) => {
+                      if (!Array.isArray(value) && value) setAuthorMapping(author, value);
+                    }}
+                    multiple={false}
+                    buttonVariant="border-with-text"
+                    placeholder={t("workspace_settings.settings.imports.notion.author_unmapped")}
+                  />
+                }
               />
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
-      <div className="flex justify-between">
+      <div className="flex items-center justify-between">
         <Button variant="secondary" onClick={onBack} disabled={running}>
           {t("common.back")}
         </Button>
-        <Button variant="primary" disabled={!projectId || running} loading={running} onClick={onRun}>
+        <Button variant="primary" size="lg" disabled={!projectId || running} loading={running} onClick={onRun}>
           {t("workspace_settings.settings.imports.notion.start_import")}
         </Button>
       </div>
@@ -513,41 +541,15 @@ function ConfigureStep({
   );
 }
 
-function ModeCard({
-  active,
-  title,
-  description,
-  onClick,
-}: {
-  active: boolean;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex flex-col gap-1 rounded-md border p-3 text-left transition-colors",
-        active
-          ? "border-custom-primary-100 bg-custom-primary-100/5"
-          : "border-custom-border-200 hover:border-custom-border-400"
-      )}
-    >
-      <span className="text-sm font-medium">{title}</span>
-      <span className="text-xs text-custom-text-300">{description}</span>
-    </button>
-  );
-}
-
 function ProcessingStep({ manifest }: { manifest: TNotionManifest }) {
   const { t } = useTranslation();
   return (
-    <div className="border-custom-border-200 flex flex-col items-center gap-3 rounded-lg border p-10">
-      <Loader2 className="text-custom-primary-100 size-8 animate-spin" />
-      <p className="text-sm font-medium">{t("workspace_settings.settings.imports.notion.processing_title")}</p>
-      <p className="text-sm text-custom-text-300">
+    <div className="flex flex-col items-center gap-3 rounded-lg border border-subtle bg-layer-2 p-10">
+      <Loader2 className="size-8 animate-spin text-primary" />
+      <p className="text-body-sm-medium text-primary">
+        {t("workspace_settings.settings.imports.notion.processing_title")}
+      </p>
+      <p className="text-body-sm-regular text-tertiary">
         {manifest.stats.pages + manifest.stats.database_rows}{" "}
         {t("workspace_settings.settings.imports.notion.summary_pages").toLowerCase()} · {manifest.stats.assets}{" "}
         {t("workspace_settings.settings.imports.notion.summary_assets").toLowerCase()}
@@ -565,10 +567,8 @@ function ResultStep({ job, onRestart }: { job: TNotionImportJob; onRestart: () =
     <div className="flex flex-col gap-y-4">
       <div
         className={cn(
-          "text-sm flex items-center gap-2 rounded-lg border p-4 font-medium",
-          success
-            ? "border-green-500/30 bg-green-500/10 text-green-600"
-            : "border-red-500/30 bg-red-500/10 text-red-500"
+          "flex items-center gap-2 rounded-lg border border-subtle p-4 text-body-sm-medium",
+          success ? "bg-success-subtle text-success-primary" : "bg-danger-subtle text-danger-primary"
         )}
       >
         {success ? <CheckCircle2 className="size-5" /> : <AlertTriangle className="size-5" />}
@@ -577,7 +577,7 @@ function ResultStep({ job, onRestart }: { job: TNotionImportJob; onRestart: () =
           : t("workspace_settings.settings.imports.notion.failed_title")}
       </div>
       {success ? (
-        <div className="text-sm flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
           <SummaryChip
             label={t("workspace_settings.settings.imports.notion.report_pages_created")}
             value={(report.pages_created ?? 0) + (report.pages_updated ?? 0)}
@@ -598,12 +598,14 @@ function ResultStep({ job, onRestart }: { job: TNotionImportJob; onRestart: () =
           )}
         </div>
       ) : (
-        <p className="text-sm text-custom-text-300">{job.reason}</p>
+        <p className="text-body-sm-regular text-tertiary">{job.reason}</p>
       )}
       {success && (report.warnings?.length ?? 0) > 0 && (
-        <div className="border-custom-border-200 rounded-lg border p-4">
-          <h5 className="text-sm mb-2 font-medium">{t("workspace_settings.settings.imports.notion.warnings_title")}</h5>
-          <ul className="text-xs text-custom-text-300 flex list-inside list-disc flex-col gap-y-1">
+        <div className="rounded-lg border border-subtle bg-layer-2 p-4">
+          <h5 className="mb-2 text-body-sm-medium text-primary">
+            {t("workspace_settings.settings.imports.notion.warnings_title")}
+          </h5>
+          <ul className="flex list-inside list-disc flex-col gap-y-1 text-caption-md-regular text-tertiary">
             {Array.from(new Set(report.warnings))
               .slice(0, 20)
               .map((warning) => (
