@@ -22,6 +22,7 @@ _spec.loader.exec_module(transformer_module)
 
 NotionHTMLTransformer = transformer_module.NotionHTMLTransformer
 extract_comment_authors = transformer_module.extract_comment_authors
+extract_person_names = transformer_module.extract_person_names
 
 PAGE_PATH = "Private & Shared/Root/Page abcdefabcdefabcdefabcdefabcdefab.html"
 TARGET_UUID = "1234567890abcdef1234567890abcdef"
@@ -169,6 +170,25 @@ class TestDatabasesAndCallouts:
         assert f'data-notion-database="{db_uuid}"' in result.html
         assert db_uuid in result.database_refs
 
+    def test_collection_wrapper_marker_falls_back_to_page_uuid(self):
+        # new-format (2025 "data sources") export: the collection node has no
+        # database id — the marker carries the page uuid plus the row uuids
+        row_uuid = "5" * 32
+        dashed = f"{row_uuid[:8]}-{row_uuid[8:12]}-{row_uuid[12:16]}-{row_uuid[16:20]}-{row_uuid[20:]}"
+        body = (
+            '<div class="collection-content-wrapper"><table class="collection-content">'
+            f'<tbody><tr id="{dashed}"><td>Alpha</td></tr></tbody></table></div>'
+        )
+        result = transform(body)
+        assert 'data-notion-database="abcdefabcdefabcdefabcdefabcdefab"' in result.html
+        assert f'data-notion-rows="{row_uuid}"' in result.html
+
+    def test_bare_collection_table_becomes_marker(self):
+        body = '<table class="collection-content"><tbody><tr><td>x</td></tr></tbody></table>'
+        result = transform(body)
+        assert "data-notion-database" in result.html
+        assert "<td>" not in result.html
+
     def test_aside_callout_with_background(self):
         body = (
             '<aside class="block-color-gray_background callout" data-notion-callout=""'
@@ -190,6 +210,54 @@ class TestDatabasesAndCallouts:
         result = transform(body)
         assert 'data-block-type="callout-component"' in result.html
         assert "tip" in result.html
+
+
+class TestProperties:
+    HEADER = (
+        '<table class="properties"><tbody>'
+        '<tr class="property-row property-row-multi_select"><th><span class="icon">i</span>Diseños</th>'
+        '<td><span class="selected-value">Web</span><span class="selected-value">Branding</span></td></tr>'
+        '<tr class="property-row property-row-person"><th>Lead</th>'
+        '<td><span class="user"><span class="icon"><span>J</span></span>Joaquin Mesa</span></td></tr>'
+        '<tr class="property-row property-row-status"><th>Estado</th>'
+        '<td><span class="status-value"><div class="status-dot"></div>Correcciones</span></td></tr>'
+        '<tr class="property-row property-row-date"><th>Timeline</th>'
+        '<td><time datetime="2026-10-01">October 1, 2026 → December 15, 2026</time></td></tr>'
+        "</tbody></table>"
+    )
+
+    def transform_with_header(self):
+        transformer = NotionHTMLTransformer(PAGE_PATH)
+        html = (
+            f"<html><body><article><header>{self.HEADER}</header>"
+            '<div class="page-body"><p>body</p></div></article></body></html>'
+        )
+        return transformer.transform(html)
+
+    def test_typed_properties_extracted(self):
+        props = {p["name"]: p for p in self.transform_with_header().properties}
+        assert props["Diseños"]["values"] == ["Web", "Branding"]
+        # the letter avatar must not pollute the person name
+        assert props["Lead"]["values"] == ["Joaquin Mesa"]
+        assert props["Estado"]["type"] == "status"
+        assert props["Estado"]["values"] == ["Correcciones"]
+
+    def test_date_range_parsed(self):
+        props = {p["name"]: p for p in self.transform_with_header().properties}
+        assert props["Timeline"]["start"] == "2026-10-01"
+        assert props["Timeline"]["end"] == "2026-12-15"
+
+    def test_spanish_date_text_parsed(self):
+        assert transformer_module._parse_date_text("15 de diciembre de 2026") == "2026-12-15"
+
+    def test_properties_do_not_leak_into_html(self):
+        result = self.transform_with_header()
+        assert "Correcciones" not in result.html
+        assert result.html == "<p>body</p>"
+
+    def test_extract_person_names(self):
+        html = f"<html><body><article><header>{self.HEADER}</header></article></body></html>"
+        assert extract_person_names(html) == {"Joaquin Mesa"}
 
 
 class TestComments:

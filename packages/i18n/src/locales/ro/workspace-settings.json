@@ -222,8 +222,8 @@
           "warnings_title": "Avertismente",
           "open_pages": "Deschideți Paginile",
           "import_another": "Importați alt export",
-          "authors_title": "Autorii comentariilor",
-          "authors_description": "Asociați fiecare autor Notion cu un membru al spațiului de lucru. Autorii neasociați sunt păstrați ca notă în comentariu.",
+          "authors_title": "Persoane din Notion",
+          "authors_description": "Asociați fiecare persoană găsită în Notion (autori de comentarii și persoane din proprietăți) cu un membru al spațiului de lucru. Persoanele asociate devin responsabili și autori de comentarii; autorii neasociați sunt păstrați ca notă în comentariu.",
           "author_unmapped": "Neasociat",
           "report_comments": "Comentarii"
         }

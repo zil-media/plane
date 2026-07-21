@@ -222,8 +222,8 @@
           "warnings_title": "Uyarılar",
           "open_pages": "Sayfaları aç",
           "import_another": "Başka bir dışa aktarımı içe aktar",
-          "authors_title": "Yorum yazarları",
-          "authors_description": "Her Notion yazarını bir çalışma alanı üyesiyle eşleştirin. Eşleştirilmeyen yazarlar yorumun içinde not olarak korunur.",
+          "authors_title": "Notion'daki kişiler",
+          "authors_description": "Notion'da bulunan her kişiyi (yorum yazarları ve özelliklerdeki kişiler) bir çalışma alanı üyesiyle eşleştirin. Eşleştirilen kişiler atanan ve yorum yazarı olur; eşleştirilmeyen yazarlar yorumun içinde not olarak korunur.",
           "author_unmapped": "Eşleştirilmedi",
           "report_comments": "Yorumlar"
         }

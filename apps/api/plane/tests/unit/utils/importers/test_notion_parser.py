@@ -173,6 +173,61 @@ class TestNotionExportParser:
         with pytest.raises(NotionExportError, match="empty_export"):
             parse(files)
 
+    def test_data_source_export_format(self):
+        """New-format (2025 'data sources') export: `<DB> <dbuuid>.html`,
+        `<DB> <dbuuid>_<Source> <dsuuid>.csv`, rows under `<DB>/<Source>/`."""
+        db_page = "1a" * 16
+        ds1, ds2 = "2b" * 16, "3c" * 16
+        row1, row2, row3 = "4d" * 16, "5e" * 16, "6f" * 16
+        base = "Privado y Compartido"
+        files = {
+            f"{base}/Proyectos {db_page}.html": page_html("Proyectos"),
+            f"{base}/Proyectos {db_page}_Proyectos {ds1}.csv": "﻿Cliente,Estado\nAlpha,Hecho\nBeta,\n".encode("utf-8"),
+            f"{base}/Proyectos {db_page}_Nueva fuente {ds2}.csv": "﻿Nombre\nGamma\n".encode("utf-8"),
+            f"{base}/Proyectos/Proyectos/Alpha {row1}.html": page_html("Alpha"),
+            f"{base}/Proyectos/Proyectos/Beta {row2}.html": page_html("Beta"),
+            f"{base}/Proyectos/Nueva fuente/Gamma {row3}.html": page_html("Gamma"),
+            f"{base}/Proyectos/Proyectos/Alpha/doc.pdf": b"pdf-bytes",
+        }
+        _, manifest = parse(files)
+
+        assert manifest["root_pages"] == [db_page]
+        assert manifest["stats"] == {"pages": 1, "database_rows": 3, "databases": 2, "assets": 1}
+
+        source1 = manifest["databases"][ds1]
+        assert source1["title"] == "Proyectos"
+        assert source1["parent"] == db_page
+        assert source1["columns"] == ["Cliente", "Estado"]
+        assert sorted(source1["rows"]) == sorted([row1, row2])
+
+        source2 = manifest["databases"][ds2]
+        assert source2["title"] == "Nueva fuente"
+        assert source2["parent"] == db_page
+        assert source2["rows"] == [row3]
+
+        for row_uuid, ds_uuid in ((row1, ds1), (row2, ds1), (row3, ds2)):
+            assert manifest["pages"][row_uuid]["database"] == ds_uuid
+            assert manifest["pages"][row_uuid]["parent"] is None
+        assert any(asset.endswith("doc.pdf") for asset in manifest["pages"][row1]["assets"])
+
+    def test_full_page_database_with_bare_rows_folder(self):
+        """Full-page database export: html and csv share the uuid and the
+        rows folder carries no uuid suffix — rows parent to the db's page."""
+        db_uuid = "7a" * 16
+        row_uuid = "8b" * 16
+        base = "Private & Shared"
+        files = {
+            f"{base}/Clientes {db_uuid}.html": page_html("Clientes"),
+            f"{base}/Clientes {db_uuid}.csv": "﻿Name,Lead\nAdvantia,\n".encode("utf-8"),
+            f"{base}/Clientes/Advantia {row_uuid}.html": page_html("Advantia"),
+        }
+        _, manifest = parse(files)
+        assert manifest["root_pages"] == [db_uuid]
+        database = manifest["databases"][db_uuid]
+        assert database["parent"] == db_uuid
+        assert database["rows"] == [row_uuid]
+        assert manifest["pages"][row_uuid]["database"] == db_uuid
+
     def test_cp437_filename_decoding(self):
         # legacy zips without the utf-8 flag decode entry names as cp437
         raw = "Café.html".encode("utf-8").decode("cp437")

@@ -222,8 +222,8 @@
           "warnings_title": "Warnings",
           "open_pages": "Open Pages",
           "import_another": "Import another export",
-          "authors_title": "Comment authors",
-          "authors_description": "Link each Notion author to a workspace member. Unlinked authors are kept as a note inside the comment.",
+          "authors_title": "People from Notion",
+          "authors_description": "Link each person found in Notion (comment authors and people in properties) to a workspace member. Linked people become assignees and comment authors; unlinked comment authors are kept as a note inside the comment.",
           "author_unmapped": "Not linked",
           "report_comments": "Comments"
         }

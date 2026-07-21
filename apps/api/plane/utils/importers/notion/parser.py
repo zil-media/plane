@@ -17,6 +17,9 @@ Notion export layout rules this parser understands:
 - A database is a file named ``<Title> <32-hex-uuid>.csv`` (optionally
   with a ``_all`` variant carrying every property column). Each row is
   itself a page inside the matching sibling folder.
+- Newer exports (Notion "data sources", 2025+) name each database CSV
+  ``<DB Title> <db-uuid>_<Source Title> <source-uuid>.csv`` and nest the
+  row pages under ``<DB Title>/<Source Title>/`` — folders without uuids.
 - The outer download zip may nest the real export as ``*-Part-N.zip``.
 - Zip entry names may be encoded as cp437 when the UTF-8 flag is unset.
 """
@@ -35,6 +38,11 @@ csv.field_size_limit(10 * 1024 * 1024)
 
 # `<Title> <uuid>.<ext>` — the standard Notion export filename
 FILENAME_RE = re.compile(r"^(?P<title>.*?) (?P<uuid>[0-9a-f]{32})(?P<all>_all)?\.(?P<ext>html|csv|md)$")
+# `<DB Title> <db-uuid>_<Source Title> <source-uuid>.csv` — data-source CSV
+DATA_SOURCE_CSV_RE = re.compile(
+    r"^(?P<dbtitle>.*?) (?P<dbuuid>[0-9a-f]{32})"
+    r"_(?P<dstitle>.*?) (?P<dsuuid>[0-9a-f]{32})(?P<all>_all)?\.csv$"
+)
 # Disambiguated child folder: `<Title> <first4>-<last4>`
 SHORT_SUFFIX_RE = re.compile(r"^(?P<title>.*?) (?P<pre>[0-9a-f]{4})-(?P<suf>[0-9a-f]{4})$")
 # Page icon exported in the document head
@@ -100,6 +108,9 @@ class NotionDatabase:
     csv_path: str
     csv_all_path: str | None = None
     parent_uuid: str | None = None  # page embedding this database
+    # set for data-source CSVs: the database the source belongs to
+    source_db_uuid: str | None = None
+    source_db_title: str | None = None
     columns: list = field(default_factory=list)
     rows: list = field(default_factory=list)  # page uuids
 
@@ -239,6 +250,23 @@ class NotionExportParser:
     def _register_pages_and_databases(self):
         for path in self._entries:
             directory, filename = posixpath.split(path)
+            ds_match = DATA_SOURCE_CSV_RE.match(filename)
+            if ds_match:
+                database = self.databases.setdefault(
+                    ds_match["dsuuid"],
+                    NotionDatabase(
+                        uuid=ds_match["dsuuid"],
+                        title=ds_match["dstitle"],
+                        csv_path=path,
+                        source_db_uuid=ds_match["dbuuid"],
+                        source_db_title=ds_match["dbtitle"],
+                    ),
+                )
+                if ds_match["all"]:
+                    database.csv_all_path = path
+                else:
+                    database.csv_path = path
+                continue
             match = FILENAME_RE.match(filename)
             if not match:
                 continue
@@ -281,14 +309,39 @@ class NotionExportParser:
             return posixpath.dirname(owner.csv_path if isinstance(owner, NotionDatabase) else owner.path)
 
         # Most-specific names first so duplicated titles resolve correctly;
-        # each owner claims at most one folder.
-        for owner in owners:
-            claim(posixpath.join(base_dir(owner), f"{owner.title} {owner.uuid}"), owner.uuid)
-        for owner in owners:
-            short = f"{owner.title} {owner.uuid[:4]}-{owner.uuid[-4:]}"
-            claim(posixpath.join(base_dir(owner), short), owner.uuid)
-        for owner in owners:
-            claim(posixpath.join(base_dir(owner), owner.title), owner.uuid)
+        # each owner claims at most one folder. Data-source databases keep
+        # their rows one level deeper (`<db title>/<source title>`, either
+        # segment optionally carrying its uuid), so those candidates are
+        # tried alongside the classic single-folder ones at each tier.
+        def candidates(owner, rank):
+            base = base_dir(owner)
+            paths = []
+            if isinstance(owner, NotionDatabase) and owner.source_db_uuid:
+                db_full = f"{owner.source_db_title} {owner.source_db_uuid}"
+                db_short = f"{owner.source_db_title} {owner.source_db_uuid[:4]}-{owner.source_db_uuid[-4:]}"
+                ds_full = f"{owner.title} {owner.uuid}"
+                if rank == 0:
+                    paths += [
+                        posixpath.join(base, db_full, ds_full),
+                        posixpath.join(base, db_full, owner.title),
+                        posixpath.join(base, owner.source_db_title, ds_full),
+                    ]
+                elif rank == 1:
+                    paths.append(posixpath.join(base, db_short, owner.title))
+                else:
+                    paths.append(posixpath.join(base, owner.source_db_title, owner.title))
+            if rank == 0:
+                paths.append(posixpath.join(base, f"{owner.title} {owner.uuid}"))
+            elif rank == 1:
+                paths.append(posixpath.join(base, f"{owner.title} {owner.uuid[:4]}-{owner.uuid[-4:]}"))
+            else:
+                paths.append(posixpath.join(base, owner.title))
+            return paths
+
+        for rank in (0, 1, 2):
+            for owner in owners:
+                for folder in candidates(owner, rank):
+                    claim(folder, owner.uuid)
 
     def _link_hierarchy(self):
         for path, page in ((p.path, p) for p in self.pages.values()):
@@ -303,7 +356,15 @@ class NotionExportParser:
                 self.pages[owner_uuid].children.append(page.uuid)
 
         for database in self.databases.values():
-            database.parent_uuid = self._folder_owner.get(posixpath.dirname(database.csv_path))
+            # a data source's database exported as its own page is the parent;
+            # a full-page database (html and csv share the uuid) parents to its
+            # own page; otherwise fall back to the page owning the CSV's folder
+            if database.source_db_uuid and database.source_db_uuid in self.pages:
+                database.parent_uuid = database.source_db_uuid
+            elif database.uuid in self.pages:
+                database.parent_uuid = database.uuid
+            else:
+                database.parent_uuid = self._folder_owner.get(posixpath.dirname(database.csv_path))
 
         # Everything else in a page's folder is an asset of that page
         for path in self._entries:

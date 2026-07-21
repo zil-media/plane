@@ -222,8 +222,8 @@
           "warnings_title": "Peringatan",
           "open_pages": "Buka Halaman",
           "import_another": "Impor ekspor lainnya",
-          "authors_title": "Penulis komentar",
-          "authors_description": "Tautkan setiap penulis Notion dengan anggota ruang kerja. Penulis yang tidak ditautkan disimpan sebagai catatan di dalam komentar.",
+          "authors_title": "Orang dari Notion",
+          "authors_description": "Tautkan setiap orang yang ditemukan di Notion (penulis komentar dan orang di properti) dengan anggota ruang kerja. Orang yang ditautkan menjadi penugas dan penulis komentar; penulis yang tidak ditautkan disimpan sebagai catatan di dalam komentar.",
           "author_unmapped": "Tidak ditautkan",
           "report_comments": "Komentar"
         }

@@ -29,6 +29,7 @@ from plane.db.models import (
     FileAsset,
     ImportJob,
     Issue,
+    IssueAssignee,
     IssueComment,
     IssueLabel,
     Label,
@@ -210,11 +211,21 @@ def _import_with_parser(job, parser):
     row_metadata = _database_row_metadata(parser, databases, database_modes)
     # match Notion Status -> project State (by name) and Priority -> Plane priority
     project_states = {s.name.strip().lower(): s for s in State.objects.filter(project=project)}
+    unmapped_people = set()
     for database_uuid, uuid in work_item_rows:
         page = pages[uuid]
         meta = row_metadata.get(uuid, {})
-        matched_state = project_states.get((meta.get("status") or "").strip().lower())
+        # the typed header-table properties are the richest source (they keep
+        # working whatever the columns are named); the CSV is the fallback
+        props = transformed[uuid].properties
+        status_value = next(
+            (p["values"][0] for p in props if p["type"] == "status" and p["values"]), None
+        ) or meta.get("status")
+        matched_state = project_states.get((status_value or "").strip().lower())
         matched_priority = _match_priority(meta.get("priority"))
+        date_prop = next((p for p in props if p["type"] == "date"), None)
+        start_date = date_prop.get("start") if date_prop else None
+        target_date = date_prop.get("end") if date_prop else None
         existing = Issue.objects.filter(
             project=project, external_source=EXTERNAL_SOURCE, external_id=uuid
         ).first()
@@ -224,6 +235,10 @@ def _import_with_parser(job, parser):
                 existing.state = matched_state
             if matched_priority:
                 existing.priority = matched_priority
+            if start_date:
+                existing.start_date = start_date
+            if target_date:
+                existing.target_date = target_date
             existing.save(created_by_id=user.id)
             plane_issues[uuid] = existing
             report["work_items_updated"] += 1
@@ -235,13 +250,21 @@ def _import_with_parser(job, parser):
                 description_html="<p></p>",
                 state=matched_state,  # None -> Issue.save assigns the default state
                 priority=matched_priority or "none",
+                start_date=start_date,
+                target_date=target_date,
                 external_source=EXTERNAL_SOURCE,
                 external_id=uuid,
             )
             issue.save(created_by_id=user.id)
             plane_issues[uuid] = issue
             report["work_items_created"] += 1
-        for label_name in meta.get("tags", []):
+        label_names = list(meta.get("tags", []))
+        label_names += [v for p in props if p["type"] == "multi_select" for v in p["values"]]
+        seen_labels = set()
+        for label_name in label_names:
+            if label_name in seen_labels:
+                continue
+            seen_labels.add(label_name)
             label, _ = Label.objects.get_or_create(
                 project=project,
                 name=label_name,
@@ -252,6 +275,18 @@ def _import_with_parser(job, parser):
                 label=label,
                 defaults={"project": project, "workspace": workspace},
             )
+        for person in {v for p in props if p["type"] == "person" for v in p["values"]}:
+            member_id = author_mapping.get(person)
+            if member_id is None:
+                unmapped_people.add(person)
+                continue
+            IssueAssignee.objects.get_or_create(
+                issue=plane_issues[uuid],
+                assignee_id=member_id,
+                defaults={"project": project, "workspace": workspace},
+            )
+    for person in sorted(unmapped_people):
+        report["warnings"].append(f"unmapped_person:{person} — assignee skipped")
 
     # Notion comments: attach to work items using the author mapping; Plane
     # pages have no comment threads, so page comments are counted as skipped.
@@ -345,17 +380,46 @@ def _import_with_parser(job, parser):
                 else:
                     anchor.unwrap()
 
+        rendered_databases = set()
         for marker in soup.find_all("div", attrs={"data-notion-database": True}):
-            database_uuid = marker["data-notion-database"]
-            database = databases.get(database_uuid)
-            replacement = _render_database_block(
-                soup, database, database_mode(database_uuid),
-                page_url, slug, project_id, pages,
-            )
-            if replacement is not None:
-                marker.replace_with(replacement)
+            marker_uuid = marker["data-notion-database"]
+            marker_rows = set(filter(None, (marker.get("data-notion-rows") or "").split(",")))
+            if marker_uuid in databases:
+                targets = [marker_uuid]
             else:
-                marker.decompose()
+                # new-format collections carry the embedding page's uuid, not a
+                # database id — resolve by row uuids, else by database parent
+                targets = [
+                    db_uuid
+                    for db_uuid, db in databases.items()
+                    if marker_rows and marker_rows.intersection(db["rows"])
+                ] or [db_uuid for db_uuid, db in databases.items() if db["parent"] == marker_uuid]
+            for db_uuid in targets:
+                if db_uuid in rendered_databases:
+                    continue
+                rendered_databases.add(db_uuid)
+                replacement = _render_database_block(
+                    soup, databases[db_uuid], database_mode(db_uuid),
+                    page_url, slug, project_id, pages,
+                )
+                if replacement is not None:
+                    marker.insert_before(replacement)
+            marker.decompose()
+
+        # database rows imported as pages have no fields to carry their
+        # properties — keep them visible as a table at the top of the page
+        if uuid in plane_pages and pages[uuid]["database"] and result.properties:
+            props_table = soup.new_tag("table")
+            for prop in result.properties:
+                tr = soup.new_tag("tr")
+                for value in (prop["name"], prop["text"]):
+                    td = soup.new_tag("td")
+                    td_p = soup.new_tag("p")
+                    td_p.string = value
+                    td.append(td_p)
+                    tr.append(td)
+                props_table.append(tr)
+            soup.insert(0, props_table)
 
         final_html = str(soup).strip() or "<p></p>"
         is_valid, _, clean_html = validate_html_content(final_html)
@@ -475,6 +539,10 @@ def _database_row_metadata(parser, databases, database_modes):
             return next((f for f in fields if f.strip().lower() in names), None)
 
         name_field = field("name", "nombre")
+        if not name_field and fields:
+            # the title property is user-named ("Cliente", "Tarea", …) but
+            # Notion always exports it as the first CSV column
+            name_field = fields[0]
         if not name_field:
             continue
         tag_field = field("tags", "etiquetas")

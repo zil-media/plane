@@ -21,7 +21,7 @@ from plane.db.models import ImportJob, Project, Workspace, WorkspaceMember
 from plane.settings.storage import S3Storage
 from plane.utils.exception_logger import log_exception
 from plane.utils.importers.notion import NotionExportParser, NotionExportError
-from plane.utils.importers.notion.transformer import extract_comment_authors
+from plane.utils.importers.notion.transformer import extract_comment_authors, extract_person_names
 from plane.utils.path_validator import sanitize_filename
 
 # Module imports
@@ -66,7 +66,8 @@ class NotionImportJobEndpoint(BaseAPIView):
         parser = NotionExportParser(uploaded_file)
         try:
             manifest = parser.parse()
-            # collect Notion comment authors so the wizard can map them to members
+            # collect Notion comment authors and person-property names (leads,
+            # assignees, …) so the wizard can map them to workspace members
             authors = set()
             scanned = 0
             truncated = False
@@ -80,6 +81,7 @@ class NotionImportJobEndpoint(BaseAPIView):
                     continue
                 scanned += len(raw)
                 authors |= extract_comment_authors(raw)
+                authors |= extract_person_names(raw)
             manifest["comment_authors"] = sorted(authors)
             if truncated:
                 manifest["comment_authors_truncated"] = True

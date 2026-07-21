@@ -222,8 +222,8 @@
           "warnings_title": "Warnungen",
           "open_pages": "Seiten öffnen",
           "import_another": "Weiteren Export importieren",
-          "authors_title": "Kommentarautoren",
-          "authors_description": "Jeden Notion-Autor einem Mitglied des Arbeitsbereichs zuordnen. Nicht zugeordnete Autoren werden als Hinweis im Kommentar beibehalten.",
+          "authors_title": "Personen aus Notion",
+          "authors_description": "Jede in Notion gefundene Person (Kommentarautoren und Personen in Eigenschaften) einem Mitglied des Arbeitsbereichs zuordnen. Zugeordnete Personen werden als Zugewiesene und Kommentarautoren übernommen; nicht zugeordnete Autoren werden als Hinweis im Kommentar beibehalten.",
           "author_unmapped": "Nicht zugeordnet",
           "report_comments": "Kommentare"
         }

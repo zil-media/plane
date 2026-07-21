@@ -222,8 +222,8 @@
           "warnings_title": "Ostrzeżenia",
           "open_pages": "Otwórz Strony",
           "import_another": "Importuj kolejny eksport",
-          "authors_title": "Autorzy komentarzy",
-          "authors_description": "Połącz każdego autora z Notion z członkiem przestrzeni roboczej. Niepołączeni autorzy są zachowywani jako notatka w komentarzu.",
+          "authors_title": "Osoby z Notion",
+          "authors_description": "Połącz każdą osobę z Notion (autorów komentarzy i osoby we właściwościach) z członkiem przestrzeni roboczej. Połączone osoby stają się przypisanymi i autorami komentarzy; niepołączeni autorzy są zachowywani jako notatka w komentarzu.",
           "author_unmapped": "Niepołączony",
           "report_comments": "Komentarze"
         }

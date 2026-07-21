@@ -222,8 +222,8 @@
           "warnings_title": "警告",
           "open_pages": "開啟頁面",
           "import_another": "匯入其他匯出檔案",
-          "authors_title": "留言作者",
-          "authors_description": "將每位 Notion 作者關聯到工作區成員。未關聯的作者將作為備註保留在留言中。",
+          "authors_title": "Notion 人員",
+          "authors_description": "將 Notion 中找到的每位人員（留言作者和屬性中的人員）關聯到工作區成員。已關聯的人員將成為指派對象和留言作者；未關聯的作者將作為備註保留在留言中。",
           "author_unmapped": "未關聯",
           "report_comments": "留言"
         }

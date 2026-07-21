@@ -222,8 +222,8 @@
           "warnings_title": "Avvisi",
           "open_pages": "Apri le Pagine",
           "import_another": "Importa un'altra esportazione",
-          "authors_title": "Autori dei commenti",
-          "authors_description": "Colleghi ogni autore Notion a un membro dello spazio di lavoro. Gli autori non collegati vengono conservati come nota nel commento.",
+          "authors_title": "Persone da Notion",
+          "authors_description": "Colleghi ogni persona trovata in Notion (autori dei commenti e persone nelle proprietà) a un membro dello spazio di lavoro. Le persone collegate diventano assegnatari e autori dei commenti; gli autori non collegati vengono conservati come nota nel commento.",
           "author_unmapped": "Non collegato",
           "report_comments": "Commenti"
         }

@@ -31,6 +31,17 @@ from urllib.parse import unquote, urlparse
 from bs4 import BeautifulSoup, NavigableString, Tag
 
 FILENAME_UUID_RE = re.compile(r" ([0-9a-f]{32})\.html$")
+# `property-row property-row-<type>` on each row of the exported properties table
+PROPERTY_ROW_TYPE_RE = re.compile(r"^property-row-([a-z_]+)$")
+
+# Month names accepted when parsing exported date text (EN + ES)
+_MONTHS = {
+    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
+    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6,
+    "julio": 7, "agosto": 8, "septiembre": 9, "setiembre": 9, "octubre": 10,
+    "noviembre": 11, "diciembre": 12,
+}
 
 # Notion highlight color -> Plane editor color key (COLORS_LIST)
 NOTION_COLOR_MAP = {
@@ -61,6 +72,9 @@ class TransformResult:
     page_refs: list = field(default_factory=list)  # notion uuids referenced by links
     database_refs: list = field(default_factory=list)  # embedded database uuids
     comments: list = field(default_factory=list)  # [{"id", "author", "html"}]
+    # typed page properties from the exported header table:
+    # [{"name", "type", "values", "text"} (+ "start"/"end" for dates)]
+    properties: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
 
 
@@ -74,12 +88,31 @@ def extract_comment_authors(html_content):
     return {comment["author"] for comment in transformer._result.comments if comment["author"]}
 
 
+def extract_person_names(html_content):
+    """Return the distinct people named by person-type properties in a page."""
+    transformer = NotionHTMLTransformer(page_path="")
+    transformer._result = TransformResult(html="")
+    if isinstance(html_content, bytes):
+        html_content = html_content.decode("utf-8", errors="replace")
+    transformer._extract_properties(BeautifulSoup(html_content, "html.parser"))
+    return {
+        value
+        for prop in transformer._result.properties
+        if prop["type"] == "person"
+        for value in prop["values"]
+    }
+
+
 class NotionHTMLTransformer:
     """Transforms one exported Notion page into Plane editor HTML."""
 
     def __init__(self, page_path, known_assets=None):
         # directory of the page inside the zip — relative srcs resolve here
         self._base_dir = posixpath.dirname(page_path)
+        # the page's own uuid — new-format collection markup carries no
+        # database id, so markers fall back to the embedding page's uuid
+        uuid_match = FILENAME_UUID_RE.search(unquote(page_path))
+        self._page_uuid = uuid_match.group(1) if uuid_match else None
         # optional set of valid asset entry paths (to verify references)
         self._known_assets = known_assets
         self._result = None
@@ -90,6 +123,7 @@ class NotionHTMLTransformer:
         self._result = TransformResult(html="")
         soup = BeautifulSoup(html_content, "html.parser")
         self._extract_comments(soup)
+        self._extract_properties(soup)
         body = soup.find("div", class_="page-body") or soup.find("article") or soup
 
         out = BeautifulSoup("", "html.parser")
@@ -159,7 +193,7 @@ class NotionHTMLTransformer:
                     for child in list(column.children):
                         nodes.extend(self._transform_block(child, out))
                 return nodes
-            if "collection-content" in classes:
+            if "collection-content" in classes or "collection-content-wrapper" in classes:
                 return [self._transform_database_marker(node, out)]
             if "indented" in classes or not classes:
                 nodes = []
@@ -173,6 +207,8 @@ class NotionHTMLTransformer:
             return nodes
 
         if name == "table":
+            if "collection-content" in classes:
+                return [self._transform_database_marker(node, out)]
             return [self._transform_table(node, out)]
 
         if name == "img":
@@ -328,7 +364,17 @@ class NotionHTMLTransformer:
 
     def _transform_database_marker(self, node, out):
         database_uuid = (node.get("id") or "").replace("-", "")
-        marker = out.new_tag("div", attrs={"data-notion-database": database_uuid})
+        if not database_uuid:
+            # new-format collections have no id — the import task resolves
+            # the marker via the row uuids or the embedding page's uuid
+            database_uuid = self._page_uuid or ""
+        attrs = {"data-notion-database": database_uuid}
+        row_uuids = [
+            (tr.get("id") or "").replace("-", "") for tr in node.find_all("tr") if tr.get("id")
+        ]
+        if row_uuids:
+            attrs["data-notion-rows"] = ",".join(row_uuids)
+        marker = out.new_tag("div", attrs=attrs)
         if database_uuid:
             self._result.database_refs.append(database_uuid)
         return marker
@@ -456,6 +502,65 @@ class NotionHTMLTransformer:
             target.append(text)
 
     # ------------------------------------------------------------------
+    # page properties
+    # ------------------------------------------------------------------
+    def _extract_properties(self, soup):
+        """Read the typed properties table Notion exports in the page header.
+
+        Each row is ``<tr class="property-row property-row-<type>">`` with the
+        property name in ``<th>`` and typed markup in ``<td>``. The table lives
+        outside ``page-body``, so it never reaches the transformed content —
+        the import task maps these values onto work-item fields instead.
+        """
+        table = soup.find("table", class_="properties")
+        if table is None:
+            return
+        for row in table.find_all("tr", class_="property-row"):
+            prop_type = next(
+                (
+                    match.group(1)
+                    for cls in row.get("class") or []
+                    if (match := PROPERTY_ROW_TYPE_RE.match(cls))
+                ),
+                None,
+            )
+            th, td = row.find("th"), row.find("td")
+            if prop_type is None or th is None or td is None:
+                continue
+            for icon in th.find_all(class_="icon"):
+                icon.decompose()
+            name = th.get_text(" ", strip=True)
+            if not name:
+                continue
+            prop = {"name": name, "type": prop_type, "values": [], "text": ""}
+            if prop_type in ("multi_select", "select", "status"):
+                # select values export as `selected-value`, status as `status-value`
+                prop["values"] = [
+                    span.get_text(strip=True)
+                    for span in td.find_all("span", class_=["selected-value", "status-value"])
+                    if span.get_text(strip=True)
+                ]
+            elif prop_type == "person":
+                for user in td.find_all("span", class_="user"):
+                    for icon in user.find_all("span", class_="icon"):
+                        icon.decompose()  # letter avatars would pollute the name
+                    person = user.get_text(" ", strip=True)
+                    if person:
+                        prop["values"].append(person)
+            elif prop_type == "date":
+                stamps = [t["datetime"].split("T")[0] for t in td.find_all("time") if t.get("datetime")]
+                prop["start"] = stamps[0] if stamps else None
+                prop["end"] = stamps[1] if len(stamps) > 1 else None
+                if prop["end"] is None:
+                    # a single <time> renders ranges as text: "<start> → <end>"
+                    text = td.get_text(" ", strip=True)
+                    if "→" in text:
+                        prop["end"] = _parse_date_text(text.split("→")[-1])
+            prop["text"] = ", ".join(prop["values"]) or td.get_text(" ", strip=True)
+            if prop["text"]:
+                self._result.properties.append(prop)
+
+    # ------------------------------------------------------------------
     # comments
     # ------------------------------------------------------------------
     def _extract_comments(self, soup):
@@ -563,3 +668,19 @@ class NotionHTMLTransformer:
                 nxt.decompose()
                 continue  # re-check the same node against its new sibling
             current = nxt
+
+
+def _parse_date_text(text):
+    """Parse exported date text ("October 1, 2026", "1 de octubre de 2026",
+    or ISO) into ``YYYY-MM-DD``; returns None when unrecognized."""
+    text = text.strip().lower()
+    iso = re.search(r"(\d{4})-(\d{2})-(\d{2})", text)
+    if iso:
+        return iso.group(0)
+    english = re.search(r"([a-z]+) (\d{1,2}), (\d{4})", text)
+    if english and english.group(1) in _MONTHS:
+        return f"{int(english.group(3)):04d}-{_MONTHS[english.group(1)]:02d}-{int(english.group(2)):02d}"
+    spanish = re.search(r"(\d{1,2}) de ([a-záéíóúñ]+) de (\d{4})", text)
+    if spanish and spanish.group(2) in _MONTHS:
+        return f"{int(spanish.group(3)):04d}-{_MONTHS[spanish.group(2)]:02d}-{int(spanish.group(1)):02d}"
+    return None

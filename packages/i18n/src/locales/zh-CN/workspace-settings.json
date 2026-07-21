@@ -222,8 +222,8 @@
           "warnings_title": "警告",
           "open_pages": "打开页面",
           "import_another": "导入其他导出文件",
-          "authors_title": "评论作者",
-          "authors_description": "将每位 Notion 作者关联到工作区成员。未关联的作者将作为备注保留在评论中。",
+          "authors_title": "Notion 人员",
+          "authors_description": "将 Notion 中找到的每位人员（评论作者和属性中的人员）关联到工作区成员。已关联的人员将成为负责人和评论作者；未关联的作者将作为备注保留在评论中。",
           "author_unmapped": "未关联",
           "report_comments": "评论"
         }
