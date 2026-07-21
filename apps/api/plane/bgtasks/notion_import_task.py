@@ -17,12 +17,14 @@ import hashlib
 import io
 import mimetypes
 import posixpath
+import re
 import shutil
 import tempfile
 import time
 from html import escape as html_escape
 from uuid import uuid4
 
+from botocore.exceptions import BotoCoreError, ClientError
 from bs4 import BeautifulSoup
 from celery import shared_task
 from django.db import IntegrityError
@@ -70,6 +72,14 @@ def notion_import_task(job_id):
         job.status = ImportJob.Status.FAILED
         job.reason = str(e)[:2000]
         job.save(update_fields=["status", "reason", "updated_at"])
+    finally:
+        # the export zip is only needed during the run; drop it from storage
+        # once the job reaches a terminal state so imports don't accumulate
+        if job.zip_file:
+            try:
+                S3Storage().delete_files([job.zip_file.name])
+            except Exception as e:  # cleanup must never flip a COMPLETED job
+                log_exception(e)
 
 
 def _run_import(job):
@@ -80,9 +90,18 @@ def _run_import(job):
     storage = S3Storage()
     tmp = tempfile.NamedTemporaryFile(suffix=".zip")
     try:
-        body = storage.s3_client.get_object(
-            Bucket=storage.aws_storage_bucket_name, Key=job.zip_file.name
-        )["Body"]
+        # a transient S3 hiccup on the initial download shouldn't fail the whole
+        # import; retry with bounded backoff before giving up
+        for attempt in range(3):
+            try:
+                body = storage.s3_client.get_object(
+                    Bucket=storage.aws_storage_bucket_name, Key=job.zip_file.name
+                )["Body"]
+                break
+            except (BotoCoreError, ClientError):
+                if attempt == 2:
+                    raise
+                time.sleep(2**attempt)
         shutil.copyfileobj(body, tmp)
         tmp.flush()
         tmp.seek(0)
@@ -239,10 +258,25 @@ def _import_with_parser(job, parser):
         )
         return (value or row_metadata.get(row_uuid, {}).get("status") or "").strip()[:100]
 
+    # states the importer created before can be renamed in Plane; match those
+    # by external_id first so a rename doesn't spawn a duplicate on re-import
+    states_by_external_id = {
+        s.external_id: s
+        for s in State.all_state_objects.filter(
+            project=project, external_source=EXTERNAL_SOURCE, deleted_at__isnull=True
+        )
+        if s.external_id
+    }
+
     # create the Notion statuses missing from the project so rows keep their
     # original column instead of collapsing into the default state
     for status_name in sorted({row_status(uuid) for _, uuid in work_item_rows} - {""}):
         if status_name.lower() in project_states:
+            continue
+        status_external_id = hashlib.sha256(status_name.strip().lower().encode("utf-8")).hexdigest()
+        renamed = states_by_external_id.get(status_external_id)
+        if renamed is not None:
+            project_states[status_name.lower()] = renamed
             continue
         try:
             state = State(
@@ -252,6 +286,7 @@ def _import_with_parser(job, parser):
                 color="#60646C",
                 group=_match_state_group(status_name),
                 external_source=EXTERNAL_SOURCE,
+                external_id=status_external_id,
             )
             state.save(created_by_id=user.id)
             report["states_created"] += 1
@@ -317,18 +352,21 @@ def _import_with_parser(job, parser):
             plane_issues[uuid] = issue
             report["work_items_created"] += 1
         label_names = list(meta.get("tags", []))
-        label_names += [v for p in props if p["type"] == "multi_select" for v in p["values"]]
+        label_colors = {}  # label name -> Plane hex, from select/multi_select tags
+        for p in props:
+            if p["type"] == "multi_select":
+                for v in p["values"]:
+                    label_names.append(v)
+                    if p.get("colors", {}).get(v):
+                        label_colors[v] = p["colors"][v]
         seen_labels = set()
         for label_name in label_names:
             label_name = label_name[:255]
-            if label_name in seen_labels:
+            key = label_name.strip().lower()
+            if key in seen_labels:
                 continue
-            seen_labels.add(label_name)
-            label, _ = Label.objects.get_or_create(
-                project=project,
-                name=label_name,
-                defaults={"workspace": workspace, "created_by_id": user.id},
-            )
+            seen_labels.add(key)
+            label = _get_or_create_label(project, workspace, user, label_name, label_colors.get(label_name))
             IssueLabel.objects.get_or_create(
                 issue=plane_issues[uuid],
                 label=label,
@@ -382,11 +420,9 @@ def _import_with_parser(job, parser):
             continue
         issue = plane_issues[uuid]
         for comment in result.comments:
-            external_id = hashlib.sha256(f"{uuid}:{comment['id']}:{comment['html']}".encode("utf-8")).hexdigest()
-            if IssueComment.objects.filter(
-                issue=issue, external_source=EXTERNAL_SOURCE, external_id=external_id
-            ).exists():
-                continue
+            # external_id keyed on identity only (not html) so an edited Notion
+            # comment updates the same row instead of orphaning a duplicate
+            external_id = hashlib.sha256(f"{uuid}:{comment['id']}".encode("utf-8")).hexdigest()
             actor_id = author_mapping.get(comment["author"] or "")
             comment_html = comment["html"]
             if actor_id is None and comment["author"]:
@@ -399,6 +435,14 @@ def _import_with_parser(job, parser):
             is_valid, _, clean_comment = validate_html_content(comment_html)
             if is_valid and clean_comment:
                 comment_html = clean_comment
+            existing_comment = IssueComment.objects.filter(
+                issue=issue, external_source=EXTERNAL_SOURCE, external_id=external_id
+            ).first()
+            if existing_comment is not None:
+                if existing_comment.comment_html != comment_html:
+                    existing_comment.comment_html = comment_html
+                    existing_comment.save(update_fields=["comment_html"])
+                continue
             IssueComment.objects.create(
                 workspace=workspace,
                 project=project,
@@ -493,7 +537,9 @@ def _import_with_parser(job, parser):
                 if db_uuid in rendered_databases:
                     continue
                 rendered_databases.add(db_uuid)
-                replacement = _render_database_block(soup, databases[db_uuid], entity_url, pages)
+                replacement = _render_database_block(
+                    soup, databases[db_uuid], entity_url, pages, transformed
+                )
                 if replacement is not None:
                     marker.insert_before(replacement)
             marker.decompose()
@@ -634,17 +680,39 @@ def _match_priority(value):
 # keyword -> Plane state group, used when creating states for Notion statuses
 # (EN/ES). Checked in order; first substring hit wins, default "unstarted".
 _STATE_GROUP_KEYWORDS = (
-    ("cancelled", ("cancel", "cancelado", "cancelada", "suspendido", "suspendida", "pausado", "on hold", "descartado", "abandonado")),
-    ("completed", ("done", "complete", "completado", "completada", "terminado", "terminada", "finalizado", "finalizada", "hecho", "entrega", "delivered", "shipped", "cerrado")),
-    ("started", ("progress", "progreso", "en curso", "doing", "correcci", "revisi", "review", "desarrollo", "haciendo")),
-    ("backlog", ("backlog",)),
+    ("cancelled", ("cancel", "cancelado", "cancelada", "cancelados", "canceladas", "cancelled", "suspendido", "suspendida", "suspendidos", "suspendidas", "pausado", "pausados", "descartado", "descartados", "abandonado", "abandonados")),
+    ("completed", ("done", "complete", "completed", "completado", "completada", "completados", "completadas", "terminado", "terminada", "terminados", "finalizado", "finalizada", "finalizados", "hecho", "hechos", "entrega", "entregas", "entregado", "entregados", "delivered", "shipped", "cerrado", "cerrados")),
+    ("started", ("progress", "progreso", "curso", "doing", "correcciones", "revision", "revisión", "review", "desarrollo", "haciendo")),
+    ("backlog", ("backlog", "idea", "ideas")),
 )
+# multi-word phrases matched as substrings (word-token match can't see these)
+_STATE_GROUP_PHRASES = (
+    ("cancelled", ("on hold",)),
+    ("started", ("en curso", "in progress")),
+)
+
+
+def _get_or_create_label(project, workspace, user, name, color=None):
+    """Get an existing project label (case-insensitively) or create one,
+    applying the Notion tag color on creation."""
+    existing = Label.objects.filter(project=project, name__iexact=name).first()
+    if existing is not None:
+        return existing
+    defaults = {"workspace": workspace, "created_by_id": user.id}
+    if color:
+        defaults["color"] = color
+    label, _ = Label.objects.get_or_create(project=project, name=name, defaults=defaults)
+    return label
 
 
 def _match_state_group(name):
     lowered = name.strip().lower()
+    for group, phrases in _STATE_GROUP_PHRASES:
+        if any(phrase in lowered for phrase in phrases):
+            return group
+    tokens = set(re.split(r"[^0-9a-záéíóúñü]+", lowered))
     for group, keywords in _STATE_GROUP_KEYWORDS:
-        if any(keyword in lowered for keyword in keywords):
+        if tokens.intersection(keywords):
             return group
     return "unstarted"
 
@@ -698,32 +766,43 @@ def _database_row_metadata(parser, databases, database_modes):
     return metadata
 
 
-def _render_database_block(soup, database, entity_url, pages):
+def _render_database_block(soup, database, entity_url, pages, transformed):
     """Replace the collection marker with a table linking every imported row
-    (pages and work items alike)."""
+    (pages and work items alike), keeping the database's property columns so
+    the summary reads like the source grid rather than a bare link list."""
     if database is None:
         return None
-    table = soup.new_tag("table")
-    header_row = soup.new_tag("tr")
-    th = soup.new_tag("th")
-    th_p = soup.new_tag("p")
-    th_p.string = database["title"]
-    th.append(th_p)
-    header_row.append(th)
-    table.append(header_row)
-    for row_uuid in database["rows"]:
-        title = (pages.get(row_uuid) or {}).get("title") or row_uuid[:8]
-        url = entity_url(row_uuid)
-        tr = soup.new_tag("tr")
+
+    def cell(text, href=None):
         td = soup.new_tag("td")
         td_p = soup.new_tag("p")
-        if url:
-            a = soup.new_tag("a", href=url)
-            a.string = title
+        if href:
+            a = soup.new_tag("a", href=href)
+            a.string = text
             td_p.append(a)
         else:
-            td_p.string = title
+            td_p.string = text
         td.append(td_p)
-        tr.append(td)
+        return td
+
+    # property columns beyond the title, capped so wide databases stay readable
+    columns = [c for c in database.get("columns", []) if c][1:5]
+    table = soup.new_tag("table")
+    header_row = soup.new_tag("tr")
+    for header in [database["title"]] + columns:
+        th = soup.new_tag("th")
+        th_p = soup.new_tag("p")
+        th_p.string = header
+        th.append(th_p)
+        header_row.append(th)
+    table.append(header_row)
+
+    for row_uuid in database["rows"]:
+        title = (pages.get(row_uuid) or {}).get("title") or row_uuid[:8]
+        props_by_name = {p["name"]: p["text"] for p in transformed.get(row_uuid).properties} if transformed.get(row_uuid) else {}
+        tr = soup.new_tag("tr")
+        tr.append(cell(title, entity_url(row_uuid)))
+        for column in columns:
+            tr.append(cell(props_by_name.get(column, "")))
         table.append(tr)
     return table

@@ -58,6 +58,25 @@ NOTION_COLOR_MAP = {
     "default": None,
 }
 
+# Notion select/status tag color name -> Plane label hex (Label.color).
+# Class shape: `select-value-color-<name>` / `status-value-color-<name>`.
+NOTION_LABEL_HEX = {
+    "gray": "#6b7280", "brown": "#92400e", "orange": "#f59e0b", "yellow": "#eab308",
+    "green": "#22c55e", "blue": "#3b82f6", "purple": "#a855f7", "pink": "#ec4899",
+    "red": "#ef4444", "default": "#6b7280",
+}
+_VALUE_COLOR_RE = re.compile(r"(?:select|status)-value-color-([a-z]+)")
+
+
+def _tag_color(span):
+    """Plane hex for a select/status value span, or None."""
+    for cls in span.get("class") or []:
+        match = _VALUE_COLOR_RE.match(cls)
+        if match:
+            return NOTION_LABEL_HEX.get(match.group(1))
+    return None
+
+
 INLINE_KEEP_TAGS = {"strong", "em", "u", "s", "del", "code", "br", "sup", "sub"}
 BLOCK_PASSTHROUGH_TAGS = {"h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "hr"}
 
@@ -101,6 +120,26 @@ def extract_person_names(html_content):
         if prop["type"] == "person"
         for value in prop["values"]
     }
+
+
+def extract_people(html_content):
+    """Return every distinct person name in a page (comment authors + person
+    properties) from a single parse — the wizard maps them to members."""
+    transformer = NotionHTMLTransformer(page_path="")
+    transformer._result = TransformResult(html="")
+    if isinstance(html_content, bytes):
+        html_content = html_content.decode("utf-8", errors="replace")
+    soup = BeautifulSoup(html_content, "html.parser")
+    transformer._extract_comments(soup)
+    transformer._extract_properties(soup)
+    people = {c["author"] for c in transformer._result.comments if c["author"]}
+    people |= {
+        value
+        for prop in transformer._result.properties
+        if prop["type"] == "person"
+        for value in prop["values"]
+    }
+    return people
 
 
 class NotionHTMLTransformer:
@@ -291,14 +330,18 @@ class NotionHTMLTransformer:
             return [self._transform_callout(node, out)]
         if "link-to-page" in classes or "bookmark" in classes:
             link = node.find("a")
-            if link is None:
-                return []
-            href = self._rewrite_href(link.get("href", ""))
+            raw_href = link.get("href", "") if link else ""
+            if not raw_href:
+                # bookmark variant: the URL sits in a <div class="source">
+                source = node.find("div", class_="source")
+                raw_href = source.get_text(strip=True) if source else ""
+            href = self._rewrite_href(raw_href)
             if not href:
                 return []
             p = out.new_tag("p")
             a = out.new_tag("a", href=href)
-            a.string = link.get_text(" ", strip=True) or link.get("href", "")
+            label = (link.get_text(" ", strip=True) if link else "") or raw_href
+            a.string = _clean_link_text(label)
             p.append(a)
             return [p]
         if "image" in classes or node.find("img"):
@@ -556,14 +599,17 @@ class NotionHTMLTransformer:
             name = th.get_text(" ", strip=True)
             if not name:
                 continue
-            prop = {"name": name, "type": prop_type, "values": [], "text": ""}
+            prop = {"name": name, "type": prop_type, "values": [], "text": "", "colors": {}}
             if prop_type in ("multi_select", "select", "status"):
                 # select values export as `selected-value`, status as `status-value`
-                prop["values"] = [
-                    span.get_text(strip=True)
-                    for span in td.find_all("span", class_=["selected-value", "status-value"])
-                    if span.get_text(strip=True)
-                ]
+                for span in td.find_all("span", class_=["selected-value", "status-value"]):
+                    value = span.get_text(strip=True)
+                    if not value:
+                        continue
+                    prop["values"].append(value)
+                    color = _tag_color(span)
+                    if color:
+                        prop["colors"][value] = color
             elif prop_type == "person":
                 for user in td.find_all("span", class_="user"):
                     for icon in user.find_all("span", class_="icon"):
@@ -677,6 +723,7 @@ class NotionHTMLTransformer:
         if self._known_assets is None or asset_path in self._known_assets:
             self._result.asset_paths.append(asset_path)
             return f"{ASSET_SCHEME}{asset_path}"
+        self._warn(f"missing_asset:{asset_path}")
         return ""
 
     def _resolve_relative(self, src):
@@ -704,6 +751,14 @@ class NotionHTMLTransformer:
                 nxt.decompose()
                 continue  # re-check the same node against its new sibling
             current = nxt
+
+
+_ATTACHMENT_PREFIX_RE = re.compile(r"^attachment:[0-9a-f-]+:", re.I)
+
+
+def _clean_link_text(text):
+    """Strip Notion's internal ``attachment:<uuid>:`` prefix from link labels."""
+    return _ATTACHMENT_PREFIX_RE.sub("", text or "").strip() or (text or "").strip()
 
 
 def _parse_date_text(text):

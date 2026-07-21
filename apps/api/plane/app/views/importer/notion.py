@@ -23,7 +23,7 @@ from plane.db.models import ImportJob, Project, Workspace, WorkspaceMember
 from plane.settings.storage import S3Storage
 from plane.utils.exception_logger import log_exception
 from plane.utils.importers.notion import NotionExportParser, NotionExportError
-from plane.utils.importers.notion.transformer import extract_comment_authors, extract_person_names
+from plane.utils.importers.notion.transformer import extract_people
 from plane.utils.path_validator import sanitize_filename
 
 # Module imports
@@ -74,16 +74,22 @@ class NotionImportJobEndpoint(BaseAPIView):
             scanned = 0
             truncated = False
             for page in manifest["pages"].values():
-                if scanned >= AUTHOR_SCAN_BYTE_BUDGET:
+                remaining = AUTHOR_SCAN_BYTE_BUDGET - scanned
+                if remaining <= 0:
                     truncated = True
                     break
                 try:
-                    raw = parser.read_entry(page["path"])
+                    # cap each read to the remaining budget so a single large
+                    # page can't overshoot the declared scan ceiling
+                    raw = parser.read_entry(page["path"], max_bytes=remaining)
+                except NotionExportError:
+                    truncated = True
+                    break
                 except KeyError:
                     continue
                 scanned += len(raw)
-                authors |= extract_comment_authors(raw)
-                authors |= extract_person_names(raw)
+                # one parse per page yields both authors and person names
+                authors |= extract_people(raw)
             manifest["comment_authors"] = sorted(authors)
             if truncated:
                 manifest["comment_authors_truncated"] = True

@@ -287,6 +287,27 @@ class TestProperties:
     def test_spanish_date_text_parsed(self):
         assert transformer_module._parse_date_text("15 de diciembre de 2026") == "2026-12-15"
 
+    def test_multi_select_colors_extracted(self):
+        header = (
+            '<table class="properties"><tbody>'
+            '<tr class="property-row property-row-multi_select"><th>Diseños</th>'
+            '<td><span class="selected-value select-value-color-blue">Web</span>'
+            '<span class="selected-value select-value-color-green">Branding</span></td></tr>'
+            "</tbody></table>"
+        )
+        transformer = NotionHTMLTransformer(PAGE_PATH)
+        result = transformer.transform(
+            f"<html><body><article><header>{header}</header>"
+            '<div class="page-body"><p>x</p></div></article></body></html>'
+        )
+        prop = result.properties[0]
+        assert prop["colors"]["Web"] == "#3b82f6"
+        assert prop["colors"]["Branding"] == "#22c55e"
+
+    def test_attachment_prefix_stripped_from_link_text(self):
+        assert transformer_module._clean_link_text("attachment:abc-123:Report.pdf") == "Report.pdf"
+        assert transformer_module._clean_link_text("Plain label") == "Plain label"
+
     def test_checkbox_property_extracted(self):
         header = (
             '<table class="properties"><tbody>'
