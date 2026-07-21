@@ -34,6 +34,7 @@ from plane.db.models import (
     IssueLabel,
     Label,
     Page,
+    ProjectMember,
     ProjectPage,
     State,
 )
@@ -115,6 +116,7 @@ def _import_with_parser(job, parser):
         "comments_created": 0,
         "page_comments_skipped": 0,
         "assets_uploaded": 0,
+        "states_created": 0,
         "warnings": [],
     }
 
@@ -211,17 +213,39 @@ def _import_with_parser(job, parser):
     row_metadata = _database_row_metadata(parser, databases, database_modes)
     # match Notion Status -> project State (by name) and Priority -> Plane priority
     project_states = {s.name.strip().lower(): s for s in State.objects.filter(project=project)}
+
+    def row_status(row_uuid):
+        # the typed header-table properties are the richest source (they keep
+        # working whatever the columns are named); the CSV is the fallback
+        value = next(
+            (p["values"][0] for p in transformed[row_uuid].properties if p["type"] == "status" and p["values"]),
+            None,
+        )
+        return (value or row_metadata.get(row_uuid, {}).get("status") or "").strip()
+
+    # create the Notion statuses missing from the project so rows keep their
+    # original column instead of collapsing into the default state
+    for status_name in sorted({row_status(uuid) for _, uuid in work_item_rows} - {""}):
+        if status_name.lower() in project_states:
+            continue
+        state = State(
+            workspace=workspace,
+            project=project,
+            name=status_name,
+            color="#60646C",
+            group=_match_state_group(status_name),
+            external_source=EXTERNAL_SOURCE,
+        )
+        state.save(created_by_id=user.id)
+        project_states[status_name.lower()] = state
+        report["states_created"] += 1
+
     unmapped_people = set()
     for database_uuid, uuid in work_item_rows:
         page = pages[uuid]
         meta = row_metadata.get(uuid, {})
-        # the typed header-table properties are the richest source (they keep
-        # working whatever the columns are named); the CSV is the fallback
         props = transformed[uuid].properties
-        status_value = next(
-            (p["values"][0] for p in props if p["type"] == "status" and p["values"]), None
-        ) or meta.get("status")
-        matched_state = project_states.get((status_value or "").strip().lower())
+        matched_state = project_states.get(row_status(uuid).lower())
         matched_priority = _match_priority(meta.get("priority"))
         date_prop = next((p for p in props if p["type"] == "date"), None)
         start_date = date_prop.get("start") if date_prop else None
@@ -280,6 +304,16 @@ def _import_with_parser(job, parser):
             if member_id is None:
                 unmapped_people.add(person)
                 continue
+            # assignees must be project members for Plane to list and filter
+            # them — bring mapped workspace members into the project
+            project_member, _ = ProjectMember.objects.get_or_create(
+                project=project,
+                member_id=member_id,
+                defaults={"workspace": workspace, "role": 15},
+            )
+            if not project_member.is_active:
+                project_member.is_active = True
+                project_member.save()
             IssueAssignee.objects.get_or_create(
                 issue=plane_issues[uuid],
                 assignee_id=member_id,
@@ -516,6 +550,24 @@ _PRIORITY_ALIASES = {
 def _match_priority(value):
     """Map a Notion priority cell to a Plane priority, or None when unknown."""
     return _PRIORITY_ALIASES.get((value or "").strip().lower())
+
+
+# keyword -> Plane state group, used when creating states for Notion statuses
+# (EN/ES). Checked in order; first substring hit wins, default "unstarted".
+_STATE_GROUP_KEYWORDS = (
+    ("cancelled", ("cancel", "cancelado", "cancelada", "suspendido", "suspendida", "pausado", "on hold", "descartado", "abandonado")),
+    ("completed", ("done", "complete", "completado", "completada", "terminado", "terminada", "finalizado", "finalizada", "hecho", "entrega", "delivered", "shipped", "cerrado")),
+    ("started", ("progress", "progreso", "en curso", "doing", "correcci", "revisi", "review", "desarrollo", "haciendo")),
+    ("backlog", ("backlog",)),
+)
+
+
+def _match_state_group(name):
+    lowered = name.strip().lower()
+    for group, keywords in _STATE_GROUP_KEYWORDS:
+        if any(keyword in lowered for keyword in keywords):
+            return group
+    return "unstarted"
 
 
 def _database_row_metadata(parser, databases, database_modes):
