@@ -82,9 +82,13 @@ class NotionImportJobEndpoint(BaseAPIView):
                     # cap each read to the remaining budget so a single large
                     # page can't overshoot the declared scan ceiling
                     raw = parser.read_entry(page["path"], max_bytes=remaining)
-                except NotionExportError:
-                    truncated = True
-                    break
+                except NotionExportError as e:
+                    # over-budget = stop scanning; a single corrupt page = skip
+                    # it and keep scanning the rest
+                    if "entry_too_large" in str(e):
+                        truncated = True
+                        break
+                    continue
                 except KeyError:
                     continue
                 scanned += len(raw)

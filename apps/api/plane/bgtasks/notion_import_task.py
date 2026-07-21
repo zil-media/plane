@@ -73,9 +73,9 @@ def notion_import_task(job_id):
         job.reason = str(e)[:2000]
         job.save(update_fields=["status", "reason", "updated_at"])
     finally:
-        # the export zip is only needed during the run; drop it from storage
-        # once the job reaches a terminal state so imports don't accumulate
-        if job.zip_file:
+        # drop the export zip from storage only after a COMPLETED run — a
+        # FAILED job must keep its zip so the supported "retry" flow can re-run
+        if job.status == ImportJob.Status.COMPLETED and job.zip_file:
             try:
                 S3Storage().delete_files([job.zip_file.name])
             except Exception as e:  # cleanup must never flip a COMPLETED job
@@ -271,9 +271,15 @@ def _import_with_parser(job, parser):
     # create the Notion statuses missing from the project so rows keep their
     # original column instead of collapsing into the default state
     for status_name in sorted({row_status(uuid) for _, uuid in work_item_rows} - {""}):
-        if status_name.lower() in project_states:
-            continue
         status_external_id = hashlib.sha256(status_name.strip().lower().encode("utf-8")).hexdigest()
+        by_name = project_states.get(status_name.lower())
+        if by_name is not None:
+            # backfill external_id on a state this importer created before the
+            # id existed (matched by name) so a future rename dedups correctly
+            if by_name.external_source == EXTERNAL_SOURCE and not by_name.external_id:
+                by_name.external_id = status_external_id
+                by_name.save(update_fields=["external_id"])
+            continue
         renamed = states_by_external_id.get(status_external_id)
         if renamed is not None:
             project_states[status_name.lower()] = renamed
@@ -351,22 +357,20 @@ def _import_with_parser(job, parser):
             issue.save(created_by_id=user.id)
             plane_issues[uuid] = issue
             report["work_items_created"] += 1
-        label_names = list(meta.get("tags", []))
-        label_colors = {}  # label name -> Plane hex, from select/multi_select tags
+        # (label name truncated to 255, its Notion color) pairs — truncate once
+        # so the name used for the label and its color key always agree
+        label_specs = [(t[:255], None) for t in meta.get("tags", [])]
         for p in props:
             if p["type"] == "multi_select":
                 for v in p["values"]:
-                    label_names.append(v)
-                    if p.get("colors", {}).get(v):
-                        label_colors[v] = p["colors"][v]
+                    label_specs.append((v[:255], p.get("colors", {}).get(v)))
         seen_labels = set()
-        for label_name in label_names:
-            label_name = label_name[:255]
+        for label_name, color in label_specs:
             key = label_name.strip().lower()
             if key in seen_labels:
                 continue
             seen_labels.add(key)
-            label = _get_or_create_label(project, workspace, user, label_name, label_colors.get(label_name))
+            label = _get_or_create_label(project, workspace, user, label_name, color)
             IssueLabel.objects.get_or_create(
                 issue=plane_issues[uuid],
                 label=label,
@@ -420,9 +424,13 @@ def _import_with_parser(job, parser):
             continue
         issue = plane_issues[uuid]
         for comment in result.comments:
-            # external_id keyed on identity only (not html) so an edited Notion
-            # comment updates the same row instead of orphaning a duplicate
-            external_id = hashlib.sha256(f"{uuid}:{comment['id']}".encode("utf-8")).hexdigest()
+            # A stable (export-provided) id lets us key on identity only, so an
+            # edited Notion comment updates in place. A synthesized id is not
+            # stable across re-imports, so keep content in the key to avoid
+            # collapsing two distinct id-less comments onto one row.
+            stable = comment.get("stable_id")
+            key = f"{uuid}:{comment['id']}" if stable else f"{uuid}:{comment['id']}:{comment['html']}"
+            external_id = hashlib.sha256(key.encode("utf-8")).hexdigest()
             actor_id = author_mapping.get(comment["author"] or "")
             comment_html = comment["html"]
             if actor_id is None and comment["author"]:
@@ -439,7 +447,9 @@ def _import_with_parser(job, parser):
                 issue=issue, external_source=EXTERNAL_SOURCE, external_id=external_id
             ).first()
             if existing_comment is not None:
-                if existing_comment.comment_html != comment_html:
+                # only update in place for stable ids; a synthesized-id match is
+                # the same content (html is in the key) so there is nothing to do
+                if stable and existing_comment.comment_html != comment_html:
                     existing_comment.comment_html = comment_html
                     existing_comment.save(update_fields=["comment_html"])
                 continue
@@ -682,7 +692,7 @@ def _match_priority(value):
 _STATE_GROUP_KEYWORDS = (
     ("cancelled", ("cancel", "cancelado", "cancelada", "cancelados", "canceladas", "cancelled", "suspendido", "suspendida", "suspendidos", "suspendidas", "pausado", "pausados", "descartado", "descartados", "abandonado", "abandonados")),
     ("completed", ("done", "complete", "completed", "completado", "completada", "completados", "completadas", "terminado", "terminada", "terminados", "finalizado", "finalizada", "finalizados", "hecho", "hechos", "entrega", "entregas", "entregado", "entregados", "delivered", "shipped", "cerrado", "cerrados")),
-    ("started", ("progress", "progreso", "curso", "doing", "correcciones", "revision", "revisión", "review", "desarrollo", "haciendo")),
+    ("started", ("progress", "progreso", "curso", "doing", "correccion", "corrección", "correcciones", "revision", "revisión", "revisiones", "review", "desarrollo", "haciendo")),
     ("backlog", ("backlog", "idea", "ideas")),
 )
 # multi-word phrases matched as substrings (word-token match can't see these)
@@ -701,8 +711,12 @@ def _get_or_create_label(project, workspace, user, name, color=None):
     defaults = {"workspace": workspace, "created_by_id": user.id}
     if color:
         defaults["color"] = color
-    label, _ = Label.objects.get_or_create(project=project, name=name, defaults=defaults)
-    return label
+    try:
+        label, _ = Label.objects.get_or_create(project=project, name=name, defaults=defaults)
+        return label
+    except IntegrityError:
+        # concurrent create of the same (project, name) — re-fetch the winner
+        return Label.objects.filter(project=project, name__iexact=name).first()
 
 
 def _match_state_group(name):

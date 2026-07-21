@@ -328,13 +328,14 @@ class NotionHTMLTransformer:
         classes = node.get("class") or []
         if "callout" in classes:
             return [self._transform_callout(node, out)]
-        if "link-to-page" in classes or "bookmark" in classes:
+        source_div = node.find("div", class_="source")
+        if "link-to-page" in classes or "bookmark" in classes or source_div is not None:
+            # real exports emit bookmark/attachment figures with NO class and
+            # the url inside <div class="source"> — match on that shape too
             link = node.find("a")
             raw_href = link.get("href", "") if link else ""
-            if not raw_href:
-                # bookmark variant: the URL sits in a <div class="source">
-                source = node.find("div", class_="source")
-                raw_href = source.get_text(strip=True) if source else ""
+            if not raw_href and source_div is not None:
+                raw_href = source_div.get_text(strip=True)
             href = self._rewrite_href(raw_href)
             if not href:
                 return []
@@ -350,7 +351,7 @@ class NotionHTMLTransformer:
         if node.find("a"):
             link = node.find("a")
             href = self._rewrite_href(link.get("href", ""))
-            text = link.get_text(" ", strip=True)
+            text = _clean_link_text(link.get_text(" ", strip=True))
             if not href:
                 # broken exporter artifacts (dead embeds) carry no usable link;
                 # keep the text if there is any, drop the node otherwise
@@ -659,13 +660,20 @@ class NotionHTMLTransformer:
                 if not any(element in c.descendants for c in containers):
                     containers.append(element)
 
+        seq = 0  # page-global counter so id-less comments never collide
         for container in containers:
-            for item in self._split_comment_items(container):
+            for item in self._split_comment_items(container, seq):
                 self._result.comments.append(item)
+                seq += 1
             container.decompose()
 
-    def _split_comment_items(self, container):
-        """Yield {"id", "author", "html"} for each comment inside a container."""
+    def _split_comment_items(self, container, base_seq):
+        """Yield {"id", "author", "html", "stable_id"} for each comment.
+
+        ``stable_id`` is True only when the id came from the export itself.
+        Synthesized ids (page-global counter) are not stable across re-imports,
+        so the import task keeps content in the dedup key for those.
+        """
         # individual comments are usually repeated direct children; if none
         # look like separate items, treat the whole container as one comment
         children = [c for c in container.find_all(recursive=False) if isinstance(c, Tag)]
@@ -681,21 +689,23 @@ class NotionHTMLTransformer:
             text = item.get_text(" ", strip=True)
             if not text:
                 continue
-            # a reply without its own id must not inherit the bare container id:
-            # sibling comments would collide in the importer's dedup check
-            comment_id = item.get("id") or (
-                f"{container.get('id')}:{index}" if container.get("id") else ""
-            )
-            if not comment_id:
+            own_id = item.get("id") or (f"{container.get('id')}:{index}" if container.get("id") else "")
+            stable_id = bool(own_id)
+            if not own_id:
+                # no id anywhere: fall back to a page-global sequence so two
+                # id-less comments never share an id (which would collide in the
+                # importer's dedup and silently drop one)
                 self._warn("comment_without_id")
+                own_id = f"seq:{base_seq + index}"
             # ``text`` is already flattened plain text (get_text stripped every
             # tag), and get_text decodes HTML entities — so escape it before
             # wrapping in <p> to keep entity-encoded markup from the export
             # (e.g. &lt;img onerror=...&gt;) inert. No formatting is lost.
             yield {
-                "id": comment_id or f"{index}",
+                "id": own_id,
                 "author": author,
                 "html": f"<p>{html_escape(text)}</p>",
+                "stable_id": stable_id,
             }
 
     # ------------------------------------------------------------------

@@ -235,6 +235,19 @@ class TestDatabasesAndCallouts:
         result = transform(body)
         assert f'data-emoji-unicode="{ord("🚀")}"' in result.html
 
+    def test_unclassed_attachment_figure_keeps_link_and_strips_prefix(self):
+        # real export shape: classless <figure> with the url in <div class="source">
+        # and an attachment:<uuid>: prefix in the link text
+        body = (
+            '<figure id="391dd4d7" dir="ltr"><div class="source">'
+            '<a href="Doc/Propuesta.pdf">attachment:228e782a-c4d9-4f4b-a3af-2fe516a9af0f:Propuesta.pdf</a>'
+            "</div></figure>"
+        )
+        result = transform(body, known_assets={"Private & Shared/Root/Doc/Propuesta.pdf"})
+        assert "attachment:" not in result.html
+        assert "Propuesta.pdf" in result.html
+        assert "notion-asset://" in result.html  # link preserved, not plain text
+
     def test_broken_notion_embed_artifact_dropped(self):
         # real export shape: the artifact appears both as a link-to-page figure
         # (link-only, dropped whole) and inline inside surrounding prose
@@ -373,6 +386,23 @@ class TestComments:
         assert len(result.comments) == 2
         ids = [c["id"] for c in result.comments]
         assert ids[0] != ids[1]
+
+    def test_idless_comments_across_containers_are_distinct(self):
+        # two separate id-less single-comment blocks on one page each restart
+        # local enumeration at 0 — the page-global counter must keep them apart
+        body = (
+            '<div class="comment"><p>first thread</p></div>'
+            '<div class="comment"><p>second thread</p></div>'
+        )
+        result = transform(body)
+        assert len(result.comments) == 2
+        assert result.comments[0]["id"] != result.comments[1]["id"]
+        assert result.comments[0]["stable_id"] is False
+
+    def test_comment_with_own_id_is_stable(self):
+        body = '<div class="comment" id="c-real"><b>Ana</b><p>hi</p></div>'
+        result = transform(body)
+        assert result.comments[0]["stable_id"] is True
 
     def test_comment_html_escapes_markup(self):
         # entity-encoded markup in an export comment must not become live HTML
