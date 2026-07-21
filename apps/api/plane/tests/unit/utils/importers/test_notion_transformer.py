@@ -399,6 +399,21 @@ class TestComments:
         assert result.comments[0]["id"] != result.comments[1]["id"]
         assert result.comments[0]["stable_id"] is False
 
+    def test_idless_comment_ids_unique_despite_skipped_children(self):
+        # a container with an empty-text child before a real one must not make
+        # the next container's id-less comment collide (the seq counter must
+        # advance per yielded comment, not per candidate child)
+        body = (
+            '<div class="comment">'
+            '<div><img src="x.png"/></div>'  # empty text — skipped
+            "<div><p>same</p></div>"  # yields one comment
+            "</div>"
+            '<div class="comment"><p>same</p></div>'  # next container, same text
+        )
+        result = transform(body)
+        assert len(result.comments) == 2
+        assert result.comments[0]["id"] != result.comments[1]["id"]
+
     def test_comment_with_own_id_is_stable(self):
         body = '<div class="comment" id="c-real"><b>Ana</b><p>hi</p></div>'
         result = transform(body)

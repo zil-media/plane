@@ -92,7 +92,7 @@ def _read_bounded(fileobj, max_bytes, label):
             break
         total += len(chunk)
         if total > max_bytes:
-            raise NotionExportError(
+            raise NotionEntryTooLargeError(
                 f"entry_too_large: '{label}' decompresses beyond the "
                 f"{max_bytes // (1024 * 1024)}MB per-file limit; the export may be corrupt or malicious."
             )
@@ -102,6 +102,12 @@ def _read_bounded(fileobj, max_bytes, label):
 
 class NotionExportError(Exception):
     """Raised when the uploaded file is not a usable Notion HTML export."""
+
+
+class NotionEntryTooLargeError(NotionExportError):
+    """Raised when a single entry decompresses past its byte cap. Distinct
+    from a corrupt entry so callers classify by type, never by parsing the
+    (attacker-controlled) message text."""
 
 
 @dataclass

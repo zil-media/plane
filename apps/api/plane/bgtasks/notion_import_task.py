@@ -357,20 +357,27 @@ def _import_with_parser(job, parser):
             issue.save(created_by_id=user.id)
             plane_issues[uuid] = issue
             report["work_items_created"] += 1
-        # (label name truncated to 255, its Notion color) pairs — truncate once
-        # so the name used for the label and its color key always agree
-        label_specs = [(t[:255], None) for t in meta.get("tags", [])]
+        # colors come only from the typed multi_select props; the CSV Tags
+        # column has none. Build a name->color map first so a CSV-tag entry
+        # doesn't shadow the colored one for the same name (list order is
+        # CSV-first). Truncate to 255 once so name and key always agree.
+        color_by_key = {}
+        label_names = [t[:255] for t in meta.get("tags", [])]
         for p in props:
             if p["type"] == "multi_select":
                 for v in p["values"]:
-                    label_specs.append((v[:255], p.get("colors", {}).get(v)))
+                    name = v[:255]
+                    label_names.append(name)
+                    color = p.get("colors", {}).get(v)
+                    if color:
+                        color_by_key[name.strip().lower()] = color
         seen_labels = set()
-        for label_name, color in label_specs:
+        for label_name in label_names:
             key = label_name.strip().lower()
             if key in seen_labels:
                 continue
             seen_labels.add(key)
-            label = _get_or_create_label(project, workspace, user, label_name, color)
+            label = _get_or_create_label(project, workspace, user, label_name, color_by_key.get(key))
             IssueLabel.objects.get_or_create(
                 issue=plane_issues[uuid],
                 label=label,

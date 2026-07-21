@@ -22,6 +22,7 @@ extensions in ``packages/editor``:
 - toggles       -> bold paragraph followed by the revealed content
 """
 
+import itertools
 import posixpath
 import re
 from dataclasses import dataclass, field
@@ -660,19 +661,23 @@ class NotionHTMLTransformer:
                 if not any(element in c.descendants for c in containers):
                     containers.append(element)
 
-        seq = 0  # page-global counter so id-less comments never collide
+        # a monotonic counter consumed once per *yielded* comment — never per
+        # candidate child — so synthesized ids can't collide across containers
+        # regardless of how many empty-text children were skipped
+        seq = itertools.count()
         for container in containers:
             for item in self._split_comment_items(container, seq):
                 self._result.comments.append(item)
-                seq += 1
             container.decompose()
 
-    def _split_comment_items(self, container, base_seq):
+    def _split_comment_items(self, container, seq):
         """Yield {"id", "author", "html", "stable_id"} for each comment.
 
         ``stable_id`` is True only when the id came from the export itself.
-        Synthesized ids (page-global counter) are not stable across re-imports,
-        so the import task keeps content in the dedup key for those.
+        Synthesized ids draw from the shared page-global ``seq`` counter, which
+        advances once per yielded comment, so they are unique within the page
+        (but not stable across re-imports — the task keeps content in the dedup
+        key for those).
         """
         # individual comments are usually repeated direct children; if none
         # look like separate items, treat the whole container as one comment
@@ -692,11 +697,11 @@ class NotionHTMLTransformer:
             own_id = item.get("id") or (f"{container.get('id')}:{index}" if container.get("id") else "")
             stable_id = bool(own_id)
             if not own_id:
-                # no id anywhere: fall back to a page-global sequence so two
-                # id-less comments never share an id (which would collide in the
-                # importer's dedup and silently drop one)
+                # no id anywhere: draw a fresh page-global sequence number so
+                # two id-less comments never share an id (which would collide in
+                # the importer's dedup and silently drop one)
                 self._warn("comment_without_id")
-                own_id = f"seq:{base_seq + index}"
+                own_id = f"seq:{next(seq)}"
             # ``text`` is already flattened plain text (get_text stripped every
             # tag), and get_text decodes HTML entities — so escape it before
             # wrapping in <p> to keep entity-encoded markup from the export

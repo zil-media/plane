@@ -22,7 +22,11 @@ from plane.bgtasks.notion_import_task import notion_import_task
 from plane.db.models import ImportJob, Project, Workspace, WorkspaceMember
 from plane.settings.storage import S3Storage
 from plane.utils.exception_logger import log_exception
-from plane.utils.importers.notion import NotionExportParser, NotionExportError
+from plane.utils.importers.notion import (
+    NotionExportParser,
+    NotionExportError,
+    NotionEntryTooLargeError,
+)
 from plane.utils.importers.notion.transformer import extract_people
 from plane.utils.path_validator import sanitize_filename
 
@@ -82,12 +86,13 @@ class NotionImportJobEndpoint(BaseAPIView):
                     # cap each read to the remaining budget so a single large
                     # page can't overshoot the declared scan ceiling
                     raw = parser.read_entry(page["path"], max_bytes=remaining)
-                except NotionExportError as e:
-                    # over-budget = stop scanning; a single corrupt page = skip
-                    # it and keep scanning the rest
-                    if "entry_too_large" in str(e):
-                        truncated = True
-                        break
+                except NotionEntryTooLargeError:
+                    # over budget: stop scanning (classified by type, never by
+                    # message text, which embeds the attacker-controlled name)
+                    truncated = True
+                    break
+                except NotionExportError:
+                    # a single corrupt page: skip it and keep scanning the rest
                     continue
                 except KeyError:
                     continue
