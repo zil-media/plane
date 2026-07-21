@@ -520,6 +520,7 @@ function ConfigureStep({
                     }}
                     multiple={false}
                     buttonVariant="border-with-text"
+                    showUserDetails
                     placeholder={t("workspace_settings.settings.imports.notion.author_unmapped")}
                   />
                 }
