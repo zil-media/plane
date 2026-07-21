@@ -54,18 +54,30 @@ class TestBlocks:
         assert result.html.count("<li>") == 2
 
     def test_todo_list_becomes_task_list(self):
+        # real export markup: <input class="checkbox checkbox-on" checked>
+        # plus the to-do-children span and an empty indented div
         body = (
             '<ul class="to-do-list">'
-            '<li><div class="checkbox checkbox-on"></div>done item</li>'
+            '<li><input type="checkbox" class="checkbox checkbox-on" disabled="" checked=""/>'
+            '<span class="to-do-children-checked">done item</span><div class="indented"></div></li>'
             "</ul>"
             '<ul class="to-do-list">'
-            '<li><div class="checkbox checkbox-off"></div>pending item</li>'
+            '<li><input type="checkbox" class="checkbox checkbox-off" disabled=""/>'
+            '<span class="to-do-children-unchecked">pending item</span><div class="indented"></div></li>'
             "</ul>"
         )
         result = transform(body)
         assert 'data-type="taskList"' in result.html
         assert 'data-checked="true"' in result.html
         assert 'data-checked="false"' in result.html
+        assert "done item" in result.html
+        # the empty indented spacer must not leave a stray <br/>
+        assert "<br/>" not in result.html
+
+    def test_todo_list_legacy_div_checkbox(self):
+        body = '<ul class="to-do-list"><li><div class="checkbox checkbox-on"></div>done</li></ul>'
+        result = transform(body)
+        assert 'data-checked="true"' in result.html
 
     def test_columns_are_flattened_in_order(self):
         body = (
@@ -211,6 +223,25 @@ class TestDatabasesAndCallouts:
         assert 'data-block-type="callout-component"' in result.html
         assert "tip" in result.html
 
+    def test_callout_emoji_from_data_attribute(self):
+        # real exports leave the icon span empty and carry the glyph in data-emoji
+        body = (
+            '<aside class="callout" data-notion-callout="">'
+            '<div style="font-size:1.5em"><span class="icon" data-emoji="🚀"></span></div>'
+            '<div style="width:100%"><p>launch</p></div></aside>'
+        )
+        result = transform(body)
+        assert f'data-emoji-unicode="{ord("🚀")}"' in result.html
+
+    def test_broken_notion_embed_artifact_dropped(self):
+        body = (
+            '<figure class="bookmark"><a href="https://app.notion.comundefined"></a></figure>'
+            '<p><a href="https://app.notion.comundefined">visible text</a></p>'
+        )
+        result = transform(body)
+        assert "app.notion.comundefined" not in result.html
+        assert "visible text" in result.html  # text survives, link dropped
+
 
 class TestProperties:
     HEADER = (
@@ -249,6 +280,24 @@ class TestProperties:
 
     def test_spanish_date_text_parsed(self):
         assert transformer_module._parse_date_text("15 de diciembre de 2026") == "2026-12-15"
+
+    def test_checkbox_property_extracted(self):
+        header = (
+            '<table class="properties"><tbody>'
+            '<tr class="property-row property-row-checkbox"><th>Activo</th>'
+            '<td><div class="checkbox checkbox-on"></div></td></tr>'
+            '<tr class="property-row property-row-checkbox"><th>Archivado</th>'
+            '<td><input type="checkbox" class="checkbox checkbox-off" disabled=""/></td></tr>'
+            "</tbody></table>"
+        )
+        transformer = NotionHTMLTransformer(PAGE_PATH)
+        result = transformer.transform(
+            f"<html><body><article><header>{header}</header>"
+            '<div class="page-body"><p>x</p></div></article></body></html>'
+        )
+        props = {p["name"]: p for p in result.properties}
+        assert props["Activo"]["values"] == ["Yes"]
+        assert props["Archivado"]["values"] == ["No"]
 
     def test_properties_do_not_leak_into_html(self):
         result = self.transform_with_header()

@@ -228,6 +228,36 @@ class TestNotionExportParser:
         assert database["rows"] == [row_uuid]
         assert manifest["pages"][row_uuid]["database"] == db_uuid
 
+    def test_macos_junk_entries_ignored(self):
+        files = {
+            f"Private & Shared/Root {ROOT_UUID}.html": page_html("Root"),
+            "__MACOSX/Private & Shared/._Root.html": b"applesauce",
+            f"Private & Shared/._Child {CHILD_UUID}.html": b"applesauce",
+            "Private & Shared/.DS_Store": b"junk",
+        }
+        _, manifest = parse(files)
+        assert manifest["stats"]["pages"] == 1
+        assert all("__MACOSX" not in p["path"] for p in manifest["pages"].values())
+
+    def test_contested_bare_folder_resolved_by_content(self):
+        """Two siblings share a title; the folder belongs to the page whose
+        HTML links into it — not to whichever registered first."""
+        first, second, child = "aa" * 16, "bb" * 16, "cc" * 16
+        base = "Private & Shared"
+        link_html = (
+            "<html><head><title>Same</title></head><body><article>"
+            f'<div class="page-body"><a href="Same/Web%20{child}.html">Web</a></div>'
+            "</article></body></html>"
+        ).encode("utf-8")
+        files = {
+            # the impostor registers first (dict order == zip order)
+            f"{base}/Same {first}.html": page_html("Same"),
+            f"{base}/Same {second}.html": link_html,
+            f"{base}/Same/Web {child}.html": page_html("Web"),
+        }
+        _, manifest = parse(files)
+        assert manifest["pages"][child]["parent"] == second
+
     def test_cp437_filename_decoding(self):
         # legacy zips without the utf-8 flag decode entry names as cp437
         raw = "Café.html".encode("utf-8").decode("cp437")

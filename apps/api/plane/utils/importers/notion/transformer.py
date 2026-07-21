@@ -232,8 +232,13 @@ class NotionHTMLTransformer:
         if "to-do-list" in classes:
             ul = out.new_tag("ul", attrs={"data-type": "taskList"})
             for li in node.find_all("li", recursive=False):
-                checkbox = li.find("div", class_="checkbox")
-                checked = bool(checkbox and "checkbox-on" in (checkbox.get("class") or []))
+                # real exports render the checkbox as <input class="checkbox
+                # checkbox-on" checked>; match by class regardless of tag
+                checkbox = li.find(class_="checkbox")
+                checked = bool(
+                    checkbox
+                    and ("checkbox-on" in (checkbox.get("class") or []) or checkbox.has_attr("checked"))
+                )
                 item = out.new_tag(
                     "li", attrs={"data-type": "taskItem", "data-checked": "true" if checked else "false"}
                 )
@@ -301,9 +306,19 @@ class NotionHTMLTransformer:
             return [image] if image is not None else []
         if node.find("a"):
             link = node.find("a")
+            href = self._rewrite_href(link.get("href", ""))
+            text = link.get_text(" ", strip=True)
+            if not href:
+                # broken exporter artifacts (dead embeds) carry no usable link;
+                # keep the text if there is any, drop the node otherwise
+                if text:
+                    p = out.new_tag("p")
+                    p.string = text
+                    return [p]
+                return []
             p = out.new_tag("p")
-            a = out.new_tag("a", href=self._rewrite_href(link.get("href", "")))
-            a.string = link.get_text(" ", strip=True) or link.get("href", "")
+            a = out.new_tag("a", href=href)
+            a.string = text or href
             p.append(a)
             return [p]
         text = node.get_text(" ", strip=True)
@@ -317,7 +332,8 @@ class NotionHTMLTransformer:
         emoji = None
         icon_span = node.find("span", class_="icon")
         if icon_span:
-            emoji_text = icon_span.get_text(strip=True)
+            # real exports carry the glyph in data-emoji; older ones inline it
+            emoji_text = icon_span.get("data-emoji") or icon_span.get_text(strip=True)
             if emoji_text:
                 emoji = emoji_text
         codepoints = "-".join(f"{ord(ch):x}" for ch in emoji) if emoji else "1f4a1"
@@ -403,8 +419,12 @@ class NotionHTMLTransformer:
             return None
         parsed = urlparse(src)
         if parsed.scheme in ("http", "https"):
-            # bare Notion app links exported as images carry no content
-            if parsed.netloc in ("app.notion.com", "www.notion.so", "notion.so") and not parsed.path.strip("/"):
+            # bare Notion app links exported as images carry no content; the
+            # startswith also catches broken exporter artifacts like
+            # "app.notion.comundefined"
+            if (
+                parsed.netloc in ("www.notion.so", "notion.so") or parsed.netloc.startswith("app.notion.com")
+            ) and not parsed.path.strip("/"):
                 return None
             # remote image (e.g. Notion static icons): keep as plain img
             img = out.new_tag("img", src=src)
@@ -486,9 +506,13 @@ class NotionHTMLTransformer:
 
         if name in ("span", "time", "label", "p", "div"):
             # block tags in inline context (e.g. <p> inside a table cell):
-            # merge their content, separating from previous text with a break
-            if name in ("p", "div") and target.contents:
-                target.append(out.new_tag("br"))
+            # merge their content, separating from previous text with a break.
+            # Empty p/div (spacer artifacts) must not leave a stray <br/>.
+            if name in ("p", "div"):
+                if not node.get_text(strip=True) and not node.find(True):
+                    return
+                if target.contents:
+                    target.append(out.new_tag("br"))
             self._fill_inline(node, target, out)
             return
 
@@ -547,6 +571,12 @@ class NotionHTMLTransformer:
                     person = user.get_text(" ", strip=True)
                     if person:
                         prop["values"].append(person)
+            elif prop_type == "checkbox":
+                box = td.find(class_="checkbox")
+                checked = bool(
+                    box and ("checkbox-on" in (box.get("class") or []) or box.has_attr("checked"))
+                )
+                prop["values"] = ["Yes" if checked else "No"]
             elif prop_type == "date":
                 stamps = [t["datetime"].split("T")[0] for t in td.find_all("time") if t.get("datetime")]
                 prop["start"] = stamps[0] if stamps else None
@@ -605,7 +635,11 @@ class NotionHTMLTransformer:
             text = item.get_text(" ", strip=True)
             if not text:
                 continue
-            comment_id = item.get("id") or container.get("id") or ""
+            # a reply without its own id must not inherit the bare container id:
+            # sibling comments would collide in the importer's dedup check
+            comment_id = item.get("id") or (
+                f"{container.get('id')}:{index}" if container.get("id") else ""
+            )
             if not comment_id:
                 self._warn("comment_without_id")
             # ``text`` is already flattened plain text (get_text stripped every
@@ -626,7 +660,9 @@ class NotionHTMLTransformer:
             return ""
         parsed = urlparse(href)
         if parsed.scheme in ("http", "https", "mailto", "tel"):
-            if parsed.netloc == "app.notion.com" and not parsed.path.strip("/"):
+            # startswith catches Notion's broken-embed artifact
+            # ("app.notion.comundefined") as well as the bare app link
+            if parsed.netloc.startswith("app.notion.com") and not parsed.path.strip("/"):
                 return ""
             return href
         decoded = unquote(href)

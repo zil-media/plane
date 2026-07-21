@@ -19,11 +19,13 @@ import mimetypes
 import posixpath
 import shutil
 import tempfile
+import time
 from html import escape as html_escape
 from uuid import uuid4
 
 from bs4 import BeautifulSoup
 from celery import shared_task
+from django.db import IntegrityError
 
 from plane.db.models import (
     FileAsset,
@@ -37,6 +39,7 @@ from plane.db.models import (
     ProjectMember,
     ProjectPage,
     State,
+    WorkspaceMember,
 )
 from plane.settings.storage import S3Storage
 from plane.utils.content_validator import validate_html_content
@@ -163,6 +166,13 @@ def _import_with_parser(job, parser):
         for row in database["rows"]
     ]
 
+    # subpages nested under a work-item row are still imported as pages (their
+    # parent row is an Issue, so they surface at the project root; the issue's
+    # description keeps the link to them)
+    for _, row_uuid in work_item_rows:
+        for child in pages[row_uuid]["children"]:
+            walk(child)
+
     # ------------------------------------------------------------------
     # pass 1 — transform, create entities, upload assets
     # ------------------------------------------------------------------
@@ -211,36 +221,53 @@ def _import_with_parser(job, parser):
 
     plane_issues = {}  # notion uuid -> Issue
     row_metadata = _database_row_metadata(parser, databases, database_modes)
-    # match Notion Status -> project State (by name) and Priority -> Plane priority
-    project_states = {s.name.strip().lower(): s for s in State.objects.filter(project=project)}
+    # match Notion Status -> project State (by name) and Priority -> Plane priority.
+    # all_state_objects: the default manager hides the seeded "Triage" state,
+    # which would make a Notion status named "Triage" collide on creation.
+    project_states = {
+        s.name.strip().lower(): s
+        for s in State.all_state_objects.filter(project=project, deleted_at__isnull=True)
+    }
 
     def row_status(row_uuid):
         # the typed header-table properties are the richest source (they keep
-        # working whatever the columns are named); the CSV is the fallback
+        # working whatever the columns are named); the CSV is the fallback.
+        # Capped at 100 chars: State.slug is a SlugField(max_length=100).
         value = next(
             (p["values"][0] for p in transformed[row_uuid].properties if p["type"] == "status" and p["values"]),
             None,
         )
-        return (value or row_metadata.get(row_uuid, {}).get("status") or "").strip()
+        return (value or row_metadata.get(row_uuid, {}).get("status") or "").strip()[:100]
 
     # create the Notion statuses missing from the project so rows keep their
     # original column instead of collapsing into the default state
     for status_name in sorted({row_status(uuid) for _, uuid in work_item_rows} - {""}):
         if status_name.lower() in project_states:
             continue
-        state = State(
-            workspace=workspace,
-            project=project,
-            name=status_name,
-            color="#60646C",
-            group=_match_state_group(status_name),
-            external_source=EXTERNAL_SOURCE,
-        )
-        state.save(created_by_id=user.id)
+        try:
+            state = State(
+                workspace=workspace,
+                project=project,
+                name=status_name,
+                color="#60646C",
+                group=_match_state_group(status_name),
+                external_source=EXTERNAL_SOURCE,
+            )
+            state.save(created_by_id=user.id)
+            report["states_created"] += 1
+        except IntegrityError:
+            # unique (name, project) race or a state invisible to the manager
+            state = State.all_state_objects.filter(
+                project=project, name__iexact=status_name, deleted_at__isnull=True
+            ).first()
+            if state is None:
+                report["warnings"].append(f"state_create_failed:{status_name}")
+                continue
         project_states[status_name.lower()] = state
-        report["states_created"] += 1
 
     unmapped_people = set()
+    guests_skipped = set()
+    workspace_roles = {}  # member id -> workspace role (cached)
     for database_uuid, uuid in work_item_rows:
         page = pages[uuid]
         meta = row_metadata.get(uuid, {})
@@ -286,6 +313,7 @@ def _import_with_parser(job, parser):
         label_names += [v for p in props if p["type"] == "multi_select" for v in p["values"]]
         seen_labels = set()
         for label_name in label_names:
+            label_name = label_name[:255]
             if label_name in seen_labels:
                 continue
             seen_labels.add(label_name)
@@ -304,6 +332,18 @@ def _import_with_parser(job, parser):
             if member_id is None:
                 unmapped_people.add(person)
                 continue
+            # never elevate a workspace guest to project member: guests can't
+            # be assignees (assignee validators require role >= 15)
+            workspace_role = workspace_roles.get(member_id)
+            if workspace_role is None:
+                member_row = WorkspaceMember.objects.filter(
+                    workspace=workspace, member_id=member_id, is_active=True
+                ).first()
+                workspace_role = member_row.role if member_row else 0
+                workspace_roles[member_id] = workspace_role
+            if workspace_role < 15:
+                guests_skipped.add(person)
+                continue
             # assignees must be project members for Plane to list and filter
             # them — bring mapped workspace members into the project
             project_member, _ = ProjectMember.objects.get_or_create(
@@ -321,6 +361,8 @@ def _import_with_parser(job, parser):
             )
     for person in sorted(unmapped_people):
         report["warnings"].append(f"unmapped_person:{person} — assignee skipped")
+    for person in sorted(guests_skipped):
+        report["warnings"].append(f"workspace_guest:{person} — guests cannot be assignees, skipped")
 
     # Notion comments: attach to work items using the author mapping; Plane
     # pages have no comment threads, so page comments are counted as skipped.
@@ -374,6 +416,8 @@ def _import_with_parser(job, parser):
             if asset is not None:
                 uploaded_assets[asset_path] = asset
                 report["assets_uploaded"] += 1
+            else:
+                report["warnings"].append(f"asset_upload_failed:{posixpath.basename(asset_path)}")
 
     # ------------------------------------------------------------------
     # pass 2 — resolve references and store final description html
@@ -386,6 +430,15 @@ def _import_with_parser(job, parser):
         if plane_page is None:
             return None
         return f"/{slug}/projects/{project_id}/pages/{plane_page.id}/"
+
+    def issue_url(notion_uuid):
+        issue = plane_issues.get(notion_uuid)
+        if issue is None:
+            return None
+        return f"/{slug}/browse/{project.identifier}-{issue.sequence_id}/"
+
+    def entity_url(notion_uuid):
+        return page_url(notion_uuid) or issue_url(notion_uuid)
 
     for uuid, result in transformed.items():
         soup = BeautifulSoup(result.html, "html.parser")
@@ -402,7 +455,7 @@ def _import_with_parser(job, parser):
         for anchor in soup.find_all("a"):
             href = anchor.get("href", "")
             if href.startswith(PAGE_SCHEME):
-                target = page_url(href[len(PAGE_SCHEME):])
+                target = entity_url(href[len(PAGE_SCHEME):])
                 if target:
                     anchor["href"] = target
                 else:
@@ -434,26 +487,36 @@ def _import_with_parser(job, parser):
                 rendered_databases.add(db_uuid)
                 replacement = _render_database_block(
                     soup, databases[db_uuid], database_mode(db_uuid),
-                    page_url, slug, project_id, pages,
+                    entity_url, pages,
                 )
                 if replacement is not None:
                     marker.insert_before(replacement)
             marker.decompose()
 
         # database rows imported as pages have no fields to carry their
-        # properties — keep them visible as a table at the top of the page
-        if uuid in plane_pages and pages[uuid]["database"] and result.properties:
-            props_table = soup.new_tag("table")
-            for prop in result.properties:
-                tr = soup.new_tag("tr")
-                for value in (prop["name"], prop["text"]):
-                    td = soup.new_tag("td")
-                    td_p = soup.new_tag("p")
-                    td_p.string = value
-                    td.append(td_p)
-                    tr.append(td)
-                props_table.append(tr)
-            soup.insert(0, props_table)
+        # properties — keep them all visible as a table at the top. Rows
+        # imported as work items map status/labels/assignees/dates natively,
+        # so only the remaining property types are prepended there.
+        if pages.get(uuid, {}).get("database") and result.properties:
+            if uuid in plane_pages:
+                extra_props = result.properties
+            else:
+                extra_props = [
+                    p for p in result.properties
+                    if p["type"] not in ("multi_select", "status", "person", "date")
+                ]
+            if extra_props:
+                props_table = soup.new_tag("table")
+                for prop in extra_props:
+                    tr = soup.new_tag("tr")
+                    for value in (prop["name"], prop["text"]):
+                        td = soup.new_tag("td")
+                        td_p = soup.new_tag("p")
+                        td_p.string = value
+                        td.append(td_p)
+                        tr.append(td)
+                    props_table.append(tr)
+                soup.insert(0, props_table)
 
         final_html = str(soup).strip() or "<p></p>"
         is_valid, _, clean_html = validate_html_content(final_html)
@@ -500,8 +563,10 @@ def _upload_asset(parser, asset_path, workspace, project, user, page=None, issue
         return None
     filename = posixpath.basename(asset_path)
     external_id = hashlib.sha256(asset_path.encode("utf-8")).hexdigest()
+    # scoped by project: reusing another project's asset row would produce
+    # links that 404 behind the project-scoped asset endpoint
     existing = FileAsset.objects.filter(
-        workspace=workspace, external_source=EXTERNAL_SOURCE, external_id=external_id
+        workspace=workspace, project=project, external_source=EXTERNAL_SOURCE, external_id=external_id
     ).first()
     if existing:
         return existing
@@ -531,7 +596,13 @@ def _upload_asset(parser, asset_path, workspace, project, user, page=None, issue
     asset_key = f"{workspace.id}/{uuid4().hex}-{sanitize_filename(filename) or uuid4().hex}"
     asset.asset = asset_key
     storage = S3Storage()
-    if not storage.upload_file(io.BytesIO(data), object_name=asset_key, content_type=content_type):
+    # bounded retry: a transient S3 hiccup should not silently drop the file
+    for attempt in range(3):
+        if storage.upload_file(io.BytesIO(data), object_name=asset_key, content_type=content_type):
+            break
+        if attempt < 2:
+            time.sleep(2**attempt)
+    else:
         return None
     asset.save()
     return asset
@@ -619,16 +690,11 @@ def _database_row_metadata(parser, databases, database_modes):
     return metadata
 
 
-def _render_database_block(soup, database, mode, page_url, slug, project_id, pages):
-    """Replace the collection marker with content pointing at the imported rows."""
+def _render_database_block(soup, database, mode, entity_url, pages):
+    """Replace the collection marker with a table linking every imported row
+    (pages and work items alike)."""
     if database is None:
         return None
-    if mode == "work_items":
-        p = soup.new_tag("p")
-        a = soup.new_tag("a", href=f"/{slug}/projects/{project_id}/issues/")
-        a.string = f"{database['title']} — imported as work items"
-        p.append(a)
-        return p
     table = soup.new_tag("table")
     header_row = soup.new_tag("tr")
     th = soup.new_tag("th")
@@ -639,7 +705,7 @@ def _render_database_block(soup, database, mode, page_url, slug, project_id, pag
     table.append(header_row)
     for row_uuid in database["rows"]:
         title = (pages.get(row_uuid) or {}).get("title") or row_uuid[:8]
-        url = page_url(row_uuid)
+        url = entity_url(row_uuid)
         tr = soup.new_tag("tr")
         td = soup.new_tag("td")
         td_p = soup.new_tag("p")

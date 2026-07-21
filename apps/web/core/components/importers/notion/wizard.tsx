@@ -137,6 +137,7 @@ export const NotionImportWizard = observer(function NotionImportWizard() {
         });
         setJob(created);
         setDatabaseModes({});
+        setAuthorMapping({});
         setStep("review");
       } catch (err: any) {
         setError(err?.error ?? t("workspace_settings.settings.imports.notion.upload_failed"));
@@ -173,6 +174,7 @@ export const NotionImportWizard = observer(function NotionImportWizard() {
     setError(null);
     setProjectId(null);
     setDatabaseModes({});
+    setAuthorMapping({});
   }, []);
 
   return (

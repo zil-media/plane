@@ -58,6 +58,21 @@ ASSET_EXTENSIONS_IGNORED = {"html", "csv", "md", "zip"}
 # the size budget could expand to hundreds of GB and OOM the worker. No single
 # Notion export file (page HTML, CSV, asset, or nested part) should exceed this.
 MAX_ENTRY_BYTES = 256 * 1024 * 1024  # 256MB
+# Aggregate ceiling across nested Part-N zips: caps a multi-part decompression
+# bomb that stays under the per-entry limit (runs on the synchronous analyze path).
+MAX_TOTAL_PART_BYTES = 1024 * 1024 * 1024  # 1GB
+MAX_PART_COUNT = 50
+
+
+def _is_junk_entry(name):
+    """macOS zip sidecars and similar metadata that must never parse as content."""
+    base = posixpath.basename(name)
+    return (
+        name.startswith("__MACOSX/")
+        or "/__MACOSX/" in name
+        or base.startswith("._")
+        or base in (".DS_Store", "Thumbs.db")
+    )
 
 
 def _read_bounded(fileobj, max_bytes, label):
@@ -210,13 +225,25 @@ class NotionExportParser:
         self._zips.append(outer)
 
         # Notion nests the real export as `...-Part-N.zip` inside the download
-        infos = [i for i in outer.infolist() if not i.is_dir()]
+        infos = [i for i in outer.infolist() if not i.is_dir() and not _is_junk_entry(i.filename)]
         part_infos = [i for i in infos if NESTED_PART_RE.match(i.filename)]
         if part_infos and len(part_infos) == len(infos):
+            if len(part_infos) > MAX_PART_COUNT:
+                raise NotionExportError(
+                    f"too_many_parts: the export contains {len(part_infos)} nested parts "
+                    f"(limit {MAX_PART_COUNT}); the archive looks malformed or malicious."
+                )
+            total_bytes = 0
             for part in part_infos:
                 try:
                     with outer.open(part) as fileobj:
                         raw = _read_bounded(fileobj, MAX_ENTRY_BYTES, part.filename)
+                    total_bytes += len(raw)
+                    if total_bytes > MAX_TOTAL_PART_BYTES:
+                        raise NotionExportError(
+                            "export_too_large: nested parts decompress beyond the "
+                            f"{MAX_TOTAL_PART_BYTES // (1024 * 1024)}MB aggregate limit."
+                        )
                     inner = zipfile.ZipFile(io.BytesIO(raw))
                 except (zipfile.BadZipFile, zlib.error, EOFError, OSError) as exc:
                     raise NotionExportError(
@@ -232,6 +259,8 @@ class NotionExportParser:
             if info.is_dir():
                 continue
             name = self._decode_name(info)
+            if _is_junk_entry(name):
+                continue
             self._entries[name] = (zf, info)
 
     @staticmethod
@@ -338,10 +367,51 @@ class NotionExportParser:
                 paths.append(posixpath.join(base, owner.title))
             return paths
 
-        for rank in (0, 1, 2):
+        for rank in (0, 1):
             for owner in owners:
                 for folder in candidates(owner, rank):
                     claim(folder, owner.uuid)
+
+        # Bare-title (rank 2) claims are ambiguous when sibling pages share a
+        # title: zip order is not evidence. For contested folders, the real
+        # owner's HTML links into the folder (href="<title>/<child>...") —
+        # pick that owner; fall back to registration order only if no page
+        # (or several) link into it.
+        contenders = {}
+        for owner in owners:
+            for folder in candidates(owner, 2):
+                contenders.setdefault(folder, []).append(owner)
+        for folder, folder_owners in contenders.items():
+            if folder not in directories or folder in claimed_folders:
+                continue
+            eligible = [o for o in folder_owners if o.uuid not in satisfied_owners]
+            if len(eligible) > 1:
+                linking = self._owners_linking_into(folder, eligible)
+                if len(linking) == 1:
+                    claim(folder, linking[0].uuid)
+                    continue
+            for owner in eligible:
+                claim(folder, owner.uuid)
+
+    def _owners_linking_into(self, folder, owners):
+        """The pages among ``owners`` whose HTML references the folder by name."""
+        from urllib.parse import quote
+
+        basename = posixpath.basename(folder)
+        needles = (f'href="{quote(basename)}/', f'href="{basename}/')
+        linking = []
+        for owner in owners:
+            if not isinstance(owner, NotionPage):
+                continue
+            try:
+                zf, info = self._entries[owner.path]
+            except KeyError:
+                continue
+            with zf.open(info) as fileobj:
+                head = fileobj.read(512 * 1024).decode("utf-8", errors="replace")
+            if any(needle in head for needle in needles):
+                linking.append(owner)
+        return linking
 
     def _link_hierarchy(self):
         for path, page in ((p.path, p) for p in self.pages.values()):

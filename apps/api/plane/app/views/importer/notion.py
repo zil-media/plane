@@ -3,10 +3,12 @@
 # See the LICENSE file for details.
 
 # Python imports
+from datetime import timedelta
 from uuid import uuid4
 
 # Django imports
 from django.db import transaction
+from django.utils import timezone
 
 # Third Party imports
 from botocore.exceptions import BotoCoreError, ClientError
@@ -138,7 +140,10 @@ class NotionImportJobDetailEndpoint(BaseAPIView):
     @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
     def delete(self, request, slug, pk):
         job = ImportJob.objects.get(workspace__slug=slug, pk=pk)
-        if job.status == ImportJob.Status.PROCESSING:
+        # PROCESSING jobs older than the Celery hard limit (+ buffer) are
+        # zombies (worker crash / lost dispatch) — allow cleaning those up.
+        stale_cutoff = timezone.now() - timedelta(seconds=7200)
+        if job.status == ImportJob.Status.PROCESSING and job.updated_at > stale_cutoff:
             return Response(
                 {"error": "A running import cannot be deleted."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -225,8 +230,19 @@ class NotionImportJobRunEndpoint(BaseAPIView):
             job.save()
 
         # Dispatch only after the PROCESSING state is committed, so the worker
-        # never races ahead of the row it is about to read.
-        transaction.on_commit(lambda: notion_import_task.delay(job_id=str(job.id)))
+        # never races ahead of the row it is about to read. A failed dispatch
+        # must not leave the job stuck at PROCESSING with nothing enqueued.
+        def _dispatch():
+            try:
+                notion_import_task.delay(job_id=str(job.id))
+            except Exception as e:
+                log_exception(e)
+                ImportJob.objects.filter(pk=job.id, status=ImportJob.Status.PROCESSING).update(
+                    status=ImportJob.Status.FAILED,
+                    reason=f"dispatch_failed: {e}"[:2000],
+                )
+
+        transaction.on_commit(_dispatch)
 
         serializer = ImportJobSerializer(job)
         return Response(serializer.data, status=status.HTTP_200_OK)

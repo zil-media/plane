@@ -94,12 +94,18 @@ export const CreateProjectForm = observer(function CreateProjectForm(props: TCre
 
     return createProject(workspaceSlug.toString(), formData)
       .then(async (res) => {
-        if (uploadedAssetUrl) {
-          await updateCoverImageStatus(res.id, uploadedAssetUrl);
-          await updateProject(workspaceSlug.toString(), res.id, { cover_image_url: uploadedAssetUrl });
-        } else if (coverImage && coverImage.startsWith("http")) {
-          await updateCoverImageStatus(res.id, coverImage);
-          await updateProject(workspaceSlug.toString(), res.id, { cover_image_url: coverImage });
+        // the project exists from here on: cover-image finalization is a
+        // side effect and must never surface as a creation failure
+        try {
+          if (uploadedAssetUrl) {
+            await updateCoverImageStatus(res.id, uploadedAssetUrl);
+            await updateProject(workspaceSlug.toString(), res.id, { cover_image_url: uploadedAssetUrl });
+          } else if (coverImage && coverImage.startsWith("http")) {
+            await updateCoverImageStatus(res.id, coverImage);
+            await updateProject(workspaceSlug.toString(), res.id, { cover_image_url: coverImage });
+          }
+        } catch (coverError) {
+          console.error("Failed to finalize the project cover image:", coverError);
         }
         setToast({
           type: TOAST_TYPE.SUCCESS,
