@@ -68,9 +68,11 @@ class TestBlocks:
         )
         result = transform(body)
         assert 'data-type="taskList"' in result.html
-        assert 'data-checked="true"' in result.html
-        assert 'data-checked="false"' in result.html
-        assert "done item" in result.html
+        # correlation matters: the checked item must be the one that was checked
+        import re as _re
+        items = _re.findall(r'data-checked="(true|false)"[^>]*>\s*<p>([^<]*)', result.html)
+        assert ("true", "done item") in items
+        assert ("false", "pending item") in items
         # the empty indented spacer must not leave a stray <br/>
         assert "<br/>" not in result.html
 
@@ -234,13 +236,17 @@ class TestDatabasesAndCallouts:
         assert f'data-emoji-unicode="{ord("🚀")}"' in result.html
 
     def test_broken_notion_embed_artifact_dropped(self):
+        # real export shape: the artifact appears both as a link-to-page figure
+        # (link-only, dropped whole) and inline inside surrounding prose
         body = (
-            '<figure class="bookmark"><a href="https://app.notion.comundefined"></a></figure>'
-            '<p><a href="https://app.notion.comundefined">visible text</a></p>'
+            '<figure class="link-to-page"><a href="https://app.notion.comundefined">Página</a></figure>'
+            '<p>before <a href="https://app.notion.comundefined">inline</a> after</p>'
         )
         result = transform(body)
         assert "app.notion.comundefined" not in result.html
-        assert "visible text" in result.html  # text survives, link dropped
+        # inline text survives with the dead link stripped
+        assert "before" in result.html and "inline" in result.html and "after" in result.html
+        assert "<a " not in result.html  # no dead anchors left
 
 
 class TestProperties:
@@ -332,6 +338,20 @@ class TestComments:
     def test_page_without_comments(self):
         result = transform("<p>solo</p>")
         assert result.comments == []
+
+    def test_replies_without_own_id_get_distinct_ids(self):
+        # two same-text replies in one thread must not share a comment id, or
+        # the import task's (uuid, id, html) dedup would drop the duplicate
+        body = (
+            '<div class="discussion" id="thread-1">'
+            '<div class="comment"><b>Ana</b><p>ok</p></div>'
+            '<div class="comment"><b>Ana</b><p>ok</p></div>'
+            "</div>"
+        )
+        result = transform(body)
+        assert len(result.comments) == 2
+        ids = [c["id"] for c in result.comments]
+        assert ids[0] != ids[1]
 
     def test_comment_html_escapes_markup(self):
         # entity-encoded markup in an export comment must not become live HTML

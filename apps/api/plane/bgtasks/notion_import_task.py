@@ -266,14 +266,21 @@ def _import_with_parser(job, parser):
         project_states[status_name.lower()] = state
 
     unmapped_people = set()
-    guests_skipped = set()
+    low_role_skipped = set()  # (person, reason)
     workspace_roles = {}  # member id -> workspace role (cached)
     for database_uuid, uuid in work_item_rows:
         page = pages[uuid]
         meta = row_metadata.get(uuid, {})
         props = transformed[uuid].properties
         matched_state = project_states.get(row_status(uuid).lower())
+        # priority: CSV column first, else a select property whose value is a
+        # known priority (that select is then consumed, not shown in the table)
         matched_priority = _match_priority(meta.get("priority"))
+        if not matched_priority:
+            for prop in props:
+                if prop["type"] == "select" and _match_priority(prop["values"][0] if prop["values"] else None):
+                    matched_priority = _match_priority(prop["values"][0])
+                    break
         date_prop = next((p for p in props if p["type"] == "date"), None)
         start_date = date_prop.get("start") if date_prop else None
         target_date = date_prop.get("end") if date_prop else None
@@ -342,7 +349,8 @@ def _import_with_parser(job, parser):
                 workspace_role = member_row.role if member_row else 0
                 workspace_roles[member_id] = workspace_role
             if workspace_role < 15:
-                guests_skipped.add(person)
+                # role 0 = not an active workspace member; 5/10 = guest/viewer
+                low_role_skipped.add((person, "not a workspace member" if workspace_role == 0 else "guest"))
                 continue
             # assignees must be project members for Plane to list and filter
             # them — bring mapped workspace members into the project
@@ -361,8 +369,8 @@ def _import_with_parser(job, parser):
             )
     for person in sorted(unmapped_people):
         report["warnings"].append(f"unmapped_person:{person} — assignee skipped")
-    for person in sorted(guests_skipped):
-        report["warnings"].append(f"workspace_guest:{person} — guests cannot be assignees, skipped")
+    for person, reason in sorted(low_role_skipped):
+        report["warnings"].append(f"assignee_skipped:{person} — {reason}, cannot be an assignee")
 
     # Notion comments: attach to work items using the author mapping; Plane
     # pages have no comment threads, so page comments are counted as skipped.
@@ -485,10 +493,7 @@ def _import_with_parser(job, parser):
                 if db_uuid in rendered_databases:
                     continue
                 rendered_databases.add(db_uuid)
-                replacement = _render_database_block(
-                    soup, databases[db_uuid], database_mode(db_uuid),
-                    entity_url, pages,
-                )
+                replacement = _render_database_block(soup, databases[db_uuid], entity_url, pages)
                 if replacement is not None:
                     marker.insert_before(replacement)
             marker.decompose()
@@ -501,9 +506,12 @@ def _import_with_parser(job, parser):
             if uuid in plane_pages:
                 extra_props = result.properties
             else:
+                # a select property carrying a priority was consumed into the
+                # native priority field — don't duplicate it in the table
                 extra_props = [
                     p for p in result.properties
                     if p["type"] not in ("multi_select", "status", "person", "date")
+                    and not (p["type"] == "select" and _match_priority(p["values"][0] if p["values"] else None))
                 ]
             if extra_props:
                 props_table = soup.new_tag("table")
@@ -690,7 +698,7 @@ def _database_row_metadata(parser, databases, database_modes):
     return metadata
 
 
-def _render_database_block(soup, database, mode, entity_url, pages):
+def _render_database_block(soup, database, entity_url, pages):
     """Replace the collection marker with a table linking every imported row
     (pages and work items alike)."""
     if database is None:

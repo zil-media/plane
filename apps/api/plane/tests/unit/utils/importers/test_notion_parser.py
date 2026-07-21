@@ -258,6 +258,18 @@ class TestNotionExportParser:
         _, manifest = parse(files)
         assert manifest["pages"][child]["parent"] == second
 
+    def test_too_many_parts_rejected(self):
+        outer = io.BytesIO()
+        with zipfile.ZipFile(outer, "w") as zf:
+            for i in range(parser_module.MAX_PART_COUNT + 1):
+                part = io.BytesIO()
+                with zipfile.ZipFile(part, "w") as pz:
+                    pz.writestr(f"Private & Shared/Root{i} {chr(97 + i % 26) * 32}.html", b"<html></html>")
+                zf.writestr(f"Export-1234-Part-{i + 1}.zip", part.getvalue())
+        outer.seek(0)
+        with pytest.raises(NotionExportError, match="too_many_parts"):
+            NotionExportParser(outer).parse()
+
     def test_cp437_filename_decoding(self):
         # legacy zips without the utf-8 flag decode entry names as cp437
         raw = "Café.html".encode("utf-8").decode("cp437")

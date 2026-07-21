@@ -659,10 +659,11 @@ class ProjectBulkAssetEndpoint(BaseAPIView):
             return Response({"error": "No asset ids provided."}, status=status.HTTP_400_BAD_REQUEST)
 
         # get the asset id — scope to the project to prevent cross-project IDOR.
-        # Not-yet-linked assets (project_id NULL, e.g. a fresh project cover)
-        # must pass: this call is what links them for the first time.
+        # A not-yet-linked asset (project_id NULL, e.g. a fresh project cover)
+        # may be claimed, but ONLY by the user who uploaded it — otherwise any
+        # project member could reparent another user's unlinked upload.
         assets = FileAsset.objects.filter(id__in=asset_ids, workspace__slug=slug).filter(
-            Q(project_id=project_id) | Q(project_id__isnull=True)
+            Q(project_id=project_id) | Q(project_id__isnull=True, created_by=request.user)
         )
 
         # Get the first asset
