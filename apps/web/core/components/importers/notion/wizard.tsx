@@ -16,6 +16,7 @@ import {
   FileText,
   FileUp,
   Loader2,
+  Plus,
   RotateCcw,
 } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
@@ -26,6 +27,7 @@ import { CustomSelect } from "@plane/ui";
 // components
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";
+import { CreateProjectModal } from "@/components/project/create-project-modal";
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
@@ -193,6 +195,7 @@ export const NotionImportWizard = observer(function NotionImportWizard() {
       {step === "configure" && job && job.status !== "processing" && (
         <ConfigureStep
           manifest={job.manifest}
+          workspaceSlug={slug}
           projectId={projectId}
           setProjectId={setProjectId}
           databaseModes={{ ...suggestedModes, ...databaseModes }}
@@ -399,6 +402,7 @@ function SummaryChip({ label, value }: { label: string; value: number }) {
 
 function ConfigureStep({
   manifest,
+  workspaceSlug,
   projectId,
   setProjectId,
   databaseModes,
@@ -410,6 +414,7 @@ function ConfigureStep({
   running,
 }: {
   manifest: TNotionManifest;
+  workspaceSlug: string;
   projectId: string | null;
   setProjectId: (id: string) => void;
   databaseModes: Record<string, TNotionDatabaseMode>;
@@ -421,6 +426,7 @@ function ConfigureStep({
   running: boolean;
 }) {
   const { t } = useTranslation();
+  const [isCreateProjectOpen, setCreateProjectOpen] = useState(false);
   const databases = Object.entries(manifest.databases);
   const commentAuthors = manifest.comment_authors ?? [];
   const modeLabel = (mode: TNotionDatabaseMode) =>
@@ -446,14 +452,30 @@ function ConfigureStep({
           }
           description={t("workspace_settings.settings.imports.notion.destination_description")}
           control={
-            <ProjectDropdown
-              value={projectId}
-              onChange={(value) => {
-                if (!Array.isArray(value) && value) setProjectId(value);
-              }}
-              multiple={false}
-              buttonVariant="border-with-text"
-            />
+            <div className="flex items-center gap-2">
+              <ProjectDropdown
+                value={projectId}
+                onChange={(value) => {
+                  if (!Array.isArray(value) && value) setProjectId(value);
+                }}
+                multiple={false}
+                buttonVariant="border-with-text"
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                prependIcon={<Plus className="size-3.5" />}
+                onClick={() => setCreateProjectOpen(true)}
+              >
+                {t("common.create_project")}
+              </Button>
+              <CreateProjectModal
+                isOpen={isCreateProjectOpen}
+                onClose={() => setCreateProjectOpen(false)}
+                workspaceSlug={workspaceSlug}
+                onProjectCreated={(newProjectId) => setProjectId(newProjectId)}
+              />
+            </div>
           }
         />
 

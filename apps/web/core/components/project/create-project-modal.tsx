@@ -27,6 +27,7 @@ type Props = {
   workspaceSlug: string;
   data?: Partial<TProject>;
   templateId?: string;
+  onProjectCreated?: (projectId: string) => void;
 };
 
 enum EProjectCreationSteps {
@@ -35,7 +36,7 @@ enum EProjectCreationSteps {
 }
 
 export function CreateProjectModal(props: Props) {
-  const { isOpen, onClose, setToFavorite = false, workspaceSlug, data, templateId } = props;
+  const { isOpen, onClose, setToFavorite = false, workspaceSlug, data, templateId, onProjectCreated } = props;
   // states
   const [currentStep, setCurrentStep] = useState<EProjectCreationSteps>(EProjectCreationSteps.CREATE_PROJECT);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
@@ -51,6 +52,7 @@ export function CreateProjectModal(props: Props) {
     if (!projectId) return;
     setCreatedProjectId(projectId);
     setCurrentStep(EProjectCreationSteps.FEATURE_SELECTION);
+    onProjectCreated?.(projectId);
   };
 
   const handleCoverImageStatusUpdate = async (projectId: string, coverImage: string) => {
