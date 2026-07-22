@@ -69,7 +69,7 @@ class IssueAttachmentEndpoint(BaseAPIView):
                 {"error": "Issue attachment not found."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        issue_attachment.asset.delete(save=False)
+        S3Storage().delete_files([issue_attachment.asset.name])
         issue_attachment.delete()
         issue_activity.delay(
             type="attachment.activity.deleted",

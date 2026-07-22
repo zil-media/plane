@@ -13,6 +13,10 @@ from django.db.models.fields.related import OneToOneRel
 # Third party imports
 from celery import shared_task
 
+# Module imports
+from plane.settings.storage import S3Storage
+from plane.utils.exception_logger import log_exception
+
 
 @shared_task
 def soft_delete_related_objects(app_label, model_name, instance_pk, using=None):
@@ -131,6 +135,7 @@ def hard_delete():
         CycleIssue,
         Estimate,
         EstimatePoint,
+        FileAsset,
     )
 
     days = settings.HARD_DELETE_AFTER_DAYS
@@ -188,6 +193,19 @@ def hard_delete():
         # Check if the model has a 'deleted_at' field
         if hasattr(model, "deleted_at"):
             # Get all instances where 'deleted_at' is greater than 30 days ago
-            _ = model.all_objects.filter(deleted_at__lt=timezone.now() - timezone.timedelta(days=days)).delete()
+            expired_qs = model.all_objects.filter(deleted_at__lt=timezone.now() - timezone.timedelta(days=days))
+
+            # FileAsset rows point at objects in S3 storage; bulk-deleting the
+            # rows alone leaves the underlying objects orphaned in the bucket.
+            # Best-effort cleanup: a storage failure must not abort the job.
+            if model is FileAsset:
+                asset_keys = list(expired_qs.exclude(asset="").values_list("asset", flat=True))
+                if asset_keys:
+                    try:
+                        S3Storage().delete_files(asset_keys)
+                    except Exception as e:
+                        log_exception(e)
+
+            _ = expired_qs.delete()
 
     return

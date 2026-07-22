@@ -495,7 +495,20 @@ class AssetRestoreEndpoint(BaseAPIView):
 
 
 class ProjectAssetEndpoint(BaseAPIView):
-    """This endpoint is used to upload cover images/logos etc for workspace, projects and users."""
+    """This endpoint is used to upload issue/page/comment/draft-issue descriptions and attachments.
+
+    Privileged entity types (WORKSPACE_LOGO, PROJECT_COVER, USER_AVATAR, USER_COVER) are
+    handled by their own dedicated endpoints and must not be reachable here.
+    """
+
+    # entity types this project-scoped endpoint is allowed to create assets for
+    ALLOWED_ENTITY_TYPES = [
+        FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+        FileAsset.EntityTypeContext.ISSUE_DESCRIPTION,
+        FileAsset.EntityTypeContext.PAGE_DESCRIPTION,
+        FileAsset.EntityTypeContext.COMMENT_DESCRIPTION,
+        FileAsset.EntityTypeContext.DRAFT_ISSUE_DESCRIPTION,
+    ]
 
     def get_entity_id_field(self, entity_type, entity_id):
         if entity_type == FileAsset.EntityTypeContext.WORKSPACE_LOGO:
@@ -534,8 +547,10 @@ class ProjectAssetEndpoint(BaseAPIView):
         entity_type = request.data.get("entity_type", "")
         entity_identifier = request.data.get("entity_identifier")
 
-        # Check if the entity type is allowed
-        if entity_type not in FileAsset.EntityTypeContext.values:
+        # Check if the entity type is allowed. Privileged entity types
+        # (WORKSPACE_LOGO, PROJECT_COVER, USER_AVATAR, USER_COVER) have their
+        # own dedicated endpoints and must be rejected here.
+        if entity_type not in self.ALLOWED_ENTITY_TYPES:
             return Response(
                 {"error": "Invalid entity type.", "status": False},
                 status=status.HTTP_400_BAD_REQUEST,
