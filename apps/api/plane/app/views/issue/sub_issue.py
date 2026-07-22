@@ -202,7 +202,7 @@ class SubIssuesEndpoint(BaseAPIView):
 
     # Assign multiple sub issues
     def post(self, request, slug, project_id, issue_id):
-        parent_issue = Issue.issue_objects.get(pk=issue_id)
+        parent_issue = Issue.issue_objects.get(pk=issue_id, project_id=project_id, workspace__slug=slug)
         sub_issue_ids = request.data.get("sub_issue_ids", [])
 
         if not len(sub_issue_ids):
@@ -211,8 +211,8 @@ class SubIssuesEndpoint(BaseAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Scope to workspace to prevent cross-tenant IDOR
-        sub_issues = Issue.issue_objects.filter(id__in=sub_issue_ids, workspace__slug=slug)
+        # Scope to project/workspace to prevent cross-tenant IDOR
+        sub_issues = Issue.issue_objects.filter(id__in=sub_issue_ids, project_id=project_id, workspace__slug=slug)
 
         for sub_issue in sub_issues:
             sub_issue.parent = parent_issue

@@ -24,6 +24,7 @@ from plane.db.models import (
     Issue,
     FileAsset,
     IssueLink,
+    Module,
     ModuleIssue,
     Project,
     CycleIssue,
@@ -261,6 +262,14 @@ class ModuleIssueViewSet(BaseViewSet):
         project = Project.objects.get(pk=project_id)
 
         if modules:
+            # Scope to project/workspace to prevent cross-tenant IDOR
+            modules = list(
+                Module.objects.filter(
+                    workspace__slug=slug,
+                    project_id=project_id,
+                    pk__in=modules,
+                ).values_list("id", flat=True)
+            )
             _ = ModuleIssue.objects.bulk_create(
                 [
                     ModuleIssue(
@@ -280,7 +289,7 @@ class ModuleIssueViewSet(BaseViewSet):
             _ = [
                 issue_activity.delay(
                     type="module.activity.created",
-                    requested_data=json.dumps({"module_id": module}),
+                    requested_data=json.dumps({"module_id": str(module)}),
                     actor_id=str(request.user.id),
                     issue_id=issue_id,
                     project_id=project_id,
