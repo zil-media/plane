@@ -44,6 +44,7 @@ from plane.bgtasks.issue_activities_task import issue_activity
 from plane.bgtasks.issue_description_version_task import issue_description_version_task
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.bgtasks.webhook_task import model_activity
+from plane.bgtasks.zil_deliverable_checklist_task import zil_deliverable_checklist_task
 from plane.db.models import (
     CycleIssue,
     FileAsset,
@@ -55,6 +56,7 @@ from plane.db.models import (
     IssueReaction,
     IssueRelation,
     IssueSubscriber,
+    Label,
     ProjectUserProperty,
     ModuleIssue,
     Project,
@@ -73,6 +75,7 @@ from plane.utils.issue_filters import issue_filters
 from plane.utils.order_queryset import order_issue_queryset
 from plane.utils.paginator import GroupedOffsetPaginator, SubGroupedOffsetPaginator
 from plane.utils.timezone_converter import user_timezone_converter
+from plane.utils.zil_deliverable_checklists import DELIVERABLE_LABEL_NAMES
 
 from .. import BaseAPIView, BaseViewSet
 
@@ -191,6 +194,22 @@ class IssueListEndpoint(BaseAPIView):
             datetime_fields = ["created_at", "updated_at"]
             issues = user_timezone_converter(issues, datetime_fields, request.user.user_timezone)
         return Response(issues, status=status.HTTP_200_OK)
+
+
+def dispatch_zil_deliverable_checklist(project_id, issue_id, label_ids):
+    """Queue the checklist auto-spawn task when a deliverable-type label is present.
+
+    ``label_ids`` should be the full current set of label ids on the issue
+    (only called when the request actually touched labels). Looks up the
+    label names and only dispatches the Celery task if at least one of them
+    is a known deliverable type, to avoid queuing no-op work.
+    """
+    if not label_ids:
+        return
+    label_names = list(Label.objects.filter(project_id=project_id, id__in=label_ids).values_list("name", flat=True))
+    if not (set(label_names) & DELIVERABLE_LABEL_NAMES):
+        return
+    zil_deliverable_checklist_task.delay(issue_id=str(issue_id), label_names=label_names)
 
 
 class IssueViewSet(BaseViewSet):
@@ -474,6 +493,12 @@ class IssueViewSet(BaseViewSet):
                 user_id=request.user.id,
                 is_creating=True,
             )
+            # auto-spawn the deliverable checklist if a deliverable-type label was set
+            dispatch_zil_deliverable_checklist(
+                project_id=project_id,
+                issue_id=serializer.data["id"],
+                label_ids=serializer.data.get("label_ids"),
+            )
             return Response(issue, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -697,6 +722,14 @@ class IssueViewSet(BaseViewSet):
                     updated_issue=current_instance,
                     issue_id=str(serializer.data.get("id", None)),
                     user_id=request.user.id,
+                )
+            # auto-spawn the deliverable checklist if labels were touched and now
+            # include a deliverable-type label
+            if "label_ids" in request.data:
+                dispatch_zil_deliverable_checklist(
+                    project_id=project_id,
+                    issue_id=pk,
+                    label_ids=serializer.data.get("label_ids"),
                 )
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
