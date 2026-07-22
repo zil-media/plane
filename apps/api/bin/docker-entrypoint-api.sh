@@ -5,7 +5,21 @@ python manage.py wait_for_db
 # recreates this container on every new image but never re-runs the one-shot
 # migrator, which used to leave the API waiting forever on pending migrations.
 # Single API replica; worker/beat still wait_for_migrations, so no migrate races.
-python manage.py migrate --noinput
+# Bounded retry/backoff: a persistently failing migration must not crash-loop
+# silently forever (restart:always would otherwise retry with no visibility).
+MIGRATE_MAX_ATTEMPTS=5
+MIGRATE_RETRY_DELAY=5
+attempt=1
+until python manage.py migrate --noinput; do
+    if [ "$attempt" -ge "$MIGRATE_MAX_ATTEMPTS" ]; then
+        echo "ERROR: migration failed after $MIGRATE_MAX_ATTEMPTS attempts — manual intervention required" >&2
+        exit 1
+    fi
+    echo "Migration attempt $attempt/$MIGRATE_MAX_ATTEMPTS failed, retrying in ${MIGRATE_RETRY_DELAY}s..." >&2
+    sleep "$MIGRATE_RETRY_DELAY"
+    attempt=$((attempt + 1))
+    MIGRATE_RETRY_DELAY=$((MIGRATE_RETRY_DELAY * 2))
+done
 
 # Create the default bucket
 #!/bin/bash
