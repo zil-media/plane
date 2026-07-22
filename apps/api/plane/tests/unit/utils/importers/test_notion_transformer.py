@@ -414,8 +414,11 @@ class TestComments:
         assert len(result.comments) == 2
         assert result.comments[0]["id"] != result.comments[1]["id"]
 
-    def test_comment_with_own_id_is_stable(self):
-        body = '<div class="comment" id="c-real"><b>Ana</b><p>hi</p></div>'
+    UUID_A = "388dd4d7-6574-805e-9e6a-f1e53bcdbb01"
+    UUID_B = "388dd4d7-6574-805e-9e6a-f1e53bcdbb02"
+
+    def test_comment_with_uuid_id_is_stable(self):
+        body = f'<div class="comment" id="{self.UUID_A}"><b>Ana</b><p>hi</p></div>'
         result = transform(body)
         assert result.comments[0]["stable_id"] is True
 
@@ -428,35 +431,67 @@ class TestComments:
         assert result.comments[0]["author"] == "Ana"
         assert "hi" in result.comments[0]["html"]
 
-    def test_positional_id_is_not_treated_as_stable(self):
-        # a comment without its own id must be non-stable, so a mid-thread
+    def test_multi_paragraph_comment_not_fractured(self):
+        body = f'<div class="comment" id="{self.UUID_A}"><b>Ana</b><p>para one</p><p>para two</p></div>'
+        result = transform(body)
+        assert len(result.comments) == 1
+        assert "para one" in result.comments[0]["html"] and "para two" in result.comments[0]["html"]
+
+    def test_unclassed_reply_in_thread_survives(self):
+        # a reply whose wrapper lacks a comment/discussion class must NOT be
+        # dropped — units are found by author signal, not class
+        body = (
+            '<div class="comments" id="thread">'
+            "<div><b>Ana</b><p>first</p></div>"
+            '<div class="reply-row"><b>Bob</b><p>second</p></div>'
+            "</div>"
+        )
+        result = transform(body)
+        authors = {c["author"] for c in result.comments}
+        assert authors == {"Ana", "Bob"}
+
+    def test_nested_thread_not_merged(self):
+        # comments nested two levels deep must each become their own comment
+        body = (
+            '<div class="comments" id="outer"><div class="wrapper">'
+            f'<div class="comment" id="{self.UUID_A}"><b>Ana</b><p>first</p></div>'
+            f'<div class="comment" id="{self.UUID_B}"><b>Luis</b><p>second</p></div>'
+            "</div></div>"
+        )
+        result = transform(body)
+        assert len(result.comments) == 2
+        assert {c["author"] for c in result.comments} == {"Ana", "Luis"}
+
+    def test_non_uuid_id_is_not_stable(self):
+        # a positional / non-UUID id must be non-stable, so a mid-thread
         # insert/reorder can't make the task overwrite the wrong row in place
         body = (
             '<div class="discussion" id="thread-1">'
-            '<div class="comment"><p>root</p></div>'
-            '<div class="comment"><p>reply</p></div>'
+            "<div><b>A</b><p>root</p></div>"
+            "<div><b>B</b><p>reply</p></div>"
             "</div>"
         )
         result = transform(body)
         assert all(c["stable_id"] is False for c in result.comments)
 
-    def test_own_block_id_survives_reorder(self):
-        # comments carrying their own block id keep it regardless of position,
-        # so update-in-place stays correctly attached across re-imports
+    def test_uuid_block_id_survives_reorder(self):
+        # comments carrying their own UUID block id keep it regardless of
+        # position, so update-in-place stays attached across re-imports
         first = transform(
             '<div class="discussion" id="t">'
-            '<div class="comment" id="a"><p>A</p></div>'
-            '<div class="comment" id="b"><p>B</p></div>'
+            f'<div class="comment" id="{self.UUID_A}"><b>Ana</b><p>A</p></div>'
+            f'<div class="comment" id="{self.UUID_B}"><b>Bob</b><p>B</p></div>'
             "</div>"
         )
         reordered = transform(
             '<div class="discussion" id="t">'
-            '<div class="comment" id="b"><p>B</p></div>'
-            '<div class="comment" id="a"><p>A edited</p></div>'
+            f'<div class="comment" id="{self.UUID_B}"><b>Bob</b><p>B</p></div>'
+            f'<div class="comment" id="{self.UUID_A}"><b>Ana</b><p>A edited</p></div>'
             "</div>"
         )
-        assert {c["id"] for c in first.comments} == {"a", "b"}
-        assert {c["id"] for c in reordered.comments} == {"a", "b"}
+        assert {c["id"] for c in first.comments} == {self.UUID_A, self.UUID_B}
+        assert {c["id"] for c in reordered.comments} == {self.UUID_A, self.UUID_B}
+        assert all(c["stable_id"] for c in first.comments)
 
     def test_comment_html_escapes_markup(self):
         # entity-encoded markup in an export comment must not become live HTML

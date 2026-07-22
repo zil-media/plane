@@ -32,6 +32,8 @@ from urllib.parse import unquote, urlparse
 from bs4 import BeautifulSoup, NavigableString, Tag
 
 FILENAME_UUID_RE = re.compile(r" ([0-9a-f]{32})\.html$")
+# a real Notion block id: 32 hex, plain or 8-4-4-4-12 dashed
+_UUID_ID_RE = re.compile(r"^[0-9a-f]{32}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
 # `property-row property-row-<type>` on each row of the exported properties table
 PROPERTY_ROW_TYPE_RE = re.compile(r"^property-row-([a-z_]+)$")
 
@@ -679,42 +681,54 @@ class NotionHTMLTransformer:
             or any(attr.startswith("data-notion-comment") for attr in tag.attrs)
         )
 
+    @staticmethod
+    def _find_author_node(el):
+        return el.find(class_=re.compile("author|user", re.I)) or el.find(["b", "strong"])
+
     def _split_comment_items(self, container, seq):
         """Yield {"id", "author", "html", "stable_id"} for each comment.
 
-        ``stable_id`` is True ONLY when the item carries its own ``id``
-        attribute (a real Notion block id). A container-relative position is
-        NOT identity — it shifts when a sibling is added/removed — so those get
-        a synthesized (non-stable) id and the task keeps content in the dedup
-        key, never updating them in place.
+        A comment unit is an *innermost author-bearing element* — an element
+        that contains an author marker (b/strong or an author/user class) and
+        is not itself inside another such element. This is class- and
+        depth-independent, so it never drops an unclassed reply, never merges
+        nested threads, and never fractures a multi-paragraph comment. When a
+        container has no author-bearing descendant, the whole container is one
+        comment.
+
+        ``stable_id`` is True ONLY when the unit carries its own UUID-shaped
+        ``id`` (a real, globally-unique Notion block id). A container-relative
+        position or a non-UUID id is NOT a stable identity, so those get a
+        synthesized id and the task keeps content in the dedup key, never
+        updating them in place.
         """
-        # split into children only when they are themselves comment-like (a
-        # thread of replies); an author element + a text element as siblings is
-        # ONE comment, not two — so don't split on bare child count
-        comment_children = [
-            c
-            for c in container.find_all(recursive=False)
-            if isinstance(c, Tag) and self._looks_like_comment(c)
+        candidates = [el for el in container.find_all(True) if self._find_author_node(el) is not None]
+        # innermost = no other candidate lives inside it
+        candidate_set = set(id(c) for c in candidates)
+        units = [
+            el
+            for el in candidates
+            if not any(id(d) in candidate_set for d in el.find_all(True))
         ]
-        items = comment_children if comment_children else [container]
-        for item in items:
+        if not units:
+            units = [container]
+        for item in units:
             author = None
-            author_node = item.find(class_=re.compile("author|user", re.I))
-            if author_node is None:
-                author_node = item.find(["b", "strong"])
+            author_node = self._find_author_node(item)
             if author_node is not None:
                 author = author_node.get_text(" ", strip=True) or None
                 author_node.extract()
             text = item.get_text(" ", strip=True)
             if not text:
                 continue
-            own_id = item.get("id") or ""
-            stable_id = bool(own_id)
-            if not own_id:
+            raw_id = item.get("id") or ""
+            stable_id = bool(raw_id and _UUID_ID_RE.match(raw_id))
+            own_id = raw_id
+            if not stable_id:
                 # no stable block id: draw a fresh page-global sequence number
-                # so two id-less comments never share an id (which would collide
-                # in the importer's dedup and silently drop one). Content stays
-                # in the task's dedup key for these.
+                # so two comments never share a synthesized id (which would
+                # collide in the importer's dedup and silently drop one).
+                # Content stays in the task's dedup key for these.
                 self._warn("comment_without_id")
                 own_id = f"seq:{next(seq)}"
             # ``text`` is already flattened plain text (get_text stripped every
