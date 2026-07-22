@@ -437,21 +437,55 @@ class TestComments:
         assert len(result.comments) == 1
         assert "para one" in result.comments[0]["html"] and "para two" in result.comments[0]["html"]
 
-    def test_unclassed_reply_in_thread_survives(self):
-        # a reply whose wrapper lacks a comment/discussion class must NOT be
-        # dropped — units are found by author signal, not class
+    def test_bold_body_text_not_misread_as_author(self):
+        # CRITICAL: a comment whose body is bold (e.g. "**Approved**") must not
+        # have that bold read as the author and the body dropped
+        uuid = "388dd4d7-6574-805e-9e6a-f1e53bcdbb09"
+        body = f'<div class="comment" id="{uuid}"><b>Ana</b><p><strong>Approved</strong></p></div>'
+        result = transform(body)
+        assert len(result.comments) == 1
+        assert result.comments[0]["author"] == "Ana"
+        assert "Approved" in result.comments[0]["html"]
+
+    def test_bold_only_body_no_author_keeps_text(self):
+        uuid = "388dd4d7-6574-805e-9e6a-f1e53bcdbb0a"
+        body = f'<div class="comment" id="{uuid}"><p>ok <strong>bold</strong> end</p></div>'
+        result = transform(body)
+        assert len(result.comments) == 1
+        assert result.comments[0]["author"] is None
+        assert "ok" in result.comments[0]["html"] and "bold" in result.comments[0]["html"]
+
+    def test_classed_replies_in_thread_each_survive(self):
+        # comment-marked replies (even same author, even unauthored) each survive
         body = (
-            '<div class="comments" id="thread">'
-            "<div><b>Ana</b><p>first</p></div>"
-            '<div class="reply-row"><b>Bob</b><p>second</p></div>'
+            '<div class="comment-thread">'
+            '<div class="comment"><b>Ana</b> first</div>'
+            '<div class="comment">second, no repeated author</div>'
+            '<div class="comment">third, no repeated author</div>'
             "</div>"
         )
         result = transform(body)
-        authors = {c["author"] for c in result.comments}
-        assert authors == {"Ana", "Bob"}
+        assert len(result.comments) == 3
+        texts = " ".join(c["html"] for c in result.comments)
+        assert "first" in texts and "second" in texts and "third" in texts
+
+    def test_reply_nested_inside_parent_comment_keeps_both(self):
+        # a reply physically nested inside its parent comment div: both the
+        # parent's own text and the reply must survive
+        a = "388dd4d7-6574-805e-9e6a-f1e53bcdbb0b"
+        b = "388dd4d7-6574-805e-9e6a-f1e53bcdbb0c"
+        body = (
+            f'<div class="comment" id="{a}"><b>Alice</b> parent text'
+            f'<div class="comment" id="{b}"><b>Bob</b> reply text</div>'
+            "</div>"
+        )
+        result = transform(body)
+        texts = " ".join(c["html"] for c in result.comments)
+        assert "parent text" in texts and "reply text" in texts
 
     def test_nested_thread_not_merged(self):
-        # comments nested two levels deep must each become their own comment
+        # comments nested two levels deep (through an unmarked wrapper) must
+        # each become their own comment
         body = (
             '<div class="comments" id="outer"><div class="wrapper">'
             f'<div class="comment" id="{self.UUID_A}"><b>Ana</b><p>first</p></div>'
@@ -467,8 +501,8 @@ class TestComments:
         # insert/reorder can't make the task overwrite the wrong row in place
         body = (
             '<div class="discussion" id="thread-1">'
-            "<div><b>A</b><p>root</p></div>"
-            "<div><b>B</b><p>reply</p></div>"
+            '<div class="comment" id="x1"><b>A</b><p>root</p></div>'
+            '<div class="comment" id="x2"><b>B</b><p>reply</p></div>'
             "</div>"
         )
         result = transform(body)

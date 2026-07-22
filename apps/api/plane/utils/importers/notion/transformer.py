@@ -672,46 +672,79 @@ class NotionHTMLTransformer:
                 self._result.comments.append(item)
             container.decompose()
 
-    @staticmethod
-    def _looks_like_comment(tag):
-        classes = " ".join(tag.get("class") or []).lower()
-        return (
-            "comment" in classes
-            or "discussion" in classes
-            or any(attr.startswith("data-notion-comment") for attr in tag.attrs)
-        )
+    # class tokens that name a *part* of a comment (author row, body, …), not a
+    # comment container/item — must not be mistaken for a comment boundary
+    _COMMENT_SUBPART_RE = re.compile(
+        r"(author|body|header|footer|content|text|meta|name|time|date|avatar|icon|action|reaction)"
+    )
 
-    @staticmethod
-    def _find_author_node(el):
-        return el.find(class_=re.compile("author|user", re.I)) or el.find(["b", "strong"])
+    @classmethod
+    def _looks_like_comment(cls, tag):
+        if any(attr.startswith("data-notion-comment") for attr in tag.attrs):
+            return True
+        for token in tag.get("class") or []:
+            token = token.lower()
+            if ("comment" in token or "discussion" in token) and not cls._COMMENT_SUBPART_RE.search(token):
+                return True
+        return False
+
+    def _find_author_node(self, el):
+        """The element's author marker: prefer an explicit author/user class;
+        fall back to a b/strong ONLY when it is a leading name label (nothing
+        textual precedes it), never one buried in the body — otherwise bold
+        body text like <strong>Approved</strong> would be misread as the
+        author (and the real body dropped)."""
+        author = el.find(class_=re.compile("author|user", re.I))
+        if author is not None:
+            return author
+        bold = el.find(["b", "strong"])
+        if bold is not None:
+            full = el.get_text()
+            before = full.find(bold.get_text())
+            if before <= 0 or not full[:before].strip():
+                return bold
+        return None
+
+    def _outermost_comments(self, root):
+        """Topmost comment-marked elements under ``root`` (recursing only
+        through unmarked wrappers, so a nested reply's parent is found first)."""
+        found = []
+        for child in root.find_all(recursive=False):
+            if not isinstance(child, Tag):
+                continue
+            if self._looks_like_comment(child):
+                found.append(child)
+            else:
+                found.extend(self._outermost_comments(child))
+        return found
 
     def _split_comment_items(self, container, seq):
         """Yield {"id", "author", "html", "stable_id"} for each comment.
 
-        A comment unit is an *innermost author-bearing element* — an element
-        that contains an author marker (b/strong or an author/user class) and
-        is not itself inside another such element. This is class- and
-        depth-independent, so it never drops an unclassed reply, never merges
-        nested threads, and never fractures a multi-paragraph comment. When a
-        container has no author-bearing descendant, the whole container is one
-        comment.
+        Comment boundaries come from the comment MARKER (class/data attr), the
+        only author-intended signal in this (undocumented) markup — never from
+        guessing at author elements, which confuses bold body text for a name.
+        A comment-marked element with no comment-marked descendants is one
+        comment; a marked element that contains marked replies contributes its
+        own text (outside those replies) plus each reply, recursively. A
+        container with no marked descendants is one comment.
 
-        ``stable_id`` is True ONLY when the unit carries its own UUID-shaped
-        ``id`` (a real, globally-unique Notion block id). A container-relative
-        position or a non-UUID id is NOT a stable identity, so those get a
-        synthesized id and the task keeps content in the dedup key, never
-        updating them in place.
+        ``stable_id`` is True ONLY for a UUID-shaped own ``id`` (a real,
+        globally-unique Notion block id); everything else is synthesized and
+        content-keyed by the task (never updated in place).
         """
-        candidates = [el for el in container.find_all(True) if self._find_author_node(el) is not None]
-        # innermost = no other candidate lives inside it
-        candidate_set = set(id(c) for c in candidates)
-        units = [
-            el
-            for el in candidates
-            if not any(id(d) in candidate_set for d in el.find_all(True))
-        ]
-        if not units:
-            units = [container]
+        units = []  # list of (element, extracted-inner-removed) to emit
+
+        def collect(el):
+            inner = self._outermost_comments(el)
+            for child in inner:
+                child.extract()  # so el's own text excludes nested replies
+            units.append(el)  # el now holds only its own (non-reply) content
+            for child in inner:
+                collect(child)
+
+        collect(container)
+
         for item in units:
             author = None
             author_node = self._find_author_node(item)
@@ -720,7 +753,7 @@ class NotionHTMLTransformer:
                 author_node.extract()
             text = item.get_text(" ", strip=True)
             if not text:
-                continue
+                continue  # a bare wrapper with no own text contributes nothing
             raw_id = item.get("id") or ""
             stable_id = bool(raw_id and _UUID_ID_RE.match(raw_id))
             own_id = raw_id
