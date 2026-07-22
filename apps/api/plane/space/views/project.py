@@ -29,7 +29,9 @@ class WorkspaceProjectDeployBoardEndpoint(BaseAPIView):
     permission_classes = [AllowAny]
 
     def get(self, request, anchor):
-        deploy_board = DeployBoard.objects.filter(anchor=anchor, entity_name="project").values_list
+        deploy_board = DeployBoard.objects.filter(anchor=anchor, entity_name="project").first()
+        if not deploy_board:
+            return Response({"error": "Invalid anchor"}, status=status.HTTP_404_NOT_FOUND)
         projects = (
             Project.objects.filter(workspace=deploy_board.workspace)
             .annotate(

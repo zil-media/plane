@@ -68,6 +68,7 @@ class IntakeIssuePublicViewSet(BaseViewSet):
                 issue_intake__intake_id=intake_id,
                 workspace_id=project_deploy_board.workspace_id,
                 project_id=project_deploy_board.project_id,
+                created_by=request.user,
             )
             .filter(**filters)
             .annotate(bridge_id=F("issue_intake__id"))
@@ -253,6 +254,13 @@ class IntakeIssuePublicViewSet(BaseViewSet):
             project_id=project_deploy_board.project_id,
             intake_id=intake_id,
         )
+
+        if str(intake_issue.created_by_id) != str(request.user.id):
+            return Response(
+                {"error": "You cannot view this intake issue"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         issue = Issue.objects.get(
             pk=intake_issue.issue_id,
             workspace_id=project_deploy_board.workspace_id,
