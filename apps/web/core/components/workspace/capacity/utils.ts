@@ -63,5 +63,5 @@ export const buildCapacityRows = (distribution: TDistribution | undefined, membe
     };
   });
 
-  return rows.toSorted((a, b) => b.openCount - a.openCount);
+  return [...rows].toSorted((a: TCapacityRow, b: TCapacityRow) => b.openCount - a.openCount);
 };
