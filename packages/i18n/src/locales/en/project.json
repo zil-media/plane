@@ -414,5 +414,39 @@
         }
       }
     }
+  },
+  "project_publish": {
+    "modal_title": "Publish project",
+    "unpublish": "Unpublish",
+    "unpublishing": "Unpublishing",
+    "publish": "Publish",
+    "publishing": "Publishing",
+    "update_settings": "Update settings",
+    "updating": "Updating",
+    "copy_link": "Copy link",
+    "live_message": "This project is now live on web",
+    "access_note": "Anyone with the link can access",
+    "views": "Views",
+    "view_options": {
+      "list": "List",
+      "kanban": "Kanban"
+    },
+    "client_access": {
+      "title": "Client access",
+      "allow_comments": "Allow comments",
+      "allow_comments_description": "Let anyone with the link leave comments on work items.",
+      "allow_reactions": "Allow reactions",
+      "allow_reactions_description": "Let anyone with the link react to work items and comments.",
+      "allow_voting": "Allow voting",
+      "allow_voting_description": "Let anyone with the link vote on work items to signal priority."
+    },
+    "errors": {
+      "select_layout": "Please select at least one view layout to publish the project."
+    },
+    "toasts": {
+      "update_success": "Publish settings updated successfully!",
+      "unpublish_error": "Something went wrong while unpublishing the project.",
+      "link_copied": "Published page link copied successfully."
+    }
   }
 }

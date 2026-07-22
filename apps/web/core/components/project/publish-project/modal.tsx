@@ -11,6 +11,7 @@ import { Controller, useForm } from "react-hook-form";
 
 // types
 import { SPACE_BASE_PATH, SPACE_BASE_URL } from "@plane/constants";
+import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { GlobeIcon, NewTabIcon, CheckIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -41,10 +42,10 @@ const defaultValues: Partial<TProjectPublishSettings> = {
 
 const VIEW_OPTIONS: {
   key: TProjectPublishLayouts;
-  label: string;
+  labelKey: string;
 }[] = [
-  { key: "list", label: "List" },
-  { key: "kanban", label: "Kanban" },
+  { key: "list", labelKey: "project_publish.view_options.list" },
+  { key: "kanban", labelKey: "project_publish.view_options.kanban" },
 ];
 
 export const PublishProjectModal = observer(function PublishProjectModal(props: Props) {
@@ -53,6 +54,8 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
   const [isUnPublishing, setIsUnPublishing] = useState(false);
   // router
   const { workspaceSlug } = useParams();
+  // i18n
+  const { t } = useTranslation();
   // store hooks
   const {
     fetchPublishSettings,
@@ -100,8 +103,8 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
     await updatePublishSettings(workspaceSlug.toString(), projectId, payload.id, payload).then((res) => {
       setToast({
         type: TOAST_TYPE.SUCCESS,
-        title: "Success!",
-        message: "Publish settings updated successfully!",
+        title: t("toast.success"),
+        message: t("project_publish.toasts.update_success"),
       });
 
       handleClose();
@@ -118,8 +121,8 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
       .catch(() =>
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: "Something went wrong while unpublishing the project.",
+          title: t("toast.error"),
+          message: t("project_publish.toasts.unpublish_error"),
         })
       )
       .finally(() => setIsUnPublishing(false));
@@ -136,8 +139,8 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
     if (!selectedLayouts || selectedLayouts.length === 0) {
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error!",
-        message: "Please select at least one view layout to publish the project.",
+        title: t("toast.error"),
+        message: t("project_publish.errors.select_layout"),
       });
       return;
     }
@@ -172,7 +175,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "",
-        message: "Published page link copied successfully.",
+        message: t("project_publish.toasts.link_copied"),
       })
     );
 
@@ -180,7 +183,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
     <ModalCore isOpen={isOpen} handleClose={handleClose} width={EModalWidth.XXL}>
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         <div className="flex items-center justify-between gap-2 p-5">
-          <h5 className="text-18 font-medium text-secondary">Publish project</h5>
+          <h5 className="text-18 font-medium text-secondary">{t("project_publish.modal_title")}</h5>
           {isProjectPublished && (
             <Button
               variant="error-fill"
@@ -188,7 +191,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
               onClick={() => handleUnPublishProject(watch("id") ?? "")}
               loading={isUnPublishing}
             >
-              {isUnPublishing ? "Unpublishing" : "Unpublish"}
+              {isUnPublishing ? t("project_publish.unpublishing") : t("project_publish.unpublish")}
             </Button>
           )}
         </div>
@@ -228,7 +231,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
                       className="h-8 rounded-sm bg-layer-3 px-3 py-2 text-11 font-medium hover:bg-layer-3-hover"
                       onClick={handleCopyLink}
                     >
-                      Copy link
+                      {t("project_publish.copy_link")}
                     </button>
                   </div>
                 </div>
@@ -237,13 +240,13 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
                     <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent-primary opacity-75" />
                     <span className="relative inline-flex size-1.5 rounded-full bg-accent-primary" />
                   </span>
-                  This project is now live on web
+                  {t("project_publish.live_message")}
                 </p>
               </>
             )}
             <div className="space-y-4">
               <div className="relative flex items-center justify-between gap-2">
-                <div className="text-13">Views</div>
+                <div className="text-13">{t("project_publish.views")}</div>
                 <Controller
                   control={control}
                   name="view_props"
@@ -251,7 +254,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
                     <CustomSelect
                       value={value}
                       label={VIEW_OPTIONS.filter((o) => selectedLayouts.includes(o.key))
-                        .map((o) => o.label)
+                        .map((o) => t(o.labelKey))
                         .join(", ")}
                       onChange={(val: TProjectPublishLayouts) => {
                         if (selectedLayouts.length === 1 && selectedLayouts[0] === val) return;
@@ -269,7 +272,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
                           value={option.key}
                           className="flex items-center justify-between gap-2"
                         >
-                          {option.label}
+                          {t(option.labelKey)}
                           {selectedLayouts.includes(option.key) && <CheckIcon className="size-3.5 flex-shrink-0" />}
                         </CustomSelect.Option>
                       ))}
@@ -277,8 +280,18 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
                   )}
                 />
               </div>
-              <div className="relative flex items-center justify-between gap-2">
-                <div className="text-13">Allow comments</div>
+            </div>
+
+            {/* client access — comment / react / vote without a seat */}
+            <div className="space-y-3 rounded-md border border-subtle p-3">
+              <div className="text-13 font-medium text-secondary">{t("project_publish.client_access.title")}</div>
+              <div className="relative flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-13">{t("project_publish.client_access.allow_comments")}</div>
+                  <div className="text-11 text-tertiary">
+                    {t("project_publish.client_access.allow_comments_description")}
+                  </div>
+                </div>
                 <Controller
                   control={control}
                   name="is_comments_enabled"
@@ -287,8 +300,13 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
                   )}
                 />
               </div>
-              <div className="relative flex items-center justify-between gap-2">
-                <div className="text-13">Allow reactions</div>
+              <div className="relative flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-13">{t("project_publish.client_access.allow_reactions")}</div>
+                  <div className="text-11 text-tertiary">
+                    {t("project_publish.client_access.allow_reactions_description")}
+                  </div>
+                </div>
                 <Controller
                   control={control}
                   name="is_reactions_enabled"
@@ -297,8 +315,13 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
                   )}
                 />
               </div>
-              <div className="relative flex items-center justify-between gap-2">
-                <div className="text-13">Allow voting</div>
+              <div className="relative flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-13">{t("project_publish.client_access.allow_voting")}</div>
+                  <div className="text-11 text-tertiary">
+                    {t("project_publish.client_access.allow_voting_description")}
+                  </div>
+                </div>
                 <Controller
                   control={control}
                   name="is_votes_enabled"
@@ -315,22 +338,22 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
         <div className="relative mt-4 flex items-center justify-between border-t border-subtle px-5 py-4">
           <div className="flex items-center gap-1 text-13 text-placeholder">
             <GlobeIcon className="size-3.5" />
-            <div className="text-13">Anyone with the link can access</div>
+            <div className="text-13">{t("project_publish.access_note")}</div>
           </div>
           {!fetchSettingsLoader && (
             <div className="relative flex items-center gap-2">
               <Button variant="secondary" size="lg" onClick={handleClose}>
-                Cancel
+                {t("cancel")}
               </Button>
               {isProjectPublished ? (
                 isDirty && (
                   <Button variant="primary" size="lg" type="submit" loading={isSubmitting}>
-                    {isSubmitting ? "Updating" : "Update settings"}
+                    {isSubmitting ? t("project_publish.updating") : t("project_publish.update_settings")}
                   </Button>
                 )
               ) : (
                 <Button variant="primary" size="lg" type="submit" loading={isSubmitting}>
-                  {isSubmitting ? "Publishing" : "Publish"}
+                  {isSubmitting ? t("project_publish.publishing") : t("project_publish.publish")}
                 </Button>
               )}
             </div>
