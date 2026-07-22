@@ -224,6 +224,7 @@
           "import_another": "导入其他导出文件",
           "authors_title": "Notion 人员",
           "authors_description": "将 Notion 中找到的每位人员（评论作者和属性中的人员）关联到工作区成员。已关联的人员将成为负责人和评论作者；未关联的作者将作为备注保留在评论中。",
+          "authors_truncated": "此导出较大，因此人员列表可能不完整。您仍可以关联已显示的人员。",
           "author_unmapped": "未关联",
           "report_comments": "评论"
         }

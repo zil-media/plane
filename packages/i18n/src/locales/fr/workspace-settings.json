@@ -224,6 +224,7 @@
           "import_another": "Importer un autre export",
           "authors_title": "Personnes de Notion",
           "authors_description": "Associez chaque personne trouvée dans Notion (auteurs des commentaires et personnes dans les propriétés) à un membre de l'espace de travail. Les personnes associées deviennent des acteurs et des auteurs de commentaires ; les auteurs non associés sont conservés sous forme de note dans le commentaire.",
+          "authors_truncated": "Cet export est volumineux, la liste des personnes peut donc être incomplète. Vous pouvez tout de même associer celles affichées.",
           "author_unmapped": "Non associé",
           "report_comments": "Commentaires"
         }

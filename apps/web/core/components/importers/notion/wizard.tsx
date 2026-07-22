@@ -529,6 +529,11 @@ function ConfigureStep({
             <p className="text-caption-md-regular text-tertiary">
               {t("workspace_settings.settings.imports.notion.authors_description")}
             </p>
+            {manifest.comment_authors_truncated && (
+              <p className="text-caption-md-regular text-warning-primary">
+                {t("workspace_settings.settings.imports.notion.authors_truncated")}
+              </p>
+            )}
           </div>
           <div className="rounded-lg border border-subtle bg-layer-2">
             {commentAuthors.map((author, index) => (

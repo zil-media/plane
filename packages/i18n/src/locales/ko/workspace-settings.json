@@ -224,6 +224,7 @@
           "import_another": "다른 내보내기 가져오기",
           "authors_title": "Notion 사용자",
           "authors_description": "Notion에서 발견된 각 사용자(댓글 작성자 및 속성의 사용자)를 워크스페이스 멤버와 연결해 주세요. 연결된 사용자는 담당자 및 댓글 작성자가 됩니다. 연결되지 않은 작성자는 댓글 안에 메모로 유지됩니다.",
+          "authors_truncated": "이 내보내기는 크기 때문에 사용자 목록이 불완전할 수 있습니다. 표시된 사용자는 계속 연결할 수 있습니다.",
           "author_unmapped": "연결되지 않음",
           "report_comments": "댓글"
         }

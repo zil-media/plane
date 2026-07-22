@@ -224,6 +224,7 @@
           "import_another": "Importar outra exportação",
           "authors_title": "Pessoas do Notion",
           "authors_description": "Vincule cada pessoa encontrada no Notion (autores de comentários e pessoas em propriedades) a um membro do espaço de trabalho. Pessoas vinculadas tornam-se responsáveis e autores de comentários; autores não vinculados são mantidos como nota dentro do comentário.",
+          "authors_truncated": "Esta exportação é grande, portanto a lista de pessoas pode estar incompleta. Você ainda pode vincular as exibidas.",
           "author_unmapped": "Não vinculado",
           "report_comments": "Comentários"
         }

@@ -224,6 +224,7 @@
           "import_another": "Importuj kolejny eksport",
           "authors_title": "Osoby z Notion",
           "authors_description": "Połącz każdą osobę z Notion (autorów komentarzy i osoby we właściwościach) z członkiem przestrzeni roboczej. Połączone osoby stają się przypisanymi i autorami komentarzy; niepołączeni autorzy są zachowywani jako notatka w komentarzu.",
+          "authors_truncated": "Ten eksport jest duży, więc lista osób może być niekompletna. Nadal możesz połączyć te, które są wyświetlone.",
           "author_unmapped": "Niepołączony",
           "report_comments": "Komentarze"
         }

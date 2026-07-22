@@ -224,6 +224,7 @@
           "import_another": "Importovat další export",
           "authors_title": "Osoby z Notion",
           "authors_description": "Propojte každou osobu z Notion (autory komentářů a osoby ve vlastnostech) se členem pracovního prostoru. Propojené osoby se stanou přiřazenými a autory komentářů; nepropojení autoři zůstanou jako poznámka v komentáři.",
+          "authors_truncated": "Tento export je velký, takže seznam osob může být neúplný. Zobrazené osoby přesto můžete propojit.",
           "author_unmapped": "Nepropojeno",
           "report_comments": "Komentáře"
         }

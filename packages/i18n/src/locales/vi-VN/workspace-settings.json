@@ -224,6 +224,7 @@
           "import_another": "Nhập bản xuất khác",
           "authors_title": "Những người từ Notion",
           "authors_description": "Liên kết từng người được tìm thấy trong Notion (tác giả bình luận và những người trong thuộc tính) với một thành viên của không gian làm việc. Người được liên kết sẽ trở thành người phụ trách và tác giả bình luận; tác giả chưa liên kết sẽ được giữ dưới dạng ghi chú trong bình luận.",
+          "authors_truncated": "Bản xuất này lớn nên danh sách người có thể chưa đầy đủ. Bạn vẫn có thể liên kết những người được hiển thị.",
           "author_unmapped": "Chưa liên kết",
           "report_comments": "Bình luận"
         }

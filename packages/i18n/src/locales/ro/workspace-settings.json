@@ -224,6 +224,7 @@
           "import_another": "Importați alt export",
           "authors_title": "Persoane din Notion",
           "authors_description": "Asociați fiecare persoană găsită în Notion (autori de comentarii și persoane din proprietăți) cu un membru al spațiului de lucru. Persoanele asociate devin responsabili și autori de comentarii; autorii neasociați sunt păstrați ca notă în comentariu.",
+          "authors_truncated": "Acest export este mare, așa că lista de persoane poate fi incompletă. Puteți totuși să le asociați pe cele afișate.",
           "author_unmapped": "Neasociat",
           "report_comments": "Comentarii"
         }

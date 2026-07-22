@@ -39,6 +39,7 @@ export type TNotionManifest = {
   pages: Record<string, TNotionManifestPage>;
   databases: Record<string, TNotionManifestDatabase>;
   comment_authors?: string[];
+  comment_authors_truncated?: boolean;
   stats: {
     pages: number;
     database_rows: number;

@@ -224,6 +224,7 @@
           "import_another": "Importovať ďalší export",
           "authors_title": "Osoby z Notion",
           "authors_description": "Prepojte každú osobu z Notion (autorov komentárov a osoby vo vlastnostiach) s členom pracovného priestoru. Prepojené osoby sa stanú priradenými a autormi komentárov; neprepojení autori zostanú ako poznámka v komentári.",
+          "authors_truncated": "Tento export je veľký, takže zoznam osôb môže byť neúplný. Zobrazené osoby môžete napriek tomu prepojiť.",
           "author_unmapped": "Neprepojené",
           "report_comments": "Komentáre"
         }
