@@ -26,7 +26,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 # Module imports
-from plane.db.models import User, Issue, IssueLink
+from plane.db.models import User, Issue, IssueLink, Project, Page
 from plane.authentication.utils.zil_provisioning import (
     ensure_workspace,
     provision_user_workspaces,
@@ -229,9 +229,13 @@ class ZilEntityLinkEndpoint(ZilServiceView):
 
     The link itself is owned by Zil Workspace (golden rule); this endpoint only
     stamps/clears Plane's disposable external_source/external_id back-ref (and,
-    for issues, an IssueLink chip). Phase 1: issues only.
+    for issues, a native IssueLink chip). Supports issue, project and page.
     See docs/plan/erp-ops-linking/PLAN.md.
     """
+
+    # Each linkable Plane content type carries external_source/external_id; only
+    # issues also get a visible IssueLink chip (project/page have no link table).
+    _MODELS = {"issue": Issue, "project": Project, "page": Page}
 
     def post(self, request):
         op = request.data.get("op")
@@ -242,36 +246,46 @@ class ZilEntityLinkEndpoint(ZilServiceView):
         url = request.data.get("url")
         title = (request.data.get("title") or "Zil")[:255]
 
-        # Phase 1 handles issues only; projects/pages arrive in Phase 2.
-        if entity_type != "issue":
+        if entity_type not in self._MODELS:
             return Response(
-                {"error": "unsupported_entity_type", "detail": f"'{entity_type}' not supported yet."},
+                {"error": "unsupported_entity_type", "detail": f"'{entity_type}' is not linkable."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if op not in ("set", "clear"):
+            return Response(
+                {"error": "unsupported_op", "detail": f"'{op}' is not a valid op."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
             # scope to the claimed workspace; 404 (not 403) avoids leaking
             # cross-workspace existence — this view runs outside per-user auth
-            issue = Issue.objects.filter(pk=entity_id, workspace__slug=slug).first()
-            if issue is None:
+            obj = self._MODELS[entity_type].objects.filter(pk=entity_id, workspace__slug=slug).first()
+            if obj is None:
                 return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
 
             if op == "set":
-                issue.external_source = "zil"
-                issue.external_id = opslink_id
-                issue.save(update_fields=["external_source", "external_id"])
-                # idempotent on (issue, url) — a retry never duplicates the chip
-                IssueLink.objects.get_or_create(
-                    issue=issue,
-                    url=url,
-                    defaults={"title": title, "workspace": issue.workspace, "project": issue.project},
-                )
+                obj.external_source = "zil"
+                obj.external_id = opslink_id
+                obj.save(update_fields=["external_source", "external_id"])
+                if entity_type == "issue":
+                    # idempotent on (issue, url) — a retry never duplicates the chip
+                    IssueLink.objects.get_or_create(
+                        issue=obj,
+                        url=url,
+                        defaults={"title": title, "workspace": obj.workspace, "project": obj.project},
+                    )
                 return Response({"status": "linked"}, status=status.HTTP_200_OK)
 
-            # 'clear' lands in Phase 2.
-            return Response(
-                {"error": "not_implemented", "detail": "clear is not implemented yet."},
-                status=status.HTTP_501_NOT_IMPLEMENTED,
-            )
+            # op == "clear": only ever clear OUR own back-ref, and only if it still
+            # points at THIS link — a newer link (different opslink_id) is left intact.
+            if obj.external_source == "zil" and str(obj.external_id or "") == str(opslink_id or ""):
+                obj.external_source = None
+                obj.external_id = None
+                obj.save(update_fields=["external_source", "external_id"])
+            if entity_type == "issue" and url:
+                # remove just this chip; other links on the issue are untouched
+                IssueLink.objects.filter(issue=obj, url=url).delete()
+            return Response({"status": "cleared"}, status=status.HTTP_200_OK)
         except Exception as e:
             log_exception(e)
             return Response({"error": "entity_link_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
