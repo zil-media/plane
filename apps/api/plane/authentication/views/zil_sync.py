@@ -26,7 +26,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 # Module imports
-from plane.db.models import User
+from plane.db.models import User, Issue, IssueLink
 from plane.authentication.utils.zil_provisioning import (
     ensure_workspace,
     provision_user_workspaces,
@@ -229,12 +229,49 @@ class ZilEntityLinkEndpoint(ZilServiceView):
 
     The link itself is owned by Zil Workspace (golden rule); this endpoint only
     stamps/clears Plane's disposable external_source/external_id back-ref (and,
-    for issues, an IssueLink chip). Phase 0: stub — not yet implemented.
+    for issues, an IssueLink chip). Phase 1: issues only.
     See docs/plan/erp-ops-linking/PLAN.md.
     """
 
     def post(self, request):
-        return Response(
-            {"error": "not_implemented", "detail": "entity-link is not implemented yet (Phase 0 stub)."},
-            status=status.HTTP_501_NOT_IMPLEMENTED,
-        )
+        op = request.data.get("op")
+        entity_type = request.data.get("plane_entity_type")
+        slug = request.data.get("workspace_slug")
+        entity_id = request.data.get("plane_entity_id")
+        opslink_id = request.data.get("opslink_id")
+        url = request.data.get("url")
+        title = (request.data.get("title") or "Zil")[:255]
+
+        # Phase 1 handles issues only; projects/pages arrive in Phase 2.
+        if entity_type != "issue":
+            return Response(
+                {"error": "unsupported_entity_type", "detail": f"'{entity_type}' not supported yet."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            # scope to the claimed workspace; 404 (not 403) avoids leaking
+            # cross-workspace existence — this view runs outside per-user auth
+            issue = Issue.objects.filter(pk=entity_id, workspace__slug=slug).first()
+            if issue is None:
+                return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+
+            if op == "set":
+                issue.external_source = "zil"
+                issue.external_id = opslink_id
+                issue.save(update_fields=["external_source", "external_id"])
+                # idempotent on (issue, url) — a retry never duplicates the chip
+                IssueLink.objects.get_or_create(
+                    issue=issue,
+                    url=url,
+                    defaults={"title": title, "workspace": issue.workspace, "project": issue.project},
+                )
+                return Response({"status": "linked"}, status=status.HTTP_200_OK)
+
+            # 'clear' lands in Phase 2.
+            return Response(
+                {"error": "not_implemented", "detail": "clear is not implemented yet."},
+                status=status.HTTP_501_NOT_IMPLEMENTED,
+            )
+        except Exception as e:
+            log_exception(e)
+            return Response({"error": "entity_link_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
