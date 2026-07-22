@@ -37,6 +37,7 @@ import requests
 # Module imports
 from plane.db.models import User, Workspace, WorkspaceMember, Profile
 from plane.utils.color import get_random_color
+from plane.utils.constants import RESTRICTED_WORKSPACE_SLUGS
 from plane.utils.exception_logger import log_exception
 
 logger = logging.getLogger("plane.authentication")
@@ -68,8 +69,21 @@ def map_role(zil_role):
 
 
 def normalize_slug(slug):
-    """Plane workspace slugs are max 48 chars, slugified, unique."""
-    return slugify(str(slug or ""))[:48]
+    """Plane workspace slugs are max 48 chars, slugified, unique.
+
+    Also guards against a Business Unit name (e.g. "Billing", "Settings",
+    "Admin") slugifying into a reserved app route — that would let a
+    workspace shadow e.g. /billing or /settings. Mirrors the
+    RESTRICTED_WORKSPACE_SLUGS check in app/serializers/workspace.py, but
+    since this path has no form to surface a validation error to, it
+    disambiguates instead of rejecting.
+    """
+    normalized = slugify(str(slug or ""))[:48]
+    attempts = 0
+    while normalized and normalized in RESTRICTED_WORKSPACE_SLUGS and attempts < 5:
+        normalized = f"{normalized}-ws"[:48]
+        attempts += 1
+    return normalized
 
 
 def get_service_user():
@@ -151,11 +165,21 @@ def ensure_workspace(slug, name=None, color=None, logo_url=None, owner=None):
     return ws, True
 
 
-def _upsert_membership(workspace, user, role):
+def _upsert_membership(workspace, user, role, authoritative=False):
     """Ensure `user` is an active WorkspaceMember of `workspace` with `role`.
 
     Concurrency-safe: a lost create race (two provisions of the same user, e.g.
     a double-click SSO) re-fetches and updates instead of raising IntegrityError.
+
+    Reactivation guard: Plane has no persisted Workspace.is_active /
+    deactivated_at field, so a BU deactivated via deactivate_workspace() is
+    only durably reflected by *every* WorkspaceMember row on that workspace
+    being is_active=False. We use "zero active members" as the proxy for
+    "this workspace was deactivated" and only lift it when `authoritative`
+    is True — i.e. the incoming sync is Zil's confirmed current state and
+    explicitly re-includes this workspace/user (see provision_user_workspaces'
+    docstring). A non-authoritative call (JIT SSO token, best-effort sync)
+    must not silently undo a revocation.
     """
     wm = WorkspaceMember.objects.filter(workspace=workspace, member=user).first()
     if not wm:
@@ -170,8 +194,20 @@ def _upsert_membership(workspace, user, role):
         wm.role = role
         update_fields.append("role")
     if not wm.is_active:
-        wm.is_active = True
-        update_fields.append("is_active")
+        workspace_deactivated = not WorkspaceMember.objects.filter(
+            workspace=workspace, is_active=True
+        ).exists()
+        if workspace_deactivated and not authoritative:
+            logger.warning(
+                "Zil provisioning: refusing to reactivate membership for %s in "
+                "workspace %s — workspace appears deactivated (no active "
+                "members) and this sync is not authoritative",
+                getattr(user, "email", user.pk),
+                workspace.slug,
+            )
+        else:
+            wm.is_active = True
+            update_fields.append("is_active")
     if update_fields:
         wm.save(update_fields=update_fields)
     return wm
@@ -244,7 +280,7 @@ def provision_user_workspaces(user, workspaces, authoritative=False):
                     logo_url=entry.get("logo_url"),
                     owner=create_owner,
                 )
-                _upsert_membership(ws, user, role)
+                _upsert_membership(ws, user, role, authoritative=authoritative)
 
                 # Transfer ownership to the director if the workspace is still
                 # owned by the service account.

@@ -53,6 +53,16 @@ class UserSerializer(BaseSerializer):
             "is_email_verified",
             "is_active",
             "token_updated_at",
+            # Zil Workspace is the identity source of truth for these fields
+            # (synced in on every SSO login); PATCH /api/users/me/ must not
+            # let a user overwrite what Zil owns. The old "lock" was UI-only.
+            "first_name",
+            "last_name",
+            "display_name",
+            "avatar",
+            "avatar_asset",
+            "cover_image",
+            "cover_image_asset",
         ]
 
         # If the user has already filled first name or last name then he is onboarded

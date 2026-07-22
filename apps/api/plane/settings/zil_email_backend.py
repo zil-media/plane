@@ -23,9 +23,23 @@ import os
 import logging
 
 import requests
+from django.core.mail import BadHeaderError
 from django.core.mail.backends.base import BaseEmailBackend
 
 logger = logging.getLogger("plane")
+
+
+def _forbid_multi_line_header(name, value):
+    """Reject header values containing \\r or \\n.
+
+    Mirrors Django's own forbid_multi_line_headers contract (see
+    django.core.mail.message), which this backend bypasses entirely since it
+    builds a JSON payload for Zil's /api/sso/mail instead of going through
+    Django's SafeMIMEText/EmailMessage header assembly.
+    """
+    val = str(value or "")
+    if "\n" in val or "\r" in val:
+        raise BadHeaderError("Header values can't contain newlines (got %r for header %r)" % (val, name))
 
 
 class ZilEmailBackend(BaseEmailBackend):
@@ -59,6 +73,9 @@ class ZilEmailBackend(BaseEmailBackend):
         first_error = None
 
         for message in email_messages:
+            _forbid_multi_line_header("subject", message.subject)
+            _forbid_multi_line_header("from", message.from_email)
+
             html = self._extract_html(message)
             recipients = list(message.to or [])
             if not recipients:
@@ -66,6 +83,7 @@ class ZilEmailBackend(BaseEmailBackend):
 
             ok = True
             for recipient in recipients:
+                _forbid_multi_line_header("to", recipient)
                 payload = {
                     "to": recipient,
                     "subject": message.subject,
