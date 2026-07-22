@@ -27,6 +27,11 @@ class WorkspaceModulesEndpoint(BaseAPIView):
             .select_related("lead")
             .prefetch_related("members")
             .filter(archived_at__isnull=True)
+            .filter(
+                project__project_projectmember__member=request.user,
+                project__project_projectmember__is_active=True,
+            )
+            .filter(project__archived_at__isnull=True)
             .prefetch_related(
                 Prefetch(
                     "link_module",

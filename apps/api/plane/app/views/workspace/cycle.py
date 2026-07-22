@@ -26,6 +26,11 @@ class WorkspaceCyclesEndpoint(BaseAPIView):
             .select_related("workspace")
             .select_related("owned_by")
             .filter(archived_at__isnull=True)
+            .filter(
+                project__project_projectmember__member=request.user,
+                project__project_projectmember__is_active=True,
+            )
+            .filter(project__archived_at__isnull=True)
             .annotate(
                 total_issues=Count(
                     "issue_cycle",

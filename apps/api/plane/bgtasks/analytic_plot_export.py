@@ -347,9 +347,11 @@ def generate_non_segmented_rows(
 
 
 @shared_task
-def analytic_export_task(email, data, slug):
+def analytic_export_task(email, data, slug, user_id):
     try:
         filters = issue_filters(data, "POST")
+        filters["project__project_projectmember__member"] = user_id
+        filters["project__project_projectmember__is_active"] = True
         queryset = Issue.issue_objects.filter(**filters, workspace__slug=slug)
 
         x_axis = data.get("x_axis", False)
