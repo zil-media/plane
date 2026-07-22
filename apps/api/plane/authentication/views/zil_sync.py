@@ -15,18 +15,22 @@ never a per-user session — these are machine-to-machine.
 # Python imports
 import hmac
 import os
+from urllib.parse import quote
 
 # Django imports
 from django.db.models import Q
+from django.http import HttpResponseRedirect
 
 # Third party imports
+import requests
 from rest_framework import status
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 # Module imports
-from plane.db.models import User, Issue, IssueLink, Project, Page
+from plane.db.models import User, Issue, IssueLink, Project, Page, FileAsset, WorkspaceMember
+from plane.settings.storage import S3Storage
 from plane.authentication.utils.zil_provisioning import (
     ensure_workspace,
     provision_user_workspaces,
@@ -289,3 +293,145 @@ class ZilEntityLinkEndpoint(ZilServiceView):
         except Exception as e:
             log_exception(e)
             return Response({"error": "entity_link_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ZilAssetUrlEndpoint(ZilServiceView):
+    """Resolve a Plane file asset to a short-lived presigned URL, for Zil.
+
+    Server-to-server only (service key): Zil's authenticated proxy route calls
+    this and 302-redirects its own user, so Plane's storage origin and
+    credentials never reach a browser via Zil. Returns JSON (not a redirect)
+    because the consumer is the Zil server, not a browser.
+    """
+
+    def get(self, request):
+        slug = request.query_params.get("workspace_slug")
+        asset_id = request.query_params.get("asset_id")
+        if not slug or not asset_id:
+            return Response(
+                {"error": "workspace_slug and asset_id required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            asset = FileAsset.objects.filter(
+                pk=asset_id, workspace__slug=slug, is_uploaded=True, is_deleted=False
+            ).first()
+            if asset is None:
+                return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+            storage = S3Storage(request=request)
+            signed_url = storage.generate_presigned_url(
+                object_name=asset.asset.name,
+                disposition="attachment",
+                filename=asset.attributes.get("name"),
+            )
+            return Response(
+                {
+                    "url": signed_url,
+                    "name": asset.attributes.get("name"),
+                    "type": asset.attributes.get("type"),
+                    "size": asset.size,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            log_exception(e)
+            return Response({"error": "asset_url_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ZilDocAttachEndpoint(ZilServiceView):
+    """Attach/detach a Zil-stored document to a Plane issue, as a link chip.
+
+    Golden rule: the bytes stay in Zil's storage — Plane only gets an IssueLink
+    whose URL points at ZilErpAssetRedirectEndpoint (membership-gated redirect
+    to a presigned URL). metadata carries the Zil object key + owning link id
+    so 'clear' removes exactly this chip and the redirect can authorize reads.
+    """
+
+    def post(self, request):
+        op = request.data.get("op")
+        slug = request.data.get("workspace_slug")
+        issue_id = request.data.get("issue_id")
+        key = request.data.get("key")
+        link_id = request.data.get("link_id")
+        title = (request.data.get("name") or "Zil document")[:255]
+
+        if op not in ("set", "clear") or not slug or not issue_id or not link_id:
+            return Response({"error": "invalid_payload"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            issue = Issue.objects.filter(pk=issue_id, workspace__slug=slug).first()
+            if issue is None:
+                return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+
+            if op == "set":
+                if not key:
+                    return Response({"error": "key required"}, status=status.HTTP_400_BAD_REQUEST)
+                # Unique per link (retry-idempotent via get_or_create on url):
+                # the same doc attached from two ERP contexts keeps two chips,
+                # each cleared only by its own link.
+                base = (os.environ.get("WEB_URL") or "").rstrip("/")
+                url = f"{base}/api/zil/erp-asset/?key={quote(key, safe='')}&link={link_id}"
+                IssueLink.objects.get_or_create(
+                    issue=issue,
+                    url=url,
+                    defaults={
+                        "title": title,
+                        "metadata": {"zil_key": key, "zil_link_id": link_id},
+                        "workspace": issue.workspace,
+                        "project": issue.project,
+                    },
+                )
+                return Response({"status": "attached"}, status=status.HTTP_200_OK)
+
+            IssueLink.objects.filter(issue=issue, metadata__zil_link_id=link_id).delete()
+            return Response({"status": "detached"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            log_exception(e)
+            return Response({"error": "doc_attach_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ZilErpAssetRedirectEndpoint(APIView):
+    """Open a Zil-stored document for a signed-in Plane user (302 to presigned).
+
+    Per-user session auth — NOT the service key. Authorization: the requested
+    key must belong to a doc-attach chip in a workspace the user is an active
+    member of (so only deliberately attached docs are reachable, and only by
+    that workspace's members). The presigned URL itself is fetched from Zil
+    server-to-server; Zil's storage credentials never reach the browser.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        key = request.query_params.get("key")
+        if not key:
+            return Response({"error": "key required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        allowed = IssueLink.objects.filter(
+            metadata__zil_key=key,
+            workspace_id__in=WorkspaceMember.objects.filter(
+                member=request.user, is_active=True
+            ).values_list("workspace_id", flat=True),
+        ).exists()
+        if not allowed:
+            return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+
+        base = os.environ.get("ZIL_BASE_URL")
+        secret = os.environ.get("ZIL_SERVICE_SECRET")
+        if not base or not secret:
+            return Response({"error": "zil_not_configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        try:
+            resp = requests.get(
+                f"{base.rstrip('/')}/api/zil/asset-url",
+                params={"key": key},
+                headers={"X-Zil-Service-Key": secret},
+                timeout=5,
+            )
+            if resp.status_code != 200:
+                return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+            url = resp.json().get("url")
+            if not url:
+                return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+            return HttpResponseRedirect(url)
+        except Exception as e:
+            log_exception(e)
+            return Response({"error": "zil_unreachable"}, status=status.HTTP_502_BAD_GATEWAY)
