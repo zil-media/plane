@@ -670,20 +670,34 @@ class NotionHTMLTransformer:
                 self._result.comments.append(item)
             container.decompose()
 
+    @staticmethod
+    def _looks_like_comment(tag):
+        classes = " ".join(tag.get("class") or []).lower()
+        return (
+            "comment" in classes
+            or "discussion" in classes
+            or any(attr.startswith("data-notion-comment") for attr in tag.attrs)
+        )
+
     def _split_comment_items(self, container, seq):
         """Yield {"id", "author", "html", "stable_id"} for each comment.
 
-        ``stable_id`` is True only when the id came from the export itself.
-        Synthesized ids draw from the shared page-global ``seq`` counter, which
-        advances once per yielded comment, so they are unique within the page
-        (but not stable across re-imports — the task keeps content in the dedup
-        key for those).
+        ``stable_id`` is True ONLY when the item carries its own ``id``
+        attribute (a real Notion block id). A container-relative position is
+        NOT identity — it shifts when a sibling is added/removed — so those get
+        a synthesized (non-stable) id and the task keeps content in the dedup
+        key, never updating them in place.
         """
-        # individual comments are usually repeated direct children; if none
-        # look like separate items, treat the whole container as one comment
-        children = [c for c in container.find_all(recursive=False) if isinstance(c, Tag)]
-        items = children if len(children) > 1 else [container]
-        for index, item in enumerate(items):
+        # split into children only when they are themselves comment-like (a
+        # thread of replies); an author element + a text element as siblings is
+        # ONE comment, not two — so don't split on bare child count
+        comment_children = [
+            c
+            for c in container.find_all(recursive=False)
+            if isinstance(c, Tag) and self._looks_like_comment(c)
+        ]
+        items = comment_children if comment_children else [container]
+        for item in items:
             author = None
             author_node = item.find(class_=re.compile("author|user", re.I))
             if author_node is None:
@@ -694,12 +708,13 @@ class NotionHTMLTransformer:
             text = item.get_text(" ", strip=True)
             if not text:
                 continue
-            own_id = item.get("id") or (f"{container.get('id')}:{index}" if container.get("id") else "")
+            own_id = item.get("id") or ""
             stable_id = bool(own_id)
             if not own_id:
-                # no id anywhere: draw a fresh page-global sequence number so
-                # two id-less comments never share an id (which would collide in
-                # the importer's dedup and silently drop one)
+                # no stable block id: draw a fresh page-global sequence number
+                # so two id-less comments never share an id (which would collide
+                # in the importer's dedup and silently drop one). Content stays
+                # in the task's dedup key for these.
                 self._warn("comment_without_id")
                 own_id = f"seq:{next(seq)}"
             # ``text`` is already flattened plain text (get_text stripped every

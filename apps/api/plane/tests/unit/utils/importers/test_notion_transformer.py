@@ -419,6 +419,45 @@ class TestComments:
         result = transform(body)
         assert result.comments[0]["stable_id"] is True
 
+    def test_author_plus_text_is_one_comment_not_two(self):
+        # a comment rendered as <author><content> siblings must not fracture
+        # into two comments (the author element is not a separate comment)
+        body = '<div class="comment" id="c-real"><b>Ana</b><p>hi</p></div>'
+        result = transform(body)
+        assert len(result.comments) == 1
+        assert result.comments[0]["author"] == "Ana"
+        assert "hi" in result.comments[0]["html"]
+
+    def test_positional_id_is_not_treated_as_stable(self):
+        # a comment without its own id must be non-stable, so a mid-thread
+        # insert/reorder can't make the task overwrite the wrong row in place
+        body = (
+            '<div class="discussion" id="thread-1">'
+            '<div class="comment"><p>root</p></div>'
+            '<div class="comment"><p>reply</p></div>'
+            "</div>"
+        )
+        result = transform(body)
+        assert all(c["stable_id"] is False for c in result.comments)
+
+    def test_own_block_id_survives_reorder(self):
+        # comments carrying their own block id keep it regardless of position,
+        # so update-in-place stays correctly attached across re-imports
+        first = transform(
+            '<div class="discussion" id="t">'
+            '<div class="comment" id="a"><p>A</p></div>'
+            '<div class="comment" id="b"><p>B</p></div>'
+            "</div>"
+        )
+        reordered = transform(
+            '<div class="discussion" id="t">'
+            '<div class="comment" id="b"><p>B</p></div>'
+            '<div class="comment" id="a"><p>A edited</p></div>'
+            "</div>"
+        )
+        assert {c["id"] for c in first.comments} == {"a", "b"}
+        assert {c["id"] for c in reordered.comments} == {"a", "b"}
+
     def test_comment_html_escapes_markup(self):
         # entity-encoded markup in an export comment must not become live HTML
         malicious = (
