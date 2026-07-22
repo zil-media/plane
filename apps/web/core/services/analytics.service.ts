@@ -20,6 +20,20 @@ export class AnalyticsService extends APIService {
     super(API_BASE_URL);
   }
 
+  async getAssigneeStateDistribution(workspaceSlug: string): Promise<IAnalyticsResponse> {
+    return this.get(`/api/workspaces/${workspaceSlug}/analytics/`, {
+      params: {
+        x_axis: "assignees__id",
+        y_axis: "issue_count",
+        segment: "state__group",
+      },
+    })
+      .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
   async getAdvanceAnalytics<T extends IAnalyticsResponse>(
     workspaceSlug: string,
     tab: TAnalyticsTabsBase,

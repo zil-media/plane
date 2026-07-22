@@ -65,6 +65,25 @@
       }
     }
   },
+  "workspace_capacity": {
+    "title": "Capacity",
+    "page_label": "{workspace} - Capacity",
+    "search_placeholder": "Search members",
+    "overloaded": "Overloaded",
+    "ok": "OK",
+    "columns": {
+      "member": "Member",
+      "backlog": "Backlog",
+      "unstarted": "Unstarted",
+      "started": "Started",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "open": "Open"
+    },
+    "empty_state": {
+      "title": "No workspace members yet"
+    }
+  },
   "workspace_analytics": {
     "label": "Analytics",
     "page_label": "{workspace} - Analytics",

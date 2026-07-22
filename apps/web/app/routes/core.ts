@@ -67,6 +67,11 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/active-cycles", "./(all)/[workspaceSlug]/(projects)/active-cycles/page.tsx"),
         ]),
 
+        // Capacity
+        layout("./(all)/[workspaceSlug]/(projects)/capacity/layout.tsx", [
+          route(":workspaceSlug/capacity", "./(all)/[workspaceSlug]/(projects)/capacity/page.tsx"),
+        ]),
+
         // Analytics
         layout("./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/layout.tsx", [
           route(":workspaceSlug/analytics/:tabId", "./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/page.tsx"),
