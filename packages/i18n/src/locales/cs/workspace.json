@@ -374,5 +374,24 @@
         }
       }
     }
+  },
+  "workspace_capacity": {
+    "title": "Kapacita",
+    "page_label": "{workspace} - Kapacita",
+    "search_placeholder": "Hledat členy",
+    "overloaded": "Přetížený",
+    "ok": "OK",
+    "columns": {
+      "member": "Člen",
+      "backlog": "Backlog",
+      "unstarted": "Nezačato",
+      "started": "Zahájeno",
+      "completed": "Dokončeno",
+      "cancelled": "Zrušeno",
+      "open": "Otevřené"
+    },
+    "empty_state": {
+      "title": "Zatím žádní členové pracovního prostoru"
+    }
   }
 }

@@ -374,5 +374,24 @@
         }
       }
     }
+  },
+  "workspace_capacity": {
+    "title": "업무량",
+    "page_label": "{workspace} - 업무량",
+    "search_placeholder": "멤버 검색",
+    "overloaded": "과부하",
+    "ok": "정상",
+    "columns": {
+      "member": "멤버",
+      "backlog": "백로그",
+      "unstarted": "시작되지 않음",
+      "started": "시작됨",
+      "completed": "완료됨",
+      "cancelled": "취소됨",
+      "open": "열림"
+    },
+    "empty_state": {
+      "title": "아직 작업 공간 멤버가 없습니다"
+    }
   }
 }

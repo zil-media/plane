@@ -414,5 +414,39 @@
         }
       }
     }
+  },
+  "project_publish": {
+    "modal_title": "Projekt veröffentlichen",
+    "unpublish": "Veröffentlichung aufheben",
+    "unpublishing": "Veröffentlichung wird aufgehoben",
+    "publish": "Veröffentlichen",
+    "publishing": "Wird veröffentlicht",
+    "update_settings": "Einstellungen aktualisieren",
+    "updating": "Wird aktualisiert",
+    "copy_link": "Link kopieren",
+    "live_message": "Dieses Projekt ist jetzt live im Web",
+    "access_note": "Jeder mit dem Link kann darauf zugreifen",
+    "views": "Ansichten",
+    "view_options": {
+      "list": "Liste",
+      "kanban": "Kanban"
+    },
+    "client_access": {
+      "title": "Kundenzugriff",
+      "allow_comments": "Kommentare zulassen",
+      "allow_comments_description": "Erlaube jedem mit dem Link, Kommentare zu Arbeitselementen zu hinterlassen.",
+      "allow_reactions": "Reaktionen zulassen",
+      "allow_reactions_description": "Erlaube jedem mit dem Link, auf Arbeitselemente und Kommentare zu reagieren.",
+      "allow_voting": "Abstimmung zulassen",
+      "allow_voting_description": "Erlaube jedem mit dem Link, über Arbeitselemente abzustimmen, um die Priorität anzuzeigen."
+    },
+    "errors": {
+      "select_layout": "Bitte wählen Sie mindestens ein Ansichts-Layout aus, um das Projekt zu veröffentlichen."
+    },
+    "toasts": {
+      "update_success": "Veröffentlichungseinstellungen erfolgreich aktualisiert!",
+      "unpublish_error": "Beim Aufheben der Veröffentlichung des Projekts ist ein Fehler aufgetreten.",
+      "link_copied": "Link zur veröffentlichten Seite erfolgreich kopiert."
+    }
   }
 }

@@ -400,7 +400,10 @@
         "title": "Посилання не видалено",
         "message": "Не вдалося видалити посилання"
       }
-    }
+    },
+    "refresh": "Оновити",
+    "synced_ago": "Синхронізовано {time} тому",
+    "not_synced_yet": "Ще не синхронізовано"
   },
   "link": {
     "modal": {
@@ -867,5 +870,7 @@
       "description": "Експортуйте одиниці у формат JSON.",
       "short_description": "Експортувати як JSON"
     }
-  }
+  },
+  "zil_seed_studio_defaults_label": "Налаштувати стандартний клієнтський проєкт",
+  "zil_seed_studio_defaults_description": "Додає до цього проєкту звичні статуси студії (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) та мітки результатів (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
 }

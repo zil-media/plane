@@ -414,5 +414,39 @@
         }
       }
     }
+  },
+  "project_publish": {
+    "modal_title": "Xuất bản dự án",
+    "unpublish": "Hủy xuất bản",
+    "unpublishing": "Đang hủy xuất bản",
+    "publish": "Xuất bản",
+    "publishing": "Đang xuất bản",
+    "update_settings": "Cập nhật cài đặt",
+    "updating": "Đang cập nhật",
+    "copy_link": "Sao chép liên kết",
+    "live_message": "Dự án này hiện đã hoạt động trên web",
+    "access_note": "Bất kỳ ai có liên kết đều có thể truy cập",
+    "views": "Chế độ xem",
+    "view_options": {
+      "list": "Danh sách",
+      "kanban": "Kanban"
+    },
+    "client_access": {
+      "title": "Quyền truy cập của khách hàng",
+      "allow_comments": "Cho phép bình luận",
+      "allow_comments_description": "Cho phép bất kỳ ai có liên kết để lại bình luận trên các mục công việc.",
+      "allow_reactions": "Cho phép biểu cảm",
+      "allow_reactions_description": "Cho phép bất kỳ ai có liên kết bày tỏ biểu cảm với các mục công việc và bình luận.",
+      "allow_voting": "Cho phép bình chọn",
+      "allow_voting_description": "Cho phép bất kỳ ai có liên kết bình chọn các mục công việc để thể hiện mức độ ưu tiên."
+    },
+    "errors": {
+      "select_layout": "Vui lòng chọn ít nhất một bố cục chế độ xem để xuất bản dự án."
+    },
+    "toasts": {
+      "update_success": "Đã cập nhật cài đặt xuất bản thành công!",
+      "unpublish_error": "Đã xảy ra lỗi khi hủy xuất bản dự án.",
+      "link_copied": "Đã sao chép liên kết trang đã xuất bản thành công."
+    }
   }
 }

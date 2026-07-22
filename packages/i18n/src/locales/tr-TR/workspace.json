@@ -374,5 +374,24 @@
         }
       }
     }
+  },
+  "workspace_capacity": {
+    "title": "Kapasite",
+    "page_label": "{workspace} - Kapasite",
+    "search_placeholder": "Üye ara",
+    "overloaded": "Aşırı yüklü",
+    "ok": "OK",
+    "columns": {
+      "member": "Üye",
+      "backlog": "Bekleme Listesi",
+      "unstarted": "Başlatılmadı",
+      "started": "Başlatıldı",
+      "completed": "Tamamlandı",
+      "cancelled": "İptal Edildi",
+      "open": "Açık"
+    },
+    "empty_state": {
+      "title": "Henüz çalışma alanı üyesi yok"
+    }
   }
 }

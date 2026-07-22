@@ -374,5 +374,24 @@
         }
       }
     }
+  },
+  "workspace_capacity": {
+    "title": "工作量",
+    "page_label": "{workspace} - 工作量",
+    "search_placeholder": "搜尋成員",
+    "overloaded": "超出負荷",
+    "ok": "正常",
+    "columns": {
+      "member": "成員",
+      "backlog": "待辦事項",
+      "unstarted": "未開始",
+      "started": "已開始",
+      "completed": "已完成",
+      "cancelled": "已取消",
+      "open": "開放"
+    },
+    "empty_state": {
+      "title": "尚無工作區成員"
+    }
   }
 }

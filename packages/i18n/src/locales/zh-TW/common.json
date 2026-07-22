@@ -400,7 +400,10 @@
         "title": "連結未移除",
         "message": "無法移除連結"
       }
-    }
+    },
+    "refresh": "重新整理",
+    "synced_ago": "{time} 前已同步",
+    "not_synced_yet": "尚未同步"
   },
   "link": {
     "modal": {
@@ -867,5 +870,7 @@
       "description": "將工作事項匯出為 JSON 檔案。",
       "short_description": "匯出為 JSON"
     }
-  }
+  },
+  "zil_seed_studio_defaults_label": "設定標準客戶專案",
+  "zil_seed_studio_defaults_description": "向此專案新增工作室常用的狀態（Briefing、Propuesta inicial、Correcciones、Entrega、Suspendidos）和交付物標籤（Branding、Web、Landing、Redes Sociales、Email、Merchandising）。"
 }

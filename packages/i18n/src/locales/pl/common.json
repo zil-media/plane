@@ -400,7 +400,10 @@
         "title": "Link nie został usunięty",
         "message": "Nie udało się usunąć linku"
       }
-    }
+    },
+    "refresh": "Odśwież",
+    "synced_ago": "Zsynchronizowano {time} temu",
+    "not_synced_yet": "Jeszcze nie zsynchronizowano"
   },
   "link": {
     "modal": {
@@ -867,5 +870,7 @@
       "description": "Eksportuj elementy do pliku JSON.",
       "short_description": "Eksportuj jako JSON"
     }
-  }
+  },
+  "zil_seed_studio_defaults_label": "Skonfiguruj standardowy projekt klienta",
+  "zil_seed_studio_defaults_description": "Dodaje do tego projektu typowe statusy studia (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) oraz etykiety rezultatów (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
 }

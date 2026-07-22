@@ -400,7 +400,10 @@
         "title": "Link nicht entfernt",
         "message": "Link konnte nicht entfernt werden"
       }
-    }
+    },
+    "refresh": "Aktualisieren",
+    "synced_ago": "Synchronisiert vor {time}",
+    "not_synced_yet": "Noch nicht synchronisiert"
   },
   "link": {
     "modal": {
@@ -867,5 +870,7 @@
       "description": "Arbeitselemente in JSON exportieren.",
       "short_description": "Als JSON exportieren"
     }
-  }
+  },
+  "zil_seed_studio_defaults_label": "Standard-Kundenprojekt einrichten",
+  "zil_seed_studio_defaults_description": "Fügt diesem Projekt die üblichen Status des Studios (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) und die Ergebnis-Labels (Branding, Web, Landing, Redes Sociales, Email, Merchandising) hinzu."
 }

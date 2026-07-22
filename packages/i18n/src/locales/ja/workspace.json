@@ -374,5 +374,24 @@
         }
       }
     }
+  },
+  "workspace_capacity": {
+    "title": "キャパシティ",
+    "page_label": "{workspace} - キャパシティ",
+    "search_placeholder": "メンバーを検索",
+    "overloaded": "過負荷",
+    "ok": "正常",
+    "columns": {
+      "member": "メンバー",
+      "backlog": "バックログ",
+      "unstarted": "未開始",
+      "started": "開始済み",
+      "completed": "完了",
+      "cancelled": "キャンセル",
+      "open": "オープン"
+    },
+    "empty_state": {
+      "title": "ワークスペースのメンバーはまだいません"
+    }
   }
 }

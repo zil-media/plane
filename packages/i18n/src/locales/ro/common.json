@@ -400,7 +400,10 @@
         "title": "Link-ul nu a fost eliminat",
         "message": "Link-ul nu a putut fi eliminat"
       }
-    }
+    },
+    "refresh": "Reîncarcă",
+    "synced_ago": "Sincronizat acum {time}",
+    "not_synced_yet": "Încă nesincronizat"
   },
   "link": {
     "modal": {
@@ -867,5 +870,7 @@
       "description": "Exportă activitățile într-un fișier JSON.",
       "short_description": "Exportă ca JSON"
     }
-  }
+  },
+  "zil_seed_studio_defaults_label": "Configurează un proiect standard pentru client",
+  "zil_seed_studio_defaults_description": "Adaugă la acest proiect stările obișnuite ale studioului (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) și etichetele de livrabile (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
 }

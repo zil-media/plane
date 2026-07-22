@@ -374,5 +374,24 @@
         }
       }
     }
+  },
+  "workspace_capacity": {
+    "title": "Năng lực",
+    "page_label": "{workspace} - Năng lực",
+    "search_placeholder": "Tìm kiếm thành viên",
+    "overloaded": "Quá tải",
+    "ok": "OK",
+    "columns": {
+      "member": "Thành viên",
+      "backlog": "Tồn đọng",
+      "unstarted": "Chưa bắt đầu",
+      "started": "Đang tiến hành",
+      "completed": "Đã hoàn thành",
+      "cancelled": "Đã hủy",
+      "open": "Đang mở"
+    },
+    "empty_state": {
+      "title": "Chưa có thành viên nào trong không gian làm việc"
+    }
   }
 }

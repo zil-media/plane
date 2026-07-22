@@ -414,5 +414,39 @@
         }
       }
     }
+  },
+  "project_publish": {
+    "modal_title": "Publică proiectul",
+    "unpublish": "Anulează publicarea",
+    "unpublishing": "Se anulează publicarea",
+    "publish": "Publică",
+    "publishing": "Se publică",
+    "update_settings": "Actualizează setările",
+    "updating": "Se actualizează",
+    "copy_link": "Copiază link-ul",
+    "live_message": "Acest proiect este acum live pe web",
+    "access_note": "Oricine are link-ul poate accesa",
+    "views": "Perspective",
+    "view_options": {
+      "list": "Listă",
+      "kanban": "Kanban"
+    },
+    "client_access": {
+      "title": "Acces client",
+      "allow_comments": "Permite comentariile",
+      "allow_comments_description": "Permite oricui are link-ul să lase comentarii la activități.",
+      "allow_reactions": "Permite reacțiile",
+      "allow_reactions_description": "Permite oricui are link-ul să reacționeze la activități și comentarii.",
+      "allow_voting": "Permite votarea",
+      "allow_voting_description": "Permite oricui are link-ul să voteze activitățile pentru a semnala prioritatea."
+    },
+    "errors": {
+      "select_layout": "Selectați cel puțin un aspect de vizualizare pentru a publica proiectul."
+    },
+    "toasts": {
+      "update_success": "Setările de publicare au fost actualizate cu succes!",
+      "unpublish_error": "A apărut o eroare la anularea publicării proiectului.",
+      "link_copied": "Link-ul paginii publicate a fost copiat cu succes."
+    }
   }
 }

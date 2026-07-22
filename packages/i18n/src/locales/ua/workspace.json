@@ -374,5 +374,24 @@
         }
       }
     }
+  },
+  "workspace_capacity": {
+    "title": "Навантаження",
+    "page_label": "{workspace} - Навантаження",
+    "search_placeholder": "Пошук учасників",
+    "overloaded": "Перевантажений",
+    "ok": "Норма",
+    "columns": {
+      "member": "Учасник",
+      "backlog": "Backlog",
+      "unstarted": "Не почато",
+      "started": "Розпочато",
+      "completed": "Завершено",
+      "cancelled": "Скасовано",
+      "open": "Відкриті"
+    },
+    "empty_state": {
+      "title": "Поки немає учасників робочого простору"
+    }
   }
 }

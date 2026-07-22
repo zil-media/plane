@@ -400,7 +400,10 @@
         "title": "Chưa xóa liên kết",
         "message": "Không thể xóa liên kết"
       }
-    }
+    },
+    "refresh": "Làm mới",
+    "synced_ago": "Đã đồng bộ {time} trước",
+    "not_synced_yet": "Chưa đồng bộ"
   },
   "link": {
     "modal": {
@@ -867,5 +870,7 @@
       "description": "Xuất mục công việc thành tệp JSON.",
       "short_description": "Xuất sang JSON"
     }
-  }
+  },
+  "zil_seed_studio_defaults_label": "Thiết lập dự án khách hàng tiêu chuẩn",
+  "zil_seed_studio_defaults_description": "Thêm vào dự án này các trạng thái thường dùng của studio (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) và các nhãn sản phẩm bàn giao (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
 }

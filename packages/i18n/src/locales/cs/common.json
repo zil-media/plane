@@ -400,7 +400,10 @@
         "title": "Odkaz nebyl odstraněn",
         "message": "Odkaz se nepodařilo odstranit"
       }
-    }
+    },
+    "refresh": "Obnovit",
+    "synced_ago": "Synchronizováno před {time}",
+    "not_synced_yet": "Zatím nesynchronizováno"
   },
   "link": {
     "modal": {
@@ -867,5 +870,7 @@
       "description": "Exportujte položky do JSON.",
       "short_description": "Exportovat jako JSON"
     }
-  }
+  },
+  "zil_seed_studio_defaults_label": "Nastavit standardní klientský projekt",
+  "zil_seed_studio_defaults_description": "Přidá do tohoto projektu obvyklé stavy studia (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) a štítky výstupů (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
 }

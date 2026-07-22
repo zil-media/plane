@@ -414,5 +414,39 @@
         }
       }
     }
+  },
+  "project_publish": {
+    "modal_title": "Publikasikan proyek",
+    "unpublish": "Batalkan publikasi",
+    "unpublishing": "Membatalkan publikasi",
+    "publish": "Publikasikan",
+    "publishing": "Memublikasikan",
+    "update_settings": "Perbarui pengaturan",
+    "updating": "Memperbarui",
+    "copy_link": "Salin tautan",
+    "live_message": "Proyek ini sekarang aktif di web",
+    "access_note": "Siapa saja yang memiliki tautan dapat mengakses",
+    "views": "Tampilan",
+    "view_options": {
+      "list": "Daftar",
+      "kanban": "Kanban"
+    },
+    "client_access": {
+      "title": "Akses klien",
+      "allow_comments": "Izinkan komentar",
+      "allow_comments_description": "Memungkinkan siapa saja yang memiliki tautan meninggalkan komentar pada item kerja.",
+      "allow_reactions": "Izinkan reaksi",
+      "allow_reactions_description": "Memungkinkan siapa saja yang memiliki tautan bereaksi terhadap item kerja dan komentar.",
+      "allow_voting": "Izinkan pemungutan suara",
+      "allow_voting_description": "Memungkinkan siapa saja yang memiliki tautan memberikan suara pada item kerja untuk menunjukkan prioritas."
+    },
+    "errors": {
+      "select_layout": "Pilih setidaknya satu tata letak tampilan untuk memublikasikan proyek."
+    },
+    "toasts": {
+      "update_success": "Pengaturan publikasi berhasil diperbarui!",
+      "unpublish_error": "Terjadi kesalahan saat membatalkan publikasi proyek.",
+      "link_copied": "Tautan halaman yang dipublikasikan berhasil disalin."
+    }
   }
 }

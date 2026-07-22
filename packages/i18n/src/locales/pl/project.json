@@ -414,5 +414,39 @@
         }
       }
     }
+  },
+  "project_publish": {
+    "modal_title": "Opublikuj projekt",
+    "unpublish": "Cofnij publikację",
+    "unpublishing": "Cofanie publikacji",
+    "publish": "Opublikuj",
+    "publishing": "Publikowanie",
+    "update_settings": "Zaktualizuj ustawienia",
+    "updating": "Aktualizowanie",
+    "copy_link": "Kopiuj link",
+    "live_message": "Ten projekt jest teraz dostępny w sieci Web",
+    "access_note": "Każdy, kto ma link, może uzyskać dostęp",
+    "views": "Widoki",
+    "view_options": {
+      "list": "Lista",
+      "kanban": "Kanban"
+    },
+    "client_access": {
+      "title": "Dostęp klienta",
+      "allow_comments": "Zezwól na komentarze",
+      "allow_comments_description": "Pozwala każdemu, kto ma link, komentować elementy pracy.",
+      "allow_reactions": "Zezwól na reakcje",
+      "allow_reactions_description": "Pozwala każdemu, kto ma link, reagować na elementy pracy i komentarze.",
+      "allow_voting": "Zezwól na głosowanie",
+      "allow_voting_description": "Pozwala każdemu, kto ma link, głosować na elementy pracy, aby wskazać priorytet."
+    },
+    "errors": {
+      "select_layout": "Wybierz co najmniej jeden układ widoku, aby opublikować projekt."
+    },
+    "toasts": {
+      "update_success": "Ustawienia publikacji zaktualizowane pomyślnie!",
+      "unpublish_error": "Coś poszło nie tak podczas cofania publikacji projektu.",
+      "link_copied": "Link do opublikowanej strony skopiowany pomyślnie."
+    }
   }
 }

@@ -400,7 +400,10 @@
         "title": "Lien non supprimé",
         "message": "Le lien n’a pas pu être supprimé"
       }
-    }
+    },
+    "refresh": "Actualiser",
+    "synced_ago": "Synchronisé il y a {time}",
+    "not_synced_yet": "Pas encore synchronisé"
   },
   "link": {
     "modal": {
@@ -867,5 +870,7 @@
       "description": "Exportez les éléments de travail vers un fichier JSON.",
       "short_description": "Exporter en json"
     }
-  }
+  },
+  "zil_seed_studio_defaults_label": "Configurer un projet client standard",
+  "zil_seed_studio_defaults_description": "Ajoute à ce projet les états habituels du studio (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) et les étiquettes de livrables (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
 }

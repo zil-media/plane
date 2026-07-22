@@ -414,5 +414,39 @@
         }
       }
     }
+  },
+  "project_publish": {
+    "modal_title": "Publikovat projekt",
+    "unpublish": "Zrušit publikování",
+    "unpublishing": "Rušení publikování",
+    "publish": "Publikovat",
+    "publishing": "Publikování",
+    "update_settings": "Aktualizovat nastavení",
+    "updating": "Aktualizace",
+    "copy_link": "Kopírovat odkaz",
+    "live_message": "Tento projekt je nyní publikovaný na webu",
+    "access_note": "Přístup má kdokoli s odkazem",
+    "views": "Pohledy",
+    "view_options": {
+      "list": "Seznam",
+      "kanban": "Kanban"
+    },
+    "client_access": {
+      "title": "Přístup klienta",
+      "allow_comments": "Povolit komentáře",
+      "allow_comments_description": "Umožní komukoli s odkazem komentovat pracovní položky.",
+      "allow_reactions": "Povolit reakce",
+      "allow_reactions_description": "Umožní komukoli s odkazem reagovat na pracovní položky a komentáře.",
+      "allow_voting": "Povolit hlasování",
+      "allow_voting_description": "Umožní komukoli s odkazem hlasovat o pracovních položkách a tím určovat prioritu."
+    },
+    "errors": {
+      "select_layout": "Vyberte alespoň jedno rozložení pohledu pro publikování projektu."
+    },
+    "toasts": {
+      "update_success": "Nastavení publikování bylo úspěšně aktualizováno!",
+      "unpublish_error": "Při rušení publikování projektu se něco pokazilo.",
+      "link_copied": "Odkaz na publikovanou stránku byl úspěšně zkopírován."
+    }
   }
 }

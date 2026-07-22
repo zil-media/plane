@@ -414,5 +414,39 @@
         }
       }
     }
+  },
+  "project_publish": {
+    "modal_title": "发布项目",
+    "unpublish": "取消发布",
+    "unpublishing": "正在取消发布",
+    "publish": "发布",
+    "publishing": "正在发布",
+    "update_settings": "更新设置",
+    "updating": "正在更新",
+    "copy_link": "复制链接",
+    "live_message": "此项目现已在网络上发布",
+    "access_note": "任何拥有链接的人都可以访问",
+    "views": "视图",
+    "view_options": {
+      "list": "列表",
+      "kanban": "Kanban"
+    },
+    "client_access": {
+      "title": "客户访问",
+      "allow_comments": "允许评论",
+      "allow_comments_description": "允许任何拥有链接的人对工作项发表评论。",
+      "allow_reactions": "允许回应",
+      "allow_reactions_description": "允许任何拥有链接的人对工作项和评论作出回应。",
+      "allow_voting": "允许投票",
+      "allow_voting_description": "允许任何拥有链接的人对工作项投票以标示优先级。"
+    },
+    "errors": {
+      "select_layout": "请至少选择一种视图布局以发布项目。"
+    },
+    "toasts": {
+      "update_success": "发布设置更新成功！",
+      "unpublish_error": "取消发布项目时出现问题。",
+      "link_copied": "已成功复制已发布页面的链接。"
+    }
   }
 }

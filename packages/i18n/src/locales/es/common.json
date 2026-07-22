@@ -400,7 +400,10 @@
         "title": "Enlace no eliminado",
         "message": "No se pudo eliminar el enlace"
       }
-    }
+    },
+    "refresh": "Actualizar",
+    "synced_ago": "Sincronizado hace {time}",
+    "not_synced_yet": "Aún no sincronizado"
   },
   "link": {
     "modal": {
@@ -867,5 +870,7 @@
       "description": "Exporta elementos de trabajo a un archivo JSON.",
       "short_description": "Exportar como json"
     }
-  }
+  },
+  "zil_seed_studio_defaults_label": "Configurar proyecto de cliente estándar",
+  "zil_seed_studio_defaults_description": "Agrega a este proyecto los estados habituales del estudio (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) y las etiquetas de entregables (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
 }

@@ -400,7 +400,10 @@
         "title": "링크 제거되지 않음",
         "message": "링크를 제거할 수 없습니다"
       }
-    }
+    },
+    "refresh": "새로 고침",
+    "synced_ago": "{time} 전에 동기화됨",
+    "not_synced_yet": "아직 동기화되지 않음"
   },
   "link": {
     "modal": {
@@ -867,5 +870,7 @@
       "description": "작업 항목을 JSON 파일로 내보냅니다.",
       "short_description": "JSON으로 내보내기"
     }
-  }
+  },
+  "zil_seed_studio_defaults_label": "표준 클라이언트 프로젝트 설정",
+  "zil_seed_studio_defaults_description": "이 프로젝트에 스튜디오에서 자주 사용하는 상태(Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos)와 산출물 레이블(Branding, Web, Landing, Redes Sociales, Email, Merchandising)을 추가합니다."
 }

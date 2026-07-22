@@ -414,5 +414,39 @@
         }
       }
     }
+  },
+  "project_publish": {
+    "modal_title": "發布專案",
+    "unpublish": "取消發布",
+    "unpublishing": "正在取消發布",
+    "publish": "發布",
+    "publishing": "正在發布",
+    "update_settings": "更新設定",
+    "updating": "正在更新",
+    "copy_link": "複製連結",
+    "live_message": "此專案現已在網路上發布",
+    "access_note": "任何擁有連結的人都可以存取",
+    "views": "檢視",
+    "view_options": {
+      "list": "清單",
+      "kanban": "Kanban"
+    },
+    "client_access": {
+      "title": "客戶存取",
+      "allow_comments": "允許留言",
+      "allow_comments_description": "允許任何擁有連結的人對工作事項發表留言。",
+      "allow_reactions": "允許回應",
+      "allow_reactions_description": "允許任何擁有連結的人對工作事項和留言作出回應。",
+      "allow_voting": "允許投票",
+      "allow_voting_description": "允許任何擁有連結的人對工作事項投票以標示優先順序。"
+    },
+    "errors": {
+      "select_layout": "請至少選擇一種檢視版面配置以發布專案。"
+    },
+    "toasts": {
+      "update_success": "發布設定更新成功！",
+      "unpublish_error": "取消發布專案時發生問題。",
+      "link_copied": "已成功複製已發布頁面的連結。"
+    }
   }
 }

@@ -414,5 +414,39 @@
         }
       }
     }
+  },
+  "project_publish": {
+    "modal_title": "Publier le projet",
+    "unpublish": "Dépublier",
+    "unpublishing": "Dépublication en cours",
+    "publish": "Publier",
+    "publishing": "Publication en cours",
+    "update_settings": "Mettre à jour les paramètres",
+    "updating": "Mise à jour en cours",
+    "copy_link": "Copier le lien",
+    "live_message": "Ce projet est désormais en ligne sur le Web",
+    "access_note": "Toute personne disposant du lien peut y accéder",
+    "views": "Vues",
+    "view_options": {
+      "list": "Liste",
+      "kanban": "Kanban"
+    },
+    "client_access": {
+      "title": "Accès client",
+      "allow_comments": "Autoriser les commentaires",
+      "allow_comments_description": "Permet à toute personne disposant du lien de commenter les éléments de travail.",
+      "allow_reactions": "Autoriser les réactions",
+      "allow_reactions_description": "Permet à toute personne disposant du lien de réagir aux éléments de travail et aux commentaires.",
+      "allow_voting": "Autoriser le vote",
+      "allow_voting_description": "Permet à toute personne disposant du lien de voter sur les éléments de travail pour indiquer la priorité."
+    },
+    "errors": {
+      "select_layout": "Veuillez sélectionner au moins une disposition de vue pour publier le projet."
+    },
+    "toasts": {
+      "update_success": "Paramètres de publication mis à jour avec succès !",
+      "unpublish_error": "Une erreur s'est produite lors de la dépublication du projet.",
+      "link_copied": "Lien de la page publiée copié avec succès."
+    }
   }
 }

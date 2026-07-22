@@ -374,5 +374,24 @@
         }
       }
     }
+  },
+  "workspace_capacity": {
+    "title": "Kapasitas",
+    "page_label": "{workspace} - Kapasitas",
+    "search_placeholder": "Cari anggota",
+    "overloaded": "Kelebihan beban",
+    "ok": "OK",
+    "columns": {
+      "member": "Anggota",
+      "backlog": "Backlog",
+      "unstarted": "Belum dimulai",
+      "started": "Dimulai",
+      "completed": "Selesai",
+      "cancelled": "Dibatalkan",
+      "open": "Terbuka"
+    },
+    "empty_state": {
+      "title": "Belum ada anggota ruang kerja"
+    }
   }
 }

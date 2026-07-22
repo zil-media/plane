@@ -414,5 +414,39 @@
         }
       }
     }
+  },
+  "project_publish": {
+    "modal_title": "Publikovať projekt",
+    "unpublish": "Zrušiť publikovanie",
+    "unpublishing": "Rušenie publikovania",
+    "publish": "Publikovať",
+    "publishing": "Publikovanie",
+    "update_settings": "Aktualizovať nastavenia",
+    "updating": "Aktualizovanie",
+    "copy_link": "Kopírovať odkaz",
+    "live_message": "Tento projekt je teraz zverejnený na webe",
+    "access_note": "Prístup má ktokoľvek s odkazom",
+    "views": "Pohľady",
+    "view_options": {
+      "list": "Zoznam",
+      "kanban": "Kanban"
+    },
+    "client_access": {
+      "title": "Prístup klienta",
+      "allow_comments": "Povoliť komentáre",
+      "allow_comments_description": "Umožní komukoľvek s odkazom komentovať pracovné položky.",
+      "allow_reactions": "Povoliť reakcie",
+      "allow_reactions_description": "Umožní komukoľvek s odkazom reagovať na pracovné položky a komentáre.",
+      "allow_voting": "Povoliť hlasovanie",
+      "allow_voting_description": "Umožní komukoľvek s odkazom hlasovať o pracovných položkách a tým určiť prioritu."
+    },
+    "errors": {
+      "select_layout": "Vyberte aspoň jedno rozloženie pohľadu na publikovanie projektu."
+    },
+    "toasts": {
+      "update_success": "Nastavenia publikovania boli úspešne aktualizované!",
+      "unpublish_error": "Pri rušení publikovania projektu sa niečo pokazilo.",
+      "link_copied": "Odkaz na publikovanú stránku bol úspešne skopírovaný."
+    }
   }
 }

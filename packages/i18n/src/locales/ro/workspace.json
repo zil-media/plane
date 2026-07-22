@@ -374,5 +374,24 @@
         }
       }
     }
+  },
+  "workspace_capacity": {
+    "title": "Capacitate",
+    "page_label": "{workspace} - Capacitate",
+    "search_placeholder": "Caută membri",
+    "overloaded": "Supraîncărcat",
+    "ok": "OK",
+    "columns": {
+      "member": "Membru",
+      "backlog": "Restante",
+      "unstarted": "Neîncepute",
+      "started": "În desfășurare",
+      "completed": "Finalizate",
+      "cancelled": "Anulate",
+      "open": "Deschise"
+    },
+    "empty_state": {
+      "title": "Încă niciun membru în spațiul de lucru"
+    }
   }
 }

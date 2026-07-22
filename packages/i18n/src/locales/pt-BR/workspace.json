@@ -374,5 +374,24 @@
         }
       }
     }
+  },
+  "workspace_capacity": {
+    "title": "Capacidade",
+    "page_label": "{workspace} - Capacidade",
+    "search_placeholder": "Buscar membros",
+    "overloaded": "Sobrecarregado",
+    "ok": "OK",
+    "columns": {
+      "member": "Membro",
+      "backlog": "Backlog",
+      "unstarted": "Não iniciado",
+      "started": "Iniciado",
+      "completed": "Concluído",
+      "cancelled": "Cancelado",
+      "open": "Abertos"
+    },
+    "empty_state": {
+      "title": "Ainda não há membros no espaço de trabalho"
+    }
   }
 }

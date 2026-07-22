@@ -414,5 +414,39 @@
         }
       }
     }
+  },
+  "project_publish": {
+    "modal_title": "プロジェクトを公開",
+    "unpublish": "公開を取り消す",
+    "unpublishing": "公開を取り消しています",
+    "publish": "公開",
+    "publishing": "公開しています",
+    "update_settings": "設定を更新",
+    "updating": "更新しています",
+    "copy_link": "リンクをコピー",
+    "live_message": "このプロジェクトは Web で公開されました",
+    "access_note": "リンクを知っている全員がアクセスできます",
+    "views": "ビュー",
+    "view_options": {
+      "list": "リスト",
+      "kanban": "Kanban"
+    },
+    "client_access": {
+      "title": "クライアントアクセス",
+      "allow_comments": "コメントを許可",
+      "allow_comments_description": "リンクを知っている全員が作業項目にコメントできるようにします。",
+      "allow_reactions": "リアクションを許可",
+      "allow_reactions_description": "リンクを知っている全員が作業項目やコメントにリアクションできるようにします。",
+      "allow_voting": "投票を許可",
+      "allow_voting_description": "リンクを知っている全員が作業項目に投票して優先度を示せるようにします。"
+    },
+    "errors": {
+      "select_layout": "プロジェクトを公開するには、ビューのレイアウトを 1 つ以上選択してください。"
+    },
+    "toasts": {
+      "update_success": "公開設定を更新しました。",
+      "unpublish_error": "プロジェクトの公開を取り消す際にエラーが発生しました。",
+      "link_copied": "公開ページのリンクをコピーしました。"
+    }
   }
 }

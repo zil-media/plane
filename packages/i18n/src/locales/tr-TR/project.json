@@ -414,5 +414,39 @@
         }
       }
     }
+  },
+  "project_publish": {
+    "modal_title": "Projeyi yayınla",
+    "unpublish": "Yayından kaldır",
+    "unpublishing": "Yayından kaldırılıyor",
+    "publish": "Yayınla",
+    "publishing": "Yayınlanıyor",
+    "update_settings": "Ayarları güncelle",
+    "updating": "Güncelleniyor",
+    "copy_link": "Bağlantıyı kopyala",
+    "live_message": "Bu proje artık web'de yayında",
+    "access_note": "Bağlantıya sahip herkes erişebilir",
+    "views": "Görünümler",
+    "view_options": {
+      "list": "Liste",
+      "kanban": "Kanban"
+    },
+    "client_access": {
+      "title": "Müşteri erişimi",
+      "allow_comments": "Yorumlara izin ver",
+      "allow_comments_description": "Bağlantıya sahip herkesin iş öğelerine yorum bırakmasına izin verir.",
+      "allow_reactions": "Tepkilere izin ver",
+      "allow_reactions_description": "Bağlantıya sahip herkesin iş öğelerine ve yorumlara tepki vermesine izin verir.",
+      "allow_voting": "Oylamaya izin ver",
+      "allow_voting_description": "Bağlantıya sahip herkesin önceliği belirtmek için iş öğelerine oy vermesine izin verir."
+    },
+    "errors": {
+      "select_layout": "Projeyi yayınlamak için en az bir görünüm düzeni seçin."
+    },
+    "toasts": {
+      "update_success": "Yayınlama ayarları başarıyla güncellendi!",
+      "unpublish_error": "Proje yayından kaldırılırken bir sorun oluştu.",
+      "link_copied": "Yayınlanan sayfanın bağlantısı başarıyla kopyalandı."
+    }
   }
 }

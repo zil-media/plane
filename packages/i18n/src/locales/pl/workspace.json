@@ -374,5 +374,24 @@
         }
       }
     }
+  },
+  "workspace_capacity": {
+    "title": "Wydajność",
+    "page_label": "{workspace} - Wydajność",
+    "search_placeholder": "Szukaj członków",
+    "overloaded": "Przeciążony",
+    "ok": "OK",
+    "columns": {
+      "member": "Członek",
+      "backlog": "Backlog",
+      "unstarted": "Nierozpoczęty",
+      "started": "Rozpoczęty",
+      "completed": "Ukończony",
+      "cancelled": "Anulowany",
+      "open": "Otwarte"
+    },
+    "empty_state": {
+      "title": "Brak członków w przestrzeni roboczej"
+    }
   }
 }

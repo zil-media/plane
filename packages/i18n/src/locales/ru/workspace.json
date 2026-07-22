@@ -374,5 +374,24 @@
         }
       }
     }
+  },
+  "workspace_capacity": {
+    "title": "Загрузка",
+    "page_label": "{workspace} - Загрузка",
+    "search_placeholder": "Поиск участников",
+    "overloaded": "Перегружен",
+    "ok": "Норма",
+    "columns": {
+      "member": "Участник",
+      "backlog": "Бэклог",
+      "unstarted": "Не начато",
+      "started": "В процессе",
+      "completed": "Завершено",
+      "cancelled": "Отменено",
+      "open": "Открытые"
+    },
+    "empty_state": {
+      "title": "Пока нет участников рабочего пространства"
+    }
   }
 }

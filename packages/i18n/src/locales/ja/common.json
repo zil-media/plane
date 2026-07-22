@@ -400,7 +400,10 @@
         "title": "リンクが削除されませんでした",
         "message": "リンクを削除できませんでした"
       }
-    }
+    },
+    "refresh": "更新",
+    "synced_ago": "{time}前に同期",
+    "not_synced_yet": "未同期"
   },
   "link": {
     "modal": {
@@ -867,5 +870,7 @@
       "description": "作業項目をJSONファイルにエクスポートします。",
       "short_description": "JSONとしてエクスポート"
     }
-  }
+  },
+  "zil_seed_studio_defaults_label": "標準クライアントプロジェクトを設定",
+  "zil_seed_studio_defaults_description": "このプロジェクトに、スタジオでよく使う状態（Briefing、Propuesta inicial、Correcciones、Entrega、Suspendidos）と成果物ラベル（Branding、Web、Landing、Redes Sociales、Email、Merchandising）を追加します。"
 }

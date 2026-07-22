@@ -400,7 +400,10 @@
         "title": "Tautan tidak dihapus",
         "message": "Tautan tidak dapat dihapus"
       }
-    }
+    },
+    "refresh": "Segarkan",
+    "synced_ago": "Disinkronkan {time} yang lalu",
+    "not_synced_yet": "Belum disinkronkan"
   },
   "link": {
     "modal": {
@@ -867,5 +870,7 @@
       "description": "Ekspor item kerja ke file JSON.",
       "short_description": "Ekspor sebagai json"
     }
-  }
+  },
+  "zil_seed_studio_defaults_label": "Siapkan proyek klien standar",
+  "zil_seed_studio_defaults_description": "Menambahkan status umum studio (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) dan label hasil kerja (Branding, Web, Landing, Redes Sociales, Email, Merchandising) ke proyek ini."
 }
