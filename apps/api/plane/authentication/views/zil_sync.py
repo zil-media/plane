@@ -20,6 +20,7 @@ import uuid
 from urllib.parse import quote
 
 # Django imports
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http import HttpResponseRedirect
 
@@ -389,6 +390,42 @@ class ZilDocAttachEndpoint(ZilServiceView):
         except Exception as e:
             log_exception(e)
             return Response({"error": "doc_attach_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ZilEntityCheckEndpoint(ZilServiceView):
+    """Existence check for linked Plane entities — read-only drift monitor.
+
+    Zil's planeLinkHealthCheck posts the entities its planeLinks[] reference;
+    we return the ids that no longer resolve (deleted entity, wrong workspace)
+    so the ERP can flag stale links. Never mutates anything.
+    """
+
+    _MODELS = {"issue": Issue, "project": Project, "page": Page}
+    _MAX_ITEMS = 500
+
+    def post(self, request):
+        items = request.data.get("items")
+        if not isinstance(items, list) or len(items) > self._MAX_ITEMS:
+            return Response({"error": "invalid_items"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            missing = []
+            for item in items:
+                model = self._MODELS.get(item.get("type"))
+                entity_id = item.get("id")
+                slug = item.get("slug")
+                if model is None or not entity_id or not slug:
+                    missing.append(entity_id)
+                    continue
+                try:
+                    exists = model.objects.filter(pk=entity_id, workspace__slug=slug).exists()
+                except (ValueError, ValidationError):
+                    exists = False  # malformed uuid → counts as missing
+                if not exists:
+                    missing.append(entity_id)
+            return Response({"missing": missing}, status=status.HTTP_200_OK)
+        except Exception as e:
+            log_exception(e)
+            return Response({"error": "entity_check_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ZilErpLinksEndpoint(APIView):
