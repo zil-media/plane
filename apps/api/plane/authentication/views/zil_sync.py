@@ -32,6 +32,7 @@ from plane.authentication.utils.zil_provisioning import (
     provision_user_workspaces,
     deactivate_user,
     deactivate_workspace,
+    revoke_user_sessions,
     normalize_slug,
 )
 from plane.utils.exception_logger import log_exception
@@ -127,6 +128,37 @@ class ZilUserSyncEndpoint(ZilServiceView):
         except Exception as e:
             log_exception(e)
             return Response({"error": "sync_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ZilUserLogoutEndpoint(ZilServiceView):
+    """Kill every live Plane (Ops) session for a user, on an explicit Zil sign-out.
+
+    True single sign-out: signing out of Zil Workspace should not leave an
+    already-open Ops tab authenticated for up to SESSION_COOKIE_AGE (7 days).
+    This does NOT deactivate the user or touch workspace memberships — it only
+    revokes sessions, so a still-valid user is simply signed out everywhere and
+    can log back in immediately. Full deprovision remains ZilUserSyncEndpoint's
+    `suspended` path (deactivate_user), which also revokes sessions itself.
+    """
+
+    def post(self, request):
+        email = str(request.data.get("email") or "").strip().lower()
+        if not email:
+            return Response({"error": "email required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(email=email, is_bot=False).first()
+        if not user:
+            return Response({"status": "skipped", "reason": "user_not_in_plane"}, status=status.HTTP_200_OK)
+
+        try:
+            revoked = revoke_user_sessions(user)
+            return Response(
+                {"status": "logged_out", "email": email, "sessions_revoked": revoked},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            log_exception(e)
+            return Response({"error": "logout_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ZilReconcileEndpoint(ZilServiceView):

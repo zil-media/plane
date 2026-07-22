@@ -35,7 +35,7 @@ from django.utils.text import slugify
 import requests
 
 # Module imports
-from plane.db.models import User, Workspace, WorkspaceMember, Profile
+from plane.db.models import User, Workspace, WorkspaceMember, Profile, Session
 from plane.utils.color import get_random_color
 from plane.utils.constants import RESTRICTED_WORKSPACE_SLUGS
 from plane.utils.exception_logger import log_exception
@@ -405,11 +405,30 @@ def deactivate_workspace(slug):
     return ws
 
 
+def revoke_user_sessions(user):
+    """Delete every DB-backed Session row for `user` — true single sign-out.
+
+    Session.user_id is a CharField (see db/models/session.py, populated from
+    Django's "_auth_user_id" session data, itself str(user.pk)), so it must be
+    matched against str(user.id) rather than the UUID object. Without this, a
+    revoked/deactivated user's already-open browser tab stays authenticated
+    until its session cookie naturally expires (SESSION_COOKIE_AGE, 7 days).
+    """
+    if not user:
+        return 0
+    deleted, _ = Session.objects.filter(user_id=str(user.id)).delete()
+    return deleted
+
+
 def deactivate_user(email):
-    """Deprovision: deactivate all memberships and block future login.
+    """Deprovision: deactivate all memberships, block future login, and kill
+    every live session (true single sign-out).
 
     Setting last_logout_time makes complete_login_or_signup reject the account
-    with USER_ACCOUNT_DEACTIVATED on any subsequent SSO attempt.
+    with USER_ACCOUNT_DEACTIVATED on any subsequent SSO attempt. Deleting the
+    user's Session rows additionally invalidates any *already-open* browser
+    tab immediately, instead of leaving it authenticated for up to
+    SESSION_COOKIE_AGE.
     """
     user = User.objects.filter(email=str(email).strip().lower()).first()
     if not user:
@@ -418,4 +437,5 @@ def deactivate_user(email):
     user.is_active = False
     user.last_logout_time = timezone.now()
     user.save(update_fields=["is_active", "last_logout_time"])
+    revoke_user_sessions(user)
     return user
