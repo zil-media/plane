@@ -139,10 +139,15 @@ class Adapter:
             "github": "ENABLE_GITHUB_SYNC",
             "gitlab": "ENABLE_GITLAB_SYNC",
             "gitea": "ENABLE_GITEA_SYNC",
+            # Zil Workspace is the authoritative identity source, so profile
+            # (name/avatar) must self-heal on every login, not only at signup —
+            # sync_user_data() already expects this. Default ON.
+            "zil-sso": "ENABLE_ZIL_PROFILE_SYNC",
         }
         config_key = provider_config_map.get(self.provider)
         if config_key:
-            (enabled,) = get_configuration_value([{"key": config_key, "default": os.environ.get(config_key, "0")}])
+            default = "1" if self.provider == "zil-sso" else "0"
+            (enabled,) = get_configuration_value([{"key": config_key, "default": os.environ.get(config_key, default)}])
             return enabled == "1"
         return False
 
