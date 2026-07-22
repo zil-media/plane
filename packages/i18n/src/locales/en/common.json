@@ -400,7 +400,10 @@
         "title": "Link not removed",
         "message": "The link could not be removed"
       }
-    }
+    },
+    "refresh": "Refresh",
+    "synced_ago": "Synced {time} ago",
+    "not_synced_yet": "Not synced yet"
   },
   "link": {
     "modal": {

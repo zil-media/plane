@@ -16,6 +16,8 @@ import type { TLinkOperations } from "./root";
 type TLinkOperationsModal = Exclude<TLinkOperations, "create">;
 
 type TLinkList = {
+  workspaceSlug: string;
+  projectId: string;
   issueId: string;
   linkOperations: TLinkOperationsModal;
   disabled?: boolean;
@@ -24,7 +26,7 @@ type TLinkList = {
 
 export const LinkList = observer(function LinkList(props: TLinkList) {
   // props
-  const { issueId, linkOperations, disabled = false, issueServiceType } = props;
+  const { workspaceSlug, projectId, issueId, linkOperations, disabled = false, issueServiceType } = props;
   // hooks
   const {
     link: { getLinksByIssueId },
@@ -39,6 +41,8 @@ export const LinkList = observer(function LinkList(props: TLinkList) {
       {issueLinks.map((linkId) => (
         <IssueLinkItem
           key={linkId}
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
           linkId={linkId}
           linkOperations={linkOperations}
           isNotAllowed={disabled}

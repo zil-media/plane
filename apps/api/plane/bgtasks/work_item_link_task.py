@@ -10,7 +10,8 @@ import socket
 from celery import shared_task
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse, urljoin
+from django.utils import timezone
+from urllib.parse import urlparse, urljoin, quote
 import base64
 import ipaddress
 from typing import Dict, Any, Tuple
@@ -24,6 +25,19 @@ logger = logging.getLogger("plane.worker")
 
 
 DEFAULT_FAVICON = "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWxpbmstaWNvbiBsdWNpZGUtbGluayI+PHBhdGggZD0iTTEwIDEzYTUgNSAwIDAgMCA3LjU0LjU0bDMtM2E1IDUgMCAwIDAtNy4wNy03LjA3bC0xLjcyIDEuNzEiLz48cGF0aCBkPSJNMTQgMTFhNSA1IDAgMCAwLTcuNTQtLjU0bC0zIDNhNSA1IDAgMCAwIDcuMDcgNy4wN2wxLjcxLTEuNzEiLz48L3N2Zz4="  # noqa: E501
+
+# Domain-specific "rich" providers we fetch extra metadata for, on top of the
+# generic title/favicon crawl. Kept to public, no-OAuth endpoints only.
+PROVIDER_FIGMA = "figma"
+PROVIDER_GOOGLE_DRIVE = "google_drive"
+
+FIGMA_OEMBED_ENDPOINT = "https://www.figma.com/api/oembed"
+GOOGLE_DRIVE_HOSTNAMES = {"drive.google.com", "docs.google.com"}
+
+# Provider-specific calls get a slightly longer budget than the 1s default
+# used for the generic favicon/title crawl, but stay tightly bounded so a
+# slow/unresponsive provider never stalls the worker.
+PROVIDER_METADATA_TIMEOUT = 3
 
 
 def validate_url_ip(url: str) -> None:
@@ -245,9 +259,121 @@ def fetch_and_encode_favicon(
         }
 
 
+def get_link_provider(url: str) -> Optional[str]:
+    """
+    Identify a link as belonging to a known "rich" provider based on its
+    hostname, so the crawler can branch to a provider-specific fetch.
+
+    Returns:
+        str: One of the PROVIDER_* constants, or None for a generic link.
+    """
+    try:
+        hostname = (urlparse(url).hostname or "").lower()
+    except ValueError:
+        return None
+
+    if hostname == "figma.com" or hostname.endswith(".figma.com"):
+        return PROVIDER_FIGMA
+    if hostname in GOOGLE_DRIVE_HOSTNAMES:
+        return PROVIDER_GOOGLE_DRIVE
+    return None
+
+
+def extract_og_metadata(soup: Optional[BeautifulSoup]) -> Dict[str, Optional[str]]:
+    """
+    Extract Open Graph title/image from HTML soup, if present.
+    """
+    og_title = None
+    og_image = None
+
+    if soup is not None:
+        title_tag = soup.find("meta", attrs={"property": "og:title"})
+        image_tag = soup.find("meta", attrs={"property": "og:image"})
+        if title_tag and title_tag.get("content"):
+            og_title = title_tag["content"].strip()
+        if image_tag and image_tag.get("content"):
+            og_image = image_tag["content"].strip()
+
+    return {"og_title": og_title, "og_image": og_image}
+
+
+def crawl_figma_link_metadata(url: str) -> Dict[str, Any]:
+    """
+    Crawls provider metadata for a Figma link via Figma's public, no-auth
+    oEmbed endpoint (https://www.figma.com/api/oembed), on top of the
+    standard title/favicon crawl. Never raises — falls back to the generic
+    result (tagged with the provider) if the oEmbed call fails, e.g. because
+    the file isn't publicly shared.
+    """
+    result = crawl_work_item_link_title_and_favicon(url)
+    result["provider"] = PROVIDER_FIGMA
+    result["provider_name"] = "Figma"
+    result["crawled_at"] = timezone.now().isoformat()
+
+    try:
+        oembed_url = f"{FIGMA_OEMBED_ENDPOINT}?url={quote(url, safe='')}"
+        response, _ = safe_get(oembed_url, timeout=PROVIDER_METADATA_TIMEOUT)
+        data = response.json()
+
+        if data.get("title"):
+            result["title"] = data["title"]
+        if data.get("thumbnail_url"):
+            result["thumbnail"] = data["thumbnail_url"]
+        if data.get("provider_name"):
+            result["provider_name"] = data["provider_name"]
+        if data.get("author_name"):
+            result["author_name"] = data["author_name"]
+    except (requests.RequestException, ValueError) as e:
+        logger.warning(f"Failed to fetch Figma oEmbed metadata for {url}: {e}")
+    except Exception as e:
+        log_exception(e, warning=True)
+
+    return result
+
+
+def crawl_google_drive_link_metadata(url: str) -> Dict[str, Any]:
+    """
+    Crawls provider metadata for a Google Drive share link using the Open
+    Graph tags (og:title / og:image) Google renders on the public share
+    page, on top of the standard title/favicon crawl. Never raises — falls
+    back to the generic result (tagged with the provider) if the page can't
+    be fetched or has no OG tags, e.g. because the file isn't shared publicly.
+    """
+    result = crawl_work_item_link_title_and_favicon(url)
+    result["provider"] = PROVIDER_GOOGLE_DRIVE
+    result["provider_name"] = "Google Drive"
+    result["crawled_at"] = timezone.now().isoformat()
+
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"  # noqa: E501
+        }
+        response, _ = safe_get(url, headers=headers, timeout=PROVIDER_METADATA_TIMEOUT)
+        soup = BeautifulSoup(response.content, "html.parser")
+        og_meta = extract_og_metadata(soup)
+
+        if og_meta["og_title"]:
+            result["title"] = og_meta["og_title"]
+        if og_meta["og_image"]:
+            result["thumbnail"] = og_meta["og_image"]
+    except (requests.RequestException, ValueError) as e:
+        logger.warning(f"Failed to fetch Google Drive metadata for {url}: {e}")
+    except Exception as e:
+        log_exception(e, warning=True)
+
+    return result
+
+
 @shared_task
 def crawl_work_item_link_title(id: str, url: str) -> None:
-    meta_data = crawl_work_item_link_title_and_favicon(url)
+    provider = get_link_provider(url)
+
+    if provider == PROVIDER_FIGMA:
+        meta_data = crawl_figma_link_metadata(url)
+    elif provider == PROVIDER_GOOGLE_DRIVE:
+        meta_data = crawl_google_drive_link_metadata(url)
+    else:
+        meta_data = crawl_work_item_link_title_and_favicon(url)
 
     try:
         issue_link = IssueLink.objects.get(id=id)
