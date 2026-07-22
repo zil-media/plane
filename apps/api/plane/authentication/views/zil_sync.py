@@ -15,6 +15,8 @@ never a per-user session — these are machine-to-machine.
 # Python imports
 import hmac
 import os
+import time
+import uuid
 from urllib.parse import quote
 
 # Django imports
@@ -387,6 +389,92 @@ class ZilDocAttachEndpoint(ZilServiceView):
         except Exception as e:
             log_exception(e)
             return Response({"error": "doc_attach_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ZilErpLinksEndpoint(APIView):
+    """ERP entities linked to a Plane project/page, for the web 'Zil' chip.
+
+    Per-user session auth. The entity is resolved through the requester's OWN
+    membership (project members for projects; workspace members for pages, and
+    private pages only for their owner) — 404 otherwise, mirroring the app's
+    no-existence-leak convention. When the entity carries our back-ref
+    (external_source='zil'), the ERP resolves the live names/urls via the
+    service bridge; results are memoized in-process for ~45s (no persisted
+    cache — the ERP stays the single source of truth).
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    # entity_id -> (expires_at_monotonic, links). Tiny + self-pruning: cleared
+    # wholesale if it ever grows past _CACHE_MAX (45s entries — rebuild is cheap).
+    _CACHE = {}
+    _CACHE_TTL = 45
+    _CACHE_MAX = 512
+
+    def get(self, request):
+        entity_type = request.query_params.get("entity_type")
+        entity_id = request.query_params.get("entity_id")
+        try:
+            uuid.UUID(str(entity_id))
+        except ValueError:
+            return Response({"error": "invalid_entity_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            if entity_type == "project":
+                obj = Project.objects.filter(
+                    pk=entity_id,
+                    project_projectmember__member=request.user,
+                    project_projectmember__is_active=True,
+                ).first()
+            elif entity_type == "page":
+                obj = (
+                    Page.objects.filter(
+                        pk=entity_id,
+                        workspace__workspace_member__member=request.user,
+                        workspace__workspace_member__is_active=True,
+                    )
+                    .filter(Q(access=0) | Q(owned_by=request.user))
+                    .first()
+                )
+            else:
+                return Response({"error": "invalid_entity_type"}, status=status.HTTP_400_BAD_REQUEST)
+
+            if obj is None:
+                return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+            if obj.external_source != "zil":
+                return Response({"links": []}, status=status.HTTP_200_OK)
+
+            cache_key = str(entity_id)
+            hit = self._CACHE.get(cache_key)
+            if hit and hit[0] > time.monotonic():
+                return Response({"links": hit[1]}, status=status.HTTP_200_OK)
+
+            base = os.environ.get("ZIL_BASE_URL")
+            secret = os.environ.get("ZIL_SERVICE_SECRET")
+            if not base or not secret:
+                return Response({"links": []}, status=status.HTTP_200_OK)
+
+            links = []
+            try:
+                resp = requests.get(
+                    f"{base.rstrip('/')}/api/zil/entity-meta",
+                    params={"plane_entity_id": cache_key},
+                    headers={"X-Zil-Service-Key": secret},
+                    timeout=5,
+                )
+                if resp.status_code == 200:
+                    links = resp.json().get("links") or []
+            except Exception as e:
+                # Decorative chip: an ERP hiccup degrades to "no chip", never a 5xx.
+                log_exception(e)
+
+            if len(self._CACHE) >= self._CACHE_MAX:
+                self._CACHE.clear()
+            self._CACHE[cache_key] = (time.monotonic() + self._CACHE_TTL, links)
+            return Response({"links": links}, status=status.HTTP_200_OK)
+        except Exception as e:
+            log_exception(e)
+            return Response({"error": "erp_links_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ZilErpAssetRedirectEndpoint(APIView):

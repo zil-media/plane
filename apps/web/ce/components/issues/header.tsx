@@ -25,6 +25,7 @@ import { Breadcrumbs, Header } from "@plane/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { CountChip } from "@/components/common/count-chip";
+import { ZilLinkChip } from "@/components/common/zil-link-chip";
 // constants
 import { HeaderFilters } from "@/components/issues/filters";
 // helpers
@@ -106,6 +107,7 @@ export const IssuesHeader = observer(function IssuesHeader() {
         ) : (
           <></>
         )}
+        <ZilLinkChip entityType="project" entityId={currentProjectDetails?.id} />
       </Header.LeftItem>
       <Header.RightItem>
         <div className="hidden gap-2 md:flex">

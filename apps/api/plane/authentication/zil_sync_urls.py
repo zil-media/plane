@@ -13,6 +13,7 @@ from plane.authentication.views.zil_sync import (
     ZilAssetUrlEndpoint,
     ZilDocAttachEndpoint,
     ZilErpAssetRedirectEndpoint,
+    ZilErpLinksEndpoint,
 )
 
 urlpatterns = [
@@ -26,4 +27,6 @@ urlpatterns = [
     path("sync/doc-attach/", ZilDocAttachEndpoint.as_view(), name="zil-sync-doc-attach"),
     # per-user session (Plane member → Zil doc): membership-gated 302
     path("erp-asset/", ZilErpAssetRedirectEndpoint.as_view(), name="zil-erp-asset"),
+    # per-user session (web chip): ERP entities linked to a project/page
+    path("erp-links/", ZilErpLinksEndpoint.as_view(), name="zil-erp-links"),
 ]
