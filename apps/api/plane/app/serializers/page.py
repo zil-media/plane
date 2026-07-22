@@ -66,6 +66,14 @@ class PageSerializer(BaseSerializer):
         description_binary = self.context["description_binary"]
         description_html = self.context["description_html"]
 
+        # Sanitize the HTML content to prevent stored XSS, matching
+        # PageBinaryUpdateSerializer.validate_description_html
+        if description_html:
+            is_valid, error_message, sanitized_html = validate_html_content(description_html)
+            if not is_valid:
+                raise serializers.ValidationError(error_message)
+            description_html = sanitized_html if sanitized_html is not None else description_html
+
         # Get the workspace id from the project
         project = Project.objects.get(pk=project_id)
 
@@ -131,6 +139,19 @@ class PageDetailSerializer(PageSerializer):
 
     class Meta(PageSerializer.Meta):
         fields = PageSerializer.Meta.fields + ["description_html"]
+
+    def validate_description_html(self, value):
+        """Validate and sanitize the HTML content"""
+        if not value:
+            return value
+
+        # Use the validation function from utils
+        is_valid, error_message, sanitized_html = validate_html_content(value)
+        if not is_valid:
+            raise serializers.ValidationError(error_message)
+
+        # Return sanitized HTML if available, otherwise return original
+        return sanitized_html if sanitized_html is not None else value
 
 
 class PageVersionSerializer(BaseSerializer):

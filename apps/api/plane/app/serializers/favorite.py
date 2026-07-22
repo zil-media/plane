@@ -82,7 +82,12 @@ class UserFavoriteSerializer(serializers.ModelSerializer):
         entity_model, entity_serializer = get_entity_model_and_serializer(entity_type)
         if entity_model and entity_serializer:
             try:
-                entity = entity_model.objects.get(pk=entity_identifier)
+                # Scope the lookup to the favorite's own workspace/project to
+                # prevent cross-tenant IDOR via entity_identifier
+                filters = {"pk": entity_identifier, "workspace_id": obj.workspace_id}
+                if obj.project_id and any(f.name == "project" for f in entity_model._meta.get_fields()):
+                    filters["project_id"] = obj.project_id
+                entity = entity_model.objects.get(**filters)
                 return entity_serializer(entity).data
             except entity_model.DoesNotExist:
                 return None
