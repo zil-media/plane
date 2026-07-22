@@ -17,7 +17,6 @@ import hashlib
 import io
 import mimetypes
 import posixpath
-import re
 import shutil
 import tempfile
 import time
@@ -53,6 +52,7 @@ from plane.utils.importers.notion.transformer import (
     PAGE_SCHEME,
     NotionHTMLTransformer,
 )
+from plane.utils.state_group_matcher import match_state_group
 
 EXTERNAL_SOURCE = "notion"
 
@@ -290,7 +290,7 @@ def _import_with_parser(job, parser):
                 project=project,
                 name=status_name,
                 color="#60646C",
-                group=_match_state_group(status_name),
+                group=match_state_group(status_name),
                 external_source=EXTERNAL_SOURCE,
                 external_id=status_external_id,
             )
@@ -694,21 +694,6 @@ def _match_priority(value):
     return _PRIORITY_ALIASES.get((value or "").strip().lower())
 
 
-# keyword -> Plane state group, used when creating states for Notion statuses
-# (EN/ES). Checked in order; first substring hit wins, default "unstarted".
-_STATE_GROUP_KEYWORDS = (
-    ("cancelled", ("cancel", "cancelado", "cancelada", "cancelados", "canceladas", "cancelled", "suspendido", "suspendida", "suspendidos", "suspendidas", "pausado", "pausados", "descartado", "descartados", "abandonado", "abandonados")),
-    ("completed", ("done", "complete", "completed", "completado", "completada", "completados", "completadas", "terminado", "terminada", "terminados", "finalizado", "finalizada", "finalizados", "hecho", "hechos", "entrega", "entregas", "entregado", "entregados", "delivered", "shipped", "cerrado", "cerrados")),
-    ("started", ("progress", "progreso", "curso", "doing", "correccion", "corrección", "correcciones", "revision", "revisión", "revisiones", "review", "desarrollo", "haciendo")),
-    ("backlog", ("backlog", "idea", "ideas")),
-)
-# multi-word phrases matched as substrings (word-token match can't see these)
-_STATE_GROUP_PHRASES = (
-    ("cancelled", ("on hold",)),
-    ("started", ("en curso", "in progress")),
-)
-
-
 def _get_or_create_label(project, workspace, user, name, color=None):
     """Get an existing project label (case-insensitively) or create one,
     applying the Notion tag color on creation."""
@@ -724,18 +709,6 @@ def _get_or_create_label(project, workspace, user, name, color=None):
     except IntegrityError:
         # concurrent create of the same (project, name) — re-fetch the winner
         return Label.objects.filter(project=project, name__iexact=name).first()
-
-
-def _match_state_group(name):
-    lowered = name.strip().lower()
-    for group, phrases in _STATE_GROUP_PHRASES:
-        if any(phrase in lowered for phrase in phrases):
-            return group
-    tokens = set(re.split(r"[^0-9a-záéíóúñü]+", lowered))
-    for group, keywords in _STATE_GROUP_KEYWORDS:
-        if tokens.intersection(keywords):
-            return group
-    return "unstarted"
 
 
 def _database_row_metadata(parser, databases, database_modes):

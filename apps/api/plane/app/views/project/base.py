@@ -42,6 +42,7 @@ from plane.db.models import (
 from plane.db.models.intake import IntakeIssueStatus
 from plane.utils.host import base_host
 from plane.utils.order_queryset import PROJECT_ORDER_BY_ALLOWLIST, sanitize_order_by
+from plane.utils.studio_defaults import seed_studio_defaults
 
 
 class ProjectViewSet(BaseViewSet):
@@ -293,6 +294,17 @@ class ProjectViewSet(BaseViewSet):
                     for state in DEFAULT_STATES
                 ]
             )
+
+            # Opt-in "new client project" skeleton for the Zil studio: extra
+            # states + standard deliverable labels, layered on top of the
+            # DEFAULT_STATES above. Never runs unless explicitly requested,
+            # so normal project creation is unaffected.
+            if request.data.get("zil_seed_studio_defaults"):
+                seed_studio_defaults(
+                    project=serializer.instance,
+                    workspace=serializer.instance.workspace,
+                    user=request.user,
+                )
 
             project = self.get_queryset().filter(pk=serializer.data["id"]).first()
 

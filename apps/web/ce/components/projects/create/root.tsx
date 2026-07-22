@@ -11,6 +11,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EFileAssetType } from "@plane/types";
+import { Checkbox } from "@plane/ui";
 // components
 import ProjectCommonAttributes from "@/components/project/create/common-attributes";
 import ProjectCreateHeader from "@/components/project/create/header";
@@ -41,6 +42,7 @@ export const CreateProjectForm = observer(function CreateProjectForm(props: TCre
   const { addProjectToFavorites, createProject, updateProject } = useProject();
   // states
   const [shouldAutoSyncIdentifier, setShouldAutoSyncIdentifier] = useState(true);
+  const [seedStudioDefaults, setSeedStudioDefaults] = useState(false);
   // form info
   const methods = useForm<TProject>({
     defaultValues: { ...getProjectFormValues(), ...data },
@@ -92,7 +94,15 @@ export const CreateProjectForm = observer(function CreateProjectForm(props: TCre
       }
     }
 
-    return createProject(workspaceSlug.toString(), formData)
+    // zil_seed_studio_defaults: opt-in flag read by ProjectViewSet.create
+    // (apps/api/plane/app/views/project/base.py) to seed the studio's
+    // standard client-project skeleton (extra states + deliverable labels).
+    const payload: Partial<TProject> & { zil_seed_studio_defaults?: boolean } = {
+      ...formData,
+      zil_seed_studio_defaults: seedStudioDefaults,
+    };
+
+    return createProject(workspaceSlug.toString(), payload)
       .then(async (res) => {
         // the project exists from here on: cover-image finalization is a
         // side effect and must never surface as a creation failure
@@ -173,6 +183,7 @@ export const CreateProjectForm = observer(function CreateProjectForm(props: TCre
   const handleClose = () => {
     onClose();
     setShouldAutoSyncIdentifier(true);
+    setSeedStudioDefaults(false);
     setTimeout(() => {
       reset();
     }, 300);
@@ -191,6 +202,21 @@ export const CreateProjectForm = observer(function CreateProjectForm(props: TCre
             setShouldAutoSyncIdentifier={setShouldAutoSyncIdentifier}
           />
           <ProjectAttributes isMobile={isMobile} />
+          <label
+            htmlFor="zil_seed_studio_defaults"
+            className="flex cursor-pointer items-start gap-2 rounded-md border border-subtle bg-layer-1 p-3"
+          >
+            <Checkbox
+              id="zil_seed_studio_defaults"
+              checked={seedStudioDefaults}
+              onChange={(e) => setSeedStudioDefaults(e.target.checked)}
+              containerClassName="mt-0.5"
+            />
+            <span>
+              <p className="text-13 text-primary">{t("zil_seed_studio_defaults_label")}</p>
+              <p className="text-11 text-tertiary">{t("zil_seed_studio_defaults_description")}</p>
+            </span>
+          </label>
         </div>
         <ProjectCreateButtons handleClose={handleClose} />
       </form>

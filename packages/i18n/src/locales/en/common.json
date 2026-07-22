@@ -186,6 +186,8 @@
   "project_id_min_char": "Project ID must at least be of 1 character",
   "project_id_max_char": "Project ID must at most be of {max} characters",
   "project_description_placeholder": "Enter project description",
+  "zil_seed_studio_defaults_label": "Set up standard client project",
+  "zil_seed_studio_defaults_description": "Adds the studio's usual states (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) and deliverable labels (Branding, Web, Landing, Redes Sociales, Email, Merchandising) to this project.",
   "select_network": "Select network",
   "lead": "Lead",
   "date_range": "Date range",
