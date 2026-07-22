@@ -148,7 +148,7 @@ export class ProfileStore implements IUserProfileStore {
    * @returns {Promise<TUserProfile | undefined>}
    */
   updateUserProfile = async (data: Partial<TUserProfile>): Promise<TUserProfile | undefined> => {
-    const currentUserProfileData = this.data;
+    const currentUserProfileData = cloneDeep(this.data);
     try {
       if (currentUserProfileData) {
         this.mutateUserProfile(data);
@@ -158,16 +158,18 @@ export class ProfileStore implements IUserProfileStore {
       }
       const userProfile = await this.userService.updateCurrentUserProfile(data);
       return userProfile;
-    } catch {
-      if (currentUserProfileData) {
-        this.mutateUserProfile(currentUserProfileData);
-      }
+    } catch (error) {
       runInAction(() => {
+        Object.keys(data).forEach((key: string) => {
+          const userKey = key as keyof TUserProfile;
+          if (currentUserProfileData) set(this.data, userKey, currentUserProfileData[userKey]);
+        });
         this.error = {
           status: "user-profile-update-error",
           message: "Failed to update user profile",
         };
       });
+      throw error;
     }
   };
 
