@@ -8,7 +8,7 @@ import React from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { Disclosure, Transition } from "@headlessui/react";
-import { Gauge } from "lucide-react";
+import { Gauge, Truck } from "lucide-react";
 // plane imports
 import { AnalyticsIcon, CycleIcon, ProjectIcon, ViewsIcon } from "@plane/propel/icons";
 import { EUserWorkspaceRoles } from "@plane/types";
@@ -61,6 +61,13 @@ export const SidebarWorkspaceMenu = observer(function SidebarWorkspaceMenu() {
       href: `/${workspaceSlug}/capacity/`,
       access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
       Icon: Gauge,
+    },
+    {
+      key: "delivery",
+      labelTranslationKey: "sidebar.delivery",
+      href: `/${workspaceSlug}/delivery/`,
+      access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
+      Icon: Truck,
     },
   ];
 

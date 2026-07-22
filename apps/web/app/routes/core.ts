@@ -72,6 +72,11 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/capacity", "./(all)/[workspaceSlug]/(projects)/capacity/page.tsx"),
         ]),
 
+        // Delivery
+        layout("./(all)/[workspaceSlug]/(projects)/delivery/layout.tsx", [
+          route(":workspaceSlug/delivery", "./(all)/[workspaceSlug]/(projects)/delivery/page.tsx"),
+        ]),
+
         // Analytics
         layout("./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/layout.tsx", [
           route(":workspaceSlug/analytics/:tabId", "./(all)/[workspaceSlug]/(projects)/analytics/[tabId]/page.tsx"),

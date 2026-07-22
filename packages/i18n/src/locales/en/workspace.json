@@ -84,6 +84,23 @@
       "title": "No workspace members yet"
     }
   },
+  "workspace_delivery": {
+    "title": "Delivery",
+    "page_label": "{workspace} - Delivery",
+    "search_placeholder": "Search deliverable types",
+    "no_data": "No data",
+    "on_time_rate_tooltip": "Completed work items divided by (completed + currently overdue) work items for this deliverable type.",
+    "columns": {
+      "deliverable_type": "Deliverable type",
+      "completed": "Completed",
+      "overdue": "Overdue",
+      "total": "Total",
+      "on_time_rate": "On-time rate"
+    },
+    "empty_state": {
+      "title": "No deliverable-type labels yet"
+    }
+  },
   "workspace_analytics": {
     "label": "Analytics",
     "page_label": "{workspace} - Analytics",

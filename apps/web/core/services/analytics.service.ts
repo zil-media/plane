@@ -34,6 +34,45 @@ export class AnalyticsService extends APIService {
       });
   }
 
+  /**
+   * Per-label (deliverable-type) breakdown across all state groups.
+   * Used to derive completed counts per label for the delivery widget.
+   */
+  async getLabelStateDistribution(workspaceSlug: string): Promise<IAnalyticsResponse> {
+    return this.get(`/api/workspaces/${workspaceSlug}/analytics/`, {
+      params: {
+        x_axis: "labels__id",
+        y_axis: "issue_count",
+        segment: "state__group",
+      },
+    })
+      .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  /**
+   * Per-label (deliverable-type) count of work items that are still open (not
+   * completed/cancelled) with a target date on or before `targetDateCutoff`,
+   * i.e. overdue. The filter is inclusive, so pass yesterday's date to exclude
+   * items due today.
+   */
+  async getLabelOverdueDistribution(workspaceSlug: string, targetDateCutoff: string): Promise<IAnalyticsResponse> {
+    return this.get(`/api/workspaces/${workspaceSlug}/analytics/`, {
+      params: {
+        x_axis: "labels__id",
+        y_axis: "issue_count",
+        target_date: `${targetDateCutoff};before`,
+        state_group: "backlog,unstarted,started",
+      },
+    })
+      .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
   async getAdvanceAnalytics<T extends IAnalyticsResponse>(
     workspaceSlug: string,
     tab: TAnalyticsTabsBase,
