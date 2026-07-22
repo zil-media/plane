@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "Chưa có thành viên nào trong không gian làm việc"
     }
+  },
+  "workspace_delivery": {
+    "title": "Bàn giao",
+    "page_label": "{workspace} - Bàn giao",
+    "search_placeholder": "Tìm kiếm loại sản phẩm bàn giao",
+    "no_data": "Không có dữ liệu",
+    "on_time_rate_tooltip": "Số mục công việc đã hoàn thành chia cho số mục công việc (đã hoàn thành + hiện đang quá hạn) cho loại sản phẩm bàn giao này.",
+    "columns": {
+      "deliverable_type": "Loại sản phẩm bàn giao",
+      "completed": "Đã hoàn thành",
+      "overdue": "Quá hạn",
+      "total": "Tổng số",
+      "on_time_rate": "Tỷ lệ đúng hạn"
+    },
+    "empty_state": {
+      "title": "Chưa có nhãn loại sản phẩm bàn giao nào"
+    }
   }
 }

@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "Ancora nessun membro nello spazio di lavoro"
     }
+  },
+  "workspace_delivery": {
+    "title": "Consegne",
+    "page_label": "{workspace} - Consegne",
+    "search_placeholder": "Cerca tipi di elaborato",
+    "no_data": "Nessun dato",
+    "on_time_rate_tooltip": "Elementi di lavoro completati divisi per gli elementi di lavoro (completati + attualmente in ritardo) per questo tipo di elaborato.",
+    "columns": {
+      "deliverable_type": "Tipo di elaborato",
+      "completed": "Completato",
+      "overdue": "In ritardo",
+      "total": "Totale",
+      "on_time_rate": "Tasso di puntualità"
+    },
+    "empty_state": {
+      "title": "Ancora nessuna etichetta di tipo di elaborato"
+    }
   }
 }

@@ -440,6 +440,12 @@
       "allow_voting": "允许投票",
       "allow_voting_description": "允许任何拥有链接的人对工作项投票以标示优先级。"
     },
+    "client_intake": {
+      "title": "客户 Intake",
+      "toggle_title": "启用客户 Intake",
+      "toggle_description": "让任何拥有该链接的人无需 Plane 账户即可提交新请求。提交的内容会直接进入此项目的 Triage。",
+      "note": "通过上方链接提交的请求会直接进入此项目的 Triage。"
+    },
     "errors": {
       "select_layout": "请至少选择一种视图布局以发布项目。"
     },

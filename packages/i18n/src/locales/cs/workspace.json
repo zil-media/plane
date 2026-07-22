@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "Zatím žádní členové pracovního prostoru"
     }
+  },
+  "workspace_delivery": {
+    "title": "Dodávky",
+    "page_label": "{workspace} - Dodávky",
+    "search_placeholder": "Hledat typy výstupů",
+    "no_data": "Žádná data",
+    "on_time_rate_tooltip": "Dokončené pracovní položky vydělené pracovními položkami (dokončené + aktuálně po termínu) pro tento typ výstupu.",
+    "columns": {
+      "deliverable_type": "Typ výstupu",
+      "completed": "Dokončeno",
+      "overdue": "Po termínu",
+      "total": "Celkem",
+      "on_time_rate": "Míra včasnosti"
+    },
+    "empty_state": {
+      "title": "Zatím žádné štítky typu výstupu"
+    }
   }
 }

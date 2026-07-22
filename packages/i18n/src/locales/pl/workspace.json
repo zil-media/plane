@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "Brak członków w przestrzeni roboczej"
     }
+  },
+  "workspace_delivery": {
+    "title": "Dostawy",
+    "page_label": "{workspace} - Dostawy",
+    "search_placeholder": "Szukaj typów produktów",
+    "no_data": "Brak danych",
+    "on_time_rate_tooltip": "Ukończone elementy pracy podzielone przez elementy pracy (ukończone + obecnie po terminie) dla tego typu produktu.",
+    "columns": {
+      "deliverable_type": "Typ produktu",
+      "completed": "Ukończony",
+      "overdue": "Po terminie",
+      "total": "Łącznie",
+      "on_time_rate": "Wskaźnik terminowości"
+    },
+    "empty_state": {
+      "title": "Brak etykiet typu produktu"
+    }
   }
 }

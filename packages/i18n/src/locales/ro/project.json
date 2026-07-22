@@ -440,6 +440,12 @@
       "allow_voting": "Permite votarea",
       "allow_voting_description": "Permite oricui are link-ul să voteze activitățile pentru a semnala prioritatea."
     },
+    "client_intake": {
+      "title": "Intake clienți",
+      "toggle_title": "Activează Intake clienți",
+      "toggle_description": "Permiteți oricui are linkul să trimită solicitări noi fără un cont Plane. Trimiterile ajung direct în Triage-ul acestui proiect.",
+      "note": "Solicitările trimise prin linkul de mai sus ajung în Triage-ul acestui proiect."
+    },
     "errors": {
       "select_layout": "Selectați cel puțin un aspect de vizualizare pentru a publica proiectul."
     },

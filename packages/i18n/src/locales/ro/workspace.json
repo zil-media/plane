@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "Încă niciun membru în spațiul de lucru"
     }
+  },
+  "workspace_delivery": {
+    "title": "Livrări",
+    "page_label": "{workspace} - Livrări",
+    "search_placeholder": "Caută tipuri de livrabile",
+    "no_data": "Nicio dată",
+    "on_time_rate_tooltip": "Activitățile finalizate împărțite la activitățile (finalizate + întârziate în prezent) pentru acest tip de livrabil.",
+    "columns": {
+      "deliverable_type": "Tip de livrabil",
+      "completed": "Finalizate",
+      "overdue": "Întârziate",
+      "total": "Total",
+      "on_time_rate": "Rată de punctualitate"
+    },
+    "empty_state": {
+      "title": "Încă nicio etichetă de tip de livrabil"
+    }
   }
 }

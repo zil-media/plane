@@ -440,6 +440,12 @@
       "allow_voting": "Autoriser le vote",
       "allow_voting_description": "Permet à toute personne disposant du lien de voter sur les éléments de travail pour indiquer la priorité."
     },
+    "client_intake": {
+      "title": "Intake client",
+      "toggle_title": "Activer l'Intake client",
+      "toggle_description": "Permettez à toute personne disposant du lien de soumettre de nouvelles demandes sans compte Plane. Les soumissions arrivent directement dans le Triage de ce projet.",
+      "note": "Les demandes soumises via le lien ci-dessus arrivent dans le Triage de ce projet."
+    },
     "errors": {
       "select_layout": "Veuillez sélectionner au moins une disposition de vue pour publier le projet."
     },

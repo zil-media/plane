@@ -440,6 +440,12 @@
       "allow_voting": "Abstimmung zulassen",
       "allow_voting_description": "Erlaube jedem mit dem Link, über Arbeitselemente abzustimmen, um die Priorität anzuzeigen."
     },
+    "client_intake": {
+      "title": "Kunden-Intake",
+      "toggle_title": "Kunden-Intake aktivieren",
+      "toggle_description": "Ermöglichen Sie es allen mit dem Link, neue Anfragen ohne Plane-Konto einzureichen. Einreichungen gelangen direkt in das Triage dieses Projekts.",
+      "note": "Anfragen, die über den obigen Link eingereicht werden, gelangen in das Triage dieses Projekts."
+    },
     "errors": {
       "select_layout": "Bitte wählen Sie mindestens ein Ansichts-Layout aus, um das Projekt zu veröffentlichen."
     },

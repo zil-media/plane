@@ -440,6 +440,12 @@
       "allow_voting": "Izinkan pemungutan suara",
       "allow_voting_description": "Memungkinkan siapa saja yang memiliki tautan memberikan suara pada item kerja untuk menunjukkan prioritas."
     },
+    "client_intake": {
+      "title": "Intake klien",
+      "toggle_title": "Aktifkan Intake klien",
+      "toggle_description": "Izinkan siapa saja yang memiliki tautan untuk mengirim permintaan baru tanpa akun Plane. Kiriman langsung masuk ke Triage proyek ini.",
+      "note": "Permintaan yang dikirim melalui tautan di atas masuk ke Triage proyek ini."
+    },
     "errors": {
       "select_layout": "Pilih setidaknya satu tata letak tampilan untuk memublikasikan proyek."
     },

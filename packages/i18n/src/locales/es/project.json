@@ -440,6 +440,12 @@
       "allow_voting": "Permitir votos",
       "allow_voting_description": "Permite que cualquier persona con el enlace vote los elementos de trabajo para señalar su prioridad."
     },
+    "client_intake": {
+      "title": "Intake de clientes",
+      "toggle_title": "Habilitar Intake de clientes",
+      "toggle_description": "Permita que cualquier persona con el enlace envíe nuevas solicitudes sin una cuenta de Plane. Los envíos llegan directamente al Triage de este proyecto.",
+      "note": "Las solicitudes enviadas desde el enlace anterior llegan al Triage de este proyecto."
+    },
     "errors": {
       "select_layout": "Seleccione al menos un diseño de vista para publicar el proyecto."
     },

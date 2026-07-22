@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "Ainda não há membros no espaço de trabalho"
     }
+  },
+  "workspace_delivery": {
+    "title": "Entregas",
+    "page_label": "{workspace} - Entregas",
+    "search_placeholder": "Buscar tipos de entregável",
+    "no_data": "Sem dados",
+    "on_time_rate_tooltip": "Itens de trabalho concluídos divididos pelos itens de trabalho (concluídos + atualmente atrasados) para este tipo de entregável.",
+    "columns": {
+      "deliverable_type": "Tipo de entregável",
+      "completed": "Concluído",
+      "overdue": "Atrasado",
+      "total": "Total",
+      "on_time_rate": "Taxa de pontualidade"
+    },
+    "empty_state": {
+      "title": "Ainda não há etiquetas de tipo de entregável"
+    }
   }
 }

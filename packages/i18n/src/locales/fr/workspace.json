@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "Aucun membre dans l'espace de travail pour le moment"
     }
+  },
+  "workspace_delivery": {
+    "title": "Livraisons",
+    "page_label": "{workspace} - Livraisons",
+    "search_placeholder": "Rechercher des types de livrable",
+    "no_data": "Aucune donnée",
+    "on_time_rate_tooltip": "Éléments de travail terminés divisés par les éléments de travail (terminés + actuellement en retard) pour ce type de livrable.",
+    "columns": {
+      "deliverable_type": "Type de livrable",
+      "completed": "Terminé",
+      "overdue": "En retard",
+      "total": "Total",
+      "on_time_rate": "Taux de ponctualité"
+    },
+    "empty_state": {
+      "title": "Aucune étiquette de type de livrable pour le moment"
+    }
   }
 }

@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "Noch keine Mitglieder im Arbeitsbereich"
     }
+  },
+  "workspace_delivery": {
+    "title": "Lieferungen",
+    "page_label": "{workspace} - Lieferungen",
+    "search_placeholder": "Liefergegenstand-Typen suchen",
+    "no_data": "Keine Daten",
+    "on_time_rate_tooltip": "Abgeschlossene Arbeitselemente geteilt durch (abgeschlossene + aktuell überfällige) Arbeitselemente für diesen Liefergegenstand-Typ.",
+    "columns": {
+      "deliverable_type": "Liefergegenstand-Typ",
+      "completed": "Abgeschlossen",
+      "overdue": "Überfällig",
+      "total": "Gesamt",
+      "on_time_rate": "Pünktlichkeitsrate"
+    },
+    "empty_state": {
+      "title": "Noch keine Labels für Liefergegenstand-Typen"
+    }
   }
 }

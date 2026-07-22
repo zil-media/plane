@@ -440,6 +440,12 @@
       "allow_voting": "允許投票",
       "allow_voting_description": "允許任何擁有連結的人對工作事項投票以標示優先順序。"
     },
+    "client_intake": {
+      "title": "客戶 Intake",
+      "toggle_title": "啟用客戶 Intake",
+      "toggle_description": "讓任何擁有該連結的人無需 Plane 帳戶即可提交新請求。提交的內容會直接進入此專案的 Triage。",
+      "note": "透過上方連結提交的請求會直接進入此專案的 Triage。"
+    },
     "errors": {
       "select_layout": "請至少選擇一種檢視版面配置以發布專案。"
     },

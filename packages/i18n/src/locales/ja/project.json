@@ -440,6 +440,12 @@
       "allow_voting": "投票を許可",
       "allow_voting_description": "リンクを知っている全員が作業項目に投票して優先度を示せるようにします。"
     },
+    "client_intake": {
+      "title": "クライアント Intake",
+      "toggle_title": "クライアント Intake を有効にする",
+      "toggle_description": "リンクを知っている人なら誰でも、Plane アカウントなしで新しいリクエストを送信できるようにします。送信されたものは、このプロジェクトの Triage に直接届きます。",
+      "note": "上記のリンクから送信されたリクエストは、このプロジェクトの Triage に届きます。"
+    },
     "errors": {
       "select_layout": "プロジェクトを公開するには、ビューのレイアウトを 1 つ以上選択してください。"
     },

@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "尚無工作區成員"
     }
+  },
+  "workspace_delivery": {
+    "title": "交付",
+    "page_label": "{workspace} - 交付",
+    "search_placeholder": "搜尋交付項目類型",
+    "no_data": "無資料",
+    "on_time_rate_tooltip": "此交付項目類型中，已完成的工作事項除以（已完成 + 目前已逾期）的工作事項。",
+    "columns": {
+      "deliverable_type": "交付項目類型",
+      "completed": "已完成",
+      "overdue": "已逾期",
+      "total": "總計",
+      "on_time_rate": "準時完成率"
+    },
+    "empty_state": {
+      "title": "尚無交付項目類型標籤"
+    }
   }
 }

@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "ワークスペースのメンバーはまだいません"
     }
+  },
+  "workspace_delivery": {
+    "title": "納品",
+    "page_label": "{workspace} - 納品",
+    "search_placeholder": "成果物タイプを検索",
+    "no_data": "データなし",
+    "on_time_rate_tooltip": "この成果物タイプの、完了した作業項目を（完了＋現在期限超過）の作業項目で割った値です。",
+    "columns": {
+      "deliverable_type": "成果物タイプ",
+      "completed": "完了",
+      "overdue": "期限超過",
+      "total": "合計",
+      "on_time_rate": "期限内完了率"
+    },
+    "empty_state": {
+      "title": "成果物タイプのラベルはまだありません"
+    }
   }
 }

@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "Henüz çalışma alanı üyesi yok"
     }
+  },
+  "workspace_delivery": {
+    "title": "Teslimat",
+    "page_label": "{workspace} - Teslimat",
+    "search_placeholder": "Teslimat türü ara",
+    "no_data": "Veri yok",
+    "on_time_rate_tooltip": "Bu teslimat türü için tamamlanan iş öğelerinin (tamamlanan + şu anda gecikmiş) iş öğelerine bölümü.",
+    "columns": {
+      "deliverable_type": "Teslimat türü",
+      "completed": "Tamamlandı",
+      "overdue": "Gecikmiş",
+      "total": "Toplam",
+      "on_time_rate": "Zamanında tamamlama oranı"
+    },
+    "empty_state": {
+      "title": "Henüz teslimat türü etiketi yok"
+    }
   }
 }

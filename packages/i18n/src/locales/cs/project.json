@@ -440,6 +440,12 @@
       "allow_voting": "Povolit hlasování",
       "allow_voting_description": "Umožní komukoli s odkazem hlasovat o pracovních položkách a tím určovat prioritu."
     },
+    "client_intake": {
+      "title": "Klientský Intake",
+      "toggle_title": "Povolit klientský Intake",
+      "toggle_description": "Umožněte komukoli s odkazem odesílat nové požadavky bez účtu Plane. Příspěvky se dostanou přímo do Triage tohoto projektu.",
+      "note": "Požadavky odeslané prostřednictvím výše uvedeného odkazu se dostanou do Triage tohoto projektu."
+    },
     "errors": {
       "select_layout": "Vyberte alespoň jedno rozložení pohledu pro publikování projektu."
     },

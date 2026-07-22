@@ -440,6 +440,12 @@
       "allow_voting": "Cho phép bình chọn",
       "allow_voting_description": "Cho phép bất kỳ ai có liên kết bình chọn các mục công việc để thể hiện mức độ ưu tiên."
     },
+    "client_intake": {
+      "title": "Intake khách hàng",
+      "toggle_title": "Bật Intake khách hàng",
+      "toggle_description": "Cho phép bất kỳ ai có liên kết gửi yêu cầu mới mà không cần tài khoản Plane. Các yêu cầu gửi đến sẽ vào thẳng Triage của dự án này.",
+      "note": "Các yêu cầu được gửi qua liên kết ở trên sẽ vào Triage của dự án này."
+    },
     "errors": {
       "select_layout": "Vui lòng chọn ít nhất một bố cục chế độ xem để xuất bản dự án."
     },

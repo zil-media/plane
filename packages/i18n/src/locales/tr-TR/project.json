@@ -440,6 +440,12 @@
       "allow_voting": "Oylamaya izin ver",
       "allow_voting_description": "Bağlantıya sahip herkesin önceliği belirtmek için iş öğelerine oy vermesine izin verir."
     },
+    "client_intake": {
+      "title": "Müşteri Intake",
+      "toggle_title": "Müşteri Intake'ini etkinleştir",
+      "toggle_description": "Bağlantıya sahip herkesin Plane hesabı olmadan yeni istek göndermesine izin verin. Gönderimler doğrudan bu projenin Triage'ına düşer.",
+      "note": "Yukarıdaki bağlantıdan gönderilen istekler bu projenin Triage'ına düşer."
+    },
     "errors": {
       "select_layout": "Projeyi yayınlamak için en az bir görünüm düzeni seçin."
     },

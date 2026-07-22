@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "아직 작업 공간 멤버가 없습니다"
     }
+  },
+  "workspace_delivery": {
+    "title": "납품",
+    "page_label": "{workspace} - 납품",
+    "search_placeholder": "산출물 유형 검색",
+    "no_data": "데이터 없음",
+    "on_time_rate_tooltip": "이 산출물 유형에서 완료된 작업 항목을 (완료 + 현재 기한 초과) 작업 항목으로 나눈 값입니다.",
+    "columns": {
+      "deliverable_type": "산출물 유형",
+      "completed": "완료됨",
+      "overdue": "기한 초과",
+      "total": "합계",
+      "on_time_rate": "정시 완료율"
+    },
+    "empty_state": {
+      "title": "아직 산출물 유형 레이블이 없습니다"
+    }
   }
 }

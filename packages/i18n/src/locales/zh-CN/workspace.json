@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "还没有工作区成员"
     }
+  },
+  "workspace_delivery": {
+    "title": "交付",
+    "page_label": "{workspace} - 交付",
+    "search_placeholder": "搜索交付物类型",
+    "no_data": "无数据",
+    "on_time_rate_tooltip": "此交付物类型中，已完成的工作项除以（已完成 + 当前已逾期）的工作项。",
+    "columns": {
+      "deliverable_type": "交付物类型",
+      "completed": "已完成",
+      "overdue": "已逾期",
+      "total": "总计",
+      "on_time_rate": "准时完成率"
+    },
+    "empty_state": {
+      "title": "还没有交付物类型标签"
+    }
   }
 }

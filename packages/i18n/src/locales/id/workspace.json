@@ -393,5 +393,22 @@
     "empty_state": {
       "title": "Belum ada anggota ruang kerja"
     }
+  },
+  "workspace_delivery": {
+    "title": "Pengiriman",
+    "page_label": "{workspace} - Pengiriman",
+    "search_placeholder": "Cari tipe hasil kerja",
+    "no_data": "Tidak ada data",
+    "on_time_rate_tooltip": "Item kerja yang selesai dibagi dengan item kerja (selesai + saat ini terlambat) untuk tipe hasil kerja ini.",
+    "columns": {
+      "deliverable_type": "Tipe hasil kerja",
+      "completed": "Selesai",
+      "overdue": "Terlambat",
+      "total": "Total",
+      "on_time_rate": "Tingkat ketepatan waktu"
+    },
+    "empty_state": {
+      "title": "Belum ada label tipe hasil kerja"
+    }
   }
 }

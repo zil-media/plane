@@ -440,6 +440,12 @@
       "allow_voting": "Consenti votazione",
       "allow_voting_description": "Consente a chiunque abbia il link di votare gli elementi di lavoro per segnalarne la priorità."
     },
+    "client_intake": {
+      "title": "Intake cliente",
+      "toggle_title": "Abilita Intake cliente",
+      "toggle_description": "Consenti a chiunque abbia il link di inviare nuove richieste senza un account Plane. Gli invii arrivano direttamente nel Triage di questo progetto.",
+      "note": "Le richieste inviate tramite il link qui sopra arrivano nel Triage di questo progetto."
+    },
     "errors": {
       "select_layout": "Seleziona almeno un layout di visualizzazione per pubblicare il progetto."
     },
