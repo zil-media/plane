@@ -58,7 +58,7 @@ def upload_to_s3(zip_file: io.BytesIO, workspace_id: UUID, token_id: str, slug: 
             zip_file,
             settings.AWS_STORAGE_BUCKET_NAME,
             file_name,
-            ExtraArgs={"ACL": "public-read", "ContentType": "application/zip"},
+            ExtraArgs={"ContentType": "application/zip"},
         )
 
         # Generate presigned url for the uploaded file with different base

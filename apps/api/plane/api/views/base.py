@@ -167,6 +167,9 @@ class BaseViewSet(TimezoneMixin, ReadReplicaControlMixin, ModelViewSet, BasePagi
             log_exception(e)
             raise APIException("Please check the view", status.HTTP_400_BAD_REQUEST)
 
+    def get_throttles(self):
+        return [ApiKeyRateThrottle()]
+
     def handle_exception(self, exc):
         """
         Handle any exception that occurs, by returning an appropriate response,

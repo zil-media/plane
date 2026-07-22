@@ -48,3 +48,22 @@ class ApiKeyRateThrottle(SimpleRateThrottle):
             request.META["X-RateLimit-Reset"] = reset_time
 
         return allowed
+
+
+class ApiAuthRateThrottle(SimpleRateThrottle):
+    """
+    IP-keyed volume throttle for the public API's authentication step.
+
+    DRF's ``initial()`` runs authentication (and permissions) before
+    throttling, so a flood of requests with no/invalid API keys never
+    reaches ``ApiKeyRateThrottle`` (they fail auth first). This throttle is
+    invoked directly from ``APIKeyAuthentication.authenticate()`` so it caps
+    that traffic too. It must not touch ``request.user`` — doing so from
+    inside ``authenticate()`` would re-enter DRF's lazy authentication.
+    """
+
+    scope = "api_auth"
+    rate = settings.API_AUTH_RATE_LIMIT
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {"scope": self.scope, "ident": self.get_ident(request)}

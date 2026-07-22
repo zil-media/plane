@@ -153,6 +153,11 @@ REST_FRAMEWORK = {
 # API key throttle rate (DRF SimpleRateThrottle format, e.g. "60/minute")
 API_KEY_RATE_LIMIT = os.environ.get("API_KEY_RATE_LIMIT", "60/minute")
 
+# Per-IP throttle rate applied during public API authentication, so that
+# floods of unauthenticated/invalid-key requests are capped as well
+# (DRF checks auth before throttles, so ApiKeyRateThrottle alone misses them)
+API_AUTH_RATE_LIMIT = os.environ.get("API_AUTH_RATE_LIMIT", "60/minute")
+
 # Django Auth Backend
 AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)  # default
 

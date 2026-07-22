@@ -8,9 +8,10 @@ from django.db.models import Q
 
 # Third party imports
 from rest_framework import authentication
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed, Throttled
 
 # Module imports
+from plane.api.rate_limit import ApiAuthRateThrottle
 from plane.db.models import APIToken
 
 
@@ -43,6 +44,12 @@ class APIKeyAuthentication(authentication.BaseAuthentication):
         return (api_token.user, api_token.token)
 
     def authenticate(self, request):
+        # Throttle by IP before doing anything else, so that floods of
+        # requests with no/invalid API keys are capped too (they never reach
+        # ApiKeyRateThrottle since DRF checks auth before throttles).
+        if not ApiAuthRateThrottle().allow_request(request, None):
+            raise Throttled()
+
         token = self.get_api_token(request=request)
         if not token:
             return None
