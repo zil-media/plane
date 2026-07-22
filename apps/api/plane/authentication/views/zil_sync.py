@@ -222,3 +222,19 @@ class ZilReconcileEndpoint(ZilServiceView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class ZilEntityLinkEndpoint(ZilServiceView):
+    """Set/clear a Plane content back-reference for an ERP↔Ops entity link.
+
+    The link itself is owned by Zil Workspace (golden rule); this endpoint only
+    stamps/clears Plane's disposable external_source/external_id back-ref (and,
+    for issues, an IssueLink chip). Phase 0: stub — not yet implemented.
+    See docs/plan/erp-ops-linking/PLAN.md.
+    """
+
+    def post(self, request):
+        return Response(
+            {"error": "not_implemented", "detail": "entity-link is not implemented yet (Phase 0 stub)."},
+            status=status.HTTP_501_NOT_IMPLEMENTED,
+        )

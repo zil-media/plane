@@ -9,6 +9,7 @@ from plane.authentication.views.zil_sync import (
     ZilUserSyncEndpoint,
     ZilUserLogoutEndpoint,
     ZilReconcileEndpoint,
+    ZilEntityLinkEndpoint,
 )
 
 urlpatterns = [
@@ -16,4 +17,5 @@ urlpatterns = [
     path("sync/user/", ZilUserSyncEndpoint.as_view(), name="zil-sync-user"),
     path("sync/logout/", ZilUserLogoutEndpoint.as_view(), name="zil-sync-logout"),
     path("sync/reconcile/", ZilReconcileEndpoint.as_view(), name="zil-sync-reconcile"),
+    path("sync/entity-link/", ZilEntityLinkEndpoint.as_view(), name="zil-sync-entity-link"),
 ]
