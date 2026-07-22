@@ -8,13 +8,15 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
+import useSWR from "swr";
 
 // types
 import { SPACE_BASE_PATH, SPACE_BASE_URL } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { GlobeIcon, NewTabIcon, CheckIcon } from "@plane/propel/icons";
+import { GlobeIcon, NewTabIcon, CheckIcon, IntakeIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { IntakeService } from "@plane/services";
 import type { TProjectPublishLayouts, TProjectPublishSettings } from "@plane/types";
 // ui
 import { Loader, ToggleSwitch, CustomSelect, ModalCore, EModalWidth } from "@plane/ui";
@@ -22,6 +24,8 @@ import { Loader, ToggleSwitch, CustomSelect, ModalCore, EModalWidth } from "@pla
 import { copyTextToClipboard } from "@plane/utils";
 // hooks
 import { useProjectPublish } from "@/hooks/store/use-project-publish";
+
+const intakeService = new IntakeService();
 
 type Props = {
   isOpen: boolean;
@@ -33,7 +37,7 @@ const defaultValues: Partial<TProjectPublishSettings> = {
   is_comments_enabled: false,
   is_reactions_enabled: false,
   is_votes_enabled: false,
-  inbox: null,
+  intake: null,
   view_props: {
     list: true,
     kanban: true,
@@ -68,6 +72,11 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
   // derived values
   const projectPublishSettings = getPublishSettingsByProjectID(projectId);
   const isProjectPublished = !!projectPublishSettings?.anchor;
+  // fetch the project's (default) intake so the intake toggle can wire it up to the public board
+  const { data: projectIntake } = useSWR(
+    workspaceSlug && isOpen ? `PROJECT_DEFAULT_INTAKE_${workspaceSlug}_${projectId}` : null,
+    workspaceSlug && isOpen ? () => intakeService.retrieve(workspaceSlug.toString(), projectId) : null
+  );
   // form info
   const {
     control,
@@ -150,6 +159,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
       is_comments_enabled: formData.is_comments_enabled,
       is_reactions_enabled: formData.is_reactions_enabled,
       is_votes_enabled: formData.is_votes_enabled,
+      intake: formData.intake ?? null,
       view_props: formData.view_props,
     };
 
@@ -330,6 +340,36 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
                   )}
                 />
               </div>
+            </div>
+
+            {/* client intake — accept new requests into Triage without a seat */}
+            <div className="space-y-3 rounded-md border border-subtle p-3">
+              <div className="relative flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-13 font-medium text-secondary">
+                    {t("project_publish.client_intake.toggle_title")}
+                  </div>
+                  <div className="text-11 text-tertiary">{t("project_publish.client_intake.toggle_description")}</div>
+                </div>
+                <Controller
+                  control={control}
+                  name="intake"
+                  render={({ field: { onChange, value } }) => (
+                    <ToggleSwitch
+                      value={!!value}
+                      onChange={(val) => onChange(val ? (projectIntake?.id ?? null) : null)}
+                      size="sm"
+                      disabled={!projectIntake?.id}
+                    />
+                  )}
+                />
+              </div>
+              {watch("intake") && isProjectPublished && (
+                <div className="flex items-center gap-1.5 text-11 text-tertiary">
+                  <IntakeIcon className="size-3 flex-shrink-0" />
+                  {t("project_publish.client_intake.note")}
+                </div>
+              )}
             </div>
           </div>
         )}

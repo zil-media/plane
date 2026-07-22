@@ -440,6 +440,12 @@
       "allow_voting": "Allow voting",
       "allow_voting_description": "Let anyone with the link vote on work items to signal priority."
     },
+    "client_intake": {
+      "title": "Client intake",
+      "toggle_title": "Enable client intake",
+      "toggle_description": "Let anyone with the link submit new requests without a Plane account. Submissions land directly in this project's Triage.",
+      "note": "Requests submitted at the link above land in this project's Triage."
+    },
     "errors": {
       "select_layout": "Please select at least one view layout to publish the project."
     },

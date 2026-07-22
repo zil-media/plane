@@ -28,7 +28,8 @@ export type TPublishSettings = {
   entity_identifier: string | undefined;
   entity_name: TPublishEntityType | undefined;
   id: string | undefined;
-  inbox: unknown;
+  /** id of the project's Intake, or null when client intake submissions are disabled for this published board */
+  intake: string | null;
   is_comments_enabled: boolean;
   is_reactions_enabled: boolean;
   is_votes_enabled: boolean;

@@ -576,7 +576,17 @@ class DeployBoardViewSet(BaseViewSet):
         project_deploy_board, _ = DeployBoard.objects.get_or_create(
             entity_name="project", entity_identifier=project_id, project_id=project_id
         )
-        project_deploy_board.intake = intake
+        if intake:
+            # Only allow wiring up an Intake that belongs to this project, otherwise
+            # a caller could route public submissions into another project's triage.
+            if not Intake.objects.filter(id=intake, project_id=project_id).exists():
+                return Response(
+                    {"error": "Intake must belong to the same project."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            project_deploy_board.intake_id = intake
+        else:
+            project_deploy_board.intake_id = None
         project_deploy_board.view_props = views
         project_deploy_board.is_votes_enabled = votes
         project_deploy_board.is_comments_enabled = comments

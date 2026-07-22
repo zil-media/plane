@@ -19,6 +19,7 @@ from plane.db.models import (
     ProjectMemberInvite,
     ProjectIdentifier,
     DeployBoard,
+    Intake,
     ProjectPublicMember,
     IssueSequence,
 )
@@ -252,6 +253,15 @@ class DeployBoardSerializer(BaseSerializer):
         model = DeployBoard
         fields = "__all__"
         read_only_fields = ["workspace", "project", "anchor"]
+
+    def validate_intake(self, value):
+        # An Intake can only be wired to a board belonging to the same project,
+        # otherwise a project admin could route public submissions into a
+        # triage queue of a project they don't own.
+        if value is not None and self.instance is not None:
+            if not Intake.objects.filter(id=value.id, project_id=self.instance.project_id).exists():
+                raise serializers.ValidationError("Intake must belong to the same project as the publish board.")
+        return value
 
 
 class ProjectPublicMemberSerializer(BaseSerializer):
