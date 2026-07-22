@@ -10,18 +10,12 @@ import { TiptapTransformer } from "@hocuspocus/transformer";
 import type { AnyExtension, JSONContent } from "@tiptap/core";
 import type * as Y from "yjs";
 // editor extensions
-import {
-  TITLE_EDITOR_EXTENSIONS,
-  createRealtimeEvent,
-  extractTextFromHTML,
-  generateTitleProsemirrorJson,
-} from "@plane/editor";
+import { TITLE_EDITOR_EXTENSIONS, extractTextFromHTML, generateTitleProsemirrorJson } from "@plane/editor";
 import { logger } from "@plane/logger";
 import { AppError } from "@/lib/errors";
 // helpers
 import { getPageService } from "@/services/page/handler";
 import type { HocusPocusServerContext, OnLoadDocumentPayloadWithContext } from "@/types";
-import { broadcastMessageToPage } from "@/utils/broadcast-message";
 import { TitleUpdateManager } from "./title-update/title-update-manager";
 
 /**
@@ -35,7 +29,6 @@ export class TitleSyncExtension implements Extension {
   private titleObserverData: Map<
     string,
     {
-      parentId?: string | null;
       userId: string;
       workspaceSlug: string | null;
       instance: Hocuspocus;
@@ -112,24 +105,6 @@ export class TitleSyncExtension implements Extension {
 
     // Get the manager for this document
     const manager = this.titleUpdateManagers.get(documentName);
-
-    // Get the stored data for this document
-    const data = this.titleObserverData.get(documentName);
-
-    // Broadcast to parent page if it exists
-    if (data?.parentId && data.workspaceSlug && data.instance) {
-      const event = createRealtimeEvent({
-        user_id: data.userId,
-        workspace_slug: data.workspaceSlug,
-        action: "property_updated",
-        page_id: documentName,
-        data: { name: title },
-        descendants_ids: [],
-      });
-
-      // Use the instance from stored data (guaranteed to be set)
-      broadcastMessageToPage(data.instance, data.parentId, event);
-    }
 
     // Schedule the title update
     if (manager) {
