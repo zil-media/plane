@@ -13,6 +13,21 @@ from .base import BaseSerializer
 
 
 class UserSerializer(BaseSerializer):
+    # Zil Workspace owns identity: it re-syncs name/avatar on every SSO login.
+    # PATCH /api/users/me/ must not let a user overwrite a value Zil already
+    # populated — but the FIRST set (onboarding / a not-yet-synced field) must
+    # still be allowed, or new users can't complete onboarding. So these are
+    # writable-once: allowed while empty, ignored once populated.
+    ZIL_IDENTITY_FIELDS = (
+        "first_name",
+        "last_name",
+        "display_name",
+        "avatar",
+        "avatar_asset",
+        "cover_image",
+        "cover_image_asset",
+    )
+
     def validate_first_name(self, value):
         if contains_url(value):
             raise serializers.ValidationError("First name cannot contain a URL.")
@@ -22,6 +37,14 @@ class UserSerializer(BaseSerializer):
         if contains_url(value):
             raise serializers.ValidationError("Last name cannot contain a URL.")
         return value
+
+    def update(self, instance, validated_data):
+        # drop incoming changes to identity fields that are already populated
+        # (Zil-synced or previously set); leave empty ones writable for onboarding
+        for field in self.ZIL_IDENTITY_FIELDS:
+            if field in validated_data and getattr(instance, field, None):
+                validated_data.pop(field)
+        return super().update(instance, validated_data)
 
     class Meta:
         model = User
@@ -53,16 +76,6 @@ class UserSerializer(BaseSerializer):
             "is_email_verified",
             "is_active",
             "token_updated_at",
-            # Zil Workspace is the identity source of truth for these fields
-            # (synced in on every SSO login); PATCH /api/users/me/ must not
-            # let a user overwrite what Zil owns. The old "lock" was UI-only.
-            "first_name",
-            "last_name",
-            "display_name",
-            "avatar",
-            "avatar_asset",
-            "cover_image",
-            "cover_image_asset",
         ]
 
         # If the user has already filled first name or last name then he is onboarded
