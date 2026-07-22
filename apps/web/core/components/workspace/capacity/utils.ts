@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { orderBy } from "lodash-es";
 import type { TStateGroups } from "@plane/types";
 
 // state groups that count towards a member's "open" workload
@@ -63,5 +64,6 @@ export const buildCapacityRows = (distribution: TDistribution | undefined, membe
     };
   });
 
-  return [...rows].toSorted((a: TCapacityRow, b: TCapacityRow) => b.openCount - a.openCount);
+  // busiest first; orderBy (not .sort/.toSorted) keeps oxlint + tsc lib happy
+  return orderBy(rows, ["openCount"], ["desc"]);
 };
