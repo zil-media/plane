@@ -111,5 +111,46 @@
       "success_message": "Stránka bola odstránená z kolekcie.",
       "error_message": "Stránku sa nepodarilo odstrániť z kolekcie. Skúste to prosím znova."
     }
+  },
+  "page_tree": {
+    "new_page": "Nová stránka",
+    "new_folder": "Nový priečinok",
+    "add_sub_page": "Pridať podstránku",
+    "add_folder": "Pridať priečinok",
+    "expand": "Rozbaliť",
+    "collapse": "Zbaliť",
+    "untitled_folder": "Priečinok bez názvu",
+    "create_error": "Nepodarilo sa vytvoriť. Skúste to znova.",
+    "move": {
+      "action": "Presunúť",
+      "title": "Presunúť „{name}“",
+      "search_placeholder": "Hľadať stránky a priečinky",
+      "root": "Koreň projektu",
+      "confirm": "Presunúť sem",
+      "success": "Úspešne presunuté.",
+      "error": "Nepodarilo sa presunúť. Skúste to znova.",
+      "error_cycle": "Stránku nemožno presunúť do nej samej.",
+      "error_depth": "Dosiahla sa maximálna hĺbka vnorenia."
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# položka} few {# položky} many {# položky} other {# položiek}}",
+      "empty_title": "Tento priečinok je prázdny",
+      "empty_description": "Vytvorte v ňom stránky alebo priečinky na usporiadanie svojich dokumentov."
+    },
+    "zil_client": {
+      "link": "Prepojiť klienta",
+      "change": "Zmeniť klienta",
+      "unlink": "Zrušiť prepojenie klienta",
+      "title": "Prepojiť klienta zo Zil Workspace",
+      "search_placeholder": "Hľadať podľa značky alebo obchodného názvu firmy",
+      "no_results": "Nenašli sa žiadni klienti",
+      "unavailable": "Zil Workspace nie je k dispozícii. Skúste to neskôr.",
+      "already_linked": "Tento klient je už prepojený s iným priečinkom.",
+      "open_linked_folder": "Otvoriť priečinok",
+      "linked": "Klient prepojený.",
+      "unlinked": "Prepojenie klienta zrušené.",
+      "error": "Prepojenie klienta sa nepodarilo aktualizovať. Skúste to znova.",
+      "missing": "Klient sa v Zil Workspace nenašiel"
+    }
   }
 }

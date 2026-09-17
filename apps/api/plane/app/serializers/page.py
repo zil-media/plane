@@ -6,6 +6,9 @@
 from rest_framework import serializers
 import base64
 
+# Django imports
+from django.core.exceptions import ObjectDoesNotExist
+
 # Module imports
 from .base import BaseSerializer
 from plane.utils.content_validator import (
@@ -20,6 +23,7 @@ from plane.db.models import (
     Project,
     PageVersion,
 )
+from plane.utils.page_tree import next_child_sort_order
 
 
 class PageSerializer(BaseSerializer):
@@ -32,6 +36,7 @@ class PageSerializer(BaseSerializer):
     # Many to many
     label_ids = serializers.ListField(child=serializers.UUIDField(), required=False)
     project_ids = serializers.ListField(child=serializers.UUIDField(), required=False)
+    zil_client = serializers.SerializerMethodField()
 
     class Meta:
         model = Page
@@ -55,8 +60,27 @@ class PageSerializer(BaseSerializer):
             "logo_props",
             "label_ids",
             "project_ids",
+            "kind",
+            "sort_order",
+            "zil_client",
         ]
         read_only_fields = ["workspace", "owned_by"]
+
+    def get_zil_client(self, obj):
+        try:
+            link = obj.zil_client_link
+        except ObjectDoesNotExist:
+            return None
+        if link is None or link.deleted_at is not None:
+            return None
+        return {
+            "id": link.zil_client_id,
+            "alias": link.alias,
+            "company_name": link.company_name,
+            "lifecycle_status": link.lifecycle_status,
+            "business_unit_slug": link.business_unit_slug,
+            "synced_at": link.synced_at,
+        }
 
     def create(self, validated_data):
         labels = validated_data.pop("labels", None)
@@ -76,6 +100,17 @@ class PageSerializer(BaseSerializer):
 
         # Get the workspace id from the project
         project = Project.objects.get(pk=project_id)
+
+        # folders are pure containers — never store editor content
+        if validated_data.get("kind") == Page.FOLDER_KIND:
+            description_json = {}
+            description_binary = None
+            description_html = "<p></p>"
+
+        # new children go last among their siblings
+        if "sort_order" not in validated_data:
+            parent = validated_data.get("parent")
+            validated_data["sort_order"] = next_child_sort_order(parent.id if parent else None, project_id)
 
         # Create the page
         page = Page.objects.create(
@@ -114,6 +149,8 @@ class PageSerializer(BaseSerializer):
         return page
 
     def update(self, instance, validated_data):
+        # the kind of a page is fixed at creation
+        validated_data.pop("kind", None)
         labels = validated_data.pop("labels", None)
         if labels is not None:
             PageLabel.objects.filter(page=instance).delete()

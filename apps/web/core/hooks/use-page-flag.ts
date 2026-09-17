@@ -13,10 +13,10 @@ export type TPageFlagHookReturnType = {
   isPageSharingEnabled: boolean;
 };
 
-export const usePageFlag = (args: TPageFlagHookArgs): TPageFlagHookReturnType => {
-  const {} = args;
+export const usePageFlag = (_args: TPageFlagHookArgs): TPageFlagHookReturnType => {
   return {
-    isMovePageEnabled: false,
+    // Zil Ops: "move" places a page inside another page/folder of the tree
+    isMovePageEnabled: true,
     isPageSharingEnabled: false,
   };
 };

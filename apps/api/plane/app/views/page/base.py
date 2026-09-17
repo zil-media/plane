@@ -4,11 +4,12 @@
 
 # Python imports
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.core.serializers.json import DjangoJSONEncoder
 
 # Django imports
-from django.db import connection
+from django.db import transaction
+from django.utils import timezone
 from django.db.models import (
     Exists,
     OuterRef,
@@ -44,8 +45,15 @@ from plane.db.models import (
     ProjectPage,
     Project,
     UserRecentVisit,
+    PageZilClientLink,
 )
 from plane.utils.error_codes import ERROR_CODES
+from plane.utils.page_tree import (
+    PageTreeError,
+    next_child_sort_order,
+    set_archived_at_for_page_and_descendants,
+    validate_new_parent,
+)
 
 # Local imports
 from ..base import BaseAPIView, BaseViewSet
@@ -53,23 +61,18 @@ from plane.bgtasks.page_transaction_task import page_transaction
 from plane.bgtasks.page_version_task import track_page_version
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.bgtasks.copy_s3_object import copy_s3_objects_of_description_and_assets
+from plane.bgtasks.zil_client_link_refresh_task import refresh_zil_client_link
 from plane.app.permissions import ProjectPagePermission
 
 
-def unarchive_archive_page_and_descendants(page_id, archived_at):
-    # Your SQL query
-    sql = """
-    WITH RECURSIVE descendants AS (
-        SELECT id FROM pages WHERE id = %s
-        UNION ALL
-        SELECT pages.id FROM pages, descendants WHERE pages.parent_id = descendants.id
+def folder_not_supported_response():
+    return Response(
+        {
+            "error_code": ERROR_CODES["PAGE_IS_FOLDER"],
+            "error_message": "PAGE_IS_FOLDER",
+        },
+        status=status.HTTP_400_BAD_REQUEST,
     )
-    UPDATE pages SET archived_at = %s WHERE id IN (SELECT id FROM descendants);
-    """
-
-    # Execute the SQL query
-    with connection.cursor() as cursor:
-        cursor.execute(sql, [page_id, archived_at])
 
 
 class PageViewSet(BaseViewSet):
@@ -98,6 +101,7 @@ class PageViewSet(BaseViewSet):
             .prefetch_related("projects")
             .select_related("workspace")
             .select_related("owned_by")
+            .select_related("zil_client_link")
             .annotate(is_favorite=Exists(subquery))
             .order_by(self.request.GET.get("order_by", "-created_at"))
             .prefetch_related("labels")
@@ -126,6 +130,11 @@ class PageViewSet(BaseViewSet):
         )
 
     def create(self, request, slug, project_id):
+        try:
+            validate_new_parent(None, request.data.get("parent"), project_id, slug, request.user)
+        except PageTreeError as e:
+            return Response(e.as_response_data(), status=status.HTTP_400_BAD_REQUEST)
+
         serializer = PageSerializer(
             data=request.data,
             context={
@@ -162,14 +171,16 @@ class PageViewSet(BaseViewSet):
             if page.is_locked:
                 return Response({"error": "Page is locked"}, status=status.HTTP_400_BAD_REQUEST)
 
-            parent = request.data.get("parent", None)
-            if parent:
-                _ = Page.objects.get(
-                    pk=parent,
-                    workspace__slug=slug,
-                    projects__id=project_id,
-                    project_pages__deleted_at__isnull=True,
-                )
+            if "parent" in request.data:
+                try:
+                    validate_new_parent(page, request.data.get("parent"), project_id, slug, request.user)
+                except PageTreeError as e:
+                    return Response(e.as_response_data(), status=status.HTTP_400_BAD_REQUEST)
+
+            # folders carry no editor content
+            data = request.data
+            if page.is_folder and "description_html" in data:
+                data = {key: value for key, value in data.items() if key != "description_html"}
 
             # Only update access if the page owner is the requesting  user
             if page.access != request.data.get("access", page.access) and page.owned_by_id != request.user.id:
@@ -178,12 +189,12 @@ class PageViewSet(BaseViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            serializer = PageDetailSerializer(page, data=request.data, partial=True)
+            serializer = PageDetailSerializer(page, data=data, partial=True)
             page_description = page.description_html
             if serializer.is_valid():
                 serializer.save()
                 # capture the page transaction
-                if request.data.get("description_html"):
+                if data.get("description_html"):
                     page_transaction.delay(
                         new_description_html=request.data.get("description_html", "<p></p>"),
                         old_description_html=page_description,
@@ -193,10 +204,7 @@ class PageViewSet(BaseViewSet):
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Page.DoesNotExist:
-            return Response(
-                {"error": "Access cannot be updated since this page is owned by someone else"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
 
     def retrieve(self, request, slug, project_id, page_id=None):
         page = self.get_queryset().filter(pk=page_id).first()
@@ -232,6 +240,12 @@ class PageViewSet(BaseViewSet):
             )
             data = PageDetailSerializer(page).data
             data["issue_ids"] = issue_ids
+            # keep the cached Zil client fields of a folder reasonably fresh
+            zil_link = getattr(page, "zil_client_link", None) if page.is_folder else None
+            if zil_link is not None and (
+                zil_link.synced_at is None or timezone.now() - zil_link.synced_at > timedelta(hours=24)
+            ):
+                refresh_zil_client_link.delay(str(zil_link.id))
             if track_visit:
                 recent_visited_task.delay(
                     slug=slug,
@@ -249,6 +263,8 @@ class PageViewSet(BaseViewSet):
             projects__id=project_id,
             project_pages__deleted_at__isnull=True,
         )
+        if page.is_folder:
+            return folder_not_supported_response()
 
         page.is_locked = True
         page.save()
@@ -288,9 +304,14 @@ class PageViewSet(BaseViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, slug, project_id):
-        # only root pages here — retrieve()/create() need the full queryset
-        # (including nested pages) to fetch a single page by id
-        queryset = self.get_queryset().filter(parent__isnull=True)
+        # the whole tree is returned; the client builds the hierarchy.
+        # `?parent=root|<id>` narrows the result to a single level.
+        queryset = self.get_queryset()
+        parent = request.GET.get("parent")
+        if parent == "root":
+            queryset = queryset.filter(parent__isnull=True)
+        elif parent:
+            queryset = queryset.filter(parent_id=parent)
         project = Project.objects.get(pk=project_id)
         if (
             ProjectMember.objects.filter(
@@ -333,9 +354,13 @@ class PageViewSet(BaseViewSet):
             workspace__slug=slug,
         ).delete()
 
-        unarchive_archive_page_and_descendants(page_id, datetime.now())
+        archived_at = datetime.now()
+        archived_page_ids = set_archived_at_for_page_and_descendants(page_id, archived_at)
 
-        return Response({"archived_at": str(datetime.now())}, status=status.HTTP_200_OK)
+        return Response(
+            {"archived_at": str(archived_at), "archived_page_ids": archived_page_ids},
+            status=status.HTTP_200_OK,
+        )
 
     def unarchive(self, request, slug, project_id, page_id):
         page = Page.objects.get(
@@ -362,9 +387,9 @@ class PageViewSet(BaseViewSet):
             page.parent = None
             page.save(update_fields=["parent"])
 
-        unarchive_archive_page_and_descendants(page_id, None)
+        restored_page_ids = set_archived_at_for_page_and_descendants(page_id, None)
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"restored_page_ids": restored_page_ids}, status=status.HTTP_200_OK)
 
     def destroy(self, request, slug, project_id, page_id):
         page = Page.objects.get(
@@ -394,14 +419,15 @@ class PageViewSet(BaseViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # remove parent from all the children
+        # children move up one level instead of being deleted with the page
         _ = Page.objects.filter(
             parent_id=page_id,
             projects__id=project_id,
             workspace__slug=slug,
             project_pages__deleted_at__isnull=True,
-        ).update(parent=None)
+        ).update(parent_id=page.parent_id)
 
+        PageZilClientLink.all_objects.filter(page_id=page_id).delete()
         page.delete()
         # Delete the user favorite page
         UserFavorite.objects.filter(
@@ -419,6 +445,45 @@ class PageViewSet(BaseViewSet):
         ).delete(soft=False)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def move_in_tree(self, request, slug, project_id, page_id):
+        page = Page.objects.filter(
+            pk=page_id,
+            workspace__slug=slug,
+            projects__id=project_id,
+            project_pages__deleted_at__isnull=True,
+        ).first()
+        if page is None:
+            return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if page.archived_at is not None:
+            return Response(
+                {
+                    "error_code": ERROR_CODES["PAGE_ARCHIVED"],
+                    "error_message": "PAGE_ARCHIVED",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            with transaction.atomic():
+                parent = validate_new_parent(page, request.data.get("parent_id"), project_id, slug, request.user)
+                sort_order = request.data.get("sort_order")
+                if sort_order is None:
+                    sort_order = next_child_sort_order(parent.id if parent else None, project_id)
+                page.parent = parent
+                page.sort_order = float(sort_order)
+                page.updated_by = request.user
+                page.save(update_fields=["parent", "sort_order", "updated_at", "updated_by"])
+        except PageTreeError as e:
+            return Response(e.as_response_data(), status=status.HTTP_400_BAD_REQUEST)
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid sort_order"}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {"id": page.id, "parent": page.parent_id, "sort_order": page.sort_order},
+            status=status.HTTP_200_OK,
+        )
+
     def summary(self, request, slug, project_id):
         queryset = (
             Page.objects.filter(workspace__slug=slug)
@@ -427,7 +492,6 @@ class PageViewSet(BaseViewSet):
                 projects__project_projectmember__is_active=True,
                 projects__archived_at__isnull=True,
             )
-            .filter(parent__isnull=True)
             .filter(Q(owned_by=request.user) | Q(access=0))
             .annotate(
                 project=Exists(
@@ -528,6 +592,9 @@ class PagesDescriptionViewSet(BaseViewSet):
             project_pages__deleted_at__isnull=True,
         )
 
+        if page.is_folder:
+            return folder_not_supported_response()
+
         if page.is_locked:
             return Response(
                 {
@@ -590,6 +657,10 @@ class PageDuplicateEndpoint(BaseAPIView):
         # check for permission
         if page.access == Page.PRIVATE_ACCESS and page.owned_by_id != request.user.id:
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+        # duplicating a whole subtree is not supported
+        if page.is_folder:
+            return folder_not_supported_response()
 
         # get all the project ids where page is present
         project_ids = ProjectPage.objects.filter(page_id=page_id).values_list("project_id", flat=True)

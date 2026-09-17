@@ -6,7 +6,7 @@
 
 // types
 import { API_BASE_URL } from "@plane/constants";
-import type { TDocumentPayload, TPage } from "@plane/types";
+import type { TDocumentPayload, TPage, TPageZilClient, TZilClientSearchResult } from "@plane/types";
 // helpers
 // services
 import { APIService } from "@/services/api.service";
@@ -116,6 +116,7 @@ export class ProjectPageService extends APIService {
     pageId: string
   ): Promise<{
     archived_at: string;
+    archived_page_ids?: string[];
   }> {
     return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/archive/`)
       .then((response) => response?.data)
@@ -124,7 +125,11 @@ export class ProjectPageService extends APIService {
       });
   }
 
-  async restore(workspaceSlug: string, projectId: string, pageId: string): Promise<void> {
+  async restore(
+    workspaceSlug: string,
+    projectId: string,
+    pageId: string
+  ): Promise<{ restored_page_ids?: string[] } | undefined> {
     return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/archive/`)
       .then((response) => response?.data)
       .catch((error) => {
@@ -176,6 +181,56 @@ export class ProjectPageService extends APIService {
 
   async duplicate(workspaceSlug: string, projectId: string, pageId: string): Promise<TPage> {
     return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/duplicate/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async moveInTree(
+    workspaceSlug: string,
+    projectId: string,
+    pageId: string,
+    data: { parent_id: string | null; sort_order?: number }
+  ): Promise<{ id: string; parent: string | null; sort_order: number }> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/move-in-tree/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async searchZilClients(
+    workspaceSlug: string,
+    projectId: string,
+    query: string
+  ): Promise<{ enabled: boolean; results: TZilClientSearchResult[]; error?: string }> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-clients/`, {
+      params: { q: query },
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async linkZilClient(
+    workspaceSlug: string,
+    projectId: string,
+    pageId: string,
+    zilClientId: string
+  ): Promise<TPageZilClient> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/zil-client/`, {
+      zil_client_id: zilClientId,
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw { status: error?.response?.status, ...error?.response?.data };
+      });
+  }
+
+  async unlinkZilClient(workspaceSlug: string, projectId: string, pageId: string): Promise<void> {
+    return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/zil-client/`)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

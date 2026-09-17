@@ -111,5 +111,46 @@
       "success_message": "Seite aus Sammlung entfernt.",
       "error_message": "Die Seite konnte nicht aus der Sammlung entfernt werden. Bitte versuchen Sie es erneut."
     }
+  },
+  "page_tree": {
+    "new_page": "Neue Seite",
+    "new_folder": "Neuer Ordner",
+    "add_sub_page": "Unterseite hinzufügen",
+    "add_folder": "Ordner hinzufügen",
+    "expand": "Erweitern",
+    "collapse": "Reduzieren",
+    "untitled_folder": "Unbenannter Ordner",
+    "create_error": "Konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+    "move": {
+      "action": "Verschieben",
+      "title": "„{name}“ verschieben",
+      "search_placeholder": "Seiten und Ordner durchsuchen",
+      "root": "Oberste Projektebene",
+      "confirm": "Hierher verschieben",
+      "success": "Erfolgreich verschoben.",
+      "error": "Konnte nicht verschoben werden. Bitte versuchen Sie es erneut.",
+      "error_cycle": "Eine Seite kann nicht in sich selbst verschoben werden.",
+      "error_depth": "Maximale Verschachtelungstiefe erreicht."
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# Element} other {# Elemente}}",
+      "empty_title": "Dieser Ordner ist leer",
+      "empty_description": "Erstellen Sie darin Seiten oder Ordner, um Ihre Dokumente zu organisieren."
+    },
+    "zil_client": {
+      "link": "Kunden verknüpfen",
+      "change": "Kunden ändern",
+      "unlink": "Kundenverknüpfung aufheben",
+      "title": "Kunden aus Zil Workspace verknüpfen",
+      "search_placeholder": "Nach Marken- oder Firmenname suchen",
+      "no_results": "Keine Kunden gefunden",
+      "unavailable": "Zil Workspace ist nicht verfügbar. Bitte versuchen Sie es später erneut.",
+      "already_linked": "Dieser Kunde ist bereits mit einem anderen Ordner verknüpft.",
+      "open_linked_folder": "Ordner öffnen",
+      "linked": "Kunde verknüpft.",
+      "unlinked": "Kundenverknüpfung aufgehoben.",
+      "error": "Die Kundenverknüpfung konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "missing": "Kunde in Zil Workspace nicht gefunden"
+    }
   }
 }

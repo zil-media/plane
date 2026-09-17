@@ -8,6 +8,28 @@ import type { TLogoProps } from "../common";
 import type { EPageAccess } from "../enums";
 import type { TPageExtended } from "./extended";
 
+export type TPageKind = "page" | "folder";
+
+/** Zil Workspace client linked to a folder (display fields cached from Zil). */
+export type TPageZilClient = {
+  id: string;
+  alias: string;
+  company_name: string;
+  lifecycle_status: string;
+  business_unit_slug: string;
+  synced_at: string | null;
+};
+
+/** A client as returned by the Zil client search. */
+export type TZilClientSearchResult = {
+  id: string;
+  alias: string;
+  companyName: string;
+  lifecycleStatus: string;
+  businessUnitSlug: string;
+  linkedPageId: string | null;
+};
+
 export type TPage = {
   access: EPageAccess | undefined;
   archived_at: string | null | undefined;
@@ -28,6 +50,11 @@ export type TPage = {
   workspace: string | undefined;
   logo_props: TLogoProps | undefined;
   deleted_at: Date | undefined;
+  // page tree
+  parent?: string | null | undefined;
+  kind?: TPageKind | undefined;
+  sort_order?: number | undefined;
+  zil_client?: TPageZilClient | null | undefined;
 } & TPageExtended;
 
 // page filters

@@ -111,5 +111,46 @@
       "success_message": "页面已从集合中移除。",
       "error_message": "无法将页面从集合中移除。请重试。"
     }
+  },
+  "page_tree": {
+    "new_page": "新建页面",
+    "new_folder": "新建文件夹",
+    "add_sub_page": "添加子页面",
+    "add_folder": "添加文件夹",
+    "expand": "展开",
+    "collapse": "收起",
+    "untitled_folder": "未命名文件夹",
+    "create_error": "无法创建，请重试。",
+    "move": {
+      "action": "移动",
+      "title": "移动“{name}”",
+      "search_placeholder": "搜索页面和文件夹",
+      "root": "项目根目录",
+      "confirm": "移动到此处",
+      "success": "移动成功。",
+      "error": "无法移动，请重试。",
+      "error_cycle": "页面无法移动到其自身内部。",
+      "error_depth": "已达到最大嵌套深度。"
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# 项} other {# 项}}",
+      "empty_title": "此文件夹为空",
+      "empty_description": "在其中创建页面或文件夹，以整理您的文档。"
+    },
+    "zil_client": {
+      "link": "关联客户",
+      "change": "更换客户",
+      "unlink": "取消关联客户",
+      "title": "关联 Zil Workspace 客户",
+      "search_placeholder": "按品牌名称或公司名称搜索",
+      "no_results": "未找到客户",
+      "unavailable": "Zil Workspace 当前不可用，请稍后重试。",
+      "already_linked": "此客户已关联到其他文件夹。",
+      "open_linked_folder": "打开文件夹",
+      "linked": "客户已关联。",
+      "unlinked": "已取消关联客户。",
+      "error": "无法更新客户关联，请重试。",
+      "missing": "在 Zil Workspace 中未找到该客户"
+    }
   }
 }

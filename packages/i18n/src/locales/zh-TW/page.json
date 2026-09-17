@@ -111,5 +111,46 @@
       "success_message": "頁面已從集合中移除。",
       "error_message": "無法將頁面從集合中移除。請再試一次。"
     }
+  },
+  "page_tree": {
+    "new_page": "新增頁面",
+    "new_folder": "新增資料夾",
+    "add_sub_page": "新增子頁面",
+    "add_folder": "新增資料夾",
+    "expand": "展開",
+    "collapse": "收合",
+    "untitled_folder": "未命名資料夾",
+    "create_error": "無法建立，請再試一次。",
+    "move": {
+      "action": "移動",
+      "title": "移動「{name}」",
+      "search_placeholder": "搜尋頁面和資料夾",
+      "root": "專案根目錄",
+      "confirm": "移至此處",
+      "success": "移動成功。",
+      "error": "無法移動，請再試一次。",
+      "error_cycle": "頁面無法移動到其自身內部。",
+      "error_depth": "已達到最大巢狀深度。"
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# 個項目} other {# 個項目}}",
+      "empty_title": "此資料夾是空的",
+      "empty_description": "在其中建立頁面或資料夾，以整理您的文件。"
+    },
+    "zil_client": {
+      "link": "連結客戶",
+      "change": "變更客戶",
+      "unlink": "取消連結客戶",
+      "title": "連結 Zil Workspace 客戶",
+      "search_placeholder": "依品牌名稱或公司名稱搜尋",
+      "no_results": "找不到客戶",
+      "unavailable": "Zil Workspace 目前無法使用，請稍後再試。",
+      "already_linked": "此客戶已連結至其他資料夾。",
+      "open_linked_folder": "開啟資料夾",
+      "linked": "已連結客戶。",
+      "unlinked": "已取消連結客戶。",
+      "error": "無法更新客戶連結，請再試一次。",
+      "missing": "在 Zil Workspace 中找不到此客戶"
+    }
   }
 }

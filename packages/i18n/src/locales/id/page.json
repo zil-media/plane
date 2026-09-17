@@ -111,5 +111,46 @@
       "success_message": "Halaman dihapus dari koleksi.",
       "error_message": "Halaman tidak dapat dihapus dari koleksi. Silakan coba lagi."
     }
+  },
+  "page_tree": {
+    "new_page": "Halaman baru",
+    "new_folder": "Folder baru",
+    "add_sub_page": "Tambahkan sub-halaman",
+    "add_folder": "Tambahkan folder",
+    "expand": "Bentangkan",
+    "collapse": "Ciutkan",
+    "untitled_folder": "Folder tanpa judul",
+    "create_error": "Tidak dapat dibuat. Silakan coba lagi.",
+    "move": {
+      "action": "Pindahkan",
+      "title": "Pindahkan \"{name}\"",
+      "search_placeholder": "Cari halaman dan folder",
+      "root": "Tingkat teratas proyek",
+      "confirm": "Pindahkan ke sini",
+      "success": "Berhasil dipindahkan.",
+      "error": "Tidak dapat dipindahkan. Silakan coba lagi.",
+      "error_cycle": "Halaman tidak dapat dipindahkan ke dalam dirinya sendiri.",
+      "error_depth": "Kedalaman susunan maksimum telah tercapai."
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# item} other {# item}}",
+      "empty_title": "Folder ini kosong",
+      "empty_description": "Buat halaman atau folder di dalamnya untuk mengatur dokumen Anda."
+    },
+    "zil_client": {
+      "link": "Tautkan klien",
+      "change": "Ganti klien",
+      "unlink": "Lepaskan tautan klien",
+      "title": "Tautkan klien Zil Workspace",
+      "search_placeholder": "Cari berdasarkan nama merek atau nama perusahaan",
+      "no_results": "Klien tidak ditemukan",
+      "unavailable": "Zil Workspace tidak tersedia. Silakan coba lagi nanti.",
+      "already_linked": "Klien ini sudah ditautkan ke folder lain.",
+      "open_linked_folder": "Buka folder",
+      "linked": "Klien ditautkan.",
+      "unlinked": "Tautan klien dilepaskan.",
+      "error": "Tidak dapat memperbarui tautan klien. Silakan coba lagi.",
+      "missing": "Klien tidak ditemukan di Zil Workspace"
+    }
   }
 }

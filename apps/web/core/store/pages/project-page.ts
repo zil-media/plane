@@ -51,13 +51,13 @@ export class ProjectPage extends BasePage implements TProjectPage {
         if (!workspaceSlug || !projectId || !page.id) throw new Error("Missing required fields.");
         return await projectPageService.archive(workspaceSlug, projectId, page.id);
       },
-      restore: async () => {
-        if (!workspaceSlug || !projectId || !page.id) throw new Error("Missing required fields.");
-        await projectPageService.restore(workspaceSlug, projectId, page.id);
-      },
       duplicate: async () => {
         if (!workspaceSlug || !projectId || !page.id) throw new Error("Missing required fields.");
         return await projectPageService.duplicate(workspaceSlug, projectId, page.id);
+      },
+      restore: async () => {
+        if (!workspaceSlug || !projectId || !page.id) throw new Error("Missing required fields.");
+        return await projectPageService.restore(workspaceSlug, projectId, page.id);
       },
     });
     makeObservable(this, {
@@ -116,6 +116,7 @@ export class ProjectPage extends BasePage implements TProjectPage {
    * @description returns true if the current logged in user can create a duplicate the page
    */
   get canCurrentUserDuplicatePage() {
+    if (this.isFolder) return false;
     const highestRole = this.getHighestRoleAcrossProjects();
     return !!highestRole && highestRole >= EUserPermissions.MEMBER;
   }
@@ -124,6 +125,7 @@ export class ProjectPage extends BasePage implements TProjectPage {
    * @description returns true if the current logged in user can lock the page
    */
   get canCurrentUserLockPage() {
+    if (this.isFolder) return false;
     const highestRole = this.getHighestRoleAcrossProjects();
     return this.isCurrentUserOwner || highestRole === EUserPermissions.ADMIN;
   }
@@ -164,8 +166,11 @@ export class ProjectPage extends BasePage implements TProjectPage {
    * @description returns true if the current logged in user can move the page
    */
   get canCurrentUserMovePage() {
+    // mirrors the move-in-tree endpoint: owner always; public pages any member
+    if (this.archived_at) return false;
+    if (this.isCurrentUserOwner) return true;
     const highestRole = this.getHighestRoleAcrossProjects();
-    return this.isCurrentUserOwner || highestRole === EUserPermissions.ADMIN;
+    return this.access === EPageAccess.PUBLIC && !!highestRole && highestRole >= EUserPermissions.MEMBER;
   }
 
   /**
@@ -179,7 +184,10 @@ export class ProjectPage extends BasePage implements TProjectPage {
     const isLocked = this.is_locked;
 
     return (
-      !isArchived && !isLocked && (isOwner || (isPublic && !!highestRole && highestRole >= EUserPermissions.MEMBER))
+      !this.isFolder &&
+      !isArchived &&
+      !isLocked &&
+      (isOwner || (isPublic && !!highestRole && highestRole >= EUserPermissions.MEMBER))
     );
   }
 

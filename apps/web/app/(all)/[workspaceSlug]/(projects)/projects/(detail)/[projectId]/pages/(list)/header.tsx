@@ -5,15 +5,17 @@
  */
 
 import { useState } from "react";
+import { FolderPlus } from "lucide-react";
 import { observer } from "mobx-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 // constants
 import { EPageAccess } from "@plane/constants";
+import { useTranslation } from "@plane/i18n";
 // plane types
 import { Button } from "@plane/propel/button";
 import { PageIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TPage } from "@plane/types";
+import type { TPage, TPageKind } from "@plane/types";
 // plane ui
 import { Breadcrumbs, Header } from "@plane/ui";
 // helpers
@@ -26,7 +28,9 @@ import { EPageStoreType, usePageStore } from "@/hooks/store";
 
 export const PagesListHeader = observer(function PagesListHeader() {
   // states
-  const [isCreatingPage, setIsCreatingPage] = useState(false);
+  const [isCreatingPage, setIsCreatingPage] = useState<TPageKind | null>(null);
+  // i18n
+  const { t } = useTranslation();
   // router
   const router = useRouter();
   const { workspaceSlug, projectId } = useParams();
@@ -36,17 +40,20 @@ export const PagesListHeader = observer(function PagesListHeader() {
   const { currentProjectDetails, loader } = useProject();
   const { canCurrentUserCreatePage, createPage } = usePageStore(EPageStoreType.PROJECT);
   // handle page create
-  const handleCreatePage = async () => {
-    setIsCreatingPage(true);
+  const handleCreatePage = async (kind: TPageKind = "page") => {
+    setIsCreatingPage(kind);
 
     const payload: Partial<TPage> = {
       access: pageType === "private" ? EPageAccess.PRIVATE : EPageAccess.PUBLIC,
+      kind,
+      ...(kind === "folder" ? { name: t("page_tree.untitled_folder") } : {}),
     };
 
     await createPage(payload)
       .then((res) => {
         const pageId = `/${workspaceSlug}/projects/${currentProjectDetails?.id}/pages/${res?.id}`;
         router.push(pageId);
+        return res;
       })
       .catch((err) => {
         setToast({
@@ -55,7 +62,7 @@ export const PagesListHeader = observer(function PagesListHeader() {
           message: err?.data?.error || "Page could not be created. Please try again.",
         });
       })
-      .finally(() => setIsCreatingPage(false));
+      .finally(() => setIsCreatingPage(null));
   };
 
   return (
@@ -78,9 +85,27 @@ export const PagesListHeader = observer(function PagesListHeader() {
       </Header.LeftItem>
       {canCurrentUserCreatePage && (
         <Header.RightItem>
-          <Button variant="primary" size="lg" onClick={handleCreatePage} loading={isCreatingPage}>
-            {isCreatingPage ? "Adding" : "Add page"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => handleCreatePage("folder")}
+              loading={isCreatingPage === "folder"}
+              disabled={!!isCreatingPage}
+            >
+              <FolderPlus className="size-3.5" />
+              {t("page_tree.new_folder")}
+            </Button>
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => handleCreatePage("page")}
+              loading={isCreatingPage === "page"}
+              disabled={!!isCreatingPage}
+            >
+              {isCreatingPage === "page" ? "Adding" : "Add page"}
+            </Button>
+          </div>
         </Header.RightItem>
       )}
     </Header>

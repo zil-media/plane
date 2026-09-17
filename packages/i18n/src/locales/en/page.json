@@ -111,5 +111,46 @@
       "success_message": "Page removed from collection.",
       "error_message": "Page could not be removed from the collection. Please try again."
     }
+  },
+  "page_tree": {
+    "new_page": "New page",
+    "new_folder": "New folder",
+    "add_sub_page": "Add sub-page",
+    "add_folder": "Add folder",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "untitled_folder": "Untitled folder",
+    "create_error": "Could not be created. Please try again.",
+    "move": {
+      "action": "Move",
+      "title": "Move \"{name}\"",
+      "search_placeholder": "Search pages and folders",
+      "root": "Project root",
+      "confirm": "Move here",
+      "success": "Moved successfully.",
+      "error": "Could not be moved. Please try again.",
+      "error_cycle": "A page cannot be moved inside itself.",
+      "error_depth": "Maximum nesting depth reached."
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# item} other {# items}}",
+      "empty_title": "This folder is empty",
+      "empty_description": "Create pages or folders inside it to organize your documents."
+    },
+    "zil_client": {
+      "link": "Link client",
+      "change": "Change client",
+      "unlink": "Unlink client",
+      "title": "Link a Zil Workspace client",
+      "search_placeholder": "Search by brand or company name",
+      "no_results": "No clients found",
+      "unavailable": "Zil Workspace is unavailable. Please try again later.",
+      "already_linked": "This client is already linked to another folder.",
+      "open_linked_folder": "Open folder",
+      "linked": "Client linked.",
+      "unlinked": "Client unlinked.",
+      "error": "Could not update the client link. Please try again.",
+      "missing": "Client not found in Zil Workspace"
+    }
   }
 }

@@ -134,17 +134,23 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
       />
       <PageActions
         extraOptions={EXTRA_MENU_OPTIONS}
-        optionsOrder={[
-          "full-screen",
-          "sticky-toolbar",
-          "copy-markdown",
-          "version-history",
-          "make-a-copy",
-          "archive-restore",
-          "delete",
-          "toggle-access",
-          "export",
-        ]}
+        optionsOrder={
+          page.isFolder
+            ? ["add-sub-page", "add-folder", "link-zil-client", "move", "archive-restore", "delete", "toggle-access"]
+            : [
+                "full-screen",
+                "sticky-toolbar",
+                "copy-markdown",
+                "version-history",
+                "add-sub-page",
+                "move",
+                "make-a-copy",
+                "archive-restore",
+                "delete",
+                "toggle-access",
+                "export",
+              ]
+        }
         page={page}
         storeType={storeType}
       />

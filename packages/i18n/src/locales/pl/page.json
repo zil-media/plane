@@ -111,5 +111,46 @@
       "success_message": "Strona została usunięta z kolekcji.",
       "error_message": "Nie udało się usunąć strony z kolekcji. Spróbuj ponownie."
     }
+  },
+  "page_tree": {
+    "new_page": "Nowa strona",
+    "new_folder": "Nowy folder",
+    "add_sub_page": "Dodaj podstronę",
+    "add_folder": "Dodaj folder",
+    "expand": "Rozwiń",
+    "collapse": "Zwiń",
+    "untitled_folder": "Folder bez nazwy",
+    "create_error": "Nie udało się utworzyć. Spróbuj ponownie.",
+    "move": {
+      "action": "Przenieś",
+      "title": "Przenieś „{name}”",
+      "search_placeholder": "Szukaj stron i folderów",
+      "root": "Poziom główny projektu",
+      "confirm": "Przenieś tutaj",
+      "success": "Przeniesiono pomyślnie.",
+      "error": "Nie udało się przenieść. Spróbuj ponownie.",
+      "error_cycle": "Nie można przenieść strony do niej samej.",
+      "error_depth": "Osiągnięto maksymalny poziom zagnieżdżenia."
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# element} few {# elementy} many {# elementów} other {# elementu}}",
+      "empty_title": "Ten folder jest pusty",
+      "empty_description": "Utwórz w nim strony lub foldery, aby uporządkować dokumenty."
+    },
+    "zil_client": {
+      "link": "Połącz klienta",
+      "change": "Zmień klienta",
+      "unlink": "Odłącz klienta",
+      "title": "Połącz klienta z Zil Workspace",
+      "search_placeholder": "Szukaj według marki lub nazwy firmy",
+      "no_results": "Nie znaleziono klientów",
+      "unavailable": "Zil Workspace jest niedostępny. Spróbuj ponownie później.",
+      "already_linked": "Ten klient jest już połączony z innym folderem.",
+      "open_linked_folder": "Otwórz folder",
+      "linked": "Klient połączony.",
+      "unlinked": "Klient odłączony.",
+      "error": "Nie udało się zaktualizować powiązania klienta. Spróbuj ponownie.",
+      "missing": "Nie znaleziono klienta w Zil Workspace"
+    }
   }
 }

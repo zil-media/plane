@@ -111,5 +111,46 @@
       "success_message": "ページをコレクションから削除しました。",
       "error_message": "ページをコレクションから削除できませんでした。もう一度お試しください。"
     }
+  },
+  "page_tree": {
+    "new_page": "新しいページ",
+    "new_folder": "新しいフォルダー",
+    "add_sub_page": "サブページを追加",
+    "add_folder": "フォルダーを追加",
+    "expand": "展開",
+    "collapse": "折りたたむ",
+    "untitled_folder": "無題のフォルダー",
+    "create_error": "作成できませんでした。もう一度お試しください。",
+    "move": {
+      "action": "移動",
+      "title": "「{name}」を移動",
+      "search_placeholder": "ページとフォルダーを検索",
+      "root": "プロジェクトのルート",
+      "confirm": "ここに移動",
+      "success": "移動しました。",
+      "error": "移動できませんでした。もう一度お試しください。",
+      "error_cycle": "ページをそれ自身の中に移動することはできません。",
+      "error_depth": "階層の上限に達しました。"
+    },
+    "folder": {
+      "items_count": "{count, plural, one {#件} other {#件}}",
+      "empty_title": "このフォルダーは空です",
+      "empty_description": "フォルダー内にページやフォルダーを作成して、ドキュメントを整理しましょう。"
+    },
+    "zil_client": {
+      "link": "クライアントをリンク",
+      "change": "クライアントを変更",
+      "unlink": "クライアントのリンクを解除",
+      "title": "Zil Workspace のクライアントをリンク",
+      "search_placeholder": "ブランド名または会社名で検索",
+      "no_results": "クライアントが見つかりません",
+      "unavailable": "Zil Workspace を利用できません。しばらくしてからもう一度お試しください。",
+      "already_linked": "このクライアントはすでに別のフォルダーにリンクされています。",
+      "open_linked_folder": "フォルダーを開く",
+      "linked": "クライアントをリンクしました。",
+      "unlinked": "クライアントのリンクを解除しました。",
+      "error": "クライアントのリンクを更新できませんでした。もう一度お試しください。",
+      "missing": "Zil Workspace にクライアントが見つかりません"
+    }
   }
 }

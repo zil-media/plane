@@ -13,7 +13,7 @@ import { ListLayout } from "@/components/core/list";
 import type { EPageStoreType } from "@/hooks/store";
 import { usePageStore } from "@/hooks/store";
 // local imports
-import { PageListBlock } from "./block";
+import { PageTreeNode } from "./tree-node";
 
 type TPagesListRoot = {
   pageType: TPageNavigationTabs;
@@ -23,15 +23,16 @@ type TPagesListRoot = {
 export const PagesListRoot = observer(function PagesListRoot(props: TPagesListRoot) {
   const { pageType, storeType } = props;
   // store hooks
-  const { getCurrentProjectFilteredPageIdsByTab } = usePageStore(storeType);
+  const { getCurrentProjectFilteredPageIdsByTab, getTreeChildIds } = usePageStore(storeType);
   // derived values
   const filteredPageIds = getCurrentProjectFilteredPageIdsByTab(pageType);
+  const rootPageIds = getTreeChildIds(null, pageType);
 
   if (!filteredPageIds) return <></>;
   return (
     <ListLayout>
-      {filteredPageIds.map((pageId) => (
-        <PageListBlock key={pageId} pageId={pageId} storeType={storeType} />
+      {rootPageIds.map((pageId) => (
+        <PageTreeNode key={pageId} pageId={pageId} pageType={pageType} storeType={storeType} depth={0} />
       ))}
     </ListLayout>
   );

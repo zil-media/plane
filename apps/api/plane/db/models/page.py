@@ -24,8 +24,15 @@ class Page(BaseModel):
     PRIVATE_ACCESS = 1
     PUBLIC_ACCESS = 0
     DEFAULT_SORT_ORDER = 65535
+    # Hard cap on nesting (root = depth 1) — keeps the tree navigable and the
+    # recursive CTEs cheap.
+    MAX_TREE_DEPTH = 8
 
     ACCESS_CHOICES = ((PRIVATE_ACCESS, "Private"), (PUBLIC_ACCESS, "Public"))
+
+    PAGE_KIND = "page"
+    FOLDER_KIND = "folder"
+    KIND_CHOICES = ((PAGE_KIND, "Page"), (FOLDER_KIND, "Folder"))
 
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="pages")
     name = models.TextField(blank=True)
@@ -53,6 +60,8 @@ class Page(BaseModel):
     moved_to_page = models.UUIDField(null=True, blank=True)
     moved_to_project = models.UUIDField(null=True, blank=True)
     sort_order = models.FloatField(default=DEFAULT_SORT_ORDER)
+    # "folder" pages are pure containers: no editor content, only children
+    kind = models.CharField(max_length=16, choices=KIND_CHOICES, default=PAGE_KIND, db_index=True)
 
     external_id = models.CharField(max_length=255, null=True, blank=True)
     external_source = models.CharField(max_length=255, null=True, blank=True)
@@ -62,6 +71,13 @@ class Page(BaseModel):
         verbose_name_plural = "Pages"
         db_table = "pages"
         ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["parent", "sort_order"], name="page_parent_sort_idx"),
+        ]
+
+    @property
+    def is_folder(self):
+        return self.kind == self.FOLDER_KIND
 
     def __str__(self):
         """Return owner email and page name"""
@@ -75,6 +91,43 @@ class Page(BaseModel):
             else strip_tags(self.description_html)
         )
         super(Page, self).save(*args, **kwargs)
+
+
+class PageZilClientLink(BaseModel):
+    """Manual link between a folder page and a Zil Workspace client (MgmtClient).
+
+    Zil stays the source of truth for the client; the display fields here are a
+    cache refreshed from Zil, never edited in Plane.
+    """
+
+    workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="page_zil_client_links")
+    project = models.ForeignKey("db.Project", on_delete=models.CASCADE, related_name="page_zil_client_links")
+    page = models.OneToOneField("db.Page", on_delete=models.CASCADE, related_name="zil_client_link")
+    zil_client_id = models.CharField(max_length=24)
+    alias = models.CharField(max_length=255, blank=True, default="")
+    company_name = models.CharField(max_length=255, blank=True, default="")
+    lifecycle_status = models.CharField(max_length=32, blank=True, default="")
+    business_unit_slug = models.CharField(max_length=64, blank=True, default="")
+    synced_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Page Zil Client Link"
+        verbose_name_plural = "Page Zil Client Links"
+        db_table = "page_zil_client_links"
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "zil_client_id"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="page_zil_client_unique_per_project",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["workspace", "zil_client_id"], name="pzcl_ws_client_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.page_id} -> {self.zil_client_id}"
 
 
 class PageLog(BaseModel):

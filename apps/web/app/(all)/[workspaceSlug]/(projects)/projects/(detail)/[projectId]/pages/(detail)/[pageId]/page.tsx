@@ -19,6 +19,7 @@ import { cn } from "@plane/utils";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { PageHead } from "@/components/core/page-title";
 import { IssuePeekOverview } from "@/components/issues/peek-overview";
+import { FolderPageView } from "@/components/pages/folder/folder-view";
 import type { TPageRootConfig, TPageRootHandlers } from "@/components/pages/editor/page-root";
 import { PageRoot } from "@/components/pages/editor/page-root";
 // hooks
@@ -79,20 +80,20 @@ function PageDetailsPage({ params }: Route.ComponentProps) {
   const pageRootHandlers: TPageRootHandlers = useMemo(
     () => ({
       create: createPage,
-      fetchAllVersions: async (pageId) =>
-        await projectPageVersionService.fetchAllVersions(workspaceSlug, projectId, pageId),
+      fetchAllVersions: async (versionPageId) =>
+        await projectPageVersionService.fetchAllVersions(workspaceSlug, projectId, versionPageId),
       fetchDescriptionBinary: async () => {
         if (!id) return;
         return await projectPageService.fetchDescriptionBinary(workspaceSlug, projectId, id);
       },
       fetchEntity: fetchEntityCallback,
-      fetchVersionDetails: async (pageId, versionId) =>
-        await projectPageVersionService.fetchVersionById(workspaceSlug, projectId, pageId, versionId),
-      restoreVersion: async (pageId, versionId) =>
-        await projectPageVersionService.restoreVersion(workspaceSlug, projectId, pageId, versionId),
-      getRedirectionLink: (pageId) => {
-        if (pageId) {
-          return `/${workspaceSlug}/projects/${projectId}/pages/${pageId}`;
+      fetchVersionDetails: async (versionPageId, versionId) =>
+        await projectPageVersionService.fetchVersionById(workspaceSlug, projectId, versionPageId, versionId),
+      restoreVersion: async (versionPageId, versionId) =>
+        await projectPageVersionService.restoreVersion(workspaceSlug, projectId, versionPageId, versionId),
+      getRedirectionLink: (targetPageId) => {
+        if (targetPageId) {
+          return `/${workspaceSlug}/projects/${projectId}/pages/${targetPageId}`;
         } else {
           return `/${workspaceSlug}/projects/${projectId}/pages`;
         }
@@ -175,6 +176,15 @@ function PageDetailsPage({ params }: Route.ComponentProps) {
     );
 
   if (!page) return null;
+
+  // folders have no editor (and no live collaboration socket)
+  if (page.isFolder)
+    return (
+      <>
+        <PageHead title={name} />
+        <FolderPageView page={page} storeType={storeType} />
+      </>
+    );
 
   return (
     <>

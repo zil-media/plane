@@ -111,5 +111,46 @@
       "success_message": "Página removida da coleção.",
       "error_message": "Não foi possível remover a página da coleção. Tente novamente."
     }
+  },
+  "page_tree": {
+    "new_page": "Nova página",
+    "new_folder": "Nova pasta",
+    "add_sub_page": "Adicionar subpágina",
+    "add_folder": "Adicionar pasta",
+    "expand": "Expandir",
+    "collapse": "Recolher",
+    "untitled_folder": "Pasta sem título",
+    "create_error": "Não foi possível criar. Tente novamente.",
+    "move": {
+      "action": "Mover",
+      "title": "Mover \"{name}\"",
+      "search_placeholder": "Pesquisar páginas e pastas",
+      "root": "Raiz do projeto",
+      "confirm": "Mover para cá",
+      "success": "Movido com sucesso.",
+      "error": "Não foi possível mover. Tente novamente.",
+      "error_cycle": "Uma página não pode ser movida para dentro de si mesma.",
+      "error_depth": "Profundidade máxima de aninhamento atingida."
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# item} many {# de itens} other {# itens}}",
+      "empty_title": "Esta pasta está vazia",
+      "empty_description": "Crie páginas ou pastas dentro dela para organizar seus documentos."
+    },
+    "zil_client": {
+      "link": "Vincular cliente",
+      "change": "Alterar cliente",
+      "unlink": "Desvincular cliente",
+      "title": "Vincular um cliente do Zil Workspace",
+      "search_placeholder": "Pesquisar por nome fantasia ou razão social",
+      "no_results": "Nenhum cliente encontrado",
+      "unavailable": "O Zil Workspace está indisponível. Tente novamente mais tarde.",
+      "already_linked": "Este cliente já está vinculado a outra pasta.",
+      "open_linked_folder": "Abrir pasta",
+      "linked": "Cliente vinculado.",
+      "unlinked": "Cliente desvinculado.",
+      "error": "Não foi possível atualizar o vínculo do cliente. Tente novamente.",
+      "missing": "Cliente não encontrado no Zil Workspace"
+    }
   }
 }

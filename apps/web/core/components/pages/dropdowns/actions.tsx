@@ -7,9 +7,18 @@
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { ArchiveRestoreIcon, FileOutput, LockKeyhole, LockKeyholeOpen } from "lucide-react";
+import {
+  ArchiveRestoreIcon,
+  Building2,
+  FileOutput,
+  FilePlus2,
+  FolderPlus,
+  LockKeyhole,
+  LockKeyholeOpen,
+} from "lucide-react";
 // constants
 import { EPageAccess } from "@plane/constants";
+import { useTranslation } from "@plane/i18n";
 // plane editor
 import { LinkIcon, CopyIcon, LockIcon, NewTabIcon, ArchiveIcon, TrashIcon, GlobeIcon } from "@plane/propel/icons";
 // plane ui
@@ -17,7 +26,9 @@ import type { TContextMenuItem } from "@plane/ui";
 import { ContextMenu, CustomMenu } from "@plane/ui";
 // components
 import { cn } from "@plane/utils";
+import { ZilClientPickerModal } from "@/components/pages/folder/zil-client-picker-modal";
 import { DeletePageModal } from "@/components/pages/modals/delete-page-modal";
+import { usePageTreeOperations } from "@/hooks/use-page-tree-operations";
 // hooks
 import { usePageOperations } from "@/hooks/use-page-operations";
 // plane web components
@@ -41,7 +52,10 @@ export type TPageActions =
   | "delete"
   | "version-history"
   | "export"
-  | "move";
+  | "move"
+  | "add-sub-page"
+  | "add-folder"
+  | "link-zil-client";
 
 type Props = {
   extraOptions?: (TContextMenuItem & { key: TPageActions })[];
@@ -56,6 +70,9 @@ export const PageActions = observer(function PageActions(props: Props) {
   // states
   const [deletePageModal, setDeletePageModal] = useState(false);
   const [movePageModal, setMovePageModal] = useState(false);
+  const [zilClientModal, setZilClientModal] = useState(false);
+  // i18n
+  const { t } = useTranslation();
   // params
   const { workspaceSlug } = useParams();
   // page flag
@@ -66,6 +83,7 @@ export const PageActions = observer(function PageActions(props: Props) {
   const { pageOperations } = usePageOperations({
     page,
   });
+  const { canCreateChild, createChild } = usePageTreeOperations({ page, storeType });
   // derived values
   const {
     access,
@@ -77,6 +95,9 @@ export const PageActions = observer(function PageActions(props: Props) {
     canCurrentUserDuplicatePage,
     canCurrentUserLockPage,
     canCurrentUserMovePage,
+    canCurrentUserEditPage,
+    isFolder,
+    zil_client,
   } = page;
   // menu items
   const MENU_ITEMS = useMemo(
@@ -144,9 +165,30 @@ export const PageActions = observer(function PageActions(props: Props) {
         {
           key: "move",
           action: () => setMovePageModal(true),
-          title: "Move",
+          title: t("page_tree.move.action"),
           icon: FileOutput,
           shouldRender: canCurrentUserMovePage && isMovePageEnabled,
+        },
+        {
+          key: "add-sub-page",
+          action: () => createChild("page"),
+          title: t("page_tree.add_sub_page"),
+          icon: FilePlus2,
+          shouldRender: canCreateChild,
+        },
+        {
+          key: "add-folder",
+          action: () => createChild("folder"),
+          title: t("page_tree.add_folder"),
+          icon: FolderPlus,
+          shouldRender: canCreateChild,
+        },
+        {
+          key: "link-zil-client",
+          action: () => setZilClientModal(true),
+          title: zil_client ? t("page_tree.zil_client.change") : t("page_tree.zil_client.link"),
+          icon: Building2,
+          shouldRender: isFolder && canCurrentUserEditPage && !archived_at,
         },
       ];
       if (extraOptions) {
@@ -167,6 +209,12 @@ export const PageActions = observer(function PageActions(props: Props) {
       canCurrentUserMovePage,
       isMovePageEnabled,
       pageOperations,
+      canCreateChild,
+      createChild,
+      canCurrentUserEditPage,
+      isFolder,
+      zil_client,
+      t,
     ]
   );
   // arrange options
@@ -181,6 +229,9 @@ export const PageActions = observer(function PageActions(props: Props) {
   return (
     <>
       <MovePageModal isOpen={movePageModal} onClose={() => setMovePageModal(false)} page={page} />
+      {isFolder && (
+        <ZilClientPickerModal isOpen={zilClientModal} onClose={() => setZilClientModal(false)} page={page} />
+      )}
       <DeletePageModal
         isOpen={deletePageModal}
         onClose={() => setDeletePageModal(false)}

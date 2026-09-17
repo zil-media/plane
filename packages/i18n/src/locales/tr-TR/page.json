@@ -111,5 +111,46 @@
       "success_message": "Sayfa koleksiyondan kaldırıldı.",
       "error_message": "Sayfa koleksiyondan kaldırılamadı. Lütfen tekrar deneyin."
     }
+  },
+  "page_tree": {
+    "new_page": "Yeni sayfa",
+    "new_folder": "Yeni klasör",
+    "add_sub_page": "Alt sayfa ekle",
+    "add_folder": "Klasör ekle",
+    "expand": "Genişlet",
+    "collapse": "Daralt",
+    "untitled_folder": "Adsız klasör",
+    "create_error": "Oluşturulamadı. Lütfen tekrar deneyin.",
+    "move": {
+      "action": "Taşı",
+      "title": "\"{name}\" öğesini taşı",
+      "search_placeholder": "Sayfalarda ve klasörlerde ara",
+      "root": "Proje kökü",
+      "confirm": "Buraya taşı",
+      "success": "Başarıyla taşındı.",
+      "error": "Taşınamadı. Lütfen tekrar deneyin.",
+      "error_cycle": "Bir sayfa kendi içine taşınamaz.",
+      "error_depth": "Maksimum iç içe yerleştirme derinliğine ulaşıldı."
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# öğe} other {# öğe}}",
+      "empty_title": "Bu klasör boş",
+      "empty_description": "Belgelerinizi düzenlemek için içinde sayfalar veya klasörler oluşturun."
+    },
+    "zil_client": {
+      "link": "Müşteri bağla",
+      "change": "Müşteriyi değiştir",
+      "unlink": "Müşteri bağlantısını kaldır",
+      "title": "Zil Workspace müşterisi bağla",
+      "search_placeholder": "Marka veya şirket unvanına göre ara",
+      "no_results": "Müşteri bulunamadı",
+      "unavailable": "Zil Workspace kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+      "already_linked": "Bu müşteri zaten başka bir klasöre bağlı.",
+      "open_linked_folder": "Klasörü aç",
+      "linked": "Müşteri bağlandı.",
+      "unlinked": "Müşteri bağlantısı kaldırıldı.",
+      "error": "Müşteri bağlantısı güncellenemedi. Lütfen tekrar deneyin.",
+      "missing": "Müşteri Zil Workspace'te bulunamadı"
+    }
   }
 }

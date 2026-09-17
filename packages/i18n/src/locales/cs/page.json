@@ -111,5 +111,46 @@
       "success_message": "Stránka byla odebrána z kolekce.",
       "error_message": "Stránku se nepodařilo odebrat z kolekce. Zkuste to prosím znovu."
     }
+  },
+  "page_tree": {
+    "new_page": "Nová stránka",
+    "new_folder": "Nová složka",
+    "add_sub_page": "Přidat podstránku",
+    "add_folder": "Přidat složku",
+    "expand": "Rozbalit",
+    "collapse": "Sbalit",
+    "untitled_folder": "Složka bez názvu",
+    "create_error": "Nepodařilo se vytvořit. Zkuste to prosím znovu.",
+    "move": {
+      "action": "Přesunout",
+      "title": "Přesunout „{name}“",
+      "search_placeholder": "Hledat stránky a složky",
+      "root": "Kořen projektu",
+      "confirm": "Přesunout sem",
+      "success": "Úspěšně přesunuto.",
+      "error": "Nepodařilo se přesunout. Zkuste to prosím znovu.",
+      "error_cycle": "Stránku nelze přesunout do sebe samé.",
+      "error_depth": "Bylo dosaženo maximální hloubky vnoření."
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# položka} few {# položky} many {# položky} other {# položek}}",
+      "empty_title": "Tato složka je prázdná",
+      "empty_description": "Vytvořte v ní stránky nebo složky pro uspořádání svých dokumentů."
+    },
+    "zil_client": {
+      "link": "Propojit klienta",
+      "change": "Změnit klienta",
+      "unlink": "Zrušit propojení klienta",
+      "title": "Propojit klienta ze Zil Workspace",
+      "search_placeholder": "Hledat podle značky nebo obchodního názvu firmy",
+      "no_results": "Nebyli nalezeni žádní klienti",
+      "unavailable": "Zil Workspace není k dispozici. Zkuste to prosím později.",
+      "already_linked": "Tento klient je již propojen s jinou složkou.",
+      "open_linked_folder": "Otevřít složku",
+      "linked": "Klient propojen.",
+      "unlinked": "Propojení klienta zrušeno.",
+      "error": "Propojení klienta se nepodařilo aktualizovat. Zkuste to prosím znovu.",
+      "missing": "Klient nebyl v Zil Workspace nalezen"
+    }
   }
 }

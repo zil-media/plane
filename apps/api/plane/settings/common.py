@@ -354,6 +354,7 @@ CELERY_IMPORTS = (
     "plane.bgtasks.notion_import_task",
     # zil
     "plane.bgtasks.zil_deliverable_checklist_task",
+    "plane.bgtasks.zil_client_link_refresh_task",
     # management tasks
     "plane.bgtasks.dummy_data_task",
     # issue version tasks

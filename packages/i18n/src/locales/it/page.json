@@ -111,5 +111,46 @@
       "success_message": "Pagina rimossa dalla raccolta.",
       "error_message": "Non è stato possibile rimuovere la pagina dalla raccolta. Riprova."
     }
+  },
+  "page_tree": {
+    "new_page": "Nuova pagina",
+    "new_folder": "Nuova cartella",
+    "add_sub_page": "Aggiungi sottopagina",
+    "add_folder": "Aggiungi cartella",
+    "expand": "Espandi",
+    "collapse": "Comprimi",
+    "untitled_folder": "Cartella senza titolo",
+    "create_error": "Impossibile creare l’elemento. Riprovi.",
+    "move": {
+      "action": "Sposta",
+      "title": "Sposta «{name}»",
+      "search_placeholder": "Cerca pagine e cartelle",
+      "root": "Radice del progetto",
+      "confirm": "Sposta qui",
+      "success": "Spostamento completato.",
+      "error": "Impossibile spostare l’elemento. Riprovi.",
+      "error_cycle": "Una pagina non può essere spostata all’interno di sé stessa.",
+      "error_depth": "Raggiunta la profondità massima di annidamento."
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# elemento} many {# di elementi} other {# elementi}}",
+      "empty_title": "Questa cartella è vuota",
+      "empty_description": "Crei pagine o cartelle al suo interno per organizzare i Suoi documenti."
+    },
+    "zil_client": {
+      "link": "Collega cliente",
+      "change": "Cambia cliente",
+      "unlink": "Scollega cliente",
+      "title": "Collega un cliente di Zil Workspace",
+      "search_placeholder": "Cerca per marchio o ragione sociale",
+      "no_results": "Nessun cliente trovato",
+      "unavailable": "Zil Workspace non è disponibile. Riprovi più tardi.",
+      "already_linked": "Questo cliente è già collegato a un’altra cartella.",
+      "open_linked_folder": "Apri cartella",
+      "linked": "Cliente collegato.",
+      "unlinked": "Cliente scollegato.",
+      "error": "Impossibile aggiornare il collegamento del cliente. Riprovi.",
+      "missing": "Cliente non trovato in Zil Workspace"
+    }
   }
 }

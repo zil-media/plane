@@ -9,7 +9,14 @@ import { action, computed, makeObservable, observable, reaction, runInAction } f
 // plane imports
 import { EPageAccess } from "@plane/constants";
 import type { TChangeHandlerProps } from "@plane/propel/emoji-icon-picker";
-import type { TDocumentPayload, TLogoProps, TNameDescriptionLoader, TPage } from "@plane/types";
+import type {
+  TDocumentPayload,
+  TLogoProps,
+  TNameDescriptionLoader,
+  TPage,
+  TPageKind,
+  TPageZilClient,
+} from "@plane/types";
 // plane web store
 import { ExtendedBasePage } from "@/plane-web/store/pages/extended-base-page";
 import type { RootStore } from "@/plane-web/store/root.store";
@@ -23,6 +30,7 @@ export type TBasePage = TPage & {
   // computed
   asJSON: TPage | undefined;
   isCurrentUserOwner: boolean;
+  isFolder: boolean;
   // helpers
   oldName: string;
   setIsSubmitting: (value: TNameDescriptionLoader) => void;
@@ -68,8 +76,9 @@ export type TBasePageServices = {
   unlock: () => Promise<void>;
   archive: () => Promise<{
     archived_at: string;
+    archived_page_ids?: string[];
   }>;
-  restore: () => Promise<void>;
+  restore: () => Promise<{ restored_page_ids?: string[] } | undefined | void>;
   duplicate: () => Promise<TPage>;
 };
 
@@ -102,6 +111,11 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
   created_at: Date | undefined;
   updated_at: Date | undefined;
   deleted_at: Date | undefined;
+  // page tree
+  parent: string | null | undefined;
+  kind: TPageKind | undefined;
+  sort_order: number | undefined;
+  zil_client: TPageZilClient | null | undefined;
   // helpers
   oldName: string = "";
   // services
@@ -140,6 +154,10 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
     this.updated_at = page?.updated_at || undefined;
     this.oldName = page?.name || "";
     this.deleted_at = page?.deleted_at || undefined;
+    this.parent = page?.parent || null;
+    this.kind = page?.kind || "page";
+    this.sort_order = page?.sort_order;
+    this.zil_client = page?.zil_client || null;
 
     makeObservable(this, {
       // loaders
@@ -164,6 +182,10 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       created_at: observable.ref,
       updated_at: observable.ref,
       deleted_at: observable.ref,
+      parent: observable.ref,
+      kind: observable.ref,
+      sort_order: observable.ref,
+      zil_client: observable.ref,
       isSyncingWithServer: observable.ref,
       // helpers
       oldName: observable.ref,
@@ -172,6 +194,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       // computed
       asJSON: computed,
       isCurrentUserOwner: computed,
+      isFolder: computed,
       // actions
       update: action,
       updateTitle: action,
@@ -244,6 +267,10 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
     };
   }
 
+  get isFolder() {
+    return this.kind === "folder";
+  }
+
   get isCurrentUserOwner() {
     const currentUserId = this.store.user.data?.id;
     if (!currentUserId) return false;
@@ -285,7 +312,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       runInAction(() => {
         Object.keys(pageData).forEach((key) => {
           const currentPageKey = key as keyof TPage;
-          set(this, key, currentPage?.[currentPageKey] || undefined);
+          set(this, key, (currentPage as Partial<TPage> | undefined)?.[currentPageKey] || undefined);
         });
       });
       throw error;
@@ -418,6 +445,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
         const response = await this.services.archive();
         runInAction(() => {
           this.archived_at = response.archived_at;
+          this.syncSubtreeArchivedAt(response.archived_page_ids, response.archived_at);
         });
       }
     } catch (error) {
@@ -440,7 +468,10 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       });
 
       if (shouldSync) {
-        await this.services.restore();
+        const response = await this.services.restore();
+        runInAction(() => {
+          this.syncSubtreeArchivedAt(response ? response.restored_page_ids : undefined, null);
+        });
       }
     } catch (error) {
       console.error(error);
@@ -449,6 +480,22 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       });
       throw error;
     }
+  };
+
+  /**
+   * @description archiving/restoring on the server applies to the whole subtree;
+   * mirror it on the descendants already loaded in the store
+   */
+  private syncSubtreeArchivedAt = (pageIds: string[] | undefined, archivedAt: string | null) => {
+    if (!pageIds?.length) return;
+    // restoring a page whose parent is still archived detaches it on the server
+    if (archivedAt === null && this.parent && this.rootStore.projectPages.getPageById(this.parent)?.archived_at)
+      this.parent = null;
+    pageIds.forEach((pageId) => {
+      if (pageId === this.id) return;
+      const descendant = this.rootStore.projectPages.getPageById(pageId);
+      if (descendant) descendant.mutateProperties({ archived_at: archivedAt }, false);
+    });
   };
 
   updatePageLogo = async (value: TChangeHandlerProps) => {

@@ -4,7 +4,9 @@
  * See the LICENSE file for details.
  */
 
+import { useEffect } from "react";
 import { observer } from "mobx-react";
+import { Folder } from "lucide-react";
 import { useParams } from "next/navigation";
 // plane imports
 import { PageIcon } from "@plane/propel/icons";
@@ -37,13 +39,20 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
   const { workspaceSlug, pageId, projectId } = useParams();
   // store hooks
   const { loader } = useProject();
-  const { getPageById, getCurrentProjectPageIds } = usePageStore(storeType);
+  const { getPageById, getCurrentProjectPageIds, getAncestorIds, expandAncestors } = usePageStore(storeType);
   const page = usePage({
     pageId: pageId?.toString() ?? "",
     storeType,
   });
   // derived values
   const projectPageIds = getCurrentProjectPageIds(projectId?.toString());
+  const ancestorIds = pageId ? getAncestorIds(pageId.toString()) : [];
+  const ancestorsKey = ancestorIds.join(",");
+
+  // reveal the current page in the tree when going back to the list
+  useEffect(() => {
+    if (pageId && ancestorsKey) expandAncestors(pageId.toString());
+  }, [pageId, ancestorsKey, expandAncestors]);
 
   const switcherOptions = projectPageIds
     .map((id) => {
@@ -80,6 +89,29 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
               }
             />
 
+            {ancestorIds.map((ancestorId) => {
+              const ancestor = getPageById(ancestorId);
+              if (!ancestor) return null;
+              return (
+                <Breadcrumbs.Item
+                  key={ancestorId}
+                  component={
+                    <BreadcrumbLink
+                      label={getPageName(ancestor.name)}
+                      href={`/${workspaceSlug}/projects/${projectId}/pages/${ancestorId}`}
+                      icon={
+                        ancestor.isFolder ? (
+                          <Folder className="h-4 w-4 text-tertiary" />
+                        ) : (
+                          <PageIcon className="h-4 w-4 text-tertiary" />
+                        )
+                      }
+                    />
+                  }
+                />
+              );
+            })}
+
             <Breadcrumbs.Item
               component={
                 <BreadcrumbNavigationSearchDropdown
@@ -91,7 +123,11 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
                   title={getPageName(page?.name)}
                   icon={
                     <Breadcrumbs.Icon>
-                      <SwitcherIcon logo_props={page.logo_props} LabelIcon={PageIcon} size={16} />
+                      <SwitcherIcon
+                        logo_props={page.logo_props}
+                        LabelIcon={page.isFolder ? Folder : PageIcon}
+                        size={16}
+                      />
                     </Breadcrumbs.Icon>
                   }
                   isLast
@@ -102,7 +138,7 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
         </div>
       </Header.LeftItem>
       <Header.RightItem>
-        <PageSyncingBadge syncStatus={page.isSyncingWithServer} />
+        {!page.isFolder && <PageSyncingBadge syncStatus={page.isSyncingWithServer} />}
         <PageDetailsHeaderExtraActions page={page} storeType={storeType} />
         <PageHeaderActions page={page} storeType={storeType} />
       </Header.RightItem>

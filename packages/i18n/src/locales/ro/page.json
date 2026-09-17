@@ -111,5 +111,46 @@
       "success_message": "Pagina a fost eliminată din colecție.",
       "error_message": "Pagina nu a putut fi eliminată din colecție. Te rugăm să încerci din nou."
     }
+  },
+  "page_tree": {
+    "new_page": "Pagină nouă",
+    "new_folder": "Folder nou",
+    "add_sub_page": "Adăugați o subpagină",
+    "add_folder": "Adăugați un folder",
+    "expand": "Extindeți",
+    "collapse": "Restrângeți",
+    "untitled_folder": "Folder fără titlu",
+    "create_error": "Nu s-a putut crea. Încercați din nou.",
+    "move": {
+      "action": "Mutați",
+      "title": "Mutați „{name}”",
+      "search_placeholder": "Căutați pagini și foldere",
+      "root": "Rădăcina proiectului",
+      "confirm": "Mutați aici",
+      "success": "Mutat cu succes.",
+      "error": "Nu s-a putut muta. Încercați din nou.",
+      "error_cycle": "O pagină nu poate fi mutată în interiorul ei însăși.",
+      "error_depth": "S-a atins adâncimea maximă de imbricare."
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# element} few {# elemente} other {# de elemente}}",
+      "empty_title": "Acest folder este gol",
+      "empty_description": "Creați pagini sau foldere în interiorul lui pentru a vă organiza documentele."
+    },
+    "zil_client": {
+      "link": "Asociați clientul",
+      "change": "Schimbați clientul",
+      "unlink": "Disociați clientul",
+      "title": "Asociați un client din Zil Workspace",
+      "search_placeholder": "Căutați după marcă sau denumirea firmei",
+      "no_results": "Nu s-au găsit clienți",
+      "unavailable": "Zil Workspace nu este disponibil. Încercați din nou mai târziu.",
+      "already_linked": "Acest client este deja asociat cu alt folder.",
+      "open_linked_folder": "Deschideți folderul",
+      "linked": "Client asociat.",
+      "unlinked": "Client disociat.",
+      "error": "Asocierea clientului nu a putut fi actualizată. Încercați din nou.",
+      "missing": "Clientul nu a fost găsit în Zil Workspace"
+    }
   }
 }

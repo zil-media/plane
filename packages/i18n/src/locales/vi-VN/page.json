@@ -111,5 +111,46 @@
       "success_message": "Đã xóa trang khỏi bộ sưu tập.",
       "error_message": "Không thể xóa trang khỏi bộ sưu tập. Vui lòng thử lại."
     }
+  },
+  "page_tree": {
+    "new_page": "Trang mới",
+    "new_folder": "Thư mục mới",
+    "add_sub_page": "Thêm trang con",
+    "add_folder": "Thêm thư mục",
+    "expand": "Mở rộng",
+    "collapse": "Thu gọn",
+    "untitled_folder": "Thư mục chưa đặt tên",
+    "create_error": "Không thể tạo. Vui lòng thử lại.",
+    "move": {
+      "action": "Di chuyển",
+      "title": "Di chuyển \"{name}\"",
+      "search_placeholder": "Tìm kiếm trang và thư mục",
+      "root": "Thư mục gốc của dự án",
+      "confirm": "Di chuyển đến đây",
+      "success": "Đã di chuyển thành công.",
+      "error": "Không thể di chuyển. Vui lòng thử lại.",
+      "error_cycle": "Không thể di chuyển một trang vào bên trong chính nó.",
+      "error_depth": "Đã đạt độ sâu lồng nhau tối đa."
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# mục} other {# mục}}",
+      "empty_title": "Thư mục này trống",
+      "empty_description": "Tạo trang hoặc thư mục bên trong để sắp xếp tài liệu của bạn."
+    },
+    "zil_client": {
+      "link": "Liên kết khách hàng",
+      "change": "Thay đổi khách hàng",
+      "unlink": "Hủy liên kết khách hàng",
+      "title": "Liên kết khách hàng từ Zil Workspace",
+      "search_placeholder": "Tìm theo tên thương hiệu hoặc tên công ty",
+      "no_results": "Không tìm thấy khách hàng nào",
+      "unavailable": "Zil Workspace hiện không khả dụng. Vui lòng thử lại sau.",
+      "already_linked": "Khách hàng này đã được liên kết với một thư mục khác.",
+      "open_linked_folder": "Mở thư mục",
+      "linked": "Đã liên kết khách hàng.",
+      "unlinked": "Đã hủy liên kết khách hàng.",
+      "error": "Không thể cập nhật liên kết khách hàng. Vui lòng thử lại.",
+      "missing": "Không tìm thấy khách hàng trong Zil Workspace"
+    }
   }
 }

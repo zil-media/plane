@@ -11,6 +11,8 @@ from plane.app.views import (
     PagesDescriptionViewSet,
     PageVersionEndpoint,
     PageDuplicateEndpoint,
+    ZilClientSearchEndpoint,
+    PageZilClientLinkEndpoint,
 )
 
 urlpatterns = [
@@ -72,5 +74,22 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/duplicate/",
         PageDuplicateEndpoint.as_view(),
         name="page-duplicate",
+    ),
+    # page tree
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/move-in-tree/",
+        PageViewSet.as_view({"post": "move_in_tree"}),
+        name="project-page-move-in-tree",
+    ),
+    # Zil Workspace client links (folders)
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/zil-clients/",
+        ZilClientSearchEndpoint.as_view(),
+        name="zil-client-search",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-client/",
+        PageZilClientLinkEndpoint.as_view(),
+        name="page-zil-client",
     ),
 ]

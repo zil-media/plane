@@ -111,5 +111,46 @@
       "success_message": "Page retirée de la collection.",
       "error_message": "La page n'a pas pu être retirée de la collection. Veuillez réessayer."
     }
+  },
+  "page_tree": {
+    "new_page": "Nouvelle page",
+    "new_folder": "Nouveau dossier",
+    "add_sub_page": "Ajouter une sous-page",
+    "add_folder": "Ajouter un dossier",
+    "expand": "Développer",
+    "collapse": "Réduire",
+    "untitled_folder": "Dossier sans titre",
+    "create_error": "Création impossible. Veuillez réessayer.",
+    "move": {
+      "action": "Déplacer",
+      "title": "Déplacer « {name} »",
+      "search_placeholder": "Rechercher des pages et des dossiers",
+      "root": "Racine du projet",
+      "confirm": "Déplacer ici",
+      "success": "Déplacement effectué.",
+      "error": "Déplacement impossible. Veuillez réessayer.",
+      "error_cycle": "Une page ne peut pas être déplacée à l’intérieur d’elle-même.",
+      "error_depth": "Profondeur d’imbrication maximale atteinte."
+    },
+    "folder": {
+      "items_count": "{count, plural, one {# élément} many {# d’éléments} other {# éléments}}",
+      "empty_title": "Ce dossier est vide",
+      "empty_description": "Créez-y des pages ou des dossiers pour organiser vos documents."
+    },
+    "zil_client": {
+      "link": "Associer un client",
+      "change": "Changer de client",
+      "unlink": "Dissocier le client",
+      "title": "Associer un client Zil Workspace",
+      "search_placeholder": "Rechercher par nom commercial ou raison sociale",
+      "no_results": "Aucun client trouvé",
+      "unavailable": "Zil Workspace est indisponible. Veuillez réessayer plus tard.",
+      "already_linked": "Ce client est déjà associé à un autre dossier.",
+      "open_linked_folder": "Ouvrir le dossier",
+      "linked": "Client associé.",
+      "unlinked": "Client dissocié.",
+      "error": "Impossible de mettre à jour l’association du client. Veuillez réessayer.",
+      "missing": "Client introuvable dans Zil Workspace"
+    }
   }
 }
