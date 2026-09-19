@@ -132,6 +132,7 @@ MIDDLEWARE = [
     "plane.middleware.request_body_size.RequestBodySizeLimitMiddleware",
     "plane.middleware.logger.APITokenLogMiddleware",
     "plane.middleware.logger.RequestLoggerMiddleware",
+    "plane.utils.agent_pipeline.capture.ServerErrorCaptureMiddleware",
 ]
 
 # Rest Framework settings
@@ -149,6 +150,9 @@ REST_FRAMEWORK = {
     # Preserve original Django URL parameter names (pk) instead of converting to 'id'
     "SCHEMA_COERCE_PATH_PK": False,
 }
+
+# Unexpected 5xx responses file auto bug reports for the bug-fix agent
+AGENT_CAPTURE_SERVER_ERRORS = os.environ.get("AGENT_CAPTURE_SERVER_ERRORS", "1") == "1"
 
 # API key throttle rate (DRF SimpleRateThrottle format, e.g. "60/minute")
 API_KEY_RATE_LIMIT = os.environ.get("API_KEY_RATE_LIMIT", "60/minute")
@@ -355,6 +359,8 @@ CELERY_IMPORTS = (
     # zil
     "plane.bgtasks.zil_deliverable_checklist_task",
     "plane.bgtasks.zil_client_link_refresh_task",
+    # bug-fix / feature agent pipeline
+    "plane.bgtasks.agent_pipeline_task",
     # management tasks
     "plane.bgtasks.dummy_data_task",
     # issue version tasks

@@ -92,6 +92,15 @@ app.conf.beat_schedule = {
         "task": "plane.bgtasks.exporter_expired_task.delete_old_s3_link",
         "schedule": crontab(hour=3, minute=45),  # UTC 03:45
     },
+    # Agent pipeline: free silent claims and re-fire the bug agent while bugs sit open
+    "agent-claim-sweep": {
+        "task": "plane.bgtasks.agent_pipeline_task.agent_claim_sweep",
+        "schedule": crontab(minute="*/10"),
+    },
+    "agent-feature-run-sweep": {
+        "task": "plane.bgtasks.agent_pipeline_task.feature_run_sweep",
+        "schedule": crontab(minute="*/15"),
+    },
 }
 
 

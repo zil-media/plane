@@ -15,6 +15,8 @@ from drf_spectacular.views import (
 handler404 = "plane.app.views.error_404.custom_404_view"
 
 urlpatterns = [
+    # Bearer-key API for the bug-fix / feature agent sessions and their CI lanes
+    path("api/agent/", include("plane.agent_api.urls")),
     path("api/", include("plane.app.urls")),
     path("api/public/", include("plane.space.urls")),
     path("api/instances/", include("plane.license.urls")),

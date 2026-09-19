@@ -11,6 +11,9 @@ DEBUG = True
 # Send it in a dummy outbox
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
+# Tests provoke 5xx on purpose; don't file bug reports for them
+AGENT_CAPTURE_SERVER_ERRORS = False
+
 INSTALLED_APPS.append(  # noqa
     "plane.tests"
 )

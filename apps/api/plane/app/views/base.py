@@ -26,6 +26,7 @@ from rest_framework.viewsets import ModelViewSet
 
 # Module imports
 from plane.authentication.session import BaseSessionAuthentication
+from plane.utils.agent_pipeline.capture import capture_server_error
 from plane.utils.exception_logger import log_exception
 from plane.utils.paginator import BasePaginator
 from plane.utils.core.mixins import ReadReplicaControlMixin
@@ -103,6 +104,7 @@ class BaseViewSet(TimezoneMixin, ReadReplicaControlMixin, ModelViewSet, BasePagi
                 )
 
             log_exception(e)
+            capture_server_error(e, self.request)
             return Response(
                 {"error": "Something went wrong please try again later"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -198,6 +200,7 @@ class BaseAPIView(TimezoneMixin, ReadReplicaControlMixin, APIView, BasePaginator
                 )
 
             log_exception(e)
+            capture_server_error(e, self.request)
             return Response(
                 {"error": "Something went wrong please try again later"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
