@@ -24,7 +24,9 @@ Create two routines on the `zil-media/plane` repository:
 | Bug fixer Zil Ops     | block in `OPS_BUG_AGENT_INSTRUCTIONS.md`     |
 | Feature agent Zil Ops | block in `OPS_FEATURE_AGENT_INSTRUCTIONS.md` |
 
-Enable an API trigger on each and keep its fire URL and token. The session must be able to push
+Enable an API trigger on each and keep its token. Fire URL: `https://api.anthropic.com/v1/claude_code/routines/<trig_id>/fire`
+(bug: `trig_01GDV2hPcjgbipPnieRPwWiV`, feature: `trig_012NQV5LExf9TZb6UYFB2u6v`). The routine's cloud
+environment must allow `ops.zil.global` in its network access. The session must be able to push
 branches but **not** workflow files (no `workflows` permission): that is what stops an agent branch
 from rewriting the lanes that gate it.
 

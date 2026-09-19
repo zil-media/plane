@@ -38,7 +38,7 @@ in the next batch window (12:00 / 18:00 / 23:00 ART).
 
 ## 1 — Credentials and the queue
 
-Read API_URL and AGENT_API_KEY from the run payload ("AUTOMATED BUG-FIX TRIGGER" block). If the key
+Read API_URL and AGENT_API_KEY from the routine-fire-payload block ("AUTOMATED BUG-FIX TRIGGER"). If the key
 looks like a placeholder, stop — never fall back to env vars.
 
 All calls: -H "Authorization: Bearer $AGENT_API_KEY" -H "Content-Type: application/json".

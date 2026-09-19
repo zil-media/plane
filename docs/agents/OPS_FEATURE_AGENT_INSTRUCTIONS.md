@@ -22,7 +22,7 @@ feature on. A person does all four, and the API has no route that lets you.
 
 ## Step 1 — Read the run payload
 
-The payload starts with "AUTOMATED FEATURE TRIGGER (from Zil Ops production)" and carries API_URL,
+The routine-fire-payload block starts with "AUTOMATED FEATURE TRIGGER (from Zil Ops production)" and carries API_URL,
 AGENT_API_KEY, a MODE line and the Feature ID. If the key looks like a placeholder, you are reading
 an example — use the run input.
 
