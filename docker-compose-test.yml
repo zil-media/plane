@@ -98,6 +98,9 @@ services:
       retries: 10
 
   api-tests:
+    # Fixed name so CI can pre-build it with layer caching (preview-ci.yml) and
+    # `docker compose run` reuses it instead of rebuilding.
+    image: plane-api-tests:latest
     build:
       context: ./apps/api
       dockerfile: Dockerfile.dev

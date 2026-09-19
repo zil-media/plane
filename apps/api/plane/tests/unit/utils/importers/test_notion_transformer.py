@@ -11,7 +11,6 @@ without Django/Celery installed — the transformer only needs bs4.
 import importlib.util
 import pathlib
 
-import pytest
 
 _TRANSFORMER_PATH = (
     pathlib.Path(__file__).resolve().parents[4] / "utils" / "importers" / "notion" / "transformer.py"
@@ -29,7 +28,10 @@ TARGET_UUID = "1234567890abcdef1234567890abcdef"
 
 
 def wrap(body):
-    return f'<html><head><title>T</title></head><body><article><div class="page-body">{body}</div></article></body></html>'
+    return (
+        "<html><head><title>T</title></head><body><article>"
+        f'<div class="page-body">{body}</div></article></body></html>'
+    )
 
 
 def transform(body, known_assets=None):

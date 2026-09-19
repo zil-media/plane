@@ -16,9 +16,6 @@ never a per-user session — these are machine-to-machine.
 import hmac
 import os
 
-# Django imports
-from django.db.models import Q
-
 # Third party imports
 from rest_framework import status
 from rest_framework.permissions import BasePermission

@@ -793,7 +793,8 @@ def _render_database_block(soup, database, entity_url, pages, transformed):
 
     for row_uuid in database["rows"]:
         title = (pages.get(row_uuid) or {}).get("title") or row_uuid[:8]
-        props_by_name = {p["name"]: p["text"] for p in transformed.get(row_uuid).properties} if transformed.get(row_uuid) else {}
+        row = transformed.get(row_uuid)
+        props_by_name = {p["name"]: p["text"] for p in row.properties} if row else {}
         tr = soup.new_tag("tr")
         tr.append(cell(title, entity_url(row_uuid)))
         for column in columns:

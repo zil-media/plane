@@ -16,9 +16,30 @@ import re
 # keyword -> Plane state group (EN/ES). Checked in order; first substring
 # hit wins, default "unstarted".
 _STATE_GROUP_KEYWORDS = (
-    ("cancelled", ("cancel", "cancelado", "cancelada", "cancelados", "canceladas", "cancelled", "suspendido", "suspendida", "suspendidos", "suspendidas", "pausado", "pausados", "descartado", "descartados", "abandonado", "abandonados")),
-    ("completed", ("done", "complete", "completed", "completado", "completada", "completados", "completadas", "terminado", "terminada", "terminados", "finalizado", "finalizada", "finalizados", "hecho", "hechos", "entrega", "entregas", "entregado", "entregados", "delivered", "shipped", "cerrado", "cerrados")),
-    ("started", ("progress", "progreso", "curso", "doing", "correccion", "corrección", "correcciones", "revision", "revisión", "revisiones", "review", "desarrollo", "haciendo")),
+    (
+        "cancelled",
+        (
+            "cancel", "cancelado", "cancelada", "cancelados", "canceladas", "cancelled",
+            "suspendido", "suspendida", "suspendidos", "suspendidas", "pausado", "pausados",
+            "descartado", "descartados", "abandonado", "abandonados",
+        ),
+    ),
+    (
+        "completed",
+        (
+            "done", "complete", "completed", "completado", "completada", "completados", "completadas",
+            "terminado", "terminada", "terminados", "finalizado", "finalizada", "finalizados",
+            "hecho", "hechos", "entrega", "entregas", "entregado", "entregados", "delivered", "shipped",
+            "cerrado", "cerrados",
+        ),
+    ),
+    (
+        "started",
+        (
+            "progress", "progreso", "curso", "doing", "correccion", "corrección", "correcciones",
+            "revision", "revisión", "revisiones", "review", "desarrollo", "haciendo",
+        ),
+    ),
     ("backlog", ("backlog", "idea", "ideas")),
 )
 # multi-word phrases matched as substrings (word-token match can't see these)

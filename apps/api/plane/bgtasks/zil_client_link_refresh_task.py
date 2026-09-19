@@ -41,4 +41,6 @@ def refresh_zil_client_link(link_id):
         link.synced_at = timezone.now()
     else:
         apply_zil_client_fields(link, client)
-    link.save(update_fields=["alias", "company_name", "lifecycle_status", "business_unit_slug", "synced_at", "updated_at"])
+    link.save(
+        update_fields=["alias", "company_name", "lifecycle_status", "business_unit_slug", "synced_at", "updated_at"]
+    )
