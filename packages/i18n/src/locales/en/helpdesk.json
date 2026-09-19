@@ -1,0 +1,163 @@
+{
+  "helpdesk": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "try_again": "Something went wrong. Please try again.",
+    "error_title": "Could not complete the action",
+    "menu": {
+      "report_problem": "Report a problem",
+      "suggest_improvement": "Suggest an improvement",
+      "my_tracking": "My requests"
+    },
+    "reporter": {
+      "title": "Report a problem",
+      "placeholder": "What happened? What were you trying to do, and what did you expect to see?",
+      "images_hint": "We attach a screenshot of this screen automatically. You can also paste (Ctrl+V) or add up to 5 images.",
+      "add_image": "Add image",
+      "remove_image": "Remove image",
+      "urgent": "It blocks my work",
+      "urgent_hint": "Mark it only if you can't keep working until it's fixed.",
+      "submit": "Send report",
+      "my_reports": "See my requests",
+      "sent": "Thanks, we got it. We're already looking into it; you can follow the progress in My requests and we'll email you when it's solved.",
+      "view_tracking": "Follow progress",
+      "report_another": "Report another",
+      "error_title": "We couldn't send your report"
+    },
+    "suggest": {
+      "title": "Suggest an improvement",
+      "intro": "Tell us what you need. Describe the problem you want to solve; we'll think about the best way to build it.",
+      "what_label": "What would you like to be able to do?",
+      "what_placeholder": "For example: export the list of work items to a spreadsheet",
+      "why_label": "Why do you need it?",
+      "why_placeholder": "What problem does it solve? How do you handle it today?",
+      "why_hint": "At least 20 characters, so we understand the context.",
+      "how_label": "How do you picture it? (optional)",
+      "how_placeholder": "Any idea of how it could work is welcome.",
+      "priority_label": "How important is it for you?",
+      "add_images": "Add images",
+      "next": "Continue",
+      "back": "Back",
+      "submit": "Send suggestion",
+      "sent": "Thanks for the suggestion. We'll analyze it and you'll be able to follow each step in My requests.",
+      "error_title": "We couldn't send your suggestion"
+    },
+    "priority": {
+      "baja": "Low",
+      "media": "Medium",
+      "alta": "High"
+    },
+    "board": {
+      "title": "Support",
+      "intro": "Your reports and suggestions, and where each one stands.",
+      "tab_tracking": "My requests",
+      "tab_suggestions": "Suggestions",
+      "tab_reports": "Reports",
+      "tab_settings": "Settings",
+      "empty": "You haven't sent any report or suggestion yet."
+    },
+    "section": {
+      "needs_you": "Need your answer",
+      "in_progress": "In progress",
+      "next_deploy": "In the next release",
+      "done": "Done",
+      "stalled": "On hold"
+    },
+    "phase": {
+      "next_deploy": "In the next release",
+      "bug": {
+        "received": "Received",
+        "diagnosing": "Being diagnosed",
+        "resolved": "Solved",
+        "answered": "We answered you",
+        "became_suggestion": "Became a suggestion",
+        "dismissed": "Closed",
+        "archived": "Archived",
+        "needs_person": "Waiting for the team"
+      },
+      "feature": {
+        "received": "Received",
+        "analyzing": "Being analyzed",
+        "awaiting_decision": "Waiting for a decision",
+        "needs_answer": "Needs your answer",
+        "approved": "Approved",
+        "building": "Being built",
+        "needs_review": "Needs a review",
+        "in_review": "In review",
+        "ready": "Ready",
+        "rejected": "Not planned",
+        "on_hold": "Paused"
+      }
+    },
+    "progress": {
+      "investigando": "Investigating",
+      "implementando": "Working on the fix",
+      "probando": "Testing",
+      "terminando": "Wrapping up",
+      "dudas": "Assumption made"
+    },
+    "timeline": {
+      "support_team": "Zil Support"
+    },
+    "detail": {
+      "bug_report": "Problem report",
+      "our_answer": "Our answer",
+      "see_suggestion": "See the suggestion",
+      "what_you_reported": "What was reported",
+      "resend_hint": "Still happening, or something to add? Send it to support.",
+      "resend": "Send to support",
+      "resent": "Sent. We're looking at it again.",
+      "next_window": "goes out on {date}",
+      "request": "Request",
+      "analysis": "Analysis",
+      "approach": "Approach",
+      "impact": "Impact",
+      "effort": "Effort",
+      "risks": "Risks",
+      "answer_hint": "Answer the questions to continue the analysis.",
+      "comment": "Add a comment",
+      "send": "Send"
+    },
+    "impact": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "filter": {
+      "open": "Open",
+      "in_progress": "In progress",
+      "fixed": "Fixed",
+      "blocked": "Blocked",
+      "all": "All"
+    },
+    "admin": {
+      "actions": "Admin",
+      "occurrences": "{count, plural, one {# occurrence} other {# occurrences}}",
+      "send_to_fixer": "Send to the fixer",
+      "fixer_sent": "The fixer is on it",
+      "fixer_not_sent": "The fixer didn't start",
+      "unblock": "Unblock",
+      "resolve": "Mark solved",
+      "dismiss": "Dismiss",
+      "archive": "Archive",
+      "technical_detail": "Technical detail",
+      "decision": "Decision",
+      "flag_key": "Flag key",
+      "notes_placeholder": "Notes for the person who asked (optional)",
+      "approve": "Approve and build",
+      "rebuild": "Build again",
+      "hold": "Pause",
+      "reject": "Reject",
+      "flag_toggle": "Enabled for everyone",
+      "open_pr": "Open pull request"
+    },
+    "settings": {
+      "bug_agent": "Automatic bug fixing",
+      "bug_agent_hint": "Reports go to the fixer agent as soon as they arrive.",
+      "feature_agent": "Suggestion agent",
+      "feature_agent_hint": "Analyzes new suggestions and builds the approved ones behind a flag.",
+      "max_builds": "Builds per week",
+      "max_builds_hint": "Maximum number of suggestions the agent builds in 7 days."
+    }
+  }
+}

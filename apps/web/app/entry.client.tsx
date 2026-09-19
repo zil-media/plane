@@ -9,8 +9,13 @@ import { hydrateRoot } from "react-dom/client";
 import { HydratedRouter } from "react-router/dom";
 
 import polyfills from "@/lib/polyfills";
+import { installConsoleCapture } from "@/lib/support/console-capture";
+import { installGlobalErrorReporting } from "@/lib/support/report-client-error";
 
 void polyfills;
+
+installConsoleCapture();
+installGlobalErrorReporting();
 
 startTransition(() => {
   hydrateRoot(

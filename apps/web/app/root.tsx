@@ -4,9 +4,10 @@
  * See the LICENSE file for details.
  */
 
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import Script from "next/script";
-import { Links, Meta, Outlet, Scripts } from "react-router";
+import { isRouteErrorResponse, Links, Meta, Outlet, Scripts } from "react-router";
 import type { LinksFunction } from "react-router";
 import { ThemeProvider, useTheme } from "next-themes";
 // plane imports
@@ -24,6 +25,7 @@ import globalStyles from "@/styles/globals.css?url";
 import type { Route } from "./+types/root";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
+import { reportClientError } from "@/lib/support/report-client-error";
 // local
 import { CustomErrorComponent } from "./error";
 import { AppProvider } from "./provider";
@@ -153,5 +155,10 @@ export function HydrateFallback() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  useEffect(() => {
+    // Route responses (404s, redirects) are navigation, not defects.
+    if (!isRouteErrorResponse(error)) reportClientError(error);
+  }, [error]);
+
   return <CustomErrorComponent error={error} />;
 }

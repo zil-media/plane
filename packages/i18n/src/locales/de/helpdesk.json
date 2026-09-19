@@ -1,0 +1,163 @@
+{
+  "helpdesk": {
+    "close": "Schließen",
+    "cancel": "Abbrechen",
+    "try_again": "Etwas ist schiefgelaufen. Bitte erneut versuchen.",
+    "error_title": "Aktion konnte nicht abgeschlossen werden",
+    "menu": {
+      "report_problem": "Problem melden",
+      "suggest_improvement": "Verbesserung vorschlagen",
+      "my_tracking": "Meine Anfragen"
+    },
+    "reporter": {
+      "title": "Problem melden",
+      "placeholder": "Was ist passiert? Was wurde versucht und was wurde erwartet?",
+      "images_hint": "Ein Screenshot dieses Bildschirms wird automatisch angehängt. Zusätzlich können bis zu 5 Bilder eingefügt (Ctrl+V) oder hinzugefügt werden.",
+      "add_image": "Bild hinzufügen",
+      "remove_image": "Bild entfernen",
+      "urgent": "Blockiert meine Arbeit",
+      "urgent_hint": "Nur markieren, wenn die Arbeit bis zur Behebung nicht fortgesetzt werden kann.",
+      "submit": "Meldung senden",
+      "my_reports": "Meine Anfragen ansehen",
+      "sent": "Danke, die Meldung ist eingegangen. Sie wird bereits geprüft; der Fortschritt lässt sich unter Meine Anfragen verfolgen, und es gibt eine E-Mail, sobald sie gelöst ist.",
+      "view_tracking": "Fortschritt ansehen",
+      "report_another": "Weiteres Problem melden",
+      "error_title": "Die Meldung konnte nicht gesendet werden"
+    },
+    "suggest": {
+      "title": "Verbesserung vorschlagen",
+      "intro": "Bitte den Bedarf beschreiben. Das zu lösende Problem schildern; wir überlegen den besten Weg, es umzusetzen.",
+      "what_label": "Was soll möglich sein?",
+      "what_placeholder": "Zum Beispiel: die Liste der Arbeitselemente in eine Tabelle exportieren",
+      "why_label": "Wofür wird das benötigt?",
+      "why_placeholder": "Welches Problem wird damit gelöst? Wie wird es heute gehandhabt?",
+      "why_hint": "Mindestens 20 Zeichen, damit der Kontext verständlich ist.",
+      "how_label": "Wie könnte das aussehen? (optional)",
+      "how_placeholder": "Jede Idee, wie es funktionieren könnte, ist willkommen.",
+      "priority_label": "Wie wichtig ist das?",
+      "add_images": "Bilder hinzufügen",
+      "next": "Weiter",
+      "back": "Zurück",
+      "submit": "Vorschlag senden",
+      "sent": "Danke für den Vorschlag. Er wird analysiert, und jeder Schritt lässt sich unter Meine Anfragen verfolgen.",
+      "error_title": "Der Vorschlag konnte nicht gesendet werden"
+    },
+    "priority": {
+      "baja": "Niedrig",
+      "media": "Mittel",
+      "alta": "Hoch"
+    },
+    "board": {
+      "title": "Support",
+      "intro": "Meldungen und Vorschläge im Überblick, mit dem jeweiligen Stand.",
+      "tab_tracking": "Meine Anfragen",
+      "tab_suggestions": "Vorschläge",
+      "tab_reports": "Meldungen",
+      "tab_settings": "Einstellungen",
+      "empty": "Es wurde noch keine Meldung und kein Vorschlag gesendet."
+    },
+    "section": {
+      "needs_you": "Antwort erforderlich",
+      "in_progress": "In Bearbeitung",
+      "next_deploy": "In der nächsten Version",
+      "done": "Erledigt",
+      "stalled": "Zurückgestellt"
+    },
+    "phase": {
+      "next_deploy": "In der nächsten Version",
+      "bug": {
+        "received": "Eingegangen",
+        "diagnosing": "Wird diagnostiziert",
+        "resolved": "Gelöst",
+        "answered": "Antwort erhalten",
+        "became_suggestion": "Wurde zu einem Vorschlag",
+        "dismissed": "Geschlossen",
+        "archived": "Archiviert",
+        "needs_person": "Wartet auf das Team"
+      },
+      "feature": {
+        "received": "Eingegangen",
+        "analyzing": "Wird analysiert",
+        "awaiting_decision": "Entscheidung ausstehend",
+        "needs_answer": "Antwort erforderlich",
+        "approved": "Genehmigt",
+        "building": "Wird umgesetzt",
+        "needs_review": "Überprüfung erforderlich",
+        "in_review": "In Überprüfung",
+        "ready": "Bereit",
+        "rejected": "Nicht geplant",
+        "on_hold": "Pausiert"
+      }
+    },
+    "progress": {
+      "investigando": "Wird untersucht",
+      "implementando": "Behebung in Arbeit",
+      "probando": "Wird getestet",
+      "terminando": "Wird abgeschlossen",
+      "dudas": "Annahme getroffen"
+    },
+    "timeline": {
+      "support_team": "Zil Support"
+    },
+    "detail": {
+      "bug_report": "Problemmeldung",
+      "our_answer": "Unsere Antwort",
+      "see_suggestion": "Vorschlag ansehen",
+      "what_you_reported": "Gemeldeter Inhalt",
+      "resend_hint": "Tritt das Problem weiterhin auf, oder gibt es etwas zu ergänzen? An den Support senden.",
+      "resend": "An den Support senden",
+      "resent": "Gesendet. Es wird erneut geprüft.",
+      "next_window": "erscheint am {date}",
+      "request": "Anfrage",
+      "analysis": "Analyse",
+      "approach": "Ansatz",
+      "impact": "Auswirkung",
+      "effort": "Aufwand",
+      "risks": "Risiken",
+      "answer_hint": "Die Fragen beantworten, um mit der Analyse fortzufahren.",
+      "comment": "Kommentar hinzufügen",
+      "send": "Senden"
+    },
+    "impact": {
+      "low": "Gering",
+      "medium": "Mittel",
+      "high": "Hoch"
+    },
+    "filter": {
+      "open": "Offen",
+      "in_progress": "In Bearbeitung",
+      "fixed": "Behoben",
+      "blocked": "Blockiert",
+      "all": "Alle"
+    },
+    "admin": {
+      "actions": "Administration",
+      "occurrences": "{count, plural, one {# Vorfall} other {# Vorfälle}}",
+      "send_to_fixer": "An den Reparatur-Agenten senden",
+      "fixer_sent": "Der Reparatur-Agent kümmert sich darum",
+      "fixer_not_sent": "Der Reparatur-Agent hat nicht begonnen",
+      "unblock": "Blockierung aufheben",
+      "resolve": "Als gelöst markieren",
+      "dismiss": "Verwerfen",
+      "archive": "Archivieren",
+      "technical_detail": "Technisches Detail",
+      "decision": "Entscheidung",
+      "flag_key": "Flag-Schlüssel",
+      "notes_placeholder": "Notizen für die anfragende Person (optional)",
+      "approve": "Genehmigen und umsetzen",
+      "rebuild": "Erneut umsetzen",
+      "hold": "Pausieren",
+      "reject": "Ablehnen",
+      "flag_toggle": "Für alle aktiviert",
+      "open_pr": "Pull-Request öffnen"
+    },
+    "settings": {
+      "bug_agent": "Automatische Fehlerbehebung",
+      "bug_agent_hint": "Meldungen gehen sofort nach Eingang an den Reparatur-Agenten.",
+      "feature_agent": "Vorschlags-Agent",
+      "feature_agent_hint": "Analysiert neue Vorschläge und setzt genehmigte hinter einem Flag um.",
+      "max_builds": "Umsetzungen pro Woche",
+      "max_builds_hint": "Maximale Anzahl an Vorschlägen, die der Agent innerhalb von 7 Tagen umsetzt."
+    }
+  }
+}

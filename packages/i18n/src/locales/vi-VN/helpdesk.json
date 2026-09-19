@@ -1,0 +1,163 @@
+{
+  "helpdesk": {
+    "close": "Đóng",
+    "cancel": "Hủy",
+    "try_again": "Đã có lỗi xảy ra. Vui lòng thử lại.",
+    "error_title": "Không thể hoàn tất thao tác",
+    "menu": {
+      "report_problem": "Báo cáo sự cố",
+      "suggest_improvement": "Đề xuất cải tiến",
+      "my_tracking": "Yêu cầu của tôi"
+    },
+    "reporter": {
+      "title": "Báo cáo sự cố",
+      "placeholder": "Đã xảy ra chuyện gì? Bạn đang cố làm gì và mong đợi thấy điều gì?",
+      "images_hint": "Ảnh chụp màn hình này sẽ được đính kèm tự động. Bạn cũng có thể dán (Ctrl+V) hoặc thêm tối đa 5 hình ảnh.",
+      "add_image": "Thêm hình ảnh",
+      "remove_image": "Xóa hình ảnh",
+      "urgent": "Việc này đang chặn công việc của tôi",
+      "urgent_hint": "Chỉ đánh dấu nếu bạn không thể tiếp tục làm việc cho đến khi sự cố được khắc phục.",
+      "submit": "Gửi báo cáo",
+      "my_reports": "Xem yêu cầu của tôi",
+      "sent": "Cảm ơn bạn, chúng tôi đã nhận được báo cáo. Chúng tôi đang xem xét; bạn có thể theo dõi tiến độ trong mục Yêu cầu của tôi và sẽ nhận được email khi vấn đề được giải quyết.",
+      "view_tracking": "Theo dõi tiến độ",
+      "report_another": "Báo cáo sự cố khác",
+      "error_title": "Không thể gửi báo cáo của bạn"
+    },
+    "suggest": {
+      "title": "Đề xuất cải tiến",
+      "intro": "Hãy cho chúng tôi biết bạn cần gì. Mô tả vấn đề bạn muốn giải quyết; chúng tôi sẽ suy nghĩ cách xây dựng tốt nhất.",
+      "what_label": "Bạn muốn có thể làm được điều gì?",
+      "what_placeholder": "Ví dụ: xuất danh sách mục công việc ra bảng tính",
+      "why_label": "Vì sao bạn cần điều này?",
+      "why_placeholder": "Điều này giải quyết vấn đề gì? Hiện tại bạn đang xử lý việc này như thế nào?",
+      "why_hint": "Ít nhất 20 ký tự để chúng tôi hiểu bối cảnh.",
+      "how_label": "Bạn hình dung việc này như thế nào? (không bắt buộc)",
+      "how_placeholder": "Bất kỳ ý tưởng nào về cách nó có thể hoạt động đều được hoan nghênh.",
+      "priority_label": "Điều này quan trọng với bạn đến mức nào?",
+      "add_images": "Thêm hình ảnh",
+      "next": "Tiếp tục",
+      "back": "Quay lại",
+      "submit": "Gửi đề xuất",
+      "sent": "Cảm ơn bạn đã đề xuất. Chúng tôi sẽ phân tích và bạn có thể theo dõi từng bước trong mục Yêu cầu của tôi.",
+      "error_title": "Không thể gửi đề xuất của bạn"
+    },
+    "priority": {
+      "baja": "Thấp",
+      "media": "Trung bình",
+      "alta": "Cao"
+    },
+    "board": {
+      "title": "Hỗ trợ",
+      "intro": "Các báo cáo và đề xuất của bạn, cùng trạng thái hiện tại của từng mục.",
+      "tab_tracking": "Yêu cầu của tôi",
+      "tab_suggestions": "Đề xuất",
+      "tab_reports": "Báo cáo",
+      "tab_settings": "Cài đặt",
+      "empty": "Bạn chưa gửi báo cáo hoặc đề xuất nào."
+    },
+    "section": {
+      "needs_you": "Cần bạn phản hồi",
+      "in_progress": "Đang xử lý",
+      "next_deploy": "Trong bản phát hành tiếp theo",
+      "done": "Hoàn tất",
+      "stalled": "Tạm hoãn"
+    },
+    "phase": {
+      "next_deploy": "Trong bản phát hành tiếp theo",
+      "bug": {
+        "received": "Đã nhận",
+        "diagnosing": "Đang chẩn đoán",
+        "resolved": "Đã giải quyết",
+        "answered": "Chúng tôi đã phản hồi bạn",
+        "became_suggestion": "Đã trở thành đề xuất",
+        "dismissed": "Đã đóng",
+        "archived": "Đã lưu trữ",
+        "needs_person": "Đang chờ đội ngũ"
+      },
+      "feature": {
+        "received": "Đã nhận",
+        "analyzing": "Đang phân tích",
+        "awaiting_decision": "Đang chờ quyết định",
+        "needs_answer": "Cần bạn phản hồi",
+        "approved": "Đã phê duyệt",
+        "building": "Đang xây dựng",
+        "needs_review": "Cần xem xét",
+        "in_review": "Đang xem xét",
+        "ready": "Sẵn sàng",
+        "rejected": "Không được lên kế hoạch",
+        "on_hold": "Đang tạm dừng"
+      }
+    },
+    "progress": {
+      "investigando": "Đang điều tra",
+      "implementando": "Đang khắc phục",
+      "probando": "Đang kiểm thử",
+      "terminando": "Đang hoàn thiện",
+      "dudas": "Đã đưa ra một giả định"
+    },
+    "timeline": {
+      "support_team": "Zil Support"
+    },
+    "detail": {
+      "bug_report": "Báo cáo sự cố",
+      "our_answer": "Phản hồi của chúng tôi",
+      "see_suggestion": "Xem đề xuất",
+      "what_you_reported": "Nội dung đã báo cáo",
+      "resend_hint": "Sự cố vẫn tiếp diễn hoặc bạn muốn bổ sung điều gì? Hãy gửi cho bộ phận hỗ trợ.",
+      "resend": "Gửi cho bộ phận hỗ trợ",
+      "resent": "Đã gửi. Chúng tôi sẽ xem xét lại.",
+      "next_window": "phát hành vào {date}",
+      "request": "Yêu cầu",
+      "analysis": "Phân tích",
+      "approach": "Cách tiếp cận",
+      "impact": "Tác động",
+      "effort": "Công sức",
+      "risks": "Rủi ro",
+      "answer_hint": "Trả lời các câu hỏi để tiếp tục phân tích.",
+      "comment": "Thêm bình luận",
+      "send": "Gửi"
+    },
+    "impact": {
+      "low": "Thấp",
+      "medium": "Trung bình",
+      "high": "Cao"
+    },
+    "filter": {
+      "open": "Đang mở",
+      "in_progress": "Đang xử lý",
+      "fixed": "Đã khắc phục",
+      "blocked": "Đang bị chặn",
+      "all": "Tất cả"
+    },
+    "admin": {
+      "actions": "Quản trị",
+      "occurrences": "{count, plural, one {# lần xuất hiện} other {# lần xuất hiện}}",
+      "send_to_fixer": "Gửi cho tác nhân sửa lỗi",
+      "fixer_sent": "Tác nhân sửa lỗi đang xử lý",
+      "fixer_not_sent": "Tác nhân sửa lỗi chưa bắt đầu",
+      "unblock": "Bỏ chặn",
+      "resolve": "Đánh dấu đã giải quyết",
+      "dismiss": "Bỏ qua",
+      "archive": "Lưu trữ",
+      "technical_detail": "Chi tiết kỹ thuật",
+      "decision": "Quyết định",
+      "flag_key": "Khóa cờ tính năng",
+      "notes_placeholder": "Ghi chú cho người yêu cầu (không bắt buộc)",
+      "approve": "Phê duyệt và xây dựng",
+      "rebuild": "Xây dựng lại",
+      "hold": "Tạm dừng",
+      "reject": "Từ chối",
+      "flag_toggle": "Đã bật cho mọi người",
+      "open_pr": "Mở pull request"
+    },
+    "settings": {
+      "bug_agent": "Tự động khắc phục sự cố",
+      "bug_agent_hint": "Báo cáo được chuyển cho tác nhân sửa lỗi ngay khi nhận được.",
+      "feature_agent": "Tác nhân đề xuất",
+      "feature_agent_hint": "Phân tích các đề xuất mới và xây dựng những đề xuất đã được phê duyệt phía sau một cờ tính năng.",
+      "max_builds": "Số lượt xây dựng mỗi tuần",
+      "max_builds_hint": "Số đề xuất tối đa mà tác nhân xây dựng trong 7 ngày."
+    }
+  }
+}

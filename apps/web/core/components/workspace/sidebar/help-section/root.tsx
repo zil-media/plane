@@ -6,12 +6,15 @@
 
 import React, { useState } from "react";
 import { observer } from "mobx-react";
-import { HelpCircle } from "lucide-react";
+import { Bug, HelpCircle, LifeBuoy, Lightbulb } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useTranslation } from "@plane/i18n";
 // ui
 import { CustomMenu } from "@plane/ui";
 // components
 import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
+import { openBugReporter, openFeatureSuggest } from "@/components/support/events";
 // hooks
 import { usePowerK } from "@/hooks/store/use-power-k";
 // plane web components
@@ -21,6 +24,7 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
   // store hooks
   const { t } = useTranslation();
   const { toggleShortcutsListModal } = usePowerK();
+  const { workspaceSlug } = useParams();
   // states
   const [isNeedHelpOpen, setIsNeedHelpOpen] = useState(false);
 
@@ -43,6 +47,30 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
         maxHeight="lg"
         closeOnSelect
       >
+        <CustomMenu.MenuItem>
+          <button type="button" onClick={openBugReporter} className="flex w-full items-center gap-2 hover:bg-layer-1">
+            <Bug className="size-3.5" />
+            <span className="text-11">{t("helpdesk.menu.report_problem")}</span>
+          </button>
+        </CustomMenu.MenuItem>
+        <CustomMenu.MenuItem>
+          <button
+            type="button"
+            onClick={openFeatureSuggest}
+            className="flex w-full items-center gap-2 hover:bg-layer-1"
+          >
+            <Lightbulb className="size-3.5" />
+            <span className="text-11">{t("helpdesk.menu.suggest_improvement")}</span>
+          </button>
+        </CustomMenu.MenuItem>
+        {workspaceSlug && (
+          <CustomMenu.MenuItem>
+            <Link href={`/${workspaceSlug.toString()}/support`} className="flex w-full items-center gap-2">
+              <LifeBuoy className="size-3.5" />
+              <span className="text-11">{t("helpdesk.menu.my_tracking")}</span>
+            </Link>
+          </CustomMenu.MenuItem>
+        )}
         <CustomMenu.MenuItem>
           <button
             type="button"

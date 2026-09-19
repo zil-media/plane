@@ -116,6 +116,7 @@ catalog:
   "hast-util-to-mdast": "^10.1.2"
   "helmet": "^7.1.0"
   "highlight.js": "^11.8.0"
+  "html-to-image": "1.11.13"
   "husky": "9.1.7"
   "i18next": "25.10.9"
   "i18next-icu": "2.4.3"

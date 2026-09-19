@@ -1,0 +1,163 @@
+{
+  "helpdesk": {
+    "close": "閉じる",
+    "cancel": "キャンセル",
+    "try_again": "問題が発生しました。もう一度お試しください。",
+    "error_title": "操作を完了できませんでした",
+    "menu": {
+      "report_problem": "問題を報告",
+      "suggest_improvement": "改善を提案",
+      "my_tracking": "自分の依頼"
+    },
+    "reporter": {
+      "title": "問題を報告",
+      "placeholder": "何が起きましたか。何をしようとして、何を期待していましたか。",
+      "images_hint": "この画面のスクリーンショットは自動的に添付されます。Ctrl+Vで貼り付けたり、画像を最大5枚まで追加したりすることもできます。",
+      "add_image": "画像を追加",
+      "remove_image": "画像を削除",
+      "urgent": "作業がブロックされています",
+      "urgent_hint": "修正されるまで作業を続けられない場合のみチェックしてください。",
+      "submit": "報告を送信",
+      "my_reports": "自分の依頼を見る",
+      "sent": "ありがとうございます。報告を受け取り、すでに確認を始めています。進捗は「自分の依頼」で確認でき、解決した際にはメールでお知らせします。",
+      "view_tracking": "進捗を確認",
+      "report_another": "別の問題を報告",
+      "error_title": "報告を送信できませんでした"
+    },
+    "suggest": {
+      "title": "改善を提案",
+      "intro": "必要なことを教えてください。解決したい課題を説明していただければ、実現する最良の方法を検討します。",
+      "what_label": "何ができるようになりたいですか。",
+      "what_placeholder": "例:作業項目の一覧をスプレッドシートに書き出す",
+      "why_label": "なぜそれが必要ですか。",
+      "why_placeholder": "どのような課題を解決しますか。現在はどのように対応していますか。",
+      "why_hint": "背景を理解するため、20文字以上で入力してください。",
+      "how_label": "どのようなイメージですか。(任意)",
+      "how_placeholder": "動作のイメージがあれば、どんなものでも歓迎です。",
+      "priority_label": "これはどのくらい重要ですか。",
+      "add_images": "画像を追加",
+      "next": "次へ",
+      "back": "戻る",
+      "submit": "提案を送信",
+      "sent": "ご提案ありがとうございます。内容を分析し、各ステップは「自分の依頼」で確認できます。",
+      "error_title": "提案を送信できませんでした"
+    },
+    "priority": {
+      "baja": "低",
+      "media": "中",
+      "alta": "高"
+    },
+    "board": {
+      "title": "サポート",
+      "intro": "報告と提案、およびそれぞれの状況です。",
+      "tab_tracking": "自分の依頼",
+      "tab_suggestions": "提案",
+      "tab_reports": "報告",
+      "tab_settings": "設定",
+      "empty": "まだ報告や提案を送信していません。"
+    },
+    "section": {
+      "needs_you": "回答が必要です",
+      "in_progress": "対応中",
+      "next_deploy": "次のリリースで対応",
+      "done": "完了",
+      "stalled": "保留中"
+    },
+    "phase": {
+      "next_deploy": "次のリリースで対応",
+      "bug": {
+        "received": "受付済み",
+        "diagnosing": "診断中",
+        "resolved": "解決済み",
+        "answered": "回答済み",
+        "became_suggestion": "提案になりました",
+        "dismissed": "クローズ",
+        "archived": "アーカイブ済み",
+        "needs_person": "チームの対応待ち"
+      },
+      "feature": {
+        "received": "受付済み",
+        "analyzing": "分析中",
+        "awaiting_decision": "判断待ち",
+        "needs_answer": "回答が必要です",
+        "approved": "承認済み",
+        "building": "実装中",
+        "needs_review": "レビューが必要です",
+        "in_review": "レビュー中",
+        "ready": "準備完了",
+        "rejected": "対応予定なし",
+        "on_hold": "一時停止中"
+      }
+    },
+    "progress": {
+      "investigando": "調査中",
+      "implementando": "修正に対応中",
+      "probando": "テスト中",
+      "terminando": "仕上げ中",
+      "dudas": "前提を設定しました"
+    },
+    "timeline": {
+      "support_team": "Zil Support"
+    },
+    "detail": {
+      "bug_report": "問題の報告",
+      "our_answer": "回答",
+      "see_suggestion": "提案を見る",
+      "what_you_reported": "報告内容",
+      "resend_hint": "まだ発生していますか、追加したいことがありますか。サポートに送信してください。",
+      "resend": "サポートに送信",
+      "resent": "送信しました。もう一度確認します。",
+      "next_window": "{date}にリリース予定",
+      "request": "依頼内容",
+      "analysis": "分析",
+      "approach": "アプローチ",
+      "impact": "影響",
+      "effort": "工数",
+      "risks": "リスク",
+      "answer_hint": "分析を続けるため、質問に回答してください。",
+      "comment": "コメントを追加",
+      "send": "送信"
+    },
+    "impact": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "filter": {
+      "open": "未対応",
+      "in_progress": "対応中",
+      "fixed": "修正済み",
+      "blocked": "ブロック中",
+      "all": "すべて"
+    },
+    "admin": {
+      "actions": "管理",
+      "occurrences": "{count, plural, one {#件} other {#件}}",
+      "send_to_fixer": "修正エージェントに送る",
+      "fixer_sent": "修正エージェントが対応中です",
+      "fixer_not_sent": "修正エージェントは開始していません",
+      "unblock": "ブロックを解除",
+      "resolve": "解決済みにする",
+      "dismiss": "見送る",
+      "archive": "アーカイブ",
+      "technical_detail": "技術的な詳細",
+      "decision": "判断",
+      "flag_key": "フラグキー",
+      "notes_placeholder": "依頼者へのメモ(任意)",
+      "approve": "承認して実装",
+      "rebuild": "再度実装",
+      "hold": "一時停止",
+      "reject": "却下",
+      "flag_toggle": "全員に対して有効",
+      "open_pr": "プルリクエストを開く"
+    },
+    "settings": {
+      "bug_agent": "問題の自動修正",
+      "bug_agent_hint": "報告は届き次第、修正エージェントに送られます。",
+      "feature_agent": "提案エージェント",
+      "feature_agent_hint": "新しい提案を分析し、承認されたものをフラグの背後で実装します。",
+      "max_builds": "週あたりの実装数",
+      "max_builds_hint": "エージェントが7日間で実装する提案の最大数です。"
+    }
+  }
+}

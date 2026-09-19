@@ -1,0 +1,163 @@
+{
+  "helpdesk": {
+    "close": "關閉",
+    "cancel": "取消",
+    "try_again": "發生錯誤，請再試一次。",
+    "error_title": "無法完成該操作",
+    "menu": {
+      "report_problem": "回報問題",
+      "suggest_improvement": "提出改善建議",
+      "my_tracking": "我的請求"
+    },
+    "reporter": {
+      "title": "回報問題",
+      "placeholder": "發生了什麼事？您當時想做什麼，期望看到什麼？",
+      "images_hint": "系統會自動附上此畫面的截圖。您也可以貼上（Ctrl+V）或最多新增 5 張圖片。",
+      "add_image": "新增圖片",
+      "remove_image": "移除圖片",
+      "urgent": "這阻礙了我的工作",
+      "urgent_hint": "僅在問題解決前您無法繼續工作時才勾選。",
+      "submit": "傳送回報",
+      "my_reports": "查看我的請求",
+      "sent": "謝謝，我們已收到。我們已經在處理了；您可以在「我的請求」中查看進度，問題解決後我們會寄送電子郵件通知您。",
+      "view_tracking": "查看進度",
+      "report_another": "回報另一個問題",
+      "error_title": "未能傳送您的回報"
+    },
+    "suggest": {
+      "title": "提出改善建議",
+      "intro": "請告訴我們您需要什麼。請描述您想解決的問題，我們會考慮實現的最佳方式。",
+      "what_label": "您希望能夠做什麼？",
+      "what_placeholder": "例如：將工作事項清單匯出至試算表",
+      "why_label": "您為什麼需要這個？",
+      "why_placeholder": "這解決了什麼問題？您目前是如何處理的？",
+      "why_hint": "至少 20 個字元，以便我們了解背景。",
+      "how_label": "您設想它是什麼樣子？（選填）",
+      "how_placeholder": "任何關於它可能如何運作的想法都歡迎。",
+      "priority_label": "這對您有多重要？",
+      "add_images": "新增圖片",
+      "next": "繼續",
+      "back": "返回",
+      "submit": "傳送建議",
+      "sent": "感謝您的建議。我們會進行分析，每個步驟您都可以在「我的請求」中查看。",
+      "error_title": "未能傳送您的建議"
+    },
+    "priority": {
+      "baja": "低",
+      "media": "中",
+      "alta": "高"
+    },
+    "board": {
+      "title": "支援",
+      "intro": "您的回報和建議，以及每一項目前的狀態。",
+      "tab_tracking": "我的請求",
+      "tab_suggestions": "建議",
+      "tab_reports": "回報",
+      "tab_settings": "設定",
+      "empty": "您還沒有傳送過任何回報或建議。"
+    },
+    "section": {
+      "needs_you": "需要您的回覆",
+      "in_progress": "進行中",
+      "next_deploy": "將於下一版本推出",
+      "done": "已完成",
+      "stalled": "已暫停"
+    },
+    "phase": {
+      "next_deploy": "將於下一版本推出",
+      "bug": {
+        "received": "已收到",
+        "diagnosing": "診斷中",
+        "resolved": "已解決",
+        "answered": "已回覆您",
+        "became_suggestion": "已轉為建議",
+        "dismissed": "已關閉",
+        "archived": "已封存",
+        "needs_person": "等待團隊處理"
+      },
+      "feature": {
+        "received": "已收到",
+        "analyzing": "分析中",
+        "awaiting_decision": "等待決定",
+        "needs_answer": "需要您的回覆",
+        "approved": "已核准",
+        "building": "開發中",
+        "needs_review": "需要審查",
+        "in_review": "審查中",
+        "ready": "已就緒",
+        "rejected": "未列入計畫",
+        "on_hold": "已暫停"
+      }
+    },
+    "progress": {
+      "investigando": "調查中",
+      "implementando": "修復處理中",
+      "probando": "測試中",
+      "terminando": "收尾中",
+      "dudas": "已採用一項假設"
+    },
+    "timeline": {
+      "support_team": "Zil Support"
+    },
+    "detail": {
+      "bug_report": "問題回報",
+      "our_answer": "我們的回覆",
+      "see_suggestion": "查看建議",
+      "what_you_reported": "回報的內容",
+      "resend_hint": "問題仍在發生，或有什麼要補充的嗎？請傳送給支援團隊。",
+      "resend": "傳送給支援團隊",
+      "resent": "已傳送。我們會再次查看。",
+      "next_window": "將於 {date} 推出",
+      "request": "請求",
+      "analysis": "分析",
+      "approach": "方案",
+      "impact": "影響",
+      "effort": "工作量",
+      "risks": "風險",
+      "answer_hint": "請回答這些問題以繼續分析。",
+      "comment": "新增留言",
+      "send": "傳送"
+    },
+    "impact": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "filter": {
+      "open": "未解決",
+      "in_progress": "進行中",
+      "fixed": "已修復",
+      "blocked": "已阻擋",
+      "all": "全部"
+    },
+    "admin": {
+      "actions": "管理",
+      "occurrences": "{count, plural, one {#次} other {#次}}",
+      "send_to_fixer": "傳送給修復代理",
+      "fixer_sent": "修復代理正在處理",
+      "fixer_not_sent": "修復代理還沒開始",
+      "unblock": "解除阻擋",
+      "resolve": "標示為已解決",
+      "dismiss": "忽略",
+      "archive": "封存",
+      "technical_detail": "技術細節",
+      "decision": "決定",
+      "flag_key": "旗標鍵",
+      "notes_placeholder": "給提出請求者的備註（選填）",
+      "approve": "核准並開發",
+      "rebuild": "重新開發",
+      "hold": "暫停",
+      "reject": "拒絕",
+      "flag_toggle": "對所有人啟用",
+      "open_pr": "開啟 Pull Request"
+    },
+    "settings": {
+      "bug_agent": "自動修復問題",
+      "bug_agent_hint": "回報一送達就會傳送給修復代理。",
+      "feature_agent": "建議代理",
+      "feature_agent_hint": "分析新建議，並在旗標後開發已核准的建議。",
+      "max_builds": "每週開發數量",
+      "max_builds_hint": "代理在 7 天內開發的建議上限。"
+    }
+  }
+}

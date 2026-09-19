@@ -1,0 +1,163 @@
+{
+  "helpdesk": {
+    "close": "Cerrar",
+    "cancel": "Cancelar",
+    "try_again": "Algo salió mal. Inténtelo de nuevo.",
+    "error_title": "No se pudo completar la acción",
+    "menu": {
+      "report_problem": "Reportar un problema",
+      "suggest_improvement": "Sugerir una mejora",
+      "my_tracking": "Mi seguimiento"
+    },
+    "reporter": {
+      "title": "Reportar un problema",
+      "placeholder": "¿Qué pasó? ¿Qué estaba intentando hacer y qué esperaba ver?",
+      "images_hint": "Adjuntamos una captura de esta pantalla automáticamente. También puede pegar (Ctrl+V) o agregar hasta 5 imágenes.",
+      "add_image": "Agregar imagen",
+      "remove_image": "Quitar imagen",
+      "urgent": "Me bloquea el trabajo",
+      "urgent_hint": "Márquelo solo si no puede seguir trabajando hasta que se arregle.",
+      "submit": "Enviar reporte",
+      "my_reports": "Ver mi seguimiento",
+      "sent": "Gracias, lo recibimos. Ya lo estamos mirando; puede seguir el avance en Mi seguimiento y le avisamos por correo cuando esté resuelto.",
+      "view_tracking": "Ver el avance",
+      "report_another": "Reportar otro",
+      "error_title": "No pudimos enviar su reporte"
+    },
+    "suggest": {
+      "title": "Sugerir una mejora",
+      "intro": "Cuéntenos qué necesita. Describa el problema que quiere resolver; nosotros pensamos la mejor forma de construirlo.",
+      "what_label": "¿Qué le gustaría poder hacer?",
+      "what_placeholder": "Por ejemplo: exportar la lista de work items a una planilla",
+      "why_label": "¿Para qué lo necesita?",
+      "why_placeholder": "¿Qué problema resuelve? ¿Cómo lo resuelve hoy?",
+      "why_hint": "Al menos 20 caracteres, para entender el contexto.",
+      "how_label": "¿Cómo se lo imagina? (opcional)",
+      "how_placeholder": "Cualquier idea de cómo podría funcionar suma.",
+      "priority_label": "¿Qué tan importante es para usted?",
+      "add_images": "Agregar imágenes",
+      "next": "Continuar",
+      "back": "Volver",
+      "submit": "Enviar sugerencia",
+      "sent": "Gracias por la sugerencia. La vamos a analizar y va a poder seguir cada paso en Mi seguimiento.",
+      "error_title": "No pudimos enviar su sugerencia"
+    },
+    "priority": {
+      "baja": "Baja",
+      "media": "Media",
+      "alta": "Alta"
+    },
+    "board": {
+      "title": "Soporte",
+      "intro": "Sus reportes y sugerencias, y en qué punto está cada uno.",
+      "tab_tracking": "Mi seguimiento",
+      "tab_suggestions": "Sugerencias",
+      "tab_reports": "Reportes",
+      "tab_settings": "Ajustes",
+      "empty": "Todavía no envió ningún reporte ni sugerencia."
+    },
+    "section": {
+      "needs_you": "Necesitan su respuesta",
+      "in_progress": "En curso",
+      "next_deploy": "Sale en la próxima versión",
+      "done": "Listo",
+      "stalled": "En espera"
+    },
+    "phase": {
+      "next_deploy": "Sale en la próxima versión",
+      "bug": {
+        "received": "Recibido",
+        "diagnosing": "En diagnóstico",
+        "resolved": "Resuelto",
+        "answered": "Le respondimos",
+        "became_suggestion": "Pasó a Sugerencias",
+        "dismissed": "Cerrado",
+        "archived": "Archivado",
+        "needs_person": "Esperando al equipo"
+      },
+      "feature": {
+        "received": "Recibida",
+        "analyzing": "En análisis",
+        "awaiting_decision": "Esperando decisión",
+        "needs_answer": "Necesita su respuesta",
+        "approved": "Aprobada",
+        "building": "En construcción",
+        "needs_review": "Necesita revisión",
+        "in_review": "En revisión",
+        "ready": "Lista",
+        "rejected": "No se va a construir",
+        "on_hold": "En pausa"
+      }
+    },
+    "progress": {
+      "investigando": "Investigando",
+      "implementando": "Trabajando en el arreglo",
+      "probando": "Probando",
+      "terminando": "Terminando",
+      "dudas": "Tomamos un supuesto"
+    },
+    "timeline": {
+      "support_team": "Zil Support"
+    },
+    "detail": {
+      "bug_report": "Reporte de problema",
+      "our_answer": "Nuestra respuesta",
+      "see_suggestion": "Ver la sugerencia",
+      "what_you_reported": "Lo que se reportó",
+      "resend_hint": "¿Sigue pasando o quiere agregar algo? Envíelo a soporte.",
+      "resend": "Enviar a soporte",
+      "resent": "Enviado. Lo volvemos a mirar.",
+      "next_window": "sale el {date}",
+      "request": "Pedido",
+      "analysis": "Análisis",
+      "approach": "Enfoque",
+      "impact": "Impacto",
+      "effort": "Esfuerzo",
+      "risks": "Riesgos",
+      "answer_hint": "Responda las preguntas para seguir con el análisis.",
+      "comment": "Agregar un comentario",
+      "send": "Enviar"
+    },
+    "impact": {
+      "low": "Bajo",
+      "medium": "Medio",
+      "high": "Alto"
+    },
+    "filter": {
+      "open": "Abiertos",
+      "in_progress": "En curso",
+      "fixed": "Arreglados",
+      "blocked": "Trabados",
+      "all": "Todos"
+    },
+    "admin": {
+      "actions": "Administración",
+      "occurrences": "{count, plural, one {# ocurrencia} other {# ocurrencias}}",
+      "send_to_fixer": "Enviar al fixer",
+      "fixer_sent": "El fixer ya está trabajando",
+      "fixer_not_sent": "El fixer no arrancó",
+      "unblock": "Destrabar",
+      "resolve": "Marcar resuelto",
+      "dismiss": "Descartar",
+      "archive": "Archivar",
+      "technical_detail": "Detalle técnico",
+      "decision": "Decisión",
+      "flag_key": "Clave del flag",
+      "notes_placeholder": "Notas para quien lo pidió (opcional)",
+      "approve": "Aprobar y construir",
+      "rebuild": "Volver a construir",
+      "hold": "Pausar",
+      "reject": "Rechazar",
+      "flag_toggle": "Activado para todos",
+      "open_pr": "Abrir pull request"
+    },
+    "settings": {
+      "bug_agent": "Arreglo automático de problemas",
+      "bug_agent_hint": "Los reportes pasan al agente fixer apenas llegan.",
+      "feature_agent": "Agente de sugerencias",
+      "feature_agent_hint": "Analiza las sugerencias nuevas y construye las aprobadas detrás de un flag.",
+      "max_builds": "Construcciones por semana",
+      "max_builds_hint": "Máximo de sugerencias que el agente construye en 7 días."
+    }
+  }
+}

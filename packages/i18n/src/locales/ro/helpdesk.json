@@ -1,0 +1,163 @@
+{
+  "helpdesk": {
+    "close": "Închide",
+    "cancel": "Anulează",
+    "try_again": "Ceva nu a funcționat. Încercați din nou.",
+    "error_title": "Acțiunea nu a putut fi finalizată",
+    "menu": {
+      "report_problem": "Raportează o problemă",
+      "suggest_improvement": "Sugerează o îmbunătățire",
+      "my_tracking": "Solicitările mele"
+    },
+    "reporter": {
+      "title": "Raportează o problemă",
+      "placeholder": "Ce s-a întâmplat? Ce încercați să faceți și ce vă așteptați să vedeți?",
+      "images_hint": "O captură a acestui ecran se atașează automat. De asemenea, se poate lipi (Ctrl+V) sau adăuga până la 5 imagini.",
+      "add_image": "Adaugă imagine",
+      "remove_image": "Elimină imaginea",
+      "urgent": "Îmi blochează activitatea",
+      "urgent_hint": "Bifați doar dacă nu puteți continua lucrul până la remediere.",
+      "submit": "Trimite raportul",
+      "my_reports": "Vezi solicitările mele",
+      "sent": "Mulțumim, am primit raportul. Deja îl analizăm; puteți urmări progresul în Solicitările mele și vă vom trimite un e-mail când va fi rezolvat.",
+      "view_tracking": "Urmărește progresul",
+      "report_another": "Raportează altă problemă",
+      "error_title": "Raportul nu a putut fi trimis"
+    },
+    "suggest": {
+      "title": "Sugerează o îmbunătățire",
+      "intro": "Spuneți-ne de ce aveți nevoie. Descrieți problema pe care vreți să o rezolvați; ne vom gândi la cea mai bună modalitate de a o construi.",
+      "what_label": "Ce v-ar plăcea să puteți face?",
+      "what_placeholder": "De exemplu: exportați lista de activități într-o foaie de calcul",
+      "why_label": "De ce aveți nevoie de asta?",
+      "why_placeholder": "Ce problemă rezolvă? Cum o gestionați astăzi?",
+      "why_hint": "Cel puțin 20 de caractere, pentru a înțelege contextul.",
+      "how_label": "Cum vă imaginați asta? (opțional)",
+      "how_placeholder": "Orice idee despre cum ar putea funcționa este binevenită.",
+      "priority_label": "Cât de important este pentru dumneavoastră?",
+      "add_images": "Adaugă imagini",
+      "next": "Continuă",
+      "back": "Înapoi",
+      "submit": "Trimite sugestia",
+      "sent": "Mulțumim pentru sugestie. O vom analiza și veți putea urmări fiecare etapă în Solicitările mele.",
+      "error_title": "Sugestia nu a putut fi trimisă"
+    },
+    "priority": {
+      "baja": "Scăzută",
+      "media": "Medie",
+      "alta": "Ridicată"
+    },
+    "board": {
+      "title": "Asistență",
+      "intro": "Rapoartele și sugestiile dumneavoastră, și stadiul fiecăreia.",
+      "tab_tracking": "Solicitările mele",
+      "tab_suggestions": "Sugestii",
+      "tab_reports": "Rapoarte",
+      "tab_settings": "Setări",
+      "empty": "Nu ați trimis încă niciun raport sau sugestie."
+    },
+    "section": {
+      "needs_you": "Necesită răspunsul dumneavoastră",
+      "in_progress": "În desfășurare",
+      "next_deploy": "În următoarea versiune",
+      "done": "Finalizat",
+      "stalled": "În așteptare"
+    },
+    "phase": {
+      "next_deploy": "În următoarea versiune",
+      "bug": {
+        "received": "Primit",
+        "diagnosing": "În curs de diagnosticare",
+        "resolved": "Rezolvat",
+        "answered": "V-am răspuns",
+        "became_suggestion": "A devenit o sugestie",
+        "dismissed": "Închis",
+        "archived": "Arhivat",
+        "needs_person": "Așteaptă echipa"
+      },
+      "feature": {
+        "received": "Primită",
+        "analyzing": "În curs de analiză",
+        "awaiting_decision": "Așteaptă o decizie",
+        "needs_answer": "Necesită răspunsul dumneavoastră",
+        "approved": "Aprobată",
+        "building": "În curs de construire",
+        "needs_review": "Necesită o verificare",
+        "in_review": "În verificare",
+        "ready": "Gata",
+        "rejected": "Neplanificată",
+        "on_hold": "În pauză"
+      }
+    },
+    "progress": {
+      "investigando": "Se investighează",
+      "implementando": "Se lucrează la remediere",
+      "probando": "Se testează",
+      "terminando": "Se finalizează",
+      "dudas": "S-a stabilit o ipoteză"
+    },
+    "timeline": {
+      "support_team": "Zil Support"
+    },
+    "detail": {
+      "bug_report": "Raport de problemă",
+      "our_answer": "Răspunsul nostru",
+      "see_suggestion": "Vezi sugestia",
+      "what_you_reported": "Ce a fost raportat",
+      "resend_hint": "Se mai întâmplă sau aveți ceva de adăugat? Trimiteți-l către asistență.",
+      "resend": "Trimite către asistență",
+      "resent": "Trimis. Îl analizăm din nou.",
+      "next_window": "apare pe {date}",
+      "request": "Cerere",
+      "analysis": "Analiză",
+      "approach": "Abordare",
+      "impact": "Impact",
+      "effort": "Efort",
+      "risks": "Riscuri",
+      "answer_hint": "Răspundeți la întrebări pentru a continua analiza.",
+      "comment": "Adaugă un comentariu",
+      "send": "Trimite"
+    },
+    "impact": {
+      "low": "Scăzut",
+      "medium": "Mediu",
+      "high": "Ridicat"
+    },
+    "filter": {
+      "open": "Deschise",
+      "in_progress": "În desfășurare",
+      "fixed": "Rezolvate",
+      "blocked": "Blocate",
+      "all": "Toate"
+    },
+    "admin": {
+      "actions": "Administrare",
+      "occurrences": "{count, plural, one {# apariție} few {# apariții} other {# de apariții}}",
+      "send_to_fixer": "Trimite la agentul de reparare",
+      "fixer_sent": "Agentul de reparare se ocupă de asta",
+      "fixer_not_sent": "Agentul de reparare nu a început",
+      "unblock": "Deblochează",
+      "resolve": "Marchează ca rezolvat",
+      "dismiss": "Respinge",
+      "archive": "Arhivează",
+      "technical_detail": "Detaliu tehnic",
+      "decision": "Decizie",
+      "flag_key": "Cheia flag-ului",
+      "notes_placeholder": "Note pentru persoana care a solicitat (opțional)",
+      "approve": "Aprobă și construiește",
+      "rebuild": "Construiește din nou",
+      "hold": "Pune în pauză",
+      "reject": "Refuză",
+      "flag_toggle": "Activat pentru toată lumea",
+      "open_pr": "Deschide pull request-ul"
+    },
+    "settings": {
+      "bug_agent": "Remediere automată a problemelor",
+      "bug_agent_hint": "Sesizările ajung la agentul de reparare imediat ce sunt primite.",
+      "feature_agent": "Agentul de sugestii",
+      "feature_agent_hint": "Analizează sugestiile noi și le construiește pe cele aprobate în spatele unui flag.",
+      "max_builds": "Construcții pe săptămână",
+      "max_builds_hint": "Numărul maxim de sugestii pe care agentul le construiește în 7 zile."
+    }
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "helpdesk": {
+    "close": "닫기",
+    "cancel": "취소",
+    "try_again": "문제가 발생했습니다. 다시 시도해 주세요.",
+    "error_title": "작업을 완료하지 못했습니다",
+    "menu": {
+      "report_problem": "문제 신고",
+      "suggest_improvement": "개선 제안",
+      "my_tracking": "내 요청"
+    },
+    "reporter": {
+      "title": "문제 신고",
+      "placeholder": "무슨 일이 있었나요? 무엇을 하려고 했고, 무엇을 기대했나요?",
+      "images_hint": "이 화면의 스크린샷이 자동으로 첨부됩니다. Ctrl+V로 붙여넣거나 이미지를 최대 5장까지 추가할 수도 있습니다.",
+      "add_image": "이미지 추가",
+      "remove_image": "이미지 삭제",
+      "urgent": "작업이 막혀 있습니다",
+      "urgent_hint": "수정될 때까지 작업을 계속할 수 없는 경우에만 표시하세요.",
+      "submit": "신고 보내기",
+      "my_reports": "내 요청 보기",
+      "sent": "감사합니다. 신고를 접수했습니다. 이미 검토하고 있으며, 진행 상황은 내 요청에서 확인할 수 있고 해결되면 이메일로 알려드립니다.",
+      "view_tracking": "진행 상황 확인",
+      "report_another": "다른 문제 신고",
+      "error_title": "신고를 보내지 못했습니다"
+    },
+    "suggest": {
+      "title": "개선 제안",
+      "intro": "필요한 내용을 알려주세요. 해결하고 싶은 문제를 설명해 주시면 가장 좋은 구현 방법을 검토하겠습니다.",
+      "what_label": "무엇을 할 수 있으면 좋겠습니까?",
+      "what_placeholder": "예: 작업 항목 목록을 스프레드시트로 내보내기",
+      "why_label": "이것이 왜 필요합니까?",
+      "why_placeholder": "이것으로 어떤 문제를 해결합니까? 지금은 어떻게 처리하고 있습니까?",
+      "why_hint": "맥락을 이해할 수 있도록 최소 20자를 입력해 주세요.",
+      "how_label": "어떤 방식을 생각하고 있습니까? (선택 사항)",
+      "how_placeholder": "어떻게 동작하면 좋을지에 대한 아이디어는 무엇이든 환영합니다.",
+      "priority_label": "이것이 얼마나 중요합니까?",
+      "add_images": "이미지 추가",
+      "next": "계속",
+      "back": "뒤로",
+      "submit": "제안 보내기",
+      "sent": "제안해 주셔서 감사합니다. 검토한 후 각 단계는 내 요청에서 확인할 수 있습니다.",
+      "error_title": "제안을 보내지 못했습니다"
+    },
+    "priority": {
+      "baja": "낮음",
+      "media": "보통",
+      "alta": "높음"
+    },
+    "board": {
+      "title": "지원",
+      "intro": "신고와 제안, 그리고 각각의 진행 상태입니다.",
+      "tab_tracking": "내 요청",
+      "tab_suggestions": "제안",
+      "tab_reports": "신고",
+      "tab_settings": "설정",
+      "empty": "아직 신고하거나 제안한 내용이 없습니다."
+    },
+    "section": {
+      "needs_you": "답변이 필요합니다",
+      "in_progress": "진행 중",
+      "next_deploy": "다음 릴리스에 반영",
+      "done": "완료",
+      "stalled": "보류"
+    },
+    "phase": {
+      "next_deploy": "다음 릴리스에 반영",
+      "bug": {
+        "received": "접수됨",
+        "diagnosing": "진단 중",
+        "resolved": "해결됨",
+        "answered": "답변을 드렸습니다",
+        "became_suggestion": "제안으로 전환됨",
+        "dismissed": "종료됨",
+        "archived": "보관됨",
+        "needs_person": "팀 대응 대기 중"
+      },
+      "feature": {
+        "received": "접수됨",
+        "analyzing": "분석 중",
+        "awaiting_decision": "결정 대기 중",
+        "needs_answer": "답변이 필요합니다",
+        "approved": "승인됨",
+        "building": "구현 중",
+        "needs_review": "검토가 필요합니다",
+        "in_review": "검토 중",
+        "ready": "준비 완료",
+        "rejected": "계획되지 않음",
+        "on_hold": "일시 중지됨"
+      }
+    },
+    "progress": {
+      "investigando": "조사 중",
+      "implementando": "수정 작업 중",
+      "probando": "테스트 중",
+      "terminando": "마무리 중",
+      "dudas": "가정을 설정함"
+    },
+    "timeline": {
+      "support_team": "Zil Support"
+    },
+    "detail": {
+      "bug_report": "문제 신고",
+      "our_answer": "답변",
+      "see_suggestion": "제안 보기",
+      "what_you_reported": "신고 내용",
+      "resend_hint": "아직도 발생하나요, 아니면 추가할 내용이 있나요? 지원팀에 보내주세요.",
+      "resend": "지원팀에 보내기",
+      "resent": "전송했습니다. 다시 확인하겠습니다.",
+      "next_window": "{date}에 배포됩니다",
+      "request": "요청 내용",
+      "analysis": "분석",
+      "approach": "접근 방식",
+      "impact": "영향",
+      "effort": "작업량",
+      "risks": "위험 요소",
+      "answer_hint": "분석을 계속하려면 질문에 답변해 주세요.",
+      "comment": "댓글 추가",
+      "send": "보내기"
+    },
+    "impact": {
+      "low": "낮음",
+      "medium": "보통",
+      "high": "높음"
+    },
+    "filter": {
+      "open": "열림",
+      "in_progress": "진행 중",
+      "fixed": "수정됨",
+      "blocked": "차단됨",
+      "all": "전체"
+    },
+    "admin": {
+      "actions": "관리",
+      "occurrences": "{count, plural, one {#건} other {#건}}",
+      "send_to_fixer": "수정 에이전트로 보내기",
+      "fixer_sent": "수정 에이전트가 처리하고 있습니다",
+      "fixer_not_sent": "수정 에이전트가 시작하지 않았습니다",
+      "unblock": "차단 해제",
+      "resolve": "해결됨으로 표시",
+      "dismiss": "보류 처리",
+      "archive": "보관",
+      "technical_detail": "기술 세부 정보",
+      "decision": "결정",
+      "flag_key": "플래그 키",
+      "notes_placeholder": "요청자를 위한 메모 (선택 사항)",
+      "approve": "승인하고 구현",
+      "rebuild": "다시 구현",
+      "hold": "일시 중지",
+      "reject": "거절",
+      "flag_toggle": "모두에게 활성화",
+      "open_pr": "풀 리퀘스트 열기"
+    },
+    "settings": {
+      "bug_agent": "문제 자동 수정",
+      "bug_agent_hint": "신고는 접수되는 즉시 수정 에이전트로 전달됩니다.",
+      "feature_agent": "제안 에이전트",
+      "feature_agent_hint": "새 제안을 분석하고 승인된 항목을 플래그 뒤에서 구현합니다.",
+      "max_builds": "주간 구현 건수",
+      "max_builds_hint": "에이전트가 7일 동안 구현하는 제안의 최대 개수입니다."
+    }
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "helpdesk": {
+    "close": "Fechar",
+    "cancel": "Cancelar",
+    "try_again": "Algo deu errado. Tente novamente.",
+    "error_title": "Não foi possível concluir a ação",
+    "menu": {
+      "report_problem": "Reportar um problema",
+      "suggest_improvement": "Sugerir uma melhoria",
+      "my_tracking": "Minhas solicitações"
+    },
+    "reporter": {
+      "title": "Reportar um problema",
+      "placeholder": "O que aconteceu? O que você estava tentando fazer e o que esperava ver?",
+      "images_hint": "Anexamos uma captura desta tela automaticamente. Você também pode colar (Ctrl+V) ou adicionar até 5 imagens.",
+      "add_image": "Adicionar imagem",
+      "remove_image": "Remover imagem",
+      "urgent": "Está bloqueando meu trabalho",
+      "urgent_hint": "Marque apenas se não conseguir continuar trabalhando até que seja corrigido.",
+      "submit": "Enviar relato",
+      "my_reports": "Ver minhas solicitações",
+      "sent": "Obrigado, recebemos. Já estamos analisando; você pode acompanhar o andamento em Minhas solicitações e vamos avisar por e-mail quando estiver resolvido.",
+      "view_tracking": "Acompanhar andamento",
+      "report_another": "Reportar outro problema",
+      "error_title": "Não foi possível enviar seu relato"
+    },
+    "suggest": {
+      "title": "Sugerir uma melhoria",
+      "intro": "Conte o que você precisa. Descreva o problema que quer resolver; vamos pensar na melhor forma de construir.",
+      "what_label": "O que você gostaria de poder fazer?",
+      "what_placeholder": "Por exemplo: exportar a lista de itens de trabalho para uma planilha",
+      "why_label": "Por que você precisa disso?",
+      "why_placeholder": "Que problema isso resolve? Como você lida com isso hoje?",
+      "why_hint": "Pelo menos 20 caracteres, para entendermos o contexto.",
+      "how_label": "Como você imagina isso? (opcional)",
+      "how_placeholder": "Qualquer ideia de como poderia funcionar é bem-vinda.",
+      "priority_label": "Quão importante isso é para você?",
+      "add_images": "Adicionar imagens",
+      "next": "Continuar",
+      "back": "Voltar",
+      "submit": "Enviar sugestão",
+      "sent": "Obrigado pela sugestão. Vamos analisá-la e você poderá acompanhar cada etapa em Minhas solicitações.",
+      "error_title": "Não foi possível enviar sua sugestão"
+    },
+    "priority": {
+      "baja": "Baixa",
+      "media": "Média",
+      "alta": "Alta"
+    },
+    "board": {
+      "title": "Suporte",
+      "intro": "Seus relatos e sugestões, e em que ponto cada um está.",
+      "tab_tracking": "Minhas solicitações",
+      "tab_suggestions": "Sugestões",
+      "tab_reports": "Relatos",
+      "tab_settings": "Configurações",
+      "empty": "Você ainda não enviou nenhum relato ou sugestão."
+    },
+    "section": {
+      "needs_you": "Precisa da sua resposta",
+      "in_progress": "Em andamento",
+      "next_deploy": "Na próxima versão",
+      "done": "Concluído",
+      "stalled": "Em espera"
+    },
+    "phase": {
+      "next_deploy": "Na próxima versão",
+      "bug": {
+        "received": "Recebido",
+        "diagnosing": "Em diagnóstico",
+        "resolved": "Resolvido",
+        "answered": "Você recebeu uma resposta",
+        "became_suggestion": "Virou uma sugestão",
+        "dismissed": "Encerrado",
+        "archived": "Arquivado",
+        "needs_person": "Aguardando a equipe"
+      },
+      "feature": {
+        "received": "Recebida",
+        "analyzing": "Em análise",
+        "awaiting_decision": "Aguardando decisão",
+        "needs_answer": "Precisa da sua resposta",
+        "approved": "Aprovada",
+        "building": "Em construção",
+        "needs_review": "Precisa de revisão",
+        "in_review": "Em revisão",
+        "ready": "Pronta",
+        "rejected": "Não será feita",
+        "on_hold": "Em pausa"
+      }
+    },
+    "progress": {
+      "investigando": "Investigando",
+      "implementando": "Trabalhando na correção",
+      "probando": "Testando",
+      "terminando": "Finalizando",
+      "dudas": "Suposição assumida"
+    },
+    "timeline": {
+      "support_team": "Zil Support"
+    },
+    "detail": {
+      "bug_report": "Relato de problema",
+      "our_answer": "Nossa resposta",
+      "see_suggestion": "Ver a sugestão",
+      "what_you_reported": "O que foi relatado",
+      "resend_hint": "Ainda está acontecendo ou há algo a acrescentar? Envie ao suporte.",
+      "resend": "Enviar ao suporte",
+      "resent": "Enviado. Vamos analisar novamente.",
+      "next_window": "sai em {date}",
+      "request": "Pedido",
+      "analysis": "Análise",
+      "approach": "Abordagem",
+      "impact": "Impacto",
+      "effort": "Esforço",
+      "risks": "Riscos",
+      "answer_hint": "Responda às perguntas para continuar a análise.",
+      "comment": "Adicionar um comentário",
+      "send": "Enviar"
+    },
+    "impact": {
+      "low": "Baixo",
+      "medium": "Médio",
+      "high": "Alto"
+    },
+    "filter": {
+      "open": "Abertos",
+      "in_progress": "Em andamento",
+      "fixed": "Corrigidos",
+      "blocked": "Bloqueados",
+      "all": "Todos"
+    },
+    "admin": {
+      "actions": "Administração",
+      "occurrences": "{count, plural, one {# ocorrência} many {# ocorrências} other {# ocorrências}}",
+      "send_to_fixer": "Enviar para o agente de correção",
+      "fixer_sent": "O agente de correção já está cuidando disso",
+      "fixer_not_sent": "O agente de correção não começou",
+      "unblock": "Desbloquear",
+      "resolve": "Marcar como resolvido",
+      "dismiss": "Descartar",
+      "archive": "Arquivar",
+      "technical_detail": "Detalhe técnico",
+      "decision": "Decisão",
+      "flag_key": "Chave do flag",
+      "notes_placeholder": "Notas para quem pediu (opcional)",
+      "approve": "Aprovar e construir",
+      "rebuild": "Construir novamente",
+      "hold": "Pausar",
+      "reject": "Rejeitar",
+      "flag_toggle": "Ativado para todos",
+      "open_pr": "Abrir pull request"
+    },
+    "settings": {
+      "bug_agent": "Correção automática de problemas",
+      "bug_agent_hint": "Os relatos vão para o agente de correção assim que chegam.",
+      "feature_agent": "Agente de sugestões",
+      "feature_agent_hint": "Analisa as novas sugestões e constrói as aprovadas atrás de um flag.",
+      "max_builds": "Construções por semana",
+      "max_builds_hint": "Número máximo de sugestões que o agente constrói em 7 dias."
+    }
+  }
+}

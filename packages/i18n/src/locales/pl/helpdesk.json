@@ -1,0 +1,163 @@
+{
+  "helpdesk": {
+    "close": "Zamknij",
+    "cancel": "Anuluj",
+    "try_again": "Coś poszło nie tak. Proszę spróbować ponownie.",
+    "error_title": "Nie udało się wykonać akcji",
+    "menu": {
+      "report_problem": "Zgłoś problem",
+      "suggest_improvement": "Zaproponuj usprawnienie",
+      "my_tracking": "Moje zgłoszenia"
+    },
+    "reporter": {
+      "title": "Zgłoś problem",
+      "placeholder": "Co się stało? Co próbowano zrobić i czego się oczekiwało?",
+      "images_hint": "Zrzut ekranu tego widoku jest dołączany automatycznie. Można też wkleić (Ctrl+V) lub dodać do 5 obrazów.",
+      "add_image": "Dodaj obraz",
+      "remove_image": "Usuń obraz",
+      "urgent": "Blokuje mi pracę",
+      "urgent_hint": "Zaznaczyć tylko wtedy, gdy nie można kontynuować pracy do czasu naprawy.",
+      "submit": "Wyślij zgłoszenie",
+      "my_reports": "Zobacz moje zgłoszenia",
+      "sent": "Dziękujemy, zgłoszenie dotarło. Już się nim zajmujemy; postęp można śledzić w sekcji Moje zgłoszenia, a po rozwiązaniu zostanie wysłana wiadomość e-mail.",
+      "view_tracking": "Śledź postęp",
+      "report_another": "Zgłoś kolejny problem",
+      "error_title": "Nie udało się wysłać zgłoszenia"
+    },
+    "suggest": {
+      "title": "Zaproponuj usprawnienie",
+      "intro": "Proszę opisać potrzebę. Należy opisać problem do rozwiązania; przemyślimy najlepszy sposób jego realizacji.",
+      "what_label": "Co chciałoby się móc zrobić?",
+      "what_placeholder": "Na przykład: eksportować listę elementów pracy do arkusza kalkulacyjnego",
+      "why_label": "Do czego jest to potrzebne?",
+      "why_placeholder": "Jaki problem to rozwiązuje? Jak jest to obsługiwane obecnie?",
+      "why_hint": "Co najmniej 20 znaków, aby zrozumieć kontekst.",
+      "how_label": "Jak to sobie wyobrażano? (opcjonalnie)",
+      "how_placeholder": "Mile widziany jest każdy pomysł na to, jak mogłoby to działać.",
+      "priority_label": "Jak ważne jest to?",
+      "add_images": "Dodaj obrazy",
+      "next": "Dalej",
+      "back": "Wstecz",
+      "submit": "Wyślij propozycję",
+      "sent": "Dziękujemy za propozycję. Zostanie przeanalizowana, a każdy krok można śledzić w sekcji Moje zgłoszenia.",
+      "error_title": "Nie udało się wysłać propozycji"
+    },
+    "priority": {
+      "baja": "Niski",
+      "media": "Średni",
+      "alta": "Wysoki"
+    },
+    "board": {
+      "title": "Wsparcie",
+      "intro": "Zgłoszenia i propozycje oraz status każdego z nich.",
+      "tab_tracking": "Moje zgłoszenia",
+      "tab_suggestions": "Propozycje",
+      "tab_reports": "Zgłoszenia",
+      "tab_settings": "Ustawienia",
+      "empty": "Nie wysłano jeszcze żadnego zgłoszenia ani propozycji."
+    },
+    "section": {
+      "needs_you": "Wymaga odpowiedzi",
+      "in_progress": "W trakcie",
+      "next_deploy": "W następnej wersji",
+      "done": "Gotowe",
+      "stalled": "Wstrzymane"
+    },
+    "phase": {
+      "next_deploy": "W następnej wersji",
+      "bug": {
+        "received": "Otrzymane",
+        "diagnosing": "W diagnozie",
+        "resolved": "Rozwiązane",
+        "answered": "Udzielono odpowiedzi",
+        "became_suggestion": "Stało się propozycją",
+        "dismissed": "Zamknięte",
+        "archived": "Zarchiwizowane",
+        "needs_person": "Oczekuje na zespół"
+      },
+      "feature": {
+        "received": "Otrzymana",
+        "analyzing": "W analizie",
+        "awaiting_decision": "Oczekuje na decyzję",
+        "needs_answer": "Wymaga odpowiedzi",
+        "approved": "Zatwierdzona",
+        "building": "W budowie",
+        "needs_review": "Wymaga przeglądu",
+        "in_review": "W przeglądzie",
+        "ready": "Gotowa",
+        "rejected": "Nieplanowana",
+        "on_hold": "Wstrzymana"
+      }
+    },
+    "progress": {
+      "investigando": "Badanie sprawy",
+      "implementando": "Praca nad poprawką",
+      "probando": "Testowanie",
+      "terminando": "Kończenie prac",
+      "dudas": "Przyjęto założenie"
+    },
+    "timeline": {
+      "support_team": "Zil Support"
+    },
+    "detail": {
+      "bug_report": "Zgłoszenie problemu",
+      "our_answer": "Nasza odpowiedź",
+      "see_suggestion": "Zobacz propozycję",
+      "what_you_reported": "Co zgłoszono",
+      "resend_hint": "Problem nadal występuje albo jest coś do dodania? Proszę wysłać do wsparcia.",
+      "resend": "Wyślij do wsparcia",
+      "resent": "Wysłano. Sprawa zostanie sprawdzona ponownie.",
+      "next_window": "wychodzi {date}",
+      "request": "Wniosek",
+      "analysis": "Analiza",
+      "approach": "Podejście",
+      "impact": "Wpływ",
+      "effort": "Nakład pracy",
+      "risks": "Ryzyka",
+      "answer_hint": "Proszę odpowiedzieć na pytania, aby kontynuować analizę.",
+      "comment": "Dodaj komentarz",
+      "send": "Wyślij"
+    },
+    "impact": {
+      "low": "Niski",
+      "medium": "Średni",
+      "high": "Wysoki"
+    },
+    "filter": {
+      "open": "Otwarte",
+      "in_progress": "W trakcie",
+      "fixed": "Naprawione",
+      "blocked": "Zablokowane",
+      "all": "Wszystkie"
+    },
+    "admin": {
+      "actions": "Administracja",
+      "occurrences": "{count, plural, one {# wystąpienie} few {# wystąpienia} many {# wystąpień} other {# wystąpienia}}",
+      "send_to_fixer": "Wyślij do agenta naprawczego",
+      "fixer_sent": "Agent naprawczy już się tym zajmuje",
+      "fixer_not_sent": "Agent naprawczy nie ruszył",
+      "unblock": "Odblokuj",
+      "resolve": "Oznacz jako rozwiązane",
+      "dismiss": "Pomiń",
+      "archive": "Archiwizuj",
+      "technical_detail": "Szczegóły techniczne",
+      "decision": "Decyzja",
+      "flag_key": "Klucz flagi",
+      "notes_placeholder": "Notatki dla osoby zgłaszającej (opcjonalnie)",
+      "approve": "Zatwierdź i zbuduj",
+      "rebuild": "Zbuduj ponownie",
+      "hold": "Wstrzymaj",
+      "reject": "Odrzuć",
+      "flag_toggle": "Włączona dla wszystkich",
+      "open_pr": "Otwórz pull request"
+    },
+    "settings": {
+      "bug_agent": "Automatyczna naprawa problemów",
+      "bug_agent_hint": "Zgłoszenia trafiają do agenta naprawczego zaraz po otrzymaniu.",
+      "feature_agent": "Agent propozycji",
+      "feature_agent_hint": "Analizuje nowe propozycje i buduje zatwierdzone za flagą.",
+      "max_builds": "Realizacje tygodniowo",
+      "max_builds_hint": "Maksymalna liczba propozycji budowanych przez agenta w ciągu 7 dni."
+    }
+  }
+}

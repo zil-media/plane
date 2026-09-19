@@ -1,0 +1,163 @@
+{
+  "helpdesk": {
+    "close": "Tutup",
+    "cancel": "Batal",
+    "try_again": "Terjadi kesalahan. Silakan coba lagi.",
+    "error_title": "Tindakan tidak dapat diselesaikan",
+    "menu": {
+      "report_problem": "Laporkan masalah",
+      "suggest_improvement": "Sarankan peningkatan",
+      "my_tracking": "Permintaan Saya"
+    },
+    "reporter": {
+      "title": "Laporkan masalah",
+      "placeholder": "Apa yang terjadi? Apa yang Anda coba lakukan dan apa yang Anda harapkan untuk dilihat?",
+      "images_hint": "Tangkapan layar ini akan dilampirkan secara otomatis. Anda juga dapat menempelkan (Ctrl+V) atau menambahkan hingga 5 gambar.",
+      "add_image": "Tambahkan gambar",
+      "remove_image": "Hapus gambar",
+      "urgent": "Ini menghambat pekerjaan saya",
+      "urgent_hint": "Tandai hanya jika Anda tidak dapat melanjutkan pekerjaan sampai masalah ini diperbaiki.",
+      "submit": "Kirim laporan",
+      "my_reports": "Lihat Permintaan Saya",
+      "sent": "Terima kasih, laporan Anda sudah kami terima. Kami sedang meninjaunya; Anda dapat memantau perkembangannya di Permintaan Saya dan kami akan mengirim email saat masalahnya selesai.",
+      "view_tracking": "Pantau perkembangan",
+      "report_another": "Laporkan masalah lain",
+      "error_title": "Laporan Anda tidak dapat dikirim"
+    },
+    "suggest": {
+      "title": "Sarankan peningkatan",
+      "intro": "Beri tahu kami apa yang Anda butuhkan. Jelaskan masalah yang ingin Anda selesaikan; kami akan memikirkan cara terbaik untuk membangunnya.",
+      "what_label": "Apa yang ingin Anda bisa lakukan?",
+      "what_placeholder": "Misalnya: mengekspor daftar item kerja ke spreadsheet",
+      "why_label": "Mengapa Anda membutuhkan ini?",
+      "why_placeholder": "Masalah apa yang diselesaikan oleh ini? Bagaimana Anda menanganinya saat ini?",
+      "why_hint": "Minimal 20 karakter, agar kami memahami konteksnya.",
+      "how_label": "Bagaimana Anda membayangkannya? (opsional)",
+      "how_placeholder": "Ide apa pun tentang cara kerjanya akan sangat membantu.",
+      "priority_label": "Seberapa penting hal ini bagi Anda?",
+      "add_images": "Tambahkan gambar",
+      "next": "Lanjutkan",
+      "back": "Kembali",
+      "submit": "Kirim saran",
+      "sent": "Terima kasih atas sarannya. Kami akan menganalisisnya dan Anda dapat memantau setiap tahap di Permintaan Saya.",
+      "error_title": "Saran Anda tidak dapat dikirim"
+    },
+    "priority": {
+      "baja": "Rendah",
+      "media": "Sedang",
+      "alta": "Tinggi"
+    },
+    "board": {
+      "title": "Dukungan",
+      "intro": "Laporan dan saran Anda, beserta status masing-masing.",
+      "tab_tracking": "Permintaan Saya",
+      "tab_suggestions": "Saran",
+      "tab_reports": "Laporan",
+      "tab_settings": "Pengaturan",
+      "empty": "Anda belum mengirim laporan atau saran apa pun."
+    },
+    "section": {
+      "needs_you": "Butuh jawaban Anda",
+      "in_progress": "Sedang berlangsung",
+      "next_deploy": "Di rilis berikutnya",
+      "done": "Selesai",
+      "stalled": "Ditunda"
+    },
+    "phase": {
+      "next_deploy": "Di rilis berikutnya",
+      "bug": {
+        "received": "Diterima",
+        "diagnosing": "Sedang didiagnosis",
+        "resolved": "Terselesaikan",
+        "answered": "Kami sudah menjawab Anda",
+        "became_suggestion": "Menjadi saran",
+        "dismissed": "Ditutup",
+        "archived": "Diarsipkan",
+        "needs_person": "Menunggu tim"
+      },
+      "feature": {
+        "received": "Diterima",
+        "analyzing": "Sedang dianalisis",
+        "awaiting_decision": "Menunggu keputusan",
+        "needs_answer": "Butuh jawaban Anda",
+        "approved": "Disetujui",
+        "building": "Sedang dibangun",
+        "needs_review": "Butuh peninjauan",
+        "in_review": "Sedang ditinjau",
+        "ready": "Siap",
+        "rejected": "Tidak direncanakan",
+        "on_hold": "Dijeda"
+      }
+    },
+    "progress": {
+      "investigando": "Sedang diselidiki",
+      "implementando": "Sedang mengerjakan perbaikan",
+      "probando": "Sedang diuji",
+      "terminando": "Sedang diselesaikan",
+      "dudas": "Asumsi telah diambil"
+    },
+    "timeline": {
+      "support_team": "Zil Support"
+    },
+    "detail": {
+      "bug_report": "Laporan masalah",
+      "our_answer": "Jawaban kami",
+      "see_suggestion": "Lihat saran",
+      "what_you_reported": "Yang dilaporkan",
+      "resend_hint": "Masih terjadi, atau ada yang ingin ditambahkan? Kirim ke dukungan.",
+      "resend": "Kirim ke dukungan",
+      "resent": "Terkirim. Kami akan meninjaunya lagi.",
+      "next_window": "dirilis pada {date}",
+      "request": "Permintaan",
+      "analysis": "Analisis",
+      "approach": "Pendekatan",
+      "impact": "Dampak",
+      "effort": "Upaya",
+      "risks": "Risiko",
+      "answer_hint": "Jawab pertanyaan-pertanyaan ini untuk melanjutkan analisis.",
+      "comment": "Tambahkan komentar",
+      "send": "Kirim"
+    },
+    "impact": {
+      "low": "Rendah",
+      "medium": "Sedang",
+      "high": "Tinggi"
+    },
+    "filter": {
+      "open": "Terbuka",
+      "in_progress": "Sedang berlangsung",
+      "fixed": "Diperbaiki",
+      "blocked": "Terblokir",
+      "all": "Semua"
+    },
+    "admin": {
+      "actions": "Administrasi",
+      "occurrences": "{count, plural, one {# kemunculan} other {# kemunculan}}",
+      "send_to_fixer": "Kirim ke agen perbaikan",
+      "fixer_sent": "Agen perbaikan sedang menanganinya",
+      "fixer_not_sent": "Agen perbaikan belum mulai",
+      "unblock": "Buka blokir",
+      "resolve": "Tandai selesai",
+      "dismiss": "Abaikan",
+      "archive": "Arsipkan",
+      "technical_detail": "Detail teknis",
+      "decision": "Keputusan",
+      "flag_key": "Kunci flag",
+      "notes_placeholder": "Catatan untuk orang yang meminta (opsional)",
+      "approve": "Setujui dan bangun",
+      "rebuild": "Bangun ulang",
+      "hold": "Jeda",
+      "reject": "Tolak",
+      "flag_toggle": "Diaktifkan untuk semua orang",
+      "open_pr": "Buka pull request"
+    },
+    "settings": {
+      "bug_agent": "Perbaikan masalah otomatis",
+      "bug_agent_hint": "Laporan langsung dikirim ke agen perbaikan begitu diterima.",
+      "feature_agent": "Agen saran",
+      "feature_agent_hint": "Menganalisis saran baru dan membangun yang telah disetujui di balik sebuah flag.",
+      "max_builds": "Pembangunan per minggu",
+      "max_builds_hint": "Jumlah maksimum saran yang dibangun agen dalam 7 hari."
+    }
+  }
+}

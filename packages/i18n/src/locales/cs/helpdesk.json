@@ -1,0 +1,163 @@
+{
+  "helpdesk": {
+    "close": "Zavřít",
+    "cancel": "Zrušit",
+    "try_again": "Něco se pokazilo. Zkuste to prosím znovu.",
+    "error_title": "Akci se nepodařilo dokončit",
+    "menu": {
+      "report_problem": "Nahlásit problém",
+      "suggest_improvement": "Navrhnout vylepšení",
+      "my_tracking": "Moje požadavky"
+    },
+    "reporter": {
+      "title": "Nahlásit problém",
+      "placeholder": "Co se stalo? Co jste se snažili udělat a co jste očekávali, že uvidíte?",
+      "images_hint": "Snímek této obrazovky se přiloží automaticky. Můžete také vložit (Ctrl+V) nebo přidat až 5 obrázků.",
+      "add_image": "Přidat obrázek",
+      "remove_image": "Odebrat obrázek",
+      "urgent": "Blokuje mi to práci",
+      "urgent_hint": "Označte pouze v případě, že nemůžete pokračovat v práci, dokud to nebude opraveno.",
+      "submit": "Odeslat hlášení",
+      "my_reports": "Zobrazit moje požadavky",
+      "sent": "Děkujeme, hlášení jsme přijali. Už se jím zabýváme; postup můžete sledovat v sekci Moje požadavky a jakmile bude vyřešeno, pošleme e-mail.",
+      "view_tracking": "Sledovat postup",
+      "report_another": "Nahlásit další problém",
+      "error_title": "Hlášení se nepodařilo odeslat"
+    },
+    "suggest": {
+      "title": "Navrhnout vylepšení",
+      "intro": "Popište, co potřebujete. Popište problém, který chcete vyřešit; nejlepší způsob řešení promyslíme.",
+      "what_label": "Co byste chtěli umět udělat?",
+      "what_placeholder": "Například: exportovat seznam pracovních položek do tabulky",
+      "why_label": "Proč to potřebujete?",
+      "why_placeholder": "Jaký problém to řeší? Jak to řešíte dnes?",
+      "why_hint": "Alespoň 20 znaků, abychom pochopili kontext.",
+      "how_label": "Jak si to představujete? (nepovinné)",
+      "how_placeholder": "Uvítáme jakoukoli představu o tom, jak by to mohlo fungovat.",
+      "priority_label": "Jak důležité to pro vás je?",
+      "add_images": "Přidat obrázky",
+      "next": "Pokračovat",
+      "back": "Zpět",
+      "submit": "Odeslat návrh",
+      "sent": "Děkujeme za návrh. Provedeme analýzu a každý krok budete moci sledovat v sekci Moje požadavky.",
+      "error_title": "Návrh se nepodařilo odeslat"
+    },
+    "priority": {
+      "baja": "Nízká",
+      "media": "Střední",
+      "alta": "Vysoká"
+    },
+    "board": {
+      "title": "Podpora",
+      "intro": "Vaše hlášení a návrhy a stav každého z nich.",
+      "tab_tracking": "Moje požadavky",
+      "tab_suggestions": "Návrhy",
+      "tab_reports": "Hlášení",
+      "tab_settings": "Nastavení",
+      "empty": "Zatím jste neodeslali žádné hlášení ani návrh."
+    },
+    "section": {
+      "needs_you": "Čeká na vaši odpověď",
+      "in_progress": "Probíhá",
+      "next_deploy": "V příští verzi",
+      "done": "Hotovo",
+      "stalled": "Pozastaveno"
+    },
+    "phase": {
+      "next_deploy": "V příští verzi",
+      "bug": {
+        "received": "Přijato",
+        "diagnosing": "Probíhá diagnostika",
+        "resolved": "Vyřešeno",
+        "answered": "Odpověděli jsme vám",
+        "became_suggestion": "Stalo se návrhem",
+        "dismissed": "Uzavřeno",
+        "archived": "Archivováno",
+        "needs_person": "Čeká na tým"
+      },
+      "feature": {
+        "received": "Přijat",
+        "analyzing": "Probíhá analýza",
+        "awaiting_decision": "Čeká na rozhodnutí",
+        "needs_answer": "Čeká na vaši odpověď",
+        "approved": "Schválen",
+        "building": "Probíhá realizace",
+        "needs_review": "Čeká na kontrolu",
+        "in_review": "V kontrole",
+        "ready": "Připraven",
+        "rejected": "Neplánováno",
+        "on_hold": "Pozastaveno"
+      }
+    },
+    "progress": {
+      "investigando": "Probíhá zkoumání",
+      "implementando": "Pracujeme na opravě",
+      "probando": "Probíhá testování",
+      "terminando": "Dokončujeme",
+      "dudas": "Přijat předpoklad"
+    },
+    "timeline": {
+      "support_team": "Zil Support"
+    },
+    "detail": {
+      "bug_report": "Hlášení problému",
+      "our_answer": "Naše odpověď",
+      "see_suggestion": "Zobrazit návrh",
+      "what_you_reported": "Co bylo nahlášeno",
+      "resend_hint": "Stále se to děje, nebo chcete něco doplnit? Pošlete to podpoře.",
+      "resend": "Odeslat podpoře",
+      "resent": "Odesláno. Podíváme se na to znovu.",
+      "next_window": "vychází {date}",
+      "request": "Požadavek",
+      "analysis": "Analýza",
+      "approach": "Přístup",
+      "impact": "Dopad",
+      "effort": "Náročnost",
+      "risks": "Rizika",
+      "answer_hint": "Odpovězte na otázky, aby mohla analýza pokračovat.",
+      "comment": "Přidat komentář",
+      "send": "Odeslat"
+    },
+    "impact": {
+      "low": "Nízký",
+      "medium": "Střední",
+      "high": "Vysoký"
+    },
+    "filter": {
+      "open": "Otevřené",
+      "in_progress": "Probíhající",
+      "fixed": "Opravené",
+      "blocked": "Blokované",
+      "all": "Vše"
+    },
+    "admin": {
+      "actions": "Administrace",
+      "occurrences": "{count, plural, one {# výskyt} few {# výskyty} many {# výskytu} other {# výskytů}}",
+      "send_to_fixer": "Odeslat opraváři",
+      "fixer_sent": "Opravář se tím již zabývá",
+      "fixer_not_sent": "Opravář nezačal",
+      "unblock": "Odblokovat",
+      "resolve": "Označit jako vyřešené",
+      "dismiss": "Zamítnout",
+      "archive": "Archivovat",
+      "technical_detail": "Technický detail",
+      "decision": "Rozhodnutí",
+      "flag_key": "Klíč příznaku",
+      "notes_placeholder": "Poznámky pro osobu, která o to požádala (nepovinné)",
+      "approve": "Schválit a realizovat",
+      "rebuild": "Realizovat znovu",
+      "hold": "Pozastavit",
+      "reject": "Odmítnout",
+      "flag_toggle": "Zapnuto pro všechny",
+      "open_pr": "Otevřít pull request"
+    },
+    "settings": {
+      "bug_agent": "Automatická oprava chyb",
+      "bug_agent_hint": "Hlášení se ihned po přijetí odešlou opraváři.",
+      "feature_agent": "Agent pro návrhy",
+      "feature_agent_hint": "Analyzuje nové návrhy a schválené realizuje za příznakem.",
+      "max_builds": "Realizace týdně",
+      "max_builds_hint": "Maximální počet návrhů, které agent realizuje za 7 dní."
+    }
+  }
+}

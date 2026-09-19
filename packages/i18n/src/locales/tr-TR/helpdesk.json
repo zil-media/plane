@@ -1,0 +1,163 @@
+{
+  "helpdesk": {
+    "close": "Kapat",
+    "cancel": "İptal",
+    "try_again": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
+    "error_title": "İşlem tamamlanamadı",
+    "menu": {
+      "report_problem": "Sorun bildir",
+      "suggest_improvement": "İyileştirme önerin",
+      "my_tracking": "Taleplerim"
+    },
+    "reporter": {
+      "title": "Sorun bildir",
+      "placeholder": "Ne oldu? Ne yapmaya çalışıyordunuz ve ne görmeyi bekliyordunuz?",
+      "images_hint": "Bu ekranın bir görüntüsü otomatik olarak eklenir. Ayrıca yapıştırabilir (Ctrl+V) veya 5 adede kadar görsel ekleyebilirsiniz.",
+      "add_image": "Görsel ekle",
+      "remove_image": "Görseli kaldır",
+      "urgent": "Çalışmamı engelliyor",
+      "urgent_hint": "Yalnızca düzeltilene kadar çalışmaya devam edemiyorsanız işaretleyin.",
+      "submit": "Bildirimi gönder",
+      "my_reports": "Taleplerimi görüntüle",
+      "sent": "Teşekkürler, bildiriminizi aldık. Şimdiden inceliyoruz; ilerlemeyi Taleplerim bölümünden takip edebilir, çözüldüğünde size e-posta gönderiyoruz.",
+      "view_tracking": "İlerlemeyi takip et",
+      "report_another": "Başka bir sorun bildir",
+      "error_title": "Bildiriminiz gönderilemedi"
+    },
+    "suggest": {
+      "title": "İyileştirme önerin",
+      "intro": "İhtiyacınızı anlatın. Çözmek istediğiniz sorunu tarif edin; en iyi geliştirme yolunu biz değerlendireceğiz.",
+      "what_label": "Neyi yapabilmek isterdiniz?",
+      "what_placeholder": "Örneğin: iş öğeleri listesini bir e-tabloya aktarmak",
+      "why_label": "Bu size neden gerekli?",
+      "why_placeholder": "Bu hangi sorunu çözüyor? Bugün bunu nasıl hallediyorsunuz?",
+      "why_hint": "Bağlamı anlayabilmemiz için en az 20 karakter.",
+      "how_label": "Bunu nasıl hayal ediyorsunuz? (isteğe bağlı)",
+      "how_placeholder": "Nasıl çalışabileceğine dair her fikir değerlidir.",
+      "priority_label": "Bu sizin için ne kadar önemli?",
+      "add_images": "Görseller ekle",
+      "next": "Devam et",
+      "back": "Geri",
+      "submit": "Öneriyi gönder",
+      "sent": "Öneriniz için teşekkürler. Onu inceleyeceğiz ve her adımı Taleplerim bölümünden takip edebileceksiniz.",
+      "error_title": "Öneriniz gönderilemedi"
+    },
+    "priority": {
+      "baja": "Düşük",
+      "media": "Orta",
+      "alta": "Yüksek"
+    },
+    "board": {
+      "title": "Destek",
+      "intro": "Bildirimleriniz ve önerileriniz ile her birinin durumu.",
+      "tab_tracking": "Taleplerim",
+      "tab_suggestions": "Öneriler",
+      "tab_reports": "Bildirimler",
+      "tab_settings": "Ayarlar",
+      "empty": "Henüz hiç bildirim veya öneri göndermediniz."
+    },
+    "section": {
+      "needs_you": "Yanıtınız bekleniyor",
+      "in_progress": "Devam ediyor",
+      "next_deploy": "Sonraki sürümde",
+      "done": "Tamamlandı",
+      "stalled": "Beklemede"
+    },
+    "phase": {
+      "next_deploy": "Sonraki sürümde",
+      "bug": {
+        "received": "Alındı",
+        "diagnosing": "Tanılanıyor",
+        "resolved": "Çözüldü",
+        "answered": "Size yanıt verdik",
+        "became_suggestion": "Öneriye dönüştü",
+        "dismissed": "Kapatıldı",
+        "archived": "Arşivlendi",
+        "needs_person": "Ekip bekleniyor"
+      },
+      "feature": {
+        "received": "Alındı",
+        "analyzing": "Analiz ediliyor",
+        "awaiting_decision": "Karar bekleniyor",
+        "needs_answer": "Yanıtınız bekleniyor",
+        "approved": "Onaylandı",
+        "building": "Geliştiriliyor",
+        "needs_review": "İnceleme gerekiyor",
+        "in_review": "İncelemede",
+        "ready": "Hazır",
+        "rejected": "Planlanmadı",
+        "on_hold": "Duraklatıldı"
+      }
+    },
+    "progress": {
+      "investigando": "İnceleniyor",
+      "implementando": "Düzeltme üzerinde çalışılıyor",
+      "probando": "Test ediliyor",
+      "terminando": "Tamamlanıyor",
+      "dudas": "Bir varsayım kabul edildi"
+    },
+    "timeline": {
+      "support_team": "Zil Support"
+    },
+    "detail": {
+      "bug_report": "Sorun bildirimi",
+      "our_answer": "Yanıtımız",
+      "see_suggestion": "Öneriyi görüntüle",
+      "what_you_reported": "Bildirilen içerik",
+      "resend_hint": "Sorun devam mı ediyor, yoksa eklemek istediğiniz bir şey mi var? Destek ekibine gönderin.",
+      "resend": "Destek ekibine gönder",
+      "resent": "Gönderildi. Tekrar inceliyoruz.",
+      "next_window": "{date} tarihinde yayınlanıyor",
+      "request": "Talep",
+      "analysis": "Analiz",
+      "approach": "Yaklaşım",
+      "impact": "Etki",
+      "effort": "Efor",
+      "risks": "Riskler",
+      "answer_hint": "Analize devam edebilmemiz için soruları yanıtlayın.",
+      "comment": "Yorum ekle",
+      "send": "Gönder"
+    },
+    "impact": {
+      "low": "Düşük",
+      "medium": "Orta",
+      "high": "Yüksek"
+    },
+    "filter": {
+      "open": "Açık",
+      "in_progress": "Devam eden",
+      "fixed": "Düzeltilen",
+      "blocked": "Engellenen",
+      "all": "Tümü"
+    },
+    "admin": {
+      "actions": "Yönetim",
+      "occurrences": "{count, plural, one {# oluşum} other {# oluşum}}",
+      "send_to_fixer": "Düzeltme aracısına gönder",
+      "fixer_sent": "Düzeltme aracısı bununla ilgileniyor",
+      "fixer_not_sent": "Düzeltme aracısı başlamadı",
+      "unblock": "Engeli kaldır",
+      "resolve": "Çözüldü olarak işaretle",
+      "dismiss": "Yoksay",
+      "archive": "Arşivle",
+      "technical_detail": "Teknik detay",
+      "decision": "Karar",
+      "flag_key": "Flag anahtarı",
+      "notes_placeholder": "Talep eden kişi için notlar (isteğe bağlı)",
+      "approve": "Onayla ve geliştir",
+      "rebuild": "Yeniden geliştir",
+      "hold": "Duraklat",
+      "reject": "Reddet",
+      "flag_toggle": "Herkes için etkin",
+      "open_pr": "Pull request aç"
+    },
+    "settings": {
+      "bug_agent": "Otomatik hata düzeltme",
+      "bug_agent_hint": "Bildirimler alınır alınmaz düzeltme aracısına gönderilir.",
+      "feature_agent": "Öneri aracısı",
+      "feature_agent_hint": "Yeni önerileri analiz eder ve onaylananları bir flag arkasında geliştirir.",
+      "max_builds": "Haftalık geliştirme sayısı",
+      "max_builds_hint": "Aracının 7 gün içinde geliştireceği maksimum öneri sayısı."
+    }
+  }
+}
