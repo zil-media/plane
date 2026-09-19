@@ -71,8 +71,11 @@ services:
       timeout: 10s
       retries: 10
 
+  # Opt-in (`--profile s3`): the suite mocks every S3 call, and minio/minio is
+  # no longer pullable anonymously from Docker Hub, so it can't gate the run.
   test-minio:
     image: minio/minio
+    profiles: ["s3"]
     networks:
       - test_env
     env_file:
@@ -131,8 +134,6 @@ services:
       test-redis:
         condition: service_healthy
       test-mq:
-        condition: service_healthy
-      test-minio:
         condition: service_healthy
     # Install test-only requirements (not in local.txt) then exec pytest.
     # Any args passed via `docker compose run api-tests <args>` replace the default command.

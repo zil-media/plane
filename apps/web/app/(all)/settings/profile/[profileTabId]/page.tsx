@@ -24,7 +24,7 @@ import type { Route } from "../+types/layout";
 // Identity and credentials are owned by Zil Workspace (SSO), so these tabs are
 // disabled in Ops: users must not edit their own name/email or manage passwords
 // here. Requests for them bounce back to the workspace.
-const REDIRECTED_PROFILE_TABS: string[] = new Set(["general", "security"]);
+const REDIRECTED_PROFILE_TABS = new Set<string>(["general", "security"]);
 
 function ProfileSettingsPage(props: Route.ComponentProps) {
   const { profileTabId } = props.params;
