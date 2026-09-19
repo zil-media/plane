@@ -4,7 +4,7 @@
 # annotations are readable anonymously (API and run page) — including by the
 # agent sessions that have to fix what the gate caught.
 #
-# Usage: scripts/ci/gate.sh "<gate name>" <command> [args...]
+# Usage: .github/ci/gate.sh "<gate name>" <command> [args...]
 set -uo pipefail
 
 name="$1"
@@ -15,9 +15,10 @@ log="$(mktemp)"
 code=${PIPESTATUS[0]}
 
 if [ "$code" -ne 0 ]; then
-  body="$(tail -n 80 "$log" \
-    | sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' -e 's/%/%25/g' -e 's/\r//g' \
-    | awk 'BEGIN { ORS = "%0A" } { print }')"
+  # GitHub caps an annotation at 4096 chars and keeps the head, so send only the
+  # tail: that is where summaries (pytest's, tsc's error count) end up.
+  body="$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' -e 's/\r//g' "$log" | tail -c 3600 \
+    | sed -e 's/%/%25/g' | awk 'BEGIN { ORS = "%0A" } { print }')"
   echo "::error title=${name} failed::${body}"
 fi
 

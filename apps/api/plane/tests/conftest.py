@@ -16,6 +16,15 @@ def django_db_setup(django_db_setup):  # noqa: F811
     pass
 
 
+@pytest.fixture(autouse=True)
+def _isolated_cache():
+    """Throttle counters live in the cache; without this they leak across tests and trip 429s."""
+    from django.core.cache import cache
+
+    cache.clear()
+    yield
+
+
 @pytest.fixture
 def api_client():
     """Return an unauthenticated API client"""

@@ -73,7 +73,7 @@ jobs:
         run: >-
           bash .github/ci/gate.sh "pytest"
           docker compose -f docker-compose-test.yml run --rm api-tests
-          pytest -p no:cacheprovider -o addopts="--strict-markers --reuse-db --nomigrations" -q -rfE
+          pytest -p no:cacheprovider -o addopts="--strict-markers --reuse-db --nomigrations" -q -rfE --disable-warnings
 
       - name: Tear down
         if: always()
