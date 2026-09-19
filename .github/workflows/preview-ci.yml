@@ -3,6 +3,11 @@ name: Preview CI
 # Quality bar for `preview`, the branch that deploys to production
 # (build-and-push.yml -> GHCR -> Watchtower). The agent lanes run this same bar
 # before they merge anything, so it has to stay green on `preview` itself.
+#
+# Every gate runs even when an earlier one failed (`!cancelled()`), so a single
+# run reports all the problems at once, and each gate goes through
+# .github/ci/gate.sh, which surfaces failures as annotations readable without
+# signing in to GitHub.
 
 on:
   push:
@@ -29,7 +34,7 @@ jobs:
           python-version: "3.12"
       # Same version as requirements/local.txt.
       - run: pip install ruff==0.9.7
-      - run: ruff check apps/api
+      - run: bash .github/ci/gate.sh "ruff" ruff check apps/api
 
   backend-tests:
     runs-on: ubuntu-latest
@@ -51,15 +56,24 @@ jobs:
           cache-to: type=gha,mode=max,scope=api-tests
 
       - name: Test env file
+        id: env
         run: |
           cp apps/api/.env.example apps/api/.env
           echo "SECRET_KEY=\"ci-$(openssl rand -hex 24)\"" >> apps/api/.env
 
       - name: Migrations match the models
-        run: docker compose -f docker-compose-test.yml run --rm api-tests python manage.py makemigrations --check --dry-run
+        if: ${{ !cancelled() && steps.env.outcome == 'success' }}
+        run: >-
+          bash .github/ci/gate.sh "makemigrations --check"
+          docker compose -f docker-compose-test.yml run --rm api-tests
+          python manage.py makemigrations --check --dry-run
 
       - name: Pytest
-        run: docker compose -f docker-compose-test.yml run --rm api-tests pytest -p no:cacheprovider
+        if: ${{ !cancelled() && steps.env.outcome == 'success' }}
+        run: >-
+          bash .github/ci/gate.sh "pytest"
+          docker compose -f docker-compose-test.yml run --rm api-tests
+          pytest -p no:cacheprovider -o addopts="--strict-markers --reuse-db --nomigrations" -q -rfE
 
       - name: Tear down
         if: always()
@@ -76,7 +90,9 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - name: Install
+        id: install
+        run: pnpm install --frozen-lockfile
 
       - name: Turbo cache
         uses: actions/cache@v4
@@ -85,7 +101,15 @@ jobs:
           key: turbo-${{ runner.os }}-${{ github.sha }}
           restore-keys: turbo-${{ runner.os }}-
 
-      - run: pnpm check:format
-      - run: pnpm check:lint
-      - run: pnpm check:types
-      - run: pnpm build
+      - name: Format
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bash .github/ci/gate.sh "format" pnpm check:format
+      - name: Lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bash .github/ci/gate.sh "lint" pnpm check:lint
+      - name: Types
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bash .github/ci/gate.sh "types" pnpm check:types
+      - name: Build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bash .github/ci/gate.sh "build" pnpm build

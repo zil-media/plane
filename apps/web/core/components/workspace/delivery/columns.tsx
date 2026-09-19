@@ -29,7 +29,10 @@ export const buildDeliveryColumns = ({ t }: TBuildColumnsArgs): ColumnDef<TDeliv
       <div className="flex items-center gap-2 text-left">
         <span
           className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-          style={{ backgroundColor: row.original.labelColor && row.original.labelColor !== "" ? row.original.labelColor : "#000" }}
+          style={{
+            backgroundColor:
+              row.original.labelColor && row.original.labelColor !== "" ? row.original.labelColor : "#000",
+          }}
         />
         <span className="break-words text-secondary">{row.original.labelName}</span>
       </div>

@@ -26,13 +26,9 @@ export function IssueEmbedUpgradeCard(props: any) {
           Embed and access issues in pages seamlessly, upgrade to Zil Ops Pro now.
         </p>
       </div>
-      <a
-        href="#"
-        rel="noopener noreferrer"
-        className={cn(getButtonStyling("primary", "base"), "no-underline")}
-      >
+      <button type="button" className={cn(getButtonStyling("primary", "base"), "no-underline")}>
         Upgrade
-      </a>
+      </button>
     </div>
   );
 }

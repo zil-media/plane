@@ -146,7 +146,7 @@ export const IssueLinkItem = observer(function IssueLinkItem(props: TIssueLinkIt
               <ProviderGlyph className="size-8 opacity-40" />
             </div>
           )}
-          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-surface-1/90 px-2 py-0.5 text-caption-sm-medium text-secondary backdrop-blur-sm">
+          <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-surface-1/90 px-2 py-0.5 text-caption-sm-medium text-secondary backdrop-blur-sm">
             <ProviderGlyph className="size-3 flex-shrink-0" />
             {linkDetail.metadata?.provider_name ?? provider}
           </span>
@@ -184,12 +184,13 @@ export const IssueLinkItem = observer(function IssueLinkItem(props: TIssueLinkIt
           </div>
 
           <div className="flex flex-shrink-0 items-center gap-1">
-            <span
+            <button
+              type="button"
               onClick={handleCopyLink}
               className="relative grid cursor-pointer place-items-center rounded-sm p-1 text-placeholder outline-none group-hover:text-secondary hover:bg-layer-1"
             >
               <CopyIcon className="h-3.5 w-3.5 stroke-[1.5]" />
-            </span>
+            </button>
             <CustomMenu
               ellipsis
               buttonClassName="text-placeholder group-hover:text-secondary"
@@ -254,12 +255,13 @@ export const IssueLinkItem = observer(function IssueLinkItem(props: TIssueLinkIt
           <p className="group-hover-text-secondary p-1 align-bottom text-caption-sm-regular leading-5 text-placeholder">
             {calculateTimeAgo(linkDetail.created_at)}
           </p>
-          <span
+          <button
+            type="button"
             onClick={handleCopyLink}
             className="relative grid cursor-pointer place-items-center rounded-sm p-1 text-placeholder outline-none group-hover:text-secondary hover:bg-layer-1"
           >
             <CopyIcon className="h-3.5 w-3.5 stroke-[1.5]" />
-          </span>
+          </button>
           <CustomMenu
             ellipsis
             buttonClassName="text-placeholder group-hover:text-secondary"

@@ -89,13 +89,7 @@ export const onAuthenticate = async ({
  * (see apps/live/src/extensions/database.ts fetchDocument). Throws if the
  * user is not authorized to access the page, rejecting the connection.
  */
-const authorizePageAccess = async ({
-  context,
-  pageId,
-}: {
-  context: HocusPocusServerContext;
-  pageId: string;
-}) => {
+const authorizePageAccess = async ({ context, pageId }: { context: HocusPocusServerContext; pageId: string }) => {
   try {
     const service = getPageService(context.documentType, context);
     await service.fetchDescriptionBinary(pageId);
