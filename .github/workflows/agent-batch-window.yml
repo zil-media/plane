@@ -1,0 +1,204 @@
+name: Agent Batch Window
+
+# Three daily windows (12:00 / 18:00 / 23:00 ART; Argentina has no DST) that ship whatever
+# accumulated on `agent-batch`: one deploy per window however many fixes it carries. Urgent bug
+# fixes never wait here (agent-auto-merge.yml merges them straight to preview).
+#
+# Each fix already passed the per-push bar when it landed on agent-batch; this re-gates the
+# COMBINED state with the same bar before merging to preview, then closes the loop in Ops:
+# bugs -> resolved (reporters emailed), features -> merged (still dark behind their flag).
+# Keep the cron in sync with nextDeployWindow() in apps/web/core/components/support/board/phase.ts.
+
+on:
+  schedule:
+    - cron: "0 15 * * *"
+    - cron: "0 21 * * *"
+    - cron: "0 2 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: agent-batch-window
+  cancel-in-progress: false
+
+jobs:
+  ship-window:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      AGENT_API_KEY: ${{ secrets.AGENT_API_KEY }}
+      FEATURE_AGENT_API_KEY: ${{ secrets.FEATURE_AGENT_API_KEY }}
+      API_URL: ${{ secrets.AGENT_API_URL }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: CI scripts from preview
+        run: bash .github/ci/bootstrap.sh
+
+      - name: Anything pending?
+        id: pending
+        run: |
+          git fetch origin preview
+          if ! git fetch origin agent-batch 2>/dev/null; then
+            echo "No agent-batch branch: nothing to ship."
+            echo "pending=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          COUNT=$(git rev-list --count origin/preview..origin/agent-batch)
+          echo "Pending commits: ${COUNT}"
+          [ "$COUNT" = "0" ] && echo "pending=false" >> "$GITHUB_OUTPUT" || echo "pending=true" >> "$GITHUB_OUTPUT"
+
+      - name: Reconcile preview into agent-batch
+        if: steps.pending.outputs.pending == 'true'
+        run: |
+          git config user.name "zil-agent-bot"
+          git config user.email "bot@zil.global"
+          git checkout -B agent-batch origin/agent-batch
+          if ! git merge --no-edit origin/preview; then
+            CONFLICTS=$(git diff --name-only --diff-filter=U | tr '\n' ' ')
+            git merge --abort 2>/dev/null || true
+            "$LANE/report-incident.sh" window-conflict agent-batch \
+              "Reconcile: merging origin/preview into agent-batch conflicted before the gates. Files: ${CONFLICTS:-(could not list)}"
+            echo "::error::Conflict merging preview into agent-batch: resolve by hand"
+            exit 1
+          fi
+
+      - name: Decide how far can ship
+        id: pick
+        if: steps.pending.outputs.pending == 'true'
+        env:
+          LANE_TIP: agent-batch
+        run: '"$LANE/pick-shippable.sh"'
+      - name: Go to the shippable point
+        if: steps.pending.outputs.pending == 'true'
+        env:
+          SHIP_SHA: ${{ steps.pick.outputs.ship_sha }}
+        run: git checkout --detach "$SHIP_SHA"
+
+      - name: Gate toolchains
+        if: steps.pending.outputs.pending == 'true'
+        uses: ./.github/actions/gate-setup
+      - name: Backend gates
+        if: steps.pending.outputs.pending == 'true'
+        run: '"$LANE/gates.sh" backend'
+      - name: Frontend gates
+        if: steps.pending.outputs.pending == 'true'
+        run: '"$LANE/gates.sh" frontend'
+
+      - name: Merge into preview
+        id: merge
+        if: steps.pending.outputs.pending == 'true'
+        env:
+          SHIP_SHA: ${{ steps.pick.outputs.ship_sha }}
+          PARTIAL: ${{ steps.pick.outputs.partial }}
+        run: |
+          report_conflict() { "$LANE/report-incident.sh" window-conflict agent-batch "$1" || true; }
+          git fetch origin preview agent-batch
+          git checkout -B batch-ship "$SHIP_SHA"
+          if ! git merge --no-edit origin/preview; then
+            report_conflict "Window: merging fresh preview into the shippable point conflicted after the gates"
+            exit 1
+          fi
+          PUSHED=false
+          for attempt in 1 2 3; do
+            PRE=$(git rev-parse origin/preview)
+            git checkout -B preview origin/preview
+            if ! git merge --no-edit batch-ship; then
+              report_conflict "Window: merging the shippable point into preview conflicted; the window deploys nothing"
+              exit 1
+            fi
+            if git push origin preview; then PUSHED=true; break; fi
+            echo "::warning::push to preview rejected (attempt ${attempt}/3): an urgent fix landed meanwhile. Redoing the merge."
+            sleep $((attempt * 5))
+            git fetch origin preview
+          done
+          if [ "$PUSHED" != "true" ]; then
+            report_conflict "Window: could not push to preview in 3 attempts"
+            exit 1
+          fi
+          echo "pre_preview=${PRE}" >> "$GITHUB_OUTPUT"
+          echo "merged=true" >> "$GITHUB_OUTPUT"
+          if [ "$PARTIAL" != "true" ]; then
+            git push origin preview:agent-batch || echo "::warning::agent-batch did not fast-forward (new commits arrived); the next window reconciles."
+          fi
+
+      - name: Deploy
+        if: steps.merge.outputs.merged == 'true'
+        run: '"$LANE/trigger-deploy.sh"'
+
+      - name: Report the blocked tail of the batch
+        if: always() && steps.pick.outputs.partial == 'true'
+        env:
+          SHIP_SHA: ${{ steps.pick.outputs.ship_sha }}
+          BLOCKED_SHA: ${{ steps.pick.outputs.blocked_sha }}
+          BLOCKED_FILES: ${{ steps.pick.outputs.blocked_files }}
+        run: |
+          "$LANE/report-incident.sh" window-split agent-batch \
+            "The batch shipped up to ${SHIP_SHA}. ${BLOCKED_SHA} is blocked by denylisted file(s): ${BLOCKED_FILES}. A PERSON merges those in a separate commit; the tail behind it does not ship on its own." || true
+
+      - name: Resolve the shipped bugs
+        if: steps.merge.outputs.merged == 'true'
+        env:
+          PRE: ${{ steps.merge.outputs.pre_preview }}
+        run: |
+          [ -n "$AGENT_API_KEY" ] && [ -n "$API_URL" ] || { echo "::warning::Agent secrets missing: nothing resolved."; exit 0; }
+          export LANE_BASE="$PRE"
+          source "$LANE/lib.sh"
+          COMMIT=$(git rev-parse --short HEAD)
+          FAILED=""
+          for BUG_ID in $(trailer_ids Bug-Id HEAD); do
+            PAYLOAD=$(jq -n --arg c "$COMMIT" '{admin_notes: "Deployed in a batch window by CI", commit_hash: $c}')
+            "$LANE/agent-api.sh" resolve "$BUG_ID" "$PAYLOAD" || FAILED="${FAILED} ${BUG_ID}"
+          done
+          if [ -n "$FAILED" ]; then
+            echo "::error::These bugs are in production but stayed unresolved:${FAILED}. Nobody retries this on its own."
+            exit 1
+          fi
+
+      # Safety net: a bug left in `fixed` whose fix already reached preview (its window's bookkeeping
+      # never ran) gets resolved here instead of waiting forever.
+      - name: Resolve deployed bugs left in fixed
+        if: always()
+        run: |
+          [ -n "$AGENT_API_KEY" ] && [ -n "$API_URL" ] || exit 0
+          git fetch origin preview --quiet || true
+          if ! curl -sSf --max-time 30 -o /tmp/fixed.json -H "Authorization: Bearer ${AGENT_API_KEY}" \
+              "${API_URL}/api/agent/bugs/?status=fixed"; then
+            echo "::warning::Could not list bugs in 'fixed'; skipping."
+            exit 0
+          fi
+          STRANDED=$(jq -r '.[]?.id // empty' /tmp/fixed.json | sort -u)
+          [ -n "$STRANDED" ] || { echo "No bugs in 'fixed'."; exit 0; }
+          DEPLOYED=$(git log origin/preview --since="30 days ago" --format='%(trailers:key=Bug-Id,valueonly)' \
+            | tr 'A-F' 'a-f' | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | sort -u || true)
+          RECOVER=$(comm -12 <(printf '%s\n' "$STRANDED") <(printf '%s\n' "$DEPLOYED"))
+          [ -n "$RECOVER" ] || { echo "Bugs in 'fixed' are not on preview yet: they wait for their window."; exit 0; }
+          COMMIT=$(git rev-parse --short origin/preview)
+          for BUG_ID in $RECOVER; do
+            PAYLOAD=$(jq -n --arg c "$COMMIT" '{admin_notes: "Reconciled by the window: the fix was already on preview", commit_hash: $c}')
+            "$LANE/agent-api.sh" resolve "$BUG_ID" "$PAYLOAD" || echo "::warning::could not reconcile ${BUG_ID}"
+          done
+
+      - name: Mark the shipped features merged
+        if: always() && steps.merge.outputs.merged == 'true'
+        env:
+          PRE: ${{ steps.merge.outputs.pre_preview }}
+        run: |
+          [ -n "$FEATURE_AGENT_API_KEY" ] && [ -n "$API_URL" ] || { echo "::warning::Feature secrets missing."; exit 0; }
+          export LANE_BASE="$PRE"
+          source "$LANE/lib.sh"
+          SHA=$(git rev-parse HEAD)
+          FAILED=""
+          for FID in $(trailer_ids Feature-Id HEAD); do
+            PAYLOAD=$(jq -n --arg c "$SHA" '{commit_hash: $c}')
+            "$LANE/agent-api.sh" merged "$FID" "$PAYLOAD" || FAILED="${FAILED} ${FID}"
+          done
+          if [ -n "$FAILED" ]; then
+            echo "::error::These features are in production but not marked merged:${FAILED}. A 409 is a real state mismatch: look at it."
+            exit 1
+          fi

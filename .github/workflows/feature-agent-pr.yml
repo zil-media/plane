@@ -1,0 +1,219 @@
+name: Feature Agent PR
+
+# The feature agent's lane (feat/agent/<feature uuid>). Runs the full preview bar, then routes:
+#
+#   - high impact, unreadable API, or ANY guard ⚠  -> PR against preview; a person reviews and merges.
+#   - low/medium with a silent guard (incl. the flag gate present) -> merged into `agent-batch`;
+#     agent-batch-window.yml re-gates the combined batch and ships it to preview.
+#
+# The blast radius is the AGENT's own declaration, so it never auto-merges on its own: the guard,
+# derived from the code, has to be silent too. And everything ships dark behind its flag.
+
+on:
+  push:
+    branches:
+      - "feat/agent/**"
+  pull_request:
+    types: [closed]
+    branches: [preview]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  # Never cancel mid-run: this job pushes to agent-batch and only THEN reports the state; a
+  # cancelled run would leave the code in the batch and the feature "building" forever.
+  group: feature-agent-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  gate-and-route:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      AGENT_API_KEY: ${{ secrets.AGENT_API_KEY }}
+      FEATURE_AGENT_API_KEY: ${{ secrets.FEATURE_AGENT_API_KEY }}
+      API_URL: ${{ secrets.AGENT_API_URL }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: CI scripts from preview
+        run: bash .github/ci/bootstrap.sh
+      - name: Reconcile preview into the branch
+        run: '"$LANE/reconcile-preview.sh"'
+
+      - name: Require Feature-Id trailers
+        id: feature
+        run: |
+          source "$LANE/lib.sh"
+          FEATURE_ID="${GITHUB_REF_NAME##*/}"
+          if ! printf '%s' "$FEATURE_ID" | grep -qE "^${UUID_RE}$"; then
+            echo "::error::${GITHUB_REF_NAME} does not end in a feature request id (UUID): this lane can't read it, report on it or mark it merged."
+            exit 1
+          fi
+          MISSING=""
+          for SHA in $(git rev-list --no-merges "origin/preview..${GITHUB_SHA}"); do
+            if ! trailer_values Feature-Id "$SHA" | tr 'A-F' 'a-f' | grep -qx "$FEATURE_ID"; then
+              MISSING="${MISSING} $(git log -1 --format='%h' "$SHA")"
+            fi
+          done
+          if [ -n "$MISSING" ]; then
+            echo "::error::Commits without the trailer 'Feature-Id: ${FEATURE_ID}':${MISSING}. Without it the window can't mark the feature merged."
+            exit 1
+          fi
+          echo "feature_id=${FEATURE_ID}" >> "$GITHUB_OUTPUT"
+
+      # Non-strict: this lane ends in a reviewed PR or in the batch, where the window re-guards strictly.
+      - name: Blast-radius guard
+        id: guard
+        env:
+          GUARD_STRICT: "0"
+        run: '"$LANE/guard.sh"'
+
+      - name: Gate toolchains
+        uses: ./.github/actions/gate-setup
+      - name: Backend gates
+        run: '"$LANE/gates.sh" backend'
+      - name: Frontend gates
+        run: '"$LANE/gates.sh" frontend'
+
+      - name: Determine lane
+        id: lane
+        env:
+          FEATURE_ID: ${{ steps.feature.outputs.feature_id }}
+        run: |
+          RADIUS=high
+          if [ -n "$FEATURE_AGENT_API_KEY" ] && [ -n "$API_URL" ] && \
+             curl -sf -H "Authorization: Bearer ${FEATURE_AGENT_API_KEY}" \
+               -o /tmp/feature.json "${API_URL}/api/agent/features/${FEATURE_ID}/"; then
+            RADIUS=$(jq -r '.spec.blast_radius // "high"' /tmp/feature.json)
+          else
+            echo "::warning::Could not read feature ${FEATURE_ID}: assuming high impact (PR lane)"
+          fi
+          LANE_NAME=pr
+          FALLBACK=""
+          if [ "$RADIUS" = "low" ] || [ "$RADIUS" = "medium" ]; then
+            LANE_NAME=batch
+            if grep -q '### ⚠ No flag' /tmp/guard-report.md 2>/dev/null; then
+              LANE_NAME=pr
+              FALLBACK="The diff shows no flag gate (is_feature_enabled / useFeatureFlag): required for auto-merge."
+            elif grep -q '⚠' /tmp/guard-report.md 2>/dev/null; then
+              LANE_NAME=pr
+              FALLBACK="The guard raised ⚠ (sensitive files or size): only silent diffs auto-merge."
+            fi
+          fi
+          echo "Declared blast radius: ${RADIUS}. Lane: ${LANE_NAME}. ${FALLBACK}"
+          echo "lane=${LANE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "fallback=${FALLBACK}" >> "$GITHUB_OUTPUT"
+
+      # ── PR lane ──
+      - name: Open or update the PR
+        id: pr
+        if: steps.lane.outputs.lane == 'pr'
+        env:
+          FEATURE_ID: ${{ steps.feature.outputs.feature_id }}
+          FALLBACK: ${{ steps.lane.outputs.fallback }}
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          TITLE=$(git log -1 --format=%s "${GITHUB_SHA}" | head -c 200)
+          {
+            echo "Feature request: \`${FEATURE_ID}\`"
+            echo
+            [ -n "$FALLBACK" ] && { echo "> ⚠ **Not auto-merged:** ${FALLBACK}"; echo; }
+            echo "Built by the feature agent. **Does not auto-merge**: review the guard report and the diff."
+            echo
+            cat /tmp/guard-report.md 2>/dev/null || echo "_(no guard report)_"
+            echo
+            echo "### Before merging"
+            echo "- [ ] The feature is behind its flag and the flag starts off"
+            echo "- [ ] Every ⚠ file was read line by line"
+            echo "- [ ] New env vars from the spec are already set in production"
+            echo "- [ ] Migrations (if any) are safe to run on deploy"
+            echo
+            echo "Merging ships it **dark**. It is turned on from Support → Suggestions in Ops."
+          } > /tmp/pr-body.md
+          EXISTING=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh pr edit "$EXISTING" --body-file /tmp/pr-body.md
+            PR_NUM="$EXISTING"
+          else
+            gh pr create --base preview --head "$BRANCH" --title "feat: ${TITLE#feat: }" --body-file /tmp/pr-body.md
+            PR_NUM=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          fi
+          echo "pr_num=${PR_NUM}" >> "$GITHUB_OUTPUT"
+      - name: Tell Ops the PR is in review
+        if: steps.lane.outputs.lane == 'pr'
+        env:
+          FEATURE_ID: ${{ steps.feature.outputs.feature_id }}
+          PR_NUM: ${{ steps.pr.outputs.pr_num }}
+        run: |
+          [ -n "$FEATURE_AGENT_API_KEY" ] && [ -n "$API_URL" ] || { echo "::warning::Feature secrets missing: Ops not told."; exit 0; }
+          PR_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/pull/${PR_NUM}"
+          PAYLOAD=$(jq -n --arg pr_url "$PR_URL" --arg pr_num "$PR_NUM" --rawfile report /tmp/guard-report.md \
+            '{state: "in_review", pr_url: $pr_url, guard_report: ($report | .[0:20000])}
+             + (if $pr_num != "" then {pr_number: ($pr_num | tonumber)} else {} end)')
+          "$LANE/agent-api.sh" build-status "$FEATURE_ID" "$PAYLOAD"
+
+      # ── batch lane ──
+      - name: Merge into agent-batch
+        id: batchmerge
+        if: steps.lane.outputs.lane == 'batch'
+        run: '"$LANE/merge-into.sh" agent-batch'
+      - name: File an incident if agent-batch conflicted
+        if: failure() && steps.batchmerge.outputs.conflict == 'true'
+        run: '"$LANE/report-incident.sh" batch-conflict "$GITHUB_REF_NAME" "Feature lane: merging the branch into agent-batch conflicted"'
+      - name: Tell Ops the build is queued
+        if: steps.batchmerge.outputs.merged == 'true'
+        env:
+          FEATURE_ID: ${{ steps.feature.outputs.feature_id }}
+        run: |
+          [ -n "$FEATURE_AGENT_API_KEY" ] && [ -n "$API_URL" ] || { echo "::warning::Feature secrets missing: Ops not told."; exit 0; }
+          PAYLOAD=$(jq -n --rawfile report /tmp/guard-report.md '{state: "queued", guard_report: ($report | .[0:20000])}')
+          if ! "$LANE/agent-api.sh" build-status "$FEATURE_ID" "$PAYLOAD"; then
+            echo "::error::The merge into agent-batch IS done but Ops still thinks the build is running. Fix the state by hand before the next window."
+            exit 1
+          fi
+
+      - name: Tell Ops the build failed
+        if: failure() && steps.batchmerge.outputs.merged != 'true'
+        env:
+          FEATURE_ID: ${{ steps.feature.outputs.feature_id }}
+        run: |
+          [ -n "$FEATURE_AGENT_API_KEY" ] && [ -n "$API_URL" ] && [ -n "$FEATURE_ID" ] || exit 0
+          # Read by the person who asked for the feature: plain words, no CI jargon.
+          NOTE="La construcción no pasó las verificaciones automáticas. El equipo la revisa antes de seguir."
+          PAYLOAD=$(jq -n --arg note "$NOTE" '{state: "blocked", note: $note}')
+          "$LANE/agent-api.sh" build-status "$FEATURE_ID" "$PAYLOAD" || true
+
+  # A person merged the PR: the code is on preview (and its push deploys it). Close the loop in Ops.
+  mark-merged:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'feat/agent/')
+    runs-on: ubuntu-latest
+    env:
+      FEATURE_AGENT_API_KEY: ${{ secrets.FEATURE_AGENT_API_KEY }}
+      API_URL: ${{ secrets.AGENT_API_URL }}
+      BRANCH: ${{ github.event.pull_request.head.ref }}
+      SHA: ${{ github.event.pull_request.merge_commit_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: CI scripts from preview
+        run: bash .github/ci/bootstrap.sh
+      - name: Mark the feature merged
+        run: |
+          [ -n "$FEATURE_AGENT_API_KEY" ] && [ -n "$API_URL" ] || { echo "::warning::Feature secrets missing."; exit 0; }
+          FEATURE_ID="${BRANCH##*/}"
+          PAYLOAD=$(jq -n --arg c "$SHA" '{commit_hash: $c}')
+          if ! "$LANE/agent-api.sh" merged "$FEATURE_ID" "$PAYLOAD"; then
+            echo "::error::The PR IS merged but Ops could not mark ${FEATURE_ID} merged. A 409 means Ops' state disagrees with reality: look at it."
+            exit 1
+          fi

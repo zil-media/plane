@@ -1,0 +1,165 @@
+name: Agent Auto-Merge
+
+# When the bug fixer pushes to its branch (claude/**), run the preview bar on the MERGE with
+# preview. If it passes, deploy BY TIER: blocking/urgent bugs go to preview now (= production),
+# the rest accumulate on `agent-batch`, which agent-batch-window.yml ships three times a day.
+# Bookkeeping (resolve / mark-fixed) runs AFTER the merge, so the reporter's email never lies.
+#
+# Two jobs, and the split is part of the control: `claude/**` is the default prefix of EVERY cloud
+# session. lane-check decides whether the push is the fixer's (Bug-Id trailers); gate-and-merge does
+# not even start otherwise. Logic lives in .github/ci/, materialized from preview (see bootstrap.sh).
+
+on:
+  push:
+    branches:
+      - "claude/**"
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: agent-auto-merge-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  lane-check:
+    runs-on: ubuntu-latest
+    outputs:
+      eligible: ${{ steps.lane.outputs.eligible }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: CI scripts from preview
+        run: bash .github/ci/bootstrap.sh
+      - name: Is this push the bug fixer's?
+        id: lane
+        run: '"$LANE/lane-check.sh"'
+
+  gate-and-merge:
+    needs: lane-check
+    if: needs.lane-check.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      AGENT_API_KEY: ${{ secrets.AGENT_API_KEY }}
+      API_URL: ${{ secrets.AGENT_API_URL }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: CI scripts from preview
+        run: bash .github/ci/bootstrap.sh
+
+      # Before gating: test what will actually be merged, not a stale base.
+      - name: Reconcile preview into the branch
+        run: '"$LANE/reconcile-preview.sh"'
+
+      # Before the (expensive) gates: the input of this lane is the TEXT of a bug report any Ops
+      # user can write; without this guard "report -> agent -> commit -> production" has no content
+      # control in between.
+      - name: Blast-radius guard
+        id: guard
+        run: '"$LANE/guard.sh"'
+
+      - name: Gate toolchains
+        uses: ./.github/actions/gate-setup
+      - name: Backend gates
+        run: '"$LANE/gates.sh" backend'
+      - name: Frontend gates
+        run: '"$LANE/gates.sh" frontend'
+
+      - name: Determine tier
+        id: tier
+        run: '"$LANE/determine-tier.sh"'
+
+      # ── urgent: preview now, then deploy ──
+      - name: Merge into preview
+        id: merge
+        if: steps.tier.outputs.tier == 'urgent'
+        run: '"$LANE/merge-into.sh" preview'
+      - name: Deploy
+        if: steps.merge.outputs.merged == 'true'
+        run: '"$LANE/trigger-deploy.sh"'
+      - name: Mark bugs resolved
+        if: steps.merge.outputs.merged == 'true'
+        env:
+          BUG_IDS: ${{ steps.tier.outputs.bug_ids }}
+        run: |
+          [ -n "$AGENT_API_KEY" ] && [ -n "$API_URL" ] || { echo "::warning::Agent secrets missing: nothing resolved."; exit 0; }
+          COMMIT=$(git rev-parse --short "${GITHUB_SHA}")
+          FAILED=""
+          for BUG_ID in $BUG_IDS; do
+            PAYLOAD=$(jq -n --arg c "$COMMIT" '{admin_notes: "Merged and deployed by CI", commit_hash: $c}')
+            "$LANE/agent-api.sh" resolve "$BUG_ID" "$PAYLOAD" || FAILED="${FAILED} ${BUG_ID}"
+          done
+          if [ -n "$FAILED" ]; then
+            echo "::error::The fix IS in production but these bugs stayed unresolved:${FAILED}. Resolve them by hand or re-run this job."
+            exit 1
+          fi
+
+      # ── batch: accumulate on agent-batch, no deploy ──
+      - name: Merge into agent-batch
+        id: batchmerge
+        if: steps.tier.outputs.tier == 'batch'
+        run: '"$LANE/merge-into.sh" agent-batch'
+      - name: File an incident if agent-batch conflicted
+        if: failure() && steps.batchmerge.outputs.conflict == 'true'
+        run: '"$LANE/report-incident.sh" batch-conflict "$GITHUB_REF_NAME" "Bug lane: merging the branch into agent-batch conflicted"'
+      - name: Mark bugs fixed
+        if: steps.batchmerge.outputs.merged == 'true'
+        env:
+          BUG_IDS: ${{ steps.tier.outputs.bug_ids }}
+        run: |
+          [ -n "$AGENT_API_KEY" ] && [ -n "$API_URL" ] || { echo "::warning::Agent secrets missing: nothing marked."; exit 0; }
+          COMMIT=$(git rev-parse --short "${GITHUB_SHA}")
+          FAILED=""
+          for BUG_ID in $BUG_IDS; do
+            PAYLOAD=$(jq -n --arg c "$COMMIT" '{commit_hash: $c}')
+            "$LANE/agent-api.sh" mark-fixed "$BUG_ID" "$PAYLOAD" || FAILED="${FAILED} ${BUG_ID}"
+          done
+          if [ -n "$FAILED" ]; then
+            echo "::error::The code IS on agent-batch but these bugs were not marked fixed:${FAILED}. Their claim expires in 30 min and they would be fixed twice."
+            exit 1
+          fi
+
+      # ── the guard cut: this needs a person, not a retry ──
+      - name: Block the bugs the guard stopped
+        if: failure() && steps.guard.outputs.denied == 'true'
+        env:
+          # By env, never ${{ }} inside the script: the reason carries FILE NAMES from the agent's diff.
+          GUARD_REASON: ${{ steps.guard.outputs.reason }}
+        run: |
+          [ -n "$AGENT_API_KEY" ] && [ -n "$API_URL" ] || { echo "::warning::Agent secrets missing: bugs not blocked."; exit 0; }
+          source "$LANE/lib.sh"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          REASON=$(printf '%s' "${GUARD_REASON:-The blast-radius guard cut this attempt (denylist or deleted files).}" | head -c 800)
+          for BUG_ID in $(trailer_ids Bug-Id "$GITHUB_SHA"); do
+            PAYLOAD=$(jq -n --arg reason "$REASON" --arg run_url "$RUN_URL" '{reason: $reason, run_url: $run_url}')
+            "$LANE/agent-api.sh" blocked "$BUG_ID" "$PAYLOAD" || true
+          done
+      - name: Leave the branch in a PR
+        if: failure() && steps.guard.outputs.denied == 'true'
+        env:
+          GUARD_REASON: ${{ steps.guard.outputs.reason }}
+        run: '"$LANE/open-guard-pr.sh"'
+
+      # Any other failure is the agent's to fix: note it on the bug so the next session reads why.
+      - name: Note why CI rejected the attempt
+        if: >-
+          failure()
+          && steps.guard.outputs.denied != 'true'
+          && steps.merge.outputs.merged != 'true'
+          && steps.batchmerge.outputs.merged != 'true'
+        run: |
+          [ -n "$AGENT_API_KEY" ] && [ -n "$API_URL" ] || exit 0
+          source "$LANE/lib.sh"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          NOTE="CI rejected this attempt and merged nothing. Read which gate failed before retrying: ${RUN_URL}"
+          for BUG_ID in $(trailer_ids Bug-Id "$GITHUB_SHA"); do
+            PAYLOAD=$(jq -n --arg note "$NOTE" '{phase: "dudas", note: $note}')
+            "$LANE/agent-api.sh" progress "$BUG_ID" "$PAYLOAD" || true
+          done

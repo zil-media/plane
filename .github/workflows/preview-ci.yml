@@ -113,3 +113,20 @@ jobs:
       - name: Build
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: bash .github/ci/gate.sh "build" pnpm build
+
+  # Every agent push gates against preview, so a red preview freezes both lanes: file it as a
+  # blocking bug and the fixer routine picks it up.
+  report-red:
+    needs: [backend-lint, backend-tests, frontend]
+    if: failure() && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      AGENT_API_KEY: ${{ secrets.AGENT_API_KEY }}
+      API_URL: ${{ secrets.AGENT_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: File a blocking bug
+        run: |
+          SUBJECT=$(git log -1 --format='%h %s' "${GITHUB_SHA}" | cut -c1-200)
+          bash .github/ci/agent-lane/report-incident.sh preview-red preview \
+            "The Preview CI bar fails on the tip of preview (${SUBJECT}). Every agent push gates against preview, so both lanes are stuck until it is green again."

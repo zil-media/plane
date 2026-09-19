@@ -1,0 +1,30 @@
+name: Gate setup
+description: Toolchains for .github/ci/agent-lane/gates.sh (python + ruff, the cached API test image, pnpm + node).
+
+# Always used AFTER the blast-radius guard: the guard denies any change under .github/, so an agent
+# branch can never get an edited copy of this action to run.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install ruff
+      shell: bash
+      run: pip install ruff==0.9.7
+    - uses: docker/setup-buildx-action@v3
+    - name: Build API test image
+      uses: docker/build-push-action@v6
+      with:
+        context: ./apps/api
+        file: ./apps/api/Dockerfile.dev
+        tags: plane-api-tests:latest
+        load: true
+        cache-from: type=gha,scope=api-tests
+        cache-to: type=gha,mode=max,scope=api-tests
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: pnpm
