@@ -62,6 +62,8 @@
   "notifications": "Thông báo",
   "workspaces": "Không gian làm việc",
   "create_workspace": "Tạo không gian làm việc",
+  "set_default_workspace": "Đặt làm không gian làm việc mặc định",
+  "unset_default_workspace": "Bỏ đặt làm không gian làm việc mặc định",
   "invitations": "Lời mời",
   "summary": "Tóm tắt",
   "assigned": "Đã phân công",

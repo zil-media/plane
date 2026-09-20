@@ -123,6 +123,20 @@ class UserMeSettingsSerializer(BaseSerializer):
 
         # profile
         profile = Profile.objects.get(user=obj)
+
+        pinned_workspace = None
+        if profile.pinned_workspace_id is not None:
+            pinned_workspace = Workspace.objects.filter(
+                pk=profile.pinned_workspace_id,
+                workspace_member__member=obj.id,
+                workspace_member__is_active=True,
+            ).first()
+
+        pinned_workspace_data = {
+            "pinned_workspace_id": (pinned_workspace.id if pinned_workspace is not None else None),
+            "pinned_workspace_slug": (pinned_workspace.slug if pinned_workspace is not None else None),
+        }
+
         if (
             profile.last_workspace_id is not None
             and Workspace.objects.filter(
@@ -145,6 +159,7 @@ class UserMeSettingsSerializer(BaseSerializer):
                 "fallback_workspace_id": profile.last_workspace_id,
                 "fallback_workspace_slug": (workspace.slug if workspace is not None else ""),
                 "invites": workspace_invites,
+                **pinned_workspace_data,
             }
         else:
             fallback_workspace = (
@@ -158,6 +173,7 @@ class UserMeSettingsSerializer(BaseSerializer):
                 "fallback_workspace_id": (fallback_workspace.id if fallback_workspace is not None else None),
                 "fallback_workspace_slug": (fallback_workspace.slug if fallback_workspace is not None else None),
                 "invites": workspace_invites,
+                **pinned_workspace_data,
             }
 
 

@@ -62,6 +62,8 @@
   "notifications": "通知",
   "workspaces": "工作区",
   "create_workspace": "创建工作区",
+  "set_default_workspace": "设为默认工作区",
+  "unset_default_workspace": "取消默认工作区",
   "invitations": "邀请",
   "summary": "摘要",
   "assigned": "已分配",

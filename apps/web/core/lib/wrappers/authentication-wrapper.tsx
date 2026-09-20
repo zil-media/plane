@@ -13,6 +13,7 @@ import { LogoSpinner } from "@/components/common/logo-spinner";
 // helpers
 import { EPageTypes } from "@/helpers/authentication.helper";
 // hooks
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser, useUserProfile, useUserSettings } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
@@ -41,6 +42,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
   const { data: currentUserProfile } = useUserProfile();
   const { data: currentUserSettings } = useUserSettings();
   const { loader: workspacesLoader, workspaces } = useWorkspace();
+  const isPinnedDefaultWorkspaceEnabled = useFeatureFlag("pinnedDefaultWorkspace");
 
   const { isLoading: isUserSWRLoading } = useSWR("USER_INFORMATION", async () => await fetchCurrentUser(), {
     revalidateOnFocus: false,
@@ -64,9 +66,11 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
       return redirectionRoute;
     }
 
-    // validate the last and fallback workspace_slug
+    // validate the pinned (if enabled), last, and fallback workspace_slug, in that priority order
     const currentWorkspaceSlug =
-      currentUserSettings?.workspace?.last_workspace_slug || currentUserSettings?.workspace?.fallback_workspace_slug;
+      (isPinnedDefaultWorkspaceEnabled && currentUserSettings?.workspace?.pinned_workspace_slug) ||
+      currentUserSettings?.workspace?.last_workspace_slug ||
+      currentUserSettings?.workspace?.fallback_workspace_slug;
 
     // validate the current workspace_slug is available in the user's workspace list
     const isCurrentWorkspaceValid = Object.values(workspaces || {}).findIndex(

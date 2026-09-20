@@ -62,6 +62,8 @@
   "notifications": "Oznámení",
   "workspaces": "Pracovní prostory",
   "create_workspace": "Vytvořit pracovní prostor",
+  "set_default_workspace": "Nastavit jako výchozí pracovní prostor",
+  "unset_default_workspace": "Odebrat jako výchozí pracovní prostor",
   "invitations": "Pozvánky",
   "summary": "Shrnutí",
   "assigned": "Přiřazeno",

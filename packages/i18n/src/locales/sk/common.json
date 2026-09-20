@@ -62,6 +62,8 @@
   "notifications": "Oznámenia",
   "workspaces": "Pracovné priestory",
   "create_workspace": "Vytvoriť pracovný priestor",
+  "set_default_workspace": "Nastaviť ako predvolený pracovný priestor",
+  "unset_default_workspace": "Odstrániť ako predvolený pracovný priestor",
   "invitations": "Pozvánky",
   "summary": "Zhrnutie",
   "assigned": "Priradené",

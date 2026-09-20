@@ -62,6 +62,8 @@
   "notifications": "Notificări",
   "workspaces": "Spații de lucru",
   "create_workspace": "Creează spațiu de lucru",
+  "set_default_workspace": "Setează ca spațiu de lucru implicit",
+  "unset_default_workspace": "Elimină ca spațiu de lucru implicit",
   "invitations": "Invitații",
   "summary": "Rezumat",
   "assigned": "Responsabil",

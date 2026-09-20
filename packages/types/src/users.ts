@@ -64,6 +64,7 @@ export type TUserProfile = {
   user: string | undefined;
   role: string | undefined;
   last_workspace_id: string | undefined;
+  pinned_workspace_id: string | null | undefined;
   theme: {
     theme: string | undefined;
     primary: string | undefined;
@@ -98,6 +99,8 @@ export interface IUserSettings {
     last_workspace_logo: string | undefined;
     fallback_workspace_id: string | undefined;
     fallback_workspace_slug: string | undefined;
+    pinned_workspace_id: string | undefined;
+    pinned_workspace_slug: string | undefined;
     invites: number | undefined;
   };
 }

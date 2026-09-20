@@ -62,6 +62,8 @@
   "notifications": "Benachrichtigungen",
   "workspaces": "Arbeitsbereiche",
   "create_workspace": "Arbeitsbereich erstellen",
+  "set_default_workspace": "Als Standard-Arbeitsbereich festlegen",
+  "unset_default_workspace": "Als Standard-Arbeitsbereich entfernen",
   "invitations": "Einladungen",
   "summary": "Zusammenfassung",
   "assigned": "Zugewiesen",

@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Settings, UserPlus } from "lucide-react";
+import { Pin, PinOff, Settings, UserPlus } from "lucide-react";
 import { Menu } from "@headlessui/react";
 // plane imports
 import { EUserPermissions } from "@plane/constants";
@@ -15,22 +15,35 @@ import { useTranslation } from "@plane/i18n";
 import { CheckIcon } from "@plane/propel/icons";
 import type { IWorkspace } from "@plane/types";
 import { cn, getFileURL, getUserRole } from "@plane/utils";
+// hooks
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 // plane web imports
 import { SubscriptionPill } from "@/plane-web/components/common/subscription/subscription-pill";
 
 type TProps = {
   workspace: IWorkspace;
   activeWorkspace: IWorkspace | null;
+  isPinnedWorkspace: boolean;
   handleItemClick: () => void;
   handleWorkspaceNavigation: (workspace: IWorkspace) => void;
+  handleTogglePinnedWorkspace: (workspace: IWorkspace) => void;
   handleClose: () => void;
 };
 const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps) {
-  const { workspace, activeWorkspace, handleItemClick, handleWorkspaceNavigation, handleClose } = props;
+  const {
+    workspace,
+    activeWorkspace,
+    isPinnedWorkspace,
+    handleItemClick,
+    handleWorkspaceNavigation,
+    handleTogglePinnedWorkspace,
+    handleClose,
+  } = props;
   // router
   const { workspaceSlug } = useParams();
   // hooks
   const { t } = useTranslation();
+  const isPinnedDefaultWorkspaceEnabled = useFeatureFlag("pinnedDefaultWorkspace");
 
   return (
     <Link
@@ -80,13 +93,34 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
               </div>
             </div>
           </div>
-          {workspace.id === activeWorkspace?.id ? (
-            <span className="flex-shrink-0 p-1">
-              <CheckIcon className="h-5 w-5 text-primary" />
-            </span>
-          ) : (
-            <SubscriptionPill workspace={workspace} />
-          )}
+          <div className="flex flex-shrink-0 items-center gap-1">
+            {isPinnedDefaultWorkspaceEnabled && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleTogglePinnedWorkspace(workspace);
+                }}
+                className="flex-shrink-0 rounded-sm p-1 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary"
+                title={isPinnedWorkspace ? t("unset_default_workspace") : t("set_default_workspace")}
+                aria-label={isPinnedWorkspace ? t("unset_default_workspace") : t("set_default_workspace")}
+              >
+                {isPinnedWorkspace ? (
+                  <PinOff className="h-4 w-4 flex-shrink-0" />
+                ) : (
+                  <Pin className="h-4 w-4 flex-shrink-0" />
+                )}
+              </button>
+            )}
+            {workspace.id === activeWorkspace?.id ? (
+              <span className="flex-shrink-0 p-1">
+                <CheckIcon className="h-5 w-5 text-primary" />
+              </span>
+            ) : (
+              <SubscriptionPill workspace={workspace} />
+            )}
+          </div>
         </div>
         {workspace.id === activeWorkspace?.id && (
           <>

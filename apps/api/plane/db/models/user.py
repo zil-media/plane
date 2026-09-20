@@ -244,6 +244,8 @@ class Profile(TimeAuditModel):
     is_onboarded = models.BooleanField(default=False)
     # Last visited workspace
     last_workspace_id = models.UUIDField(null=True)
+    # Workspace the user pinned as their default entry point (wins over last_workspace_id)
+    pinned_workspace_id = models.UUIDField(null=True)
     # address data
     billing_address_country = models.CharField(max_length=255, default="INDIA")
     billing_address = models.JSONField(null=True)
