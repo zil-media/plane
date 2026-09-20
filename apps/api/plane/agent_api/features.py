@@ -31,7 +31,7 @@ from plane.utils.agent_pipeline.constants import (
     PROGRESS_NOTE_MAX,
     REQUEST_CATEGORIES,
 )
-from plane.utils.agent_pipeline.permissions import is_instance_admin
+from plane.utils.agent_pipeline.permissions import is_instance_admin, is_workspace_director
 
 from .authentication import AgentRateThrottle, FeatureAgentKeyAuthentication
 from .serialize import feature_detail, feature_summary
@@ -101,16 +101,22 @@ def _conflict(message):
 
 
 def should_auto_approve(feature):
-    """A clean first spec approves itself when an admin asked for it, or when its impact is low.
+    """A clean first spec approves itself when its impact is low, or when someone who answers
+    for the work asked for it: an instance admin, or the director of the BU it came from.
 
-    A re-spec means someone already intervened, so that decision goes back to a person.
+    A re-spec means someone already intervened, so that decision goes back to a person. A
+    director's reach stops at "medium": high impact touches auth, shared schema or screens
+    every BU uses, so it waits for a person however senior the requester is.
     """
     spec = feature.spec or {}
     if spec.get("open_questions"):
         return False
     if feature.spec_runs > 1:
         return False
-    return is_instance_admin(feature.requested_by) or spec.get("blast_radius") == "low"
+    blast_radius = spec.get("blast_radius")
+    if blast_radius == "low" or is_instance_admin(feature.requested_by):
+        return True
+    return blast_radius == "medium" and is_workspace_director(feature.requested_by, feature.workspace)
 
 
 class AgentFeatureBaseView(APIView):

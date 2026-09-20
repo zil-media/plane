@@ -10,7 +10,8 @@ report ─► BugReport ─► fire_bug_routine ─► routine "Bug fixer Zil Op
        ─► push claude/** ─► agent-auto-merge.yml ─► urgent: preview + deploy │ batch: agent-batch
        ─► agent-batch-window.yml (15/21/02 UTC) ─► preview + deploy ─► resolved + email
 
-suggestion ─► FeatureRequest ─► SPEC ─► spec ─► admin approves (or low impact auto-approves)
+suggestion ─► FeatureRequest ─► SPEC ─► spec ─► admin approves (low impact, an admin's own
+              request, or a BU director's up to medium impact, approve themselves)
            ─► BUILD ─► feat/agent/<id> ─► feature-agent-pr.yml ─► PR │ agent-batch ─► merged (dark)
            ─► admin turns the flag on in Soporte
 ```

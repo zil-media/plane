@@ -10,7 +10,15 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from plane.db.models import AgentFeatureFlag, AgentPipelineConfig, BugReport, FeatureRequest, User
+from plane.db.models import (
+    AgentFeatureFlag,
+    AgentPipelineConfig,
+    BugReport,
+    FeatureRequest,
+    User,
+    Workspace,
+    WorkspaceMember,
+)
 from plane.license.models import Instance, InstanceAdmin
 from plane.utils.agent_pipeline.bugs import classify_urgency
 
@@ -279,6 +287,68 @@ class TestFeaturePipeline:
             )
         assert response.data["status"] == "approved"
         assert FeatureRequest.objects.get(id=created["id"]).status == "building"
+
+    def suggest(self, client, workspace_slug=None):
+        payload = {"title": "Exportar a CSV", "problem": "Necesito sacar la lista de tareas a una planilla"}
+        if workspace_slug:
+            payload["workspace_slug"] = workspace_slug
+        return client.post("/api/support/feature-requests/", payload, format="json").data
+
+    @pytest.mark.django_db
+    def test_medium_impact_from_the_bu_director_approves_itself(
+        self, session_client, feature_agent, feature_agent_enabled, workspace, django_capture_on_commit_callbacks
+    ):
+        # `workspace` is owned by the requester: that is what makes them the BU's director.
+        with django_capture_on_commit_callbacks(execute=True):
+            created = self.suggest(session_client, workspace.slug)
+        with django_capture_on_commit_callbacks(execute=True):
+            response = feature_agent.put(
+                f"/api/agent/features/{created['id']}/spec/", self.spec(blast_radius="medium"), format="json"
+            )
+        assert response.data["status"] == "approved"
+        assert FeatureRequest.objects.get(id=created["id"]).status == "building"
+
+    @pytest.mark.django_db
+    def test_high_impact_from_the_bu_director_still_waits_for_a_person(
+        self, session_client, feature_agent, feature_agent_enabled, workspace, django_capture_on_commit_callbacks
+    ):
+        with django_capture_on_commit_callbacks(execute=True):
+            created = self.suggest(session_client, workspace.slug)
+        with django_capture_on_commit_callbacks(execute=True):
+            response = feature_agent.put(
+                f"/api/agent/features/{created['id']}/spec/", self.spec(blast_radius="high"), format="json"
+            )
+        assert response.data["status"] == "spec_ready"
+
+    @pytest.mark.django_db
+    def test_medium_impact_from_a_plain_member_waits_for_a_person(
+        self, session_client, feature_agent, feature_agent_enabled, create_user, django_capture_on_commit_callbacks
+    ):
+        # Same membership, someone else's workspace: a member is not the director.
+        director = User.objects.create(email="director@zil.global", username=uuid.uuid4().hex, is_active=True)
+        others = Workspace.objects.create(name="Otra BU", owner=director, slug="otra-bu")
+        WorkspaceMember.objects.create(workspace=others, member=create_user, role=15)
+        with django_capture_on_commit_callbacks(execute=True):
+            created = self.suggest(session_client, others.slug)
+        with django_capture_on_commit_callbacks(execute=True):
+            response = feature_agent.put(
+                f"/api/agent/features/{created['id']}/spec/", self.spec(blast_radius="medium"), format="json"
+            )
+        assert response.data["status"] == "spec_ready"
+
+    @pytest.mark.django_db
+    def test_a_directors_open_question_still_stops_the_build(
+        self, session_client, feature_agent, feature_agent_enabled, workspace, django_capture_on_commit_callbacks
+    ):
+        with django_capture_on_commit_callbacks(execute=True):
+            created = self.suggest(session_client, workspace.slug)
+        with django_capture_on_commit_callbacks(execute=True):
+            response = feature_agent.put(
+                f"/api/agent/features/{created['id']}/spec/",
+                self.spec(blast_radius="medium", open_questions=["¿Quiénes deberían verlo?"]),
+                format="json",
+            )
+        assert response.data["status"] == "spec_ready"
 
     @pytest.mark.django_db
     def test_non_admin_cannot_decide(self, session_client):
