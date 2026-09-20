@@ -1,0 +1,71 @@
+/**
+ * Copyright (c) 2023-present Plane Software, Inc. and contributors
+ * SPDX-License-Identifier: AGPL-3.0-only
+ * See the LICENSE file for details.
+ */
+
+/* Realce de novedades: el mismo lenguaje visual que el chat BI de Zil Workspace
+ * (rojo de marca → lavanda → azul, desplazándose en loop). Los tres colores son
+ * los de la paleta de Workspace; el azul es además el acento de Ops.
+ *
+ * Se usa a través de attention-highlight.tsx — no apliques estas clases a mano,
+ * porque el componente es el que decide cuándo dejar de mostrarlas. */
+
+.zil-attention-dot,
+.zil-attention-text {
+  --zil-attention-gradient: linear-gradient(135deg, #ff8682, #d4b0ff, #6d86ff, #ff8682);
+}
+
+/* Punto sobre un ícono. El contenedor se posiciona solo para no obligar a quien
+ * lo usa a acordarse del `relative`. */
+.zil-attention-dot {
+  position: relative;
+  display: inline-flex;
+}
+
+.zil-attention-dot::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--zil-attention-gradient);
+  background-size: 300% 300%;
+  box-shadow: 0 0 6px 0 rgb(109 134 255 / 60%);
+  animation: zil-attention-shift 3s ease-in-out infinite;
+}
+
+/* Texto recortado sobre el degradé, para una entrada de menú o un título. */
+.zil-attention-text {
+  background: var(--zil-attention-gradient);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: zil-attention-shift 3s ease-in-out infinite;
+}
+
+@keyframes zil-attention-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* El degradé sigue marcando la novedad; lo que se va es el movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  .zil-attention-dot::after,
+  .zil-attention-text {
+    animation: none;
+  }
+}

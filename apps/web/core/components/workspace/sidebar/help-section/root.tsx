@@ -13,6 +13,7 @@ import { useTranslation } from "@plane/i18n";
 // ui
 import { CustomMenu } from "@plane/ui";
 // components
+import { ATTENTION_KEYS, AttentionDot, AttentionText, useAttention } from "@/components/common/attention-highlight";
 import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 import { openBugReporter, openFeatureSuggest } from "@/components/support/events";
 // hooks
@@ -25,6 +26,8 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
   const { t } = useTranslation();
   const { toggleShortcutsListModal } = usePowerK();
   const { workspaceSlug } = useParams();
+  // Soporte es nuevo: el ícono y la entrada se destacan hasta que la persona entra una vez.
+  const supportBoard = useAttention(ATTENTION_KEYS.supportBoard);
   // states
   const [isNeedHelpOpen, setIsNeedHelpOpen] = useState(false);
 
@@ -35,7 +38,11 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
           <AppSidebarItem
             variant="button"
             item={{
-              icon: <HelpCircle className="size-5" />,
+              icon: (
+                <AttentionDot active={supportBoard.isNew}>
+                  <HelpCircle className="size-5" />
+                </AttentionDot>
+              ),
               isActive: isNeedHelpOpen,
             }}
           />
@@ -65,9 +72,15 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
         </CustomMenu.MenuItem>
         {workspaceSlug && (
           <CustomMenu.MenuItem>
-            <Link href={`/${workspaceSlug.toString()}/support`} className="flex w-full items-center gap-2">
+            <Link
+              href={`/${workspaceSlug.toString()}/support`}
+              onClick={supportBoard.dismiss}
+              className="flex w-full items-center gap-2"
+            >
               <LifeBuoy className="size-3.5" />
-              <span className="text-11">{t("helpdesk.menu.my_tracking")}</span>
+              <AttentionText active={supportBoard.isNew} className="text-11">
+                {t("helpdesk.menu.my_tracking")}
+              </AttentionText>
             </Link>
           </CustomMenu.MenuItem>
         )}
