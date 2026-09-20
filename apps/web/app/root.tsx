@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 import Script from "next/script";
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts } from "react-router";
 import type { LinksFunction } from "react-router";
-import { ThemeProvider, useTheme } from "next-themes";
+import { ThemeProvider } from "next-themes";
 // plane imports
 import { SITE_DESCRIPTION, SITE_NAME } from "@plane/constants";
 import { cn } from "@plane/utils";
@@ -142,11 +142,13 @@ export default function Root() {
 }
 
 export function HydrateFallback() {
-  const { resolvedTheme } = useTheme();
-
-  // if we are on the server or the theme is not resolved, return an empty div
-  if (typeof window === "undefined" || resolvedTheme === undefined) return <div />;
-
+  // This is what gets prerendered into index.html at build time (no `window`)
+  // and is also the first thing the client renders during hydration, before
+  // the real route tree mounts. It must render identical markup in both
+  // passes, so it can't branch on next-themes' `resolvedTheme`: that hook
+  // resolves synchronously from localStorage on the client (unlike the
+  // server, which always sees `undefined`), so branching on it here produces
+  // a hydration mismatch for anyone who already has a persisted theme.
   return (
     <div className="relative flex h-screen w-full items-center justify-center bg-canvas">
       <LogoSpinner />
