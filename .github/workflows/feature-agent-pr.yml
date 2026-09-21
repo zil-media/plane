@@ -56,6 +56,10 @@ jobs:
             echo "::error::${GITHUB_REF_NAME} does not end in a feature request id (UUID): this lane can't read it, report on it or mark it merged."
             exit 1
           fi
+          # Published before the trailer check, not after: if that check fails, "Tell Ops the build
+          # failed" still needs the id. Without it the report exited silently, the request stayed
+          # `building`, and the hourly sweep kept re-firing BUILD sessions at the same wall.
+          echo "feature_id=${FEATURE_ID}" >> "$GITHUB_OUTPUT"
           MISSING=""
           for SHA in $(git rev-list --no-merges "origin/preview..${GITHUB_SHA}"); do
             if ! trailer_values Feature-Id "$SHA" | tr 'A-F' 'a-f' | grep -qx "$FEATURE_ID"; then
@@ -66,7 +70,6 @@ jobs:
             echo "::error::Commits without the trailer 'Feature-Id: ${FEATURE_ID}':${MISSING}. Without it the window can't mark the feature merged."
             exit 1
           fi
-          echo "feature_id=${FEATURE_ID}" >> "$GITHUB_OUTPUT"
 
       # Non-strict: this lane ends in a reviewed PR or in the batch, where the window re-guards strictly.
       - name: Blast-radius guard
