@@ -11,7 +11,7 @@ from django.utils import timezone
 # Module imports
 from plane.db.models import AgentPipelineConfig, FeatureRequest
 
-from .constants import MAX_SPEC_RUNS
+from .constants import MAX_BUILD_RUNS, MAX_SPEC_RUNS
 
 S = FeatureRequest.Status
 
@@ -65,12 +65,26 @@ def request_build(feature, reason="aprobada"):
     from plane.bgtasks.agent_pipeline_task import fire_feature_routine_task
 
     build = dict(feature.build or {})
+    runs = int(build.get("runs", 0))
+    if runs >= MAX_BUILD_RUNS and not build.get("manual_retry"):
+        # Out of the approved queue, not just skipped: the drain only ever tries the oldest approved
+        # feature, so one stuck here would starve every build behind it.
+        build["last_note"] = (
+            f"La construcción se intentó {runs} veces sin terminar. Queda en espera hasta que el equipo la revise."
+        )
+        feature.build = build
+        feature.status = S.ON_HOLD
+        feature.save(update_fields=["build", "status", "updated_at"])
+        return False, "build run limit"
+
     build.update(
         {
             "claimed_at": timezone.now().isoformat(),
-            "runs": int(build.get("runs", 0)) + 1,
+            "runs": runs + 1,
             "branch": f"feat/agent/{feature.id}",
             "blocked_at": None,
+            # A person's rebuild buys exactly one run; the sweep's re-fires count against the cap again.
+            "manual_retry": False,
         }
     )
     feature.build = build

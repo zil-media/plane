@@ -38,6 +38,10 @@ ESCALATE_MIN_GAP = timedelta(minutes=15)
 # A spec or build with no sign of life for this long goes back to its queue.
 FEATURE_RUN_EXPIRY = timedelta(minutes=60)
 MAX_SPEC_RUNS = 3
+# Automatic BUILD dispatches per feature. The hourly sweep re-fires a build that went silent; without
+# a ceiling, a build that fails the same way every time keeps launching sessions forever (the first
+# real build burned 11 before anyone looked). A person's "rebuild" always gets one more.
+MAX_BUILD_RUNS = 3
 
 REOPEN_MIN_GAP = timedelta(minutes=5)
 

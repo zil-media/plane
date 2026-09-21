@@ -351,6 +351,36 @@ class TestFeaturePipeline:
         assert response.data["status"] == "spec_ready"
 
     @pytest.mark.django_db
+    def test_a_build_that_keeps_failing_stops_relaunching_until_a_person_says_so(
+        self, admin_client, feature_agent_enabled, tasks, django_capture_on_commit_callbacks
+    ):
+        from plane.utils.agent_pipeline import features as feature_ops
+        from plane.utils.agent_pipeline.constants import MAX_BUILD_RUNS
+
+        feature = FeatureRequest.objects.create(
+            title="Algo nuevo",
+            problem="p" * 30,
+            status="approved",
+            flag_key="algoNuevo",
+            build={"runs": MAX_BUILD_RUNS},
+        )
+        # the sweep's automatic re-dispatch hits the ceiling: no session, out of the approved queue
+        assert feature_ops.request_build(feature, "barrido periódico") == (False, "build run limit")
+        feature.refresh_from_db()
+        assert feature.status == "on_hold"
+        tasks["fire_feature"].assert_not_called()
+
+        # a person's rebuild buys exactly one more run
+        with django_capture_on_commit_callbacks(execute=True):
+            response = admin_client.post(f"/api/support/feature-requests/{feature.id}/rebuild/", {}, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        feature.refresh_from_db()
+        assert feature.status == "building"
+        assert feature.build["runs"] == MAX_BUILD_RUNS + 1
+        assert feature.build["manual_retry"] is False
+        assert tasks["fire_feature"].call_args.args[:2] == (str(feature.id), "BUILD")
+
+    @pytest.mark.django_db
     def test_non_admin_cannot_decide(self, session_client):
         feature = FeatureRequest.objects.create(title="Algo nuevo", problem="p" * 30, status="spec_ready")
         response = session_client.post(f"/api/support/feature-requests/{feature.id}/approve/", {}, format="json")
