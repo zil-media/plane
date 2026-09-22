@@ -1,0 +1,73 @@
+name: Integrator Merge
+
+# Lane of the PR manager routine ("PR manager Zil Ops"): it reviews stuck PRs, unblocks preview and
+# integrates whatever the other routines left behind — with no human in the loop (owner's call).
+# It runs the gates on its own machine before pushing; this workflow only checks the trailer,
+# merges into preview and starts the deploy (a push made with GITHUB_TOKEN does not trigger
+# build-and-push by itself, same as agent-auto-merge).
+#
+# A `claude/integrator*` branch WITHOUT `Integrator: pr-manager` on its tip is NOT merged: the
+# prefix alone is not enough to send something to production.
+#
+# Backend gates need Docker. If the routine's machine had none, it says so with the trailer
+# `Integrator-Backend: pending`, and ONLY then this job runs the backend gates before merging.
+#
+# GitHub limit: GITHUB_TOKEN cannot push changes under .github/workflows/**. The PR manager merges
+# those PRs through the PR API instead of this lane.
+
+on:
+  push:
+    branches:
+      - "claude/integrator*"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: integrator-merge
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pushed by the PR manager?
+        id: who
+        run: |
+          trailers() { git log -1 --format="%(trailers:key=$1,valueonly)" "$GITHUB_SHA"; }
+          if trailers Integrator | grep -qx 'pr-manager'; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No 'Integrator: pr-manager' trailer on the tip: not merging."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+          if trailers Integrator-Backend | grep -qx 'pending'; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: CI scripts from preview
+        if: steps.who.outputs.ok == 'true'
+        run: bash .github/ci/bootstrap.sh
+
+      - name: Gate toolchains
+        if: steps.who.outputs.ok == 'true' && steps.who.outputs.backend == 'true'
+        uses: ./.github/actions/gate-setup
+      - name: Backend gates (the routine had no Docker)
+        if: steps.who.outputs.ok == 'true' && steps.who.outputs.backend == 'true'
+        run: '"$LANE/gates.sh" backend'
+
+      - name: Merge into preview
+        id: merge
+        if: steps.who.outputs.ok == 'true'
+        run: '"$LANE/merge-into.sh" preview'
+      - name: Deploy
+        if: steps.merge.outputs.merged == 'true'
+        run: '"$LANE/trigger-deploy.sh"'

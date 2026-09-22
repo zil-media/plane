@@ -13,6 +13,9 @@ on:
   push:
     branches:
       - "claude/**"
+      # The PR manager has its own lane (integrator-merge.yml); without this, a push of its that
+      # carries Bug-Id commits would be merged twice.
+      - "!claude/integrator*"
 
 permissions:
   contents: write
