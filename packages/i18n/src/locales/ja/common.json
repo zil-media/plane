@@ -62,6 +62,8 @@
   "notifications": "通知",
   "workspaces": "ワークスペース",
   "create_workspace": "ワークスペースを作成",
+  "set_default_workspace": "デフォルトのワークスペースに設定",
+  "unset_default_workspace": "デフォルトのワークスペースから解除",
   "invitations": "招待",
   "summary": "概要",
   "assigned": "割り当て済み",

@@ -22,6 +22,7 @@ import { orderWorkspacesList, cn } from "@plane/utils";
 import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser, useUserProfile } from "@/hooks/store/user";
 import { useInstance } from "@/hooks/store/use-instance";
@@ -40,8 +41,9 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
   const { config } = useInstance();
   const { data: currentUser } = useUser();
   const { signOut } = useUser();
-  const { updateUserProfile } = useUserProfile();
+  const { data: userProfile, updateUserProfile } = useUserProfile();
   const { currentWorkspace: activeWorkspace, workspaces } = useWorkspace();
+  const isPinnedDefaultWorkspaceEnabled = useFeatureFlag("pinnedDefaultWorkspace");
   // derived values
   const isWorkspaceCreationDisabled = config?.is_workspace_creation_disabled ?? false;
   // translation
@@ -50,6 +52,11 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
 
   const handleWorkspaceNavigation = (workspace: IWorkspace) => updateUserProfile({ last_workspace_id: workspace?.id });
+
+  const handleTogglePinnedWorkspace = (workspace: IWorkspace) =>
+    updateUserProfile({
+      pinned_workspace_id: userProfile?.pinned_workspace_id === workspace.id ? null : workspace.id,
+    });
 
   const handleSignOut = async () => {
     await signOut().catch(() =>
@@ -171,8 +178,12 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                             key={workspace.id}
                             workspace={workspace}
                             activeWorkspace={activeWorkspace}
+                            isPinnedWorkspace={
+                              isPinnedDefaultWorkspaceEnabled && userProfile?.pinned_workspace_id === workspace.id
+                            }
                             handleItemClick={handleItemClick}
                             handleWorkspaceNavigation={handleWorkspaceNavigation}
+                            handleTogglePinnedWorkspace={handleTogglePinnedWorkspace}
                             handleClose={close}
                           />
                         ))}

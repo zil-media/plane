@@ -62,6 +62,8 @@
   "notifications": "Bildirimler",
   "workspaces": "Çalışma Alanları",
   "create_workspace": "Çalışma Alanı Oluştur",
+  "set_default_workspace": "Varsayılan çalışma alanı olarak ayarla",
+  "unset_default_workspace": "Varsayılan çalışma alanı olarak kaldır",
   "invitations": "Davetler",
   "summary": "Özet",
   "assigned": "Atanan",

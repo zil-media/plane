@@ -62,6 +62,8 @@
   "notifications": "Сповіщення",
   "workspaces": "Робочі простори",
   "create_workspace": "Створити робочий простір",
+  "set_default_workspace": "Зробити робочим простором за замовчуванням",
+  "unset_default_workspace": "Прибрати як робочий простір за замовчуванням",
   "invitations": "Запрошення",
   "summary": "Зведення",
   "assigned": "Призначено",

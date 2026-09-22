@@ -43,6 +43,7 @@ export class ProfileStore implements IUserProfileStore {
     user: undefined,
     role: undefined,
     last_workspace_id: undefined,
+    pinned_workspace_id: undefined,
     theme: {
       theme: undefined,
       primary: undefined,

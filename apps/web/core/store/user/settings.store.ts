@@ -44,6 +44,8 @@ export class UserSettingsStore implements IUserSettingsStore {
       last_workspace_logo: undefined,
       fallback_workspace_id: undefined,
       fallback_workspace_slug: undefined,
+      pinned_workspace_id: undefined,
+      pinned_workspace_slug: undefined,
       invites: undefined,
     },
   };

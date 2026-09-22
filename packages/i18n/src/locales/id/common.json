@@ -62,6 +62,8 @@
   "notifications": "Notifikasi",
   "workspaces": "Ruang kerja",
   "create_workspace": "Buat ruang kerja",
+  "set_default_workspace": "Jadikan sebagai ruang kerja default",
+  "unset_default_workspace": "Hapus sebagai ruang kerja default",
   "invitations": "Undangan",
   "summary": "Ringkasan",
   "assigned": "Ditetapkan",

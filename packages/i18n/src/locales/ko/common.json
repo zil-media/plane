@@ -62,6 +62,8 @@
   "notifications": "알림",
   "workspaces": "작업 공간",
   "create_workspace": "작업 공간 생성",
+  "set_default_workspace": "기본 작업 공간으로 설정",
+  "unset_default_workspace": "기본 작업 공간에서 해제",
   "invitations": "초대",
   "summary": "요약",
   "assigned": "할당됨",

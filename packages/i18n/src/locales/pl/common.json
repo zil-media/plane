@@ -62,6 +62,8 @@
   "notifications": "Powiadomienia",
   "workspaces": "Przestrzenie robocze",
   "create_workspace": "Utwórz przestrzeń roboczą",
+  "set_default_workspace": "Ustaw jako domyślną przestrzeń roboczą",
+  "unset_default_workspace": "Usuń jako domyślną przestrzeń roboczą",
   "invitations": "Zaproszenia",
   "summary": "Podsumowanie",
   "assigned": "Przypisane",

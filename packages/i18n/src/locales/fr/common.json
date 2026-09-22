@@ -62,6 +62,8 @@
   "notifications": "Notifications",
   "workspaces": "Espaces de travail",
   "create_workspace": "Créer un espace de travail",
+  "set_default_workspace": "Définir comme espace de travail par défaut",
+  "unset_default_workspace": "Retirer comme espace de travail par défaut",
   "invitations": "Invitations",
   "summary": "Résumé",
   "assigned": "Assigné",

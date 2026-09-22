@@ -178,6 +178,7 @@ class WorkSpaceViewSet(BaseViewSet):
         Remove the last workspace id from the user settings
         """
         Profile.objects.filter(last_workspace_id=id).update(last_workspace_id=None)
+        Profile.objects.filter(pinned_workspace_id=id).update(pinned_workspace_id=None)
         return
 
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
