@@ -45,9 +45,29 @@ function isLocalhost() {
   return ["localhost", "127.0.0.1"].includes(window.location.hostname);
 }
 
+// Service calls across the app reject with the raw API error body (`error?.response?.data`,
+// e.g. `{ error: "..." }` / `{ detail: "..." }`) rather than an Error, and a network failure
+// with no response rejects with `undefined`. Without this, every one of those becomes an
+// opaque "Unknown error" report with no way to tell what actually broke.
+function extractMessage(thrown: unknown): string {
+  if (typeof thrown === "string") return thrown;
+  if (thrown && typeof thrown === "object") {
+    const { error, detail, message } = thrown as Record<string, unknown>;
+    const candidate = error ?? detail ?? message;
+    if (typeof candidate === "string") return candidate;
+    try {
+      const json = JSON.stringify(thrown);
+      if (json && json !== "{}") return json.slice(0, 500);
+    } catch {
+      // circular or non-serializable; fall through to the generic message
+    }
+  }
+  return "Unknown error";
+}
+
 export function reportClientError(thrown: unknown, componentStack = "") {
   if (typeof window === "undefined" || isLocalhost()) return;
-  const err = thrown instanceof Error ? thrown : new Error(typeof thrown === "string" ? thrown : "Unknown error");
+  const err = thrown instanceof Error ? thrown : new Error(extractMessage(thrown));
   const message = err.message || String(thrown);
   const stack = err.stack ?? "";
   if (IGNORED.some((pattern) => pattern.test(message) || pattern.test(stack))) return;
