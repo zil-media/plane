@@ -1,102 +1,28 @@
 /**
- * Copyright 2018 Google Inc. All Rights Reserved.
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This app no longer registers a service worker (it ships as a client-only
+ * SPA build — see apps/web/react-router.config.ts). This file used to be a
+ * generated Workbox worker from a prior Next.js/PWA build; it is kept only
+ * as a kill switch so browsers that still have that old worker installed
+ * (registered before the migration) stop running it: the browser's periodic
+ * update check fetches this same URL, finds different bytes, and installs
+ * this version, which immediately unregisters itself and clears its caches
+ * instead of continuing to intercept fetches and serve stale build assets.
  */
-
-// If the loader is already loaded, just stop.
-if (!self.define) {
-  let registry = {};
-
-  // Used for `eval` and `importScripts` where we can't get script URL by other means.
-  // In both cases, it's safe to use a global var because those functions are synchronous.
-  let nextDefineUri;
-
-  const singleRequire = (uri, parentUri) => {
-    uri = new URL(uri + ".js", parentUri).href;
-    return (
-      registry[uri] ||
-      new Promise((resolve) => {
-        if ("document" in self) {
-          const script = document.createElement("script");
-          script.src = uri;
-          script.onload = resolve;
-          document.head.appendChild(script);
-        } else {
-          nextDefineUri = uri;
-          importScripts(uri);
-          resolve();
-        }
-      }).then(() => {
-        let promise = registry[uri];
-        if (!promise) {
-          throw new Error(`Module ${uri} didn’t register its module`);
-        }
-        return promise;
-      })
-    );
-  };
-
-  self.define = (depsNames, factory) => {
-    const uri = nextDefineUri || ("document" in self ? document.currentScript.src : "") || location.href;
-    if (registry[uri]) {
-      // Module is already loading or loaded.
-      return;
-    }
-    let exports = {};
-    const require = (depUri) => singleRequire(depUri, uri);
-    const specialDeps = {
-      module: { uri },
-      exports,
-      require,
-    };
-    registry[uri] = Promise.all(depsNames.map((depName) => specialDeps[depName] || require(depName))).then((deps) => {
-      factory(...deps);
-      return exports;
-    });
-  };
-}
-define(["./workbox-9f2f79cf"], function (workbox) {
-  "use strict";
-
-  importScripts();
+self.addEventListener("install", () => {
   self.skipWaiting();
-  workbox.clientsClaim();
-  workbox.registerRoute(
-    "/",
-    new workbox.NetworkFirst({
-      cacheName: "start-url",
-      plugins: [
-        {
-          cacheWillUpdate: async ({ request, response, event, state }) => {
-            if (response && response.type === "opaqueredirect") {
-              return new Response(response.body, {
-                status: 200,
-                statusText: "OK",
-                headers: response.headers,
-              });
-            }
-            return response;
-          },
-        },
-      ],
-    }),
-    "GET"
-  );
-  workbox.registerRoute(
-    /.*/i,
-    new workbox.NetworkOnly({
-      cacheName: "dev",
-      plugins: [],
-    }),
-    "GET"
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map((name) => caches.delete(name)));
+      await self.registration.unregister();
+
+      const clientList = await self.clients.matchAll({ type: "window" });
+      for (const client of clientList) {
+        client.navigate(client.url);
+      }
+    })()
   );
 });
-//# sourceMappingURL=sw.js.map
