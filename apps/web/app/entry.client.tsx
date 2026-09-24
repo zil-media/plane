@@ -11,11 +11,13 @@ import { HydratedRouter } from "react-router/dom";
 import polyfills from "@/lib/polyfills";
 import { installConsoleCapture } from "@/lib/support/console-capture";
 import { installGlobalErrorReporting } from "@/lib/support/report-client-error";
+import { retireLegacyServiceWorker } from "@/lib/support/retire-service-worker";
 
 void polyfills;
 
 installConsoleCapture();
 installGlobalErrorReporting();
+void retireLegacyServiceWorker();
 
 startTransition(() => {
   hydrateRoot(
