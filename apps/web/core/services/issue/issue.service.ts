@@ -33,7 +33,7 @@ export class IssueService extends APIService {
     return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/`, data)
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -56,7 +56,7 @@ export class IssueService extends APIService {
     )
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -73,7 +73,7 @@ export class IssueService extends APIService {
     )
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -92,7 +92,7 @@ export class IssueService extends APIService {
     })
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -106,7 +106,7 @@ export class IssueService extends APIService {
     })
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -122,7 +122,7 @@ export class IssueService extends APIService {
         return response?.data;
       })
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -132,7 +132,7 @@ export class IssueService extends APIService {
     })
       .then(async (response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -140,7 +140,7 @@ export class IssueService extends APIService {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/history/`)
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -155,7 +155,7 @@ export class IssueService extends APIService {
     return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/cycles/${cycleId}/cycle-issues/`, data)
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -165,7 +165,7 @@ export class IssueService extends APIService {
     )
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -187,7 +187,7 @@ export class IssueService extends APIService {
     )
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response;
+        throw error?.response ?? error;
       });
   }
 
@@ -197,7 +197,7 @@ export class IssueService extends APIService {
     )
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response;
+        throw error?.response ?? error;
       });
   }
 
@@ -205,7 +205,7 @@ export class IssueService extends APIService {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issue-display-properties/`)
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -219,7 +219,7 @@ export class IssueService extends APIService {
     })
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -227,7 +227,7 @@ export class IssueService extends APIService {
     return this.patch(`/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/`, data)
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -235,7 +235,7 @@ export class IssueService extends APIService {
     return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issuesId}/`)
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -247,7 +247,7 @@ export class IssueService extends APIService {
     return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issue-dates/`, { updates })
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -263,7 +263,7 @@ export class IssueService extends APIService {
     )
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -279,7 +279,7 @@ export class IssueService extends APIService {
     )
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -289,7 +289,7 @@ export class IssueService extends APIService {
     )
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response;
+        throw error?.response ?? error;
       });
   }
 
@@ -305,7 +305,7 @@ export class IssueService extends APIService {
     )
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response;
+        throw error?.response ?? error;
       });
   }
 
@@ -322,7 +322,7 @@ export class IssueService extends APIService {
     )
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response;
+        throw error?.response ?? error;
       });
   }
 
@@ -332,7 +332,7 @@ export class IssueService extends APIService {
     )
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -340,7 +340,7 @@ export class IssueService extends APIService {
     return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/bulk-operation-issues/`, data)
       .then(async (response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -354,7 +354,7 @@ export class IssueService extends APIService {
     return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/bulk-delete-issues/`, data)
       .then(async (response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -370,7 +370,7 @@ export class IssueService extends APIService {
     return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/bulk-archive-issues/`, data)
       .then(async (response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -385,7 +385,7 @@ export class IssueService extends APIService {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/subscribe/`)
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -395,7 +395,7 @@ export class IssueService extends APIService {
     )
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -403,7 +403,7 @@ export class IssueService extends APIService {
     return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/subscribe/`)
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -417,7 +417,7 @@ export class IssueService extends APIService {
     return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/bulk-subscribe-issues/`, data)
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -432,7 +432,7 @@ export class IssueService extends APIService {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/meta/`)
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 
@@ -453,7 +453,7 @@ export class IssueService extends APIService {
         return response?.data;
       })
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error;
       });
   }
 }
