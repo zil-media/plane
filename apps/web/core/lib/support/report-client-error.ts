@@ -19,6 +19,10 @@ const IGNORED = [
   /Failed to fetch dynamically imported module/i,
   /Importing a module script failed/i,
   /ChunkLoadError/i,
+  // Firefox's parse-time message for a stale/mismatched route chunk served by a legacy
+  // Workbox worker that hasn't unregistered itself yet (see retire-service-worker.ts) —
+  // other browsers surface the same case as one of the dynamic-import errors above.
+  /^Function statements require a function name$/i,
   /^Script error\.?$/i,
   /chrome-extension:\/\//i,
   /moz-extension:\/\//i,
