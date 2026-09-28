@@ -882,6 +882,12 @@
     "unavailable": "Zil Workspace jest teraz niedostępny.",
     "open_in_zil": "Otwórz w Zil Workspace",
     "error_title": "Nie udało się zaktualizować powiązania",
-    "error": "Zil Workspace nie przyjął zmiany. Spróbuj ponownie."
+    "error": "Zil Workspace nie przyjął zmiany. Spróbuj ponownie.",
+    "save_to_zil": "Zapisz w Zil",
+    "lead": "Lead",
+    "saved_title": "Zapisano w Zil",
+    "saved": "Plik został zapisany w rekordzie {name}.",
+    "save_error_title": "Nie udało się zapisać pliku",
+    "save_error": "Zil Workspace nie przyjął pliku. Spróbuj ponownie."
   }
 }

@@ -882,6 +882,12 @@
     "unavailable": "Zil Workspace je momentálně nedostupný.",
     "open_in_zil": "Otevřít v Zil Workspace",
     "error_title": "Propojení se nepodařilo aktualizovat",
-    "error": "Zil Workspace změnu nepřijal. Zkuste to znovu."
+    "error": "Zil Workspace změnu nepřijal. Zkuste to znovu.",
+    "save_to_zil": "Uložit do Zil",
+    "lead": "Lead",
+    "saved_title": "Uloženo do Zil",
+    "saved": "Soubor byl uložen k záznamu {name}.",
+    "save_error_title": "Soubor se nepodařilo uložit",
+    "save_error": "Zil Workspace soubor nepřijal. Zkuste to znovu."
   }
 }

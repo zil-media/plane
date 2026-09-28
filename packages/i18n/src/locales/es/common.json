@@ -882,6 +882,12 @@
     "unavailable": "Zil Workspace no responde en este momento.",
     "open_in_zil": "Abrir en Zil Workspace",
     "error_title": "No se pudo actualizar el vínculo",
-    "error": "Zil Workspace no aceptó el cambio. Inténtelo de nuevo."
+    "error": "Zil Workspace no aceptó el cambio. Inténtelo de nuevo.",
+    "save_to_zil": "Guardar en Zil",
+    "lead": "Lead",
+    "saved_title": "Guardado en Zil",
+    "saved": "El archivo se guardó en {name}.",
+    "save_error_title": "No se pudo guardar el archivo",
+    "save_error": "Zil Workspace no aceptó el archivo. Inténtelo de nuevo."
   }
 }

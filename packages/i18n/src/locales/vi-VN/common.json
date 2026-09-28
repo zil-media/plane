@@ -882,6 +882,12 @@
     "unavailable": "Hiện không thể kết nối tới Zil Workspace.",
     "open_in_zil": "Mở trong Zil Workspace",
     "error_title": "Không thể cập nhật liên kết",
-    "error": "Zil Workspace không chấp nhận thay đổi. Vui lòng thử lại."
+    "error": "Zil Workspace không chấp nhận thay đổi. Vui lòng thử lại.",
+    "save_to_zil": "Lưu vào Zil",
+    "lead": "Khách hàng tiềm năng",
+    "saved_title": "Đã lưu vào Zil",
+    "saved": "Tệp đã được lưu vào {name}.",
+    "save_error_title": "Không thể lưu tệp",
+    "save_error": "Zil Workspace không chấp nhận tệp. Vui lòng thử lại."
   }
 }

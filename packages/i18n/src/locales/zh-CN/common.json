@@ -882,6 +882,12 @@
     "unavailable": "目前无法连接 Zil Workspace。",
     "open_in_zil": "在 Zil Workspace 中打开",
     "error_title": "无法更新关联",
-    "error": "Zil Workspace 未接受此更改。请重试。"
+    "error": "Zil Workspace 未接受此更改。请重试。",
+    "save_to_zil": "保存到 Zil",
+    "lead": "潜在客户",
+    "saved_title": "已保存到 Zil",
+    "saved": "文件已保存到 {name}。",
+    "save_error_title": "无法保存文件",
+    "save_error": "Zil Workspace 未接受此文件。请重试。"
   }
 }

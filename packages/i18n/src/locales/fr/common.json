@@ -882,6 +882,12 @@
     "unavailable": "Zil Workspace est injoignable pour le moment.",
     "open_in_zil": "Ouvrir dans Zil Workspace",
     "error_title": "Impossible de mettre à jour le lien",
-    "error": "Zil Workspace n'a pas accepté la modification. Réessayez."
+    "error": "Zil Workspace n'a pas accepté la modification. Réessayez.",
+    "save_to_zil": "Enregistrer dans Zil",
+    "lead": "Prospect",
+    "saved_title": "Enregistré dans Zil",
+    "saved": "Le fichier a été enregistré dans {name}.",
+    "save_error_title": "Impossible d'enregistrer le fichier",
+    "save_error": "Zil Workspace n'a pas accepté le fichier. Réessayez."
   }
 }

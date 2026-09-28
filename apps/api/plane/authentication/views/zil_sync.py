@@ -21,7 +21,8 @@ from urllib.parse import quote
 
 # Django imports
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.db.models import CharField, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Cast, Concat
 from django.http import HttpResponseRedirect
 
 # Third party imports
@@ -32,7 +33,17 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 # Module imports
-from plane.db.models import User, Issue, IssueLink, Project, Page, FileAsset, WorkspaceMember
+from plane.db.models import (
+    User,
+    Issue,
+    IssueLink,
+    Project,
+    Page,
+    ProjectPage,
+    FileAsset,
+    Workspace,
+    WorkspaceMember,
+)
 from plane.settings.storage import S3Storage
 from plane.authentication.utils.zil_provisioning import (
     ensure_workspace,
@@ -41,12 +52,16 @@ from plane.authentication.utils.zil_provisioning import (
     deactivate_workspace,
     revoke_user_sessions,
     normalize_slug,
+    ZIL_SERVICE_EMAIL,
 )
 from plane.utils.exception_logger import log_exception
 from plane.utils.zil_client import (
+    ZIL_DOC_TARGET_TYPES,
     ZilUnavailable,
+    get_issue_erp_doc_targets,
     get_issue_erp_refs,
     is_valid_client_id,
+    save_issue_doc_to_zil,
     search_zil_clients,
     search_zil_projects,
     set_issue_erp_ref,
@@ -437,6 +452,136 @@ class ZilEntityCheckEndpoint(ZilServiceView):
             return Response({"error": "entity_check_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class ZilSearchEndpoint(ZilServiceView):
+    """Search a workspace's issues / projects / pages, for the ERP's "link to Ops" picker.
+
+    GET ?workspace_slug=&type=issue|project|page&q=&limit= → {results: [{type, id, name,
+    key, project_name, url}]}, most recently updated first. Only live content: no
+    archived/deleted/draft issues, archived projects, or private/archived pages.
+    """
+
+    _TYPES = ("issue", "project", "page")
+    _DEFAULT_LIMIT = 20
+    _MAX_LIMIT = 50
+
+    def get(self, request):
+        kind = request.query_params.get("type")
+        if kind not in self._TYPES:
+            return Response({"error": "invalid_type"}, status=status.HTTP_400_BAD_REQUEST)
+        workspace = Workspace.objects.filter(slug=request.query_params.get("workspace_slug") or "").first()
+        if workspace is None:
+            return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+        q = (request.query_params.get("q") or "").strip()[:100]
+        try:
+            limit = int(request.query_params.get("limit") or self._DEFAULT_LIMIT)
+        except ValueError:
+            limit = self._DEFAULT_LIMIT
+        limit = max(1, min(limit, self._MAX_LIMIT))
+        base = f"{(os.environ.get('WEB_URL') or '').rstrip('/')}/{workspace.slug}"
+        try:
+            results = getattr(self, f"_{kind}s")(workspace, q, limit, base)
+            return Response({"results": results}, status=status.HTTP_200_OK)
+        except Exception as e:
+            log_exception(e)
+            return Response({"error": "search_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _issues(self, workspace, q, limit, base):
+        qs = Issue.issue_objects.filter(workspace=workspace).annotate(
+            key=Concat("project__identifier", Value("-"), Cast("sequence_id", CharField()), output_field=CharField())
+        )
+        if q:
+            match = Q(name__icontains=q) | Q(key__icontains=q)
+            if q.isdigit():
+                match |= Q(sequence_id=int(q))
+            qs = qs.filter(match)
+        qs = qs.select_related("project").order_by("-updated_at")[:limit]
+        return [
+            {
+                "type": "issue",
+                "id": str(issue.id),
+                "name": issue.name,
+                "key": issue.key,
+                "project_name": issue.project.name,
+                "url": f"{base}/browse/{issue.key}/",
+            }
+            for issue in qs
+        ]
+
+    def _projects(self, workspace, q, limit, base):
+        qs = Project.objects.filter(workspace=workspace, archived_at__isnull=True)
+        if q:
+            qs = qs.filter(Q(name__icontains=q) | Q(identifier__icontains=q))
+        return [
+            {
+                "type": "project",
+                "id": str(project.id),
+                "name": project.name,
+                "key": project.identifier,
+                "project_name": project.name,
+                "url": f"{base}/projects/{project.id}/issues/",
+            }
+            for project in qs.order_by("-updated_at")[:limit]
+        ]
+
+    def _pages(self, workspace, q, limit, base):
+        # A page's URL lives under a project; pages attached to none have no route and are skipped.
+        first_project = ProjectPage.objects.filter(
+            page=OuterRef("pk"), project__deleted_at__isnull=True
+        ).order_by("created_at")
+        qs = (
+            Page.objects.filter(workspace=workspace, access=0, archived_at__isnull=True)
+            .annotate(
+                first_project_id=Subquery(first_project.values("project_id")[:1]),
+                first_project_name=Subquery(first_project.values("project__name")[:1]),
+            )
+            .filter(first_project_id__isnull=False)
+        )
+        if q:
+            qs = qs.filter(name__icontains=q)
+        return [
+            {
+                "type": "page",
+                "id": str(page.id),
+                "name": page.name or "",
+                "key": "",
+                "project_name": page.first_project_name,
+                "url": f"{base}/projects/{page.first_project_id}/pages/{page.id}/",
+            }
+            for page in qs.order_by("-updated_at")[:limit]
+        ]
+
+
+class ZilMembershipsEndpoint(ZilServiceView):
+    """Actual workspace memberships, so the ERP can flag drift from its desired state.
+
+    GET ?slugs=a,b,c (max 200) → {workspaces: {slug: {exists, members: [{email, role,
+    is_active}]}}}. Human users only (bots and the Zil service user are left out). Read-only.
+    """
+
+    _MAX_SLUGS = 200
+
+    def get(self, request):
+        slugs = list(dict.fromkeys(s.strip() for s in (request.query_params.get("slugs") or "").split(",") if s.strip()))
+        if not slugs or len(slugs) > self._MAX_SLUGS:
+            return Response({"error": "invalid_slugs"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            result = {slug: {"exists": False, "members": []} for slug in slugs}
+            for slug in Workspace.objects.filter(slug__in=slugs).values_list("slug", flat=True):
+                result[slug]["exists"] = True
+            rows = (
+                WorkspaceMember.objects.filter(workspace__slug__in=slugs, member__is_bot=False)
+                .exclude(member__email=ZIL_SERVICE_EMAIL)
+                .values_list("workspace__slug", "member__email", "role", "is_active")
+                .order_by("workspace__slug", "member__email")
+            )
+            for slug, email, role, is_active in rows:
+                result[slug]["members"].append({"email": email, "role": role, "is_active": is_active})
+            return Response({"workspaces": result}, status=status.HTTP_200_OK)
+        except Exception as e:
+            log_exception(e)
+            return Response({"error": "memberships_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class ZilErpLinksEndpoint(APIView):
     """ERP entities linked to a Plane project/page, for the web 'Zil' chip.
 
@@ -613,6 +758,24 @@ class ZilErpOptionsEndpoint(APIView):
         return Response({"options": options}, status=status.HTTP_200_OK)
 
 
+def _member_issue(request, issue_id, min_role):
+    """The work item, if the requester is an active member of its project with at least min_role."""
+    try:
+        uuid.UUID(str(issue_id))
+    except ValueError:
+        return None
+    return (
+        Issue.issue_objects.filter(
+            pk=issue_id,
+            project__project_projectmember__member=request.user,
+            project__project_projectmember__is_active=True,
+            project__project_projectmember__role__gte=min_role,
+        )
+        .select_related("workspace", "project")
+        .first()
+    )
+
+
 class ZilIssueErpRefsEndpoint(APIView):
     """The ERP client / project a work item belongs to.
 
@@ -627,24 +790,8 @@ class ZilIssueErpRefsEndpoint(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def _issue(self, request, issue_id, min_role):
-        try:
-            uuid.UUID(str(issue_id))
-        except ValueError:
-            return None
-        return (
-            Issue.issue_objects.filter(
-                pk=issue_id,
-                project__project_projectmember__member=request.user,
-                project__project_projectmember__is_active=True,
-                project__project_projectmember__role__gte=min_role,
-            )
-            .select_related("workspace", "project")
-            .first()
-        )
-
     def get(self, request):
-        issue = self._issue(request, request.query_params.get("issue_id"), min_role=5)
+        issue = _member_issue(request, request.query_params.get("issue_id"), min_role=5)
         if issue is None:
             return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
         if not zil_enabled():
@@ -660,7 +807,7 @@ class ZilIssueErpRefsEndpoint(APIView):
         if kind not in _ERP_REF_KINDS or (erp_id is not None and not is_valid_client_id(erp_id)):
             return Response({"error": "invalid_params"}, status=status.HTTP_400_BAD_REQUEST)
         # Editing a work item's properties needs Member or Admin on its project.
-        issue = self._issue(request, request.data.get("issue_id"), min_role=15)
+        issue = _member_issue(request, request.data.get("issue_id"), min_role=15)
         if issue is None:
             return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
         if not zil_enabled():
@@ -680,3 +827,79 @@ class ZilIssueErpRefsEndpoint(APIView):
         if refs is None:
             return Response({"error": "erp_entity_not_found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(refs, status=status.HTTP_200_OK)
+
+
+class ZilIssueErpTargetsEndpoint(APIView):
+    """ERP records (Lead / MgmtClient) linked to a work item that can receive its attachments.
+
+    GET ?issue_id= → {targets: [{type, id, name}]}. Read from the ERP's links (it owns them);
+    TimeProject is left out because it has no document array.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        issue = _member_issue(request, request.query_params.get("issue_id"), min_role=5)
+        if issue is None:
+            return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+        if not zil_enabled():
+            return Response({"targets": []}, status=status.HTTP_200_OK)
+        try:
+            return Response({"targets": get_issue_erp_doc_targets(str(issue.id))}, status=status.HTTP_200_OK)
+        except ZilUnavailable:
+            return Response({"error": "zil_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
+
+
+class ZilIssueErpDocsEndpoint(APIView):
+    """"Guardar en Zil": copy a work item attachment into a linked Lead / MgmtClient's documents.
+
+    POST {issue_id, asset_id, target_type, target_id}. Plane only authorizes (Member/Admin of the
+    work item's project, asset attached to THAT work item) and relays; the ERP checks the target is
+    linked to the work item and pulls the bytes through ZilAssetUrlEndpoint.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        target_type = request.data.get("target_type")
+        target_id = request.data.get("target_id")
+        asset_id = request.data.get("asset_id")
+        if target_type not in ZIL_DOC_TARGET_TYPES or not is_valid_client_id(target_id):
+            return Response({"error": "invalid_params"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            uuid.UUID(str(asset_id))
+        except ValueError:
+            return Response({"error": "invalid_params"}, status=status.HTTP_400_BAD_REQUEST)
+        issue = _member_issue(request, request.data.get("issue_id"), min_role=15)
+        if issue is None:
+            return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+        asset = FileAsset.objects.filter(
+            pk=asset_id,
+            issue_id=issue.id,
+            entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+            is_deleted=False,
+            is_uploaded=True,
+        ).first()
+        if asset is None:
+            return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+        if not zil_enabled():
+            return Response({"error": "zil_not_configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        try:
+            saved = save_issue_doc_to_zil(
+                {
+                    "leadsEntityType": target_type,
+                    "leadsEntityId": target_id,
+                    "workspace_slug": issue.workspace.slug,
+                    "plane_issue_id": str(issue.id),
+                    "asset_id": str(asset.id),
+                    "name": asset.attributes.get("name"),
+                    "type": asset.attributes.get("type"),
+                    "size": int(asset.size),
+                    "actor_email": request.user.email,
+                }
+            )
+        except ZilUnavailable:
+            return Response({"error": "zil_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
+        if saved is None:
+            return Response({"error": "erp_entity_not_found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"success": True}, status=status.HTTP_200_OK)

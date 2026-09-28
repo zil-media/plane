@@ -22,8 +22,11 @@ export type TZilErpRef = { id: string; name: string; url: string } | null;
 
 export type TZilIssueErpRefs = { client: TZilErpRef; project: TZilErpRef };
 
+export type TZilErpDocTarget = { type: "Lead" | "MgmtClient"; id: string; name: string };
+
 /**
- * Zil Workspace (ERP) bridge for the web app: chips, and the work item Cliente/Proyecto properties.
+ * Zil Workspace (ERP) bridge for the web app: chips, the work item Cliente/Proyecto properties, and
+ * "Guardar en Zil" on work item attachments.
  * See apps/api/plane/authentication/views/zil_sync.py (ZilErpLinksEndpoint).
  */
 export class ZilService extends APIService {
@@ -60,6 +63,27 @@ export class ZilService extends APIService {
   async setIssueErpRef(issueId: string, kind: TZilErpRefKind, erpId: string | null): Promise<TZilIssueErpRefs> {
     return this.post(`/api/zil/issue-erp-refs/`, { issue_id: issueId, kind, erp_id: erpId })
       .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async getIssueErpDocTargets(issueId: string): Promise<{ targets: TZilErpDocTarget[] }> {
+    return this.get(`/api/zil/issue-erp-targets/`, { params: { issue_id: issueId } })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async saveIssueAttachmentToZil(issueId: string, assetId: string, target: TZilErpDocTarget): Promise<void> {
+    return this.post(`/api/zil/issue-erp-docs/`, {
+      issue_id: issueId,
+      asset_id: assetId,
+      target_type: target.type,
+      target_id: target.id,
+    })
+      .then(() => undefined)
       .catch((error) => {
         throw error?.response?.data;
       });

@@ -882,6 +882,12 @@
     "unavailable": "O Zil Workspace não está acessível agora.",
     "open_in_zil": "Abrir no Zil Workspace",
     "error_title": "Não foi possível atualizar o vínculo",
-    "error": "O Zil Workspace não aceitou a alteração. Tente novamente."
+    "error": "O Zil Workspace não aceitou a alteração. Tente novamente.",
+    "save_to_zil": "Salvar no Zil",
+    "lead": "Lead",
+    "saved_title": "Salvo no Zil",
+    "saved": "O arquivo foi salvo em {name}.",
+    "save_error_title": "Não foi possível salvar o arquivo",
+    "save_error": "O Zil Workspace não aceitou o arquivo. Tente novamente."
   }
 }

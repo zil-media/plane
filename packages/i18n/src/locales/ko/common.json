@@ -882,6 +882,12 @@
     "unavailable": "현재 Zil Workspace에 연결할 수 없습니다.",
     "open_in_zil": "Zil Workspace에서 열기",
     "error_title": "링크를 업데이트할 수 없습니다",
-    "error": "Zil Workspace가 변경을 받아들이지 않았습니다. 다시 시도하십시오."
+    "error": "Zil Workspace가 변경을 받아들이지 않았습니다. 다시 시도하십시오.",
+    "save_to_zil": "Zil에 저장",
+    "lead": "리드",
+    "saved_title": "Zil에 저장됨",
+    "saved": "파일을 {name}에 저장했습니다.",
+    "save_error_title": "파일을 저장할 수 없습니다",
+    "save_error": "Zil Workspace가 파일을 받아들이지 않았습니다. 다시 시도하십시오."
   }
 }

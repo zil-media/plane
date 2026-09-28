@@ -882,6 +882,12 @@
     "unavailable": "Zil Workspace non è raggiungibile in questo momento.",
     "open_in_zil": "Apri in Zil Workspace",
     "error_title": "Impossibile aggiornare il collegamento",
-    "error": "Zil Workspace non ha accettato la modifica. Riprovi."
+    "error": "Zil Workspace non ha accettato la modifica. Riprovi.",
+    "save_to_zil": "Salva in Zil",
+    "lead": "Lead",
+    "saved_title": "Salvato in Zil",
+    "saved": "Il file è stato salvato in {name}.",
+    "save_error_title": "Impossibile salvare il file",
+    "save_error": "Zil Workspace non ha accettato il file. Riprovi."
   }
 }

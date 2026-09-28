@@ -17,6 +17,10 @@ from plane.authentication.views.zil_sync import (
     ZilErpLinksEndpoint,
     ZilErpOptionsEndpoint,
     ZilIssueErpRefsEndpoint,
+    ZilIssueErpTargetsEndpoint,
+    ZilIssueErpDocsEndpoint,
+    ZilSearchEndpoint,
+    ZilMembershipsEndpoint,
 )
 
 urlpatterns = [
@@ -29,6 +33,9 @@ urlpatterns = [
     path("sync/asset-url/", ZilAssetUrlEndpoint.as_view(), name="zil-sync-asset-url"),
     path("sync/doc-attach/", ZilDocAttachEndpoint.as_view(), name="zil-sync-doc-attach"),
     path("sync/entity-check/", ZilEntityCheckEndpoint.as_view(), name="zil-sync-entity-check"),
+    # service-key (ERP pickers / drift monitor): read-only
+    path("sync/search/", ZilSearchEndpoint.as_view(), name="zil-sync-search"),
+    path("sync/memberships/", ZilMembershipsEndpoint.as_view(), name="zil-sync-memberships"),
     # per-user session (Plane member → Zil doc): membership-gated 302
     path("erp-asset/", ZilErpAssetRedirectEndpoint.as_view(), name="zil-erp-asset"),
     # per-user session (web chip): ERP entities linked to a project/page
@@ -36,4 +43,7 @@ urlpatterns = [
     # per-user session (work item "Cliente"/"Proyecto" properties): ERP-owned link, relayed
     path("erp-options/", ZilErpOptionsEndpoint.as_view(), name="zil-erp-options"),
     path("issue-erp-refs/", ZilIssueErpRefsEndpoint.as_view(), name="zil-issue-erp-refs"),
+    # per-user session ("Guardar en Zil" on work item attachments): relayed to the ERP
+    path("issue-erp-targets/", ZilIssueErpTargetsEndpoint.as_view(), name="zil-issue-erp-targets"),
+    path("issue-erp-docs/", ZilIssueErpDocsEndpoint.as_view(), name="zil-issue-erp-docs"),
 ]

@@ -882,6 +882,12 @@
     "unavailable": "Zil Workspace nu este accesibil momentan.",
     "open_in_zil": "Deschideți în Zil Workspace",
     "error_title": "Legătura nu a putut fi actualizată",
-    "error": "Zil Workspace nu a acceptat modificarea. Încercați din nou."
+    "error": "Zil Workspace nu a acceptat modificarea. Încercați din nou.",
+    "save_to_zil": "Salvează în Zil",
+    "lead": "Lead",
+    "saved_title": "Salvat în Zil",
+    "saved": "Fișierul a fost salvat în {name}.",
+    "save_error_title": "Fișierul nu a putut fi salvat",
+    "save_error": "Zil Workspace nu a acceptat fișierul. Încercați din nou."
   }
 }

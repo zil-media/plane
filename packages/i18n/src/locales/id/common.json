@@ -882,6 +882,12 @@
     "unavailable": "Zil Workspace sedang tidak dapat dijangkau.",
     "open_in_zil": "Buka di Zil Workspace",
     "error_title": "Tidak dapat memperbarui tautan",
-    "error": "Zil Workspace tidak menerima perubahan. Coba lagi."
+    "error": "Zil Workspace tidak menerima perubahan. Coba lagi.",
+    "save_to_zil": "Simpan ke Zil",
+    "lead": "Prospek",
+    "saved_title": "Tersimpan di Zil",
+    "saved": "File telah disimpan ke {name}.",
+    "save_error_title": "Tidak dapat menyimpan file",
+    "save_error": "Zil Workspace tidak menerima file. Coba lagi."
   }
 }

@@ -882,6 +882,12 @@
     "unavailable": "Zil Workspace сейчас недоступен.",
     "open_in_zil": "Открыть в Zil Workspace",
     "error_title": "Не удалось обновить связь",
-    "error": "Zil Workspace не принял изменение. Попробуйте ещё раз."
+    "error": "Zil Workspace не принял изменение. Попробуйте ещё раз.",
+    "save_to_zil": "Сохранить в Zil",
+    "lead": "Лид",
+    "saved_title": "Сохранено в Zil",
+    "saved": "Файл сохранён в запись «{name}».",
+    "save_error_title": "Не удалось сохранить файл",
+    "save_error": "Zil Workspace не принял файл. Попробуйте ещё раз."
   }
 }

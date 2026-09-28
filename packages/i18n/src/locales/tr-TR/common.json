@@ -882,6 +882,12 @@
     "unavailable": "Zil Workspace'e şu anda ulaşılamıyor.",
     "open_in_zil": "Zil Workspace'te aç",
     "error_title": "Bağlantı güncellenemedi",
-    "error": "Zil Workspace değişikliği kabul etmedi. Tekrar deneyin."
+    "error": "Zil Workspace değişikliği kabul etmedi. Tekrar deneyin.",
+    "save_to_zil": "Zil'e kaydet",
+    "lead": "Potansiyel müşteri",
+    "saved_title": "Zil'e kaydedildi",
+    "saved": "Dosya, {name} kaydına kaydedildi.",
+    "save_error_title": "Dosya kaydedilemedi",
+    "save_error": "Zil Workspace dosyayı kabul etmedi. Tekrar deneyin."
   }
 }
