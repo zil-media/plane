@@ -90,7 +90,11 @@ class TestZilSearch:
     def test_issues_match_name_key_and_sequence(self, service_client, workspace, project, issue, create_user):
         other = Issue.objects.create(workspace=workspace, project=project, name="Otra", created_by=create_user)
         Issue.objects.create(
-            workspace=workspace, project=project, name="Campaña vieja", archived_at=timezone.now(), created_by=create_user
+            workspace=workspace,
+            project=project,
+            name="Campaña vieja",
+            archived_at=timezone.now(),
+            created_by=create_user,
         )
         key = f"CLP-{issue.sequence_id}"
 
@@ -109,7 +113,8 @@ class TestZilSearch:
             }
         ]
         by_key = service_client.get(
-            "/api/zil/sync/search/", {"workspace_slug": workspace.slug, "type": "issue", "q": f"clp-{other.sequence_id}"}
+            "/api/zil/sync/search/",
+            {"workspace_slug": workspace.slug, "type": "issue", "q": f"clp-{other.sequence_id}"},
         )
         assert [r["id"] for r in by_key.data["results"]] == [str(other.id)]
         by_seq = service_client.get(
@@ -247,7 +252,12 @@ class TestZilIssueErpTargets:
 @pytest.mark.contract
 class TestZilIssueErpDocs:
     def _body(self, issue, asset_id, target_type="Lead", target_id=LEAD_ID):
-        return {"issue_id": str(issue.id), "asset_id": str(asset_id), "target_type": target_type, "target_id": target_id}
+        return {
+            "issue_id": str(issue.id),
+            "asset_id": str(asset_id),
+            "target_type": target_type,
+            "target_id": target_id,
+        }
 
     @pytest.mark.django_db
     def test_relays_the_attachment_to_zil(self, session_client, workspace, issue, attachment, create_user, zil_env):

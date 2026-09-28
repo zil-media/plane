@@ -561,7 +561,8 @@ class ZilMembershipsEndpoint(ZilServiceView):
     _MAX_SLUGS = 200
 
     def get(self, request):
-        slugs = list(dict.fromkeys(s.strip() for s in (request.query_params.get("slugs") or "").split(",") if s.strip()))
+        raw_slugs = (request.query_params.get("slugs") or "").split(",")
+        slugs = list(dict.fromkeys(s.strip() for s in raw_slugs if s.strip()))
         if not slugs or len(slugs) > self._MAX_SLUGS:
             return Response({"error": "invalid_slugs"}, status=status.HTTP_400_BAD_REQUEST)
         try:
