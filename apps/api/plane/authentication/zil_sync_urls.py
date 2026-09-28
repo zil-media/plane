@@ -15,6 +15,8 @@ from plane.authentication.views.zil_sync import (
     ZilEntityCheckEndpoint,
     ZilErpAssetRedirectEndpoint,
     ZilErpLinksEndpoint,
+    ZilErpOptionsEndpoint,
+    ZilIssueErpRefsEndpoint,
 )
 
 urlpatterns = [
@@ -31,4 +33,7 @@ urlpatterns = [
     path("erp-asset/", ZilErpAssetRedirectEndpoint.as_view(), name="zil-erp-asset"),
     # per-user session (web chip): ERP entities linked to a project/page
     path("erp-links/", ZilErpLinksEndpoint.as_view(), name="zil-erp-links"),
+    # per-user session (work item "Cliente"/"Proyecto" properties): ERP-owned link, relayed
+    path("erp-options/", ZilErpOptionsEndpoint.as_view(), name="zil-erp-options"),
+    path("issue-erp-refs/", ZilIssueErpRefsEndpoint.as_view(), name="zil-issue-erp-refs"),
 ]

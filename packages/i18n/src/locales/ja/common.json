@@ -874,5 +874,14 @@
     }
   },
   "zil_seed_studio_defaults_label": "標準クライアントプロジェクトを設定",
-  "zil_seed_studio_defaults_description": "このプロジェクトに、スタジオでよく使う状態（Briefing、Propuesta inicial、Correcciones、Entrega、Suspendidos）と成果物ラベル（Branding、Web、Landing、Redes Sociales、Email、Merchandising）を追加します。"
+  "zil_seed_studio_defaults_description": "このプロジェクトに、スタジオでよく使う状態（Briefing、Propuesta inicial、Correcciones、Entrega、Suspendidos）と成果物ラベル（Branding、Web、Landing、Redes Sociales、Email、Merchandising）を追加します。",
+  "zil_erp": {
+    "client": "クライアント",
+    "project": "プロジェクト",
+    "no_options": "Zil Workspace にアクティブな項目はありません。",
+    "unavailable": "現在 Zil Workspace に接続できません。",
+    "open_in_zil": "Zil Workspace で開く",
+    "error_title": "リンクを更新できませんでした",
+    "error": "Zil Workspace が変更を受け付けませんでした。もう一度お試しください。"
+  }
 }

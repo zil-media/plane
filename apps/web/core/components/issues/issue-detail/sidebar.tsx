@@ -46,6 +46,7 @@ import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/prop
 import { IssueCycleSelect } from "./cycle-select";
 import { IssueLabel } from "./label";
 import { IssueModuleSelect } from "./module-select";
+import { IssueZilErpProperties } from "./zil-erp-properties";
 import type { TIssueOperations } from "./root";
 
 type Props = {
@@ -221,6 +222,8 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
                 />
               </SidebarPropertyListItem>
             )}
+
+            <IssueZilErpProperties workspaceSlug={workspaceSlug} issueId={issueId} disabled={!isEditable} />
 
             {projectDetails?.cycle_view && (
               <SidebarPropertyListItem

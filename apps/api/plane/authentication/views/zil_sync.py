@@ -43,6 +43,15 @@ from plane.authentication.utils.zil_provisioning import (
     normalize_slug,
 )
 from plane.utils.exception_logger import log_exception
+from plane.utils.zil_client import (
+    ZilUnavailable,
+    get_issue_erp_refs,
+    is_valid_client_id,
+    search_zil_clients,
+    search_zil_projects,
+    set_issue_erp_ref,
+    zil_enabled,
+)
 
 
 class ZilServicePermission(BasePermission):
@@ -560,3 +569,114 @@ class ZilErpAssetRedirectEndpoint(APIView):
         except Exception as e:
             log_exception(e)
             return Response({"error": "zil_unreachable"}, status=status.HTTP_502_BAD_GATEWAY)
+
+
+_ERP_REF_KINDS = ("client", "project")
+# Every option at once: the dropdown filters locally, and a workspace's BUs hold tens of them.
+_ERP_OPTIONS_LIMIT = 200
+
+
+def _client_option(client):
+    alias, company = client.get("alias") or "", client.get("companyName") or ""
+    return {"id": client.get("id"), "name": alias or company, "subtitle": company if alias and company != alias else ""}
+
+
+def _project_option(project):
+    detail = " · ".join(filter(None, [project.get("clientName"), project.get("brand"), project.get("service")]))
+    return {"id": project.get("id"), "name": project.get("name") or "", "subtitle": detail}
+
+
+class ZilErpOptionsEndpoint(APIView):
+    """Active ERP clients / projects of a workspace's Business Unit(s), for the
+    work item "Cliente" / "Proyecto" properties. Per-user session auth: only
+    active members of the workspace. Proxied from the ERP, never persisted.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        slug = request.query_params.get("workspace_slug")
+        kind = request.query_params.get("kind")
+        if kind not in _ERP_REF_KINDS or not slug:
+            return Response({"error": "invalid_params"}, status=status.HTTP_400_BAD_REQUEST)
+        if not WorkspaceMember.objects.filter(workspace__slug=slug, member=request.user, is_active=True).exists():
+            return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+        if not zil_enabled():
+            return Response({"error": "zil_not_configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        try:
+            if kind == "client":
+                options = [_client_option(c) for c in search_zil_clients(slug, "", _ERP_OPTIONS_LIMIT)]
+            else:
+                options = [_project_option(p) for p in search_zil_projects(slug, "", _ERP_OPTIONS_LIMIT)]
+        except ZilUnavailable:
+            return Response({"error": "zil_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response({"options": options}, status=status.HTTP_200_OK)
+
+
+class ZilIssueErpRefsEndpoint(APIView):
+    """The ERP client / project a work item belongs to.
+
+    The link is owned by Zil Workspace (golden rule of the ERP↔Ops bridge): it
+    lives in the client's / project's planeLinks[], and the ERP pushes the usual
+    entity-link `set`/`clear` back (IssueLink chip + back-ref). This view only
+    authorizes the requester against the work item's project and relays.
+
+    GET  ?issue_id=               → {client, project} (each {id, name, url} or null)
+    POST {issue_id, kind, erp_id} → link (erp_id) or unlink (erp_id=null); returns the new refs
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def _issue(self, request, issue_id, min_role):
+        try:
+            uuid.UUID(str(issue_id))
+        except ValueError:
+            return None
+        return (
+            Issue.issue_objects.filter(
+                pk=issue_id,
+                project__project_projectmember__member=request.user,
+                project__project_projectmember__is_active=True,
+                project__project_projectmember__role__gte=min_role,
+            )
+            .select_related("workspace", "project")
+            .first()
+        )
+
+    def get(self, request):
+        issue = self._issue(request, request.query_params.get("issue_id"), min_role=5)
+        if issue is None:
+            return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+        if not zil_enabled():
+            return Response({"client": None, "project": None}, status=status.HTTP_200_OK)
+        try:
+            return Response(get_issue_erp_refs(issue.workspace.slug, str(issue.id)), status=status.HTTP_200_OK)
+        except ZilUnavailable:
+            return Response({"error": "zil_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
+
+    def post(self, request):
+        kind = request.data.get("kind")
+        erp_id = request.data.get("erp_id")
+        if kind not in _ERP_REF_KINDS or (erp_id is not None and not is_valid_client_id(erp_id)):
+            return Response({"error": "invalid_params"}, status=status.HTTP_400_BAD_REQUEST)
+        # Editing a work item's properties needs Member or Admin on its project.
+        issue = self._issue(request, request.data.get("issue_id"), min_role=15)
+        if issue is None:
+            return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+        if not zil_enabled():
+            return Response({"error": "zil_not_configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        try:
+            refs = set_issue_erp_ref(
+                {
+                    "kind": kind,
+                    "erp_id": erp_id,
+                    "workspace_slug": issue.workspace.slug,
+                    "plane_issue_id": str(issue.id),
+                    "actor_email": request.user.email,
+                }
+            )
+        except ZilUnavailable:
+            return Response({"error": "zil_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
+        if refs is None:
+            return Response({"error": "erp_entity_not_found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(refs, status=status.HTTP_200_OK)

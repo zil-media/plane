@@ -874,5 +874,14 @@
     }
   },
   "zil_seed_studio_defaults_label": "Configurer un projet client standard",
-  "zil_seed_studio_defaults_description": "Ajoute à ce projet les états habituels du studio (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) et les étiquettes de livrables (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
+  "zil_seed_studio_defaults_description": "Ajoute à ce projet les états habituels du studio (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) et les étiquettes de livrables (Branding, Web, Landing, Redes Sociales, Email, Merchandising).",
+  "zil_erp": {
+    "client": "Client",
+    "project": "Projet",
+    "no_options": "Aucun élément actif dans Zil Workspace.",
+    "unavailable": "Zil Workspace est injoignable pour le moment.",
+    "open_in_zil": "Ouvrir dans Zil Workspace",
+    "error_title": "Impossible de mettre à jour le lien",
+    "error": "Zil Workspace n'a pas accepté la modification. Réessayez."
+  }
 }

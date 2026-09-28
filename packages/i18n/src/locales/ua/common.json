@@ -874,5 +874,14 @@
     }
   },
   "zil_seed_studio_defaults_label": "Налаштувати стандартний клієнтський проєкт",
-  "zil_seed_studio_defaults_description": "Додає до цього проєкту звичні статуси студії (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) та мітки результатів (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
+  "zil_seed_studio_defaults_description": "Додає до цього проєкту звичні статуси студії (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) та мітки результатів (Branding, Web, Landing, Redes Sociales, Email, Merchandising).",
+  "zil_erp": {
+    "client": "Клієнт",
+    "project": "Проєкт",
+    "no_options": "У Zil Workspace немає активних записів.",
+    "unavailable": "Zil Workspace зараз недоступний.",
+    "open_in_zil": "Відкрити в Zil Workspace",
+    "error_title": "Не вдалося оновити зв'язок",
+    "error": "Zil Workspace не прийняв зміну. Спробуйте ще раз."
+  }
 }

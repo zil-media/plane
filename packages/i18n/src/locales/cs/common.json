@@ -874,5 +874,14 @@
     }
   },
   "zil_seed_studio_defaults_label": "Nastavit standardní klientský projekt",
-  "zil_seed_studio_defaults_description": "Přidá do tohoto projektu obvyklé stavy studia (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) a štítky výstupů (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
+  "zil_seed_studio_defaults_description": "Přidá do tohoto projektu obvyklé stavy studia (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) a štítky výstupů (Branding, Web, Landing, Redes Sociales, Email, Merchandising).",
+  "zil_erp": {
+    "client": "Klient",
+    "project": "Projekt",
+    "no_options": "V Zil Workspace nejsou žádné aktivní položky.",
+    "unavailable": "Zil Workspace je momentálně nedostupný.",
+    "open_in_zil": "Otevřít v Zil Workspace",
+    "error_title": "Propojení se nepodařilo aktualizovat",
+    "error": "Zil Workspace změnu nepřijal. Zkuste to znovu."
+  }
 }

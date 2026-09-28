@@ -874,5 +874,14 @@
     }
   },
   "zil_seed_studio_defaults_label": "Standart müşteri projesi oluştur",
-  "zil_seed_studio_defaults_description": "Bu projeye stüdyonun her zamanki durumlarını (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) ve teslimat etiketlerini (Branding, Web, Landing, Redes Sociales, Email, Merchandising) ekler."
+  "zil_seed_studio_defaults_description": "Bu projeye stüdyonun her zamanki durumlarını (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) ve teslimat etiketlerini (Branding, Web, Landing, Redes Sociales, Email, Merchandising) ekler.",
+  "zil_erp": {
+    "client": "Müşteri",
+    "project": "Proje",
+    "no_options": "Zil Workspace'te aktif öğe yok.",
+    "unavailable": "Zil Workspace'e şu anda ulaşılamıyor.",
+    "open_in_zil": "Zil Workspace'te aç",
+    "error_title": "Bağlantı güncellenemedi",
+    "error": "Zil Workspace değişikliği kabul etmedi. Tekrar deneyin."
+  }
 }

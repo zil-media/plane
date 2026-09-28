@@ -14,8 +14,16 @@ export type TZilErpLink = {
   url: string;
 };
 
+export type TZilErpRefKind = "client" | "project";
+
+export type TZilErpOption = { id: string; name: string; subtitle?: string };
+
+export type TZilErpRef = { id: string; name: string; url: string } | null;
+
+export type TZilIssueErpRefs = { client: TZilErpRef; project: TZilErpRef };
+
 /**
- * Zil Workspace (ERP) bridge — read-only lookups for the web app.
+ * Zil Workspace (ERP) bridge for the web app: chips, and the work item Cliente/Proyecto properties.
  * See apps/api/plane/authentication/views/zil_sync.py (ZilErpLinksEndpoint).
  */
 export class ZilService extends APIService {
@@ -27,6 +35,30 @@ export class ZilService extends APIService {
     return this.get(`/api/zil/erp-links/`, {
       params: { entity_type: entityType, entity_id: entityId },
     })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async getErpOptions(workspaceSlug: string, kind: TZilErpRefKind): Promise<{ options: TZilErpOption[] }> {
+    return this.get(`/api/zil/erp-options/`, { params: { workspace_slug: workspaceSlug, kind } })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async getIssueErpRefs(issueId: string): Promise<TZilIssueErpRefs> {
+    return this.get(`/api/zil/issue-erp-refs/`, { params: { issue_id: issueId } })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async setIssueErpRef(issueId: string, kind: TZilErpRefKind, erpId: string | null): Promise<TZilIssueErpRefs> {
+    return this.post(`/api/zil/issue-erp-refs/`, { issue_id: issueId, kind, erp_id: erpId })
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

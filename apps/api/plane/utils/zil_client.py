@@ -85,3 +85,55 @@ def get_zil_client(workspace_slug, client_id):
         return resp.json().get("client")
     except ValueError as e:
         raise ZilUnavailable() from e
+
+
+def search_zil_projects(workspace_slug, q="", limit=20):
+    """Active projects (TimeProject) of the Business Units mapped to this workspace. Raises ZilUnavailable."""
+    resp = _get("/api/sso/projects", {"workspaceSlug": workspace_slug, "q": q[:100], "limit": limit})
+    if resp.status_code != 200:
+        raise ZilUnavailable()
+    try:
+        return resp.json().get("projects") or []
+    except ValueError as e:
+        raise ZilUnavailable() from e
+
+
+def get_issue_erp_refs(workspace_slug, issue_id):
+    """The ERP client/project whose planeLinks[] point at this work item: {client, project}."""
+    resp = _get("/api/zil/issue-refs", {"workspace_slug": workspace_slug, "plane_issue_id": issue_id})
+    if resp.status_code != 200:
+        raise ZilUnavailable()
+    try:
+        data = resp.json()
+    except ValueError as e:
+        raise ZilUnavailable() from e
+    return {"client": data.get("client"), "project": data.get("project")}
+
+
+def set_issue_erp_ref(payload):
+    """Ask Zil to (re)link or unlink a work item to a client/project; Zil owns the link.
+
+    Returns the new {client, project}, or None when the ERP entity doesn't belong to the
+    workspace (404). Raises ZilUnavailable otherwise.
+    """
+    base = os.environ.get("ZIL_BASE_URL", "").rstrip("/")
+    secret = os.environ.get("ZIL_SERVICE_SECRET", "")
+    try:
+        resp = requests.post(
+            f"{base}/api/zil/issue-refs",
+            json=payload,
+            headers={"X-Zil-Service-Key": secret},
+            timeout=ZIL_TIMEOUT_SECONDS * 2,
+        )
+    except Exception as e:
+        log_exception(e)
+        raise ZilUnavailable() from e
+    if resp.status_code == 404:
+        return None
+    if resp.status_code != 200:
+        raise ZilUnavailable()
+    try:
+        data = resp.json()
+    except ValueError as e:
+        raise ZilUnavailable() from e
+    return {"client": data.get("client"), "project": data.get("project")}
