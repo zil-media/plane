@@ -7,7 +7,6 @@
 import React, { useState } from "react";
 import { observer } from "mobx-react";
 import { Bug, HelpCircle, LifeBuoy, Lightbulb } from "lucide-react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useTranslation } from "@plane/i18n";
 // ui
@@ -17,6 +16,7 @@ import { ATTENTION_KEYS, AttentionDot, AttentionText, useAttention } from "@/com
 import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 import { openBugReporter, openFeatureSuggest } from "@/components/support/events";
 // hooks
+import { useAppRouter } from "@/hooks/use-app-router";
 import { usePowerK } from "@/hooks/store/use-power-k";
 // plane web components
 import { PlaneVersionNumber } from "@/plane-web/components/global";
@@ -26,6 +26,7 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
   const { t } = useTranslation();
   const { toggleShortcutsListModal } = usePowerK();
   const { workspaceSlug } = useParams();
+  const router = useAppRouter();
   // Soporte es nuevo: el ícono y la entrada se destacan hasta que la persona entra una vez.
   const supportBoard = useAttention(ATTENTION_KEYS.supportBoard);
   // states
@@ -54,44 +55,37 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
         maxHeight="lg"
         closeOnSelect
       >
-        <CustomMenu.MenuItem>
-          <button type="button" onClick={openBugReporter} className="flex w-full items-center gap-2 hover:bg-layer-1">
+        {/* Handlers go on MenuItem itself: it already renders the row's <button>, so a nested button only
+            reacted to clicks on its text and the row padding (and Enter) closed the menu doing nothing. */}
+        <CustomMenu.MenuItem onClick={openBugReporter}>
+          <span className="flex w-full items-center gap-2">
             <Bug className="size-3.5" />
             <span className="text-11">{t("helpdesk.menu.report_problem")}</span>
-          </button>
+          </span>
         </CustomMenu.MenuItem>
-        <CustomMenu.MenuItem>
-          <button
-            type="button"
-            onClick={openFeatureSuggest}
-            className="flex w-full items-center gap-2 hover:bg-layer-1"
-          >
+        <CustomMenu.MenuItem onClick={openFeatureSuggest}>
+          <span className="flex w-full items-center gap-2">
             <Lightbulb className="size-3.5" />
             <span className="text-11">{t("helpdesk.menu.suggest_improvement")}</span>
-          </button>
+          </span>
         </CustomMenu.MenuItem>
         {workspaceSlug && (
-          <CustomMenu.MenuItem>
-            <Link
-              href={`/${workspaceSlug.toString()}/support`}
-              onClick={supportBoard.dismiss}
-              className="flex w-full items-center gap-2"
-            >
+          <CustomMenu.MenuItem
+            onClick={() => {
+              supportBoard.dismiss();
+              router.push(`/${workspaceSlug.toString()}/support`);
+            }}
+          >
+            <span className="flex w-full items-center gap-2">
               <LifeBuoy className="size-3.5" />
               <AttentionText active={supportBoard.isNew} className="text-11">
                 {t("helpdesk.menu.my_tracking")}
               </AttentionText>
-            </Link>
+            </span>
           </CustomMenu.MenuItem>
         )}
-        <CustomMenu.MenuItem>
-          <button
-            type="button"
-            onClick={() => toggleShortcutsListModal(true)}
-            className="justify-sbg-layer-211 flex w-full items-center hover:bg-layer-1"
-          >
-            <span className="text-11">{t("keyboard_shortcuts")}</span>
-          </button>
+        <CustomMenu.MenuItem onClick={() => toggleShortcutsListModal(true)}>
+          <span className="text-11">{t("keyboard_shortcuts")}</span>
         </CustomMenu.MenuItem>
         <div className="mt-1 border-t border-subtle px-1 pt-2 text-11 text-secondary">
           <PlaneVersionNumber />
