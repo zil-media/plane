@@ -28,6 +28,12 @@ const IGNORED = [
   /moz-extension:\/\//i,
 ];
 
+// Issue stores abort their in-flight fetch (AbortController) whenever a newer one supersedes
+// it (filters/view changed, component unmounted) — the rejection this produces is the intended
+// outcome of that abort, not a defect, so it must not reach fetchIssues' callers as a thrown
+// error. Matched by name rather than message: axios' CanceledError message is just "canceled".
+const IGNORED_ERROR_NAMES = new Set(["CanceledError", "AbortError"]);
+
 function djb2(text: string): string {
   let hash = 5381;
   for (let i = 0; i < text.length; i++) hash = ((hash << 5) + hash + text.charCodeAt(i)) | 0;
@@ -74,6 +80,7 @@ export function reportClientError(thrown: unknown, componentStack = "") {
   const err = thrown instanceof Error ? thrown : new Error(extractMessage(thrown));
   const message = err.message || String(thrown);
   const stack = err.stack ?? "";
+  if (IGNORED_ERROR_NAMES.has(err.name)) return;
   if (IGNORED.some((pattern) => pattern.test(message) || pattern.test(stack))) return;
 
   const fingerprint = fingerprintError(err.name, message, stack);
