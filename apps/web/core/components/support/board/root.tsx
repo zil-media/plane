@@ -228,7 +228,7 @@ export const SupportBoard = observer(function SupportBoard() {
           </div>
         </div>
 
-        <Tabs value={tab} onValueChange={(value) => setTab(value as TTab)} className="px-4 pt-3">
+        <Tabs value={tab} onValueChange={(value) => setTab(value as TTab)} className="h-auto shrink-0 px-4 pt-3">
           <Tabs.List>
             <Tabs.Trigger value="tracking">{t("helpdesk.board.tab_tracking")}</Tabs.Trigger>
             {FEATURE_TABS.map((featureTab) => (
