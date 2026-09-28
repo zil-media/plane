@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { useState } from "react";
 import { observer } from "mobx-react";
 
 import { useTranslation } from "@plane/i18n";
@@ -23,8 +24,10 @@ import { getFileIcon } from "@/components/icons";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useMember } from "@/hooks/store/use-member";
 import { usePlatformOS } from "@/hooks/use-platform-os";
+import { IssueAttachmentSaveToZil } from "./attachment-save-to-zil";
 
 type TIssueAttachmentsListItem = {
+  issueId: string;
   attachmentId: string;
   disabled?: boolean;
   issueServiceType?: TIssueServiceType;
@@ -33,7 +36,9 @@ type TIssueAttachmentsListItem = {
 export const IssueAttachmentsListItem = observer(function IssueAttachmentsListItem(props: TIssueAttachmentsListItem) {
   const { t } = useTranslation();
   // props
-  const { attachmentId, disabled, issueServiceType = EIssueServiceType.ISSUES } = props;
+  const { issueId, attachmentId, disabled, issueServiceType = EIssueServiceType.ISSUES } = props;
+  // state
+  const [isMenuOpened, setIsMenuOpened] = useState(false);
   // store hooks
   const { getUserDetails } = useMember();
   const {
@@ -86,7 +91,14 @@ export const IssueAttachmentsListItem = observer(function IssueAttachmentsListIt
               </>
             )}
 
-            <CustomMenu ellipsis closeOnSelect placement="bottom-end" disabled={disabled}>
+            <CustomMenu
+              ellipsis
+              closeOnSelect
+              placement="bottom-end"
+              disabled={disabled}
+              menuButtonOnClick={() => setIsMenuOpened(true)}
+            >
+              <IssueAttachmentSaveToZil issueId={issueId} attachmentId={attachmentId} enabled={isMenuOpened} />
               <CustomMenu.MenuItem
                 onClick={() => {
                   toggleDeleteAttachmentModal(attachmentId);

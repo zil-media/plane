@@ -874,5 +874,21 @@
     }
   },
   "zil_seed_studio_defaults_label": "Thiết lập dự án khách hàng tiêu chuẩn",
-  "zil_seed_studio_defaults_description": "Thêm vào dự án này các trạng thái thường dùng của studio (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) và các nhãn sản phẩm bàn giao (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
+  "zil_seed_studio_defaults_description": "Thêm vào dự án này các trạng thái thường dùng của studio (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) và các nhãn sản phẩm bàn giao (Branding, Web, Landing, Redes Sociales, Email, Merchandising).",
+  "zil_erp": {
+    "client": "Khách hàng",
+    "project": "Dự án",
+    "no_options": "Không có mục đang hoạt động trong Zil Workspace.",
+    "unavailable": "Hiện không thể kết nối tới Zil Workspace.",
+    "open_in_zil": "Mở trong Zil Workspace",
+    "error_title": "Không thể cập nhật liên kết",
+    "error": "Zil Workspace không chấp nhận thay đổi. Vui lòng thử lại.",
+    "save_to_zil": "Lưu vào Zil",
+    "lead": "Khách hàng tiềm năng",
+    "saved_title": "Đã lưu vào Zil",
+    "saved": "Tệp đã được lưu vào {name}.",
+    "save_error_title": "Không thể lưu tệp",
+    "save_error": "Zil Workspace không chấp nhận tệp. Vui lòng thử lại.",
+    "unavailable_short": "Không khả dụng"
+  }
 }

@@ -51,17 +51,28 @@
       "title": "Asistență",
       "intro": "Rapoartele și sugestiile dumneavoastră, și stadiul fiecăreia.",
       "tab_tracking": "Solicitările mele",
-      "tab_suggestions": "Sugestii",
       "tab_reports": "Rapoarte",
       "tab_settings": "Setări",
-      "empty": "Nu ați trimis încă niciun raport sau sugestie."
+      "empty": "Nu ați trimis încă niciun raport sau sugestie.",
+      "tab_active": "Active",
+      "tab_to_review": "De revizuit",
+      "tab_in_review": "În revizuire",
+      "tab_deployed": "Lansate",
+      "tab_rejected": "Respinse",
+      "tab_all": "Toate",
+      "empty_tab": "Nimic în această filă.",
+      "awaiting_authorization": "{count, plural, one {# sugestie așteaptă aprobarea dumneavoastră.} few {# sugestii așteaptă aprobarea dumneavoastră.} other {# de sugestii așteaptă aprobarea dumneavoastră.}}",
+      "requests": "{count, plural, one {# solicitare} few {# solicitări} other {# de solicitări}}",
+      "by_author": "de la {name}",
+      "asks_you": "Vă întreabă",
+      "reported_on": "Raportat pe {date}"
     },
     "section": {
-      "needs_you": "Necesită răspunsul dumneavoastră",
+      "needs_you": "Așteaptă decizia dumneavoastră",
       "in_progress": "În desfășurare",
       "next_deploy": "În următoarea versiune",
       "done": "Finalizat",
-      "stalled": "În așteptare"
+      "stalled": "Fără progres / arhivate"
     },
     "phase": {
       "next_deploy": "În următoarea versiune",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "Raport de problemă",
-      "our_answer": "Răspunsul nostru",
       "see_suggestion": "Vezi sugestia",
       "what_you_reported": "Ce a fost raportat",
       "resend_hint": "Se mai întâmplă sau aveți ceva de adăugat? Trimiteți-l către asistență.",
       "resend": "Trimite către asistență",
       "resent": "Trimis. Îl analizăm din nou.",
-      "next_window": "apare pe {date}",
       "request": "Cerere",
       "analysis": "Analiză",
       "approach": "Abordare",
@@ -116,7 +125,11 @@
       "risks": "Riscuri",
       "answer_hint": "Răspundeți la întrebări pentru a continua analiza.",
       "comment": "Adaugă un comentariu",
-      "send": "Trimite"
+      "send": "Trimite",
+      "what_next": "Ce urmează",
+      "how_to": "Cum se face",
+      "what_we_did": "Ce am făcut",
+      "conversation": "Conversație"
     },
     "impact": {
       "low": "Scăzut",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "Analizează sugestiile noi și le construiește pe cele aprobate în spatele unui flag.",
       "max_builds": "Construcții pe săptămână",
       "max_builds_hint": "Numărul maxim de sugestii pe care agentul le construiește în 7 zile."
+    },
+    "kind": {
+      "bug": "Eroare",
+      "feature": "Funcționalitate"
+    },
+    "deploy": {
+      "today": "Se lansează azi la {time} · în {left}",
+      "tomorrow": "Se lansează mâine la {time} · în {left}",
+      "left": "{hours} h {minutes} min"
+    },
+    "track": {
+      "working": "Agentul lucrează",
+      "see_pr": "Vedeți PR-ul",
+      "bug": {
+        "received": "Primit",
+        "diagnosis": "În diagnostic",
+        "fixed": "Corectat",
+        "published": "Publicat",
+        "derived": "Transformat în sugestie",
+        "continues": "Continuă ca sugestie",
+        "derived_banner": "Nu era un defect: a devenit o sugestie în numele dumneavoastră și este deja analizată.",
+        "answered_banner": "V-am răspuns: nu a fost nevoie de nicio modificare a platformei.",
+        "dismissed_banner": "Revizuit și închis: nu s-a găsit niciun defect al platformei.",
+        "archived_banner": "Arhivat: nu va avansa."
+      },
+      "feature": {
+        "received": "Primită",
+        "analysis": "Analiză de impact",
+        "consult": "Întrebare din partea echipei",
+        "consult_waiting": "Se așteaptă răspunsul dumneavoastră pentru a relua analiza",
+        "waiting_approval": "Se așteaptă aprobarea",
+        "approved": "Aprobată",
+        "build": "În dezvoltare",
+        "review": "În revizuirea responsabilului",
+        "deploy_window": "În fereastra de lansare",
+        "published": "Publicată",
+        "rejected": "Respinsă: nu va fi construită.",
+        "rejected_by": "Respinsă de {name}.",
+        "on_hold": "Pusă pe pauză: nu avansează până nu o reia cineva."
+      }
     }
   }
 }

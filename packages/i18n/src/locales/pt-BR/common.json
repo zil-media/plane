@@ -874,5 +874,21 @@
     }
   },
   "zil_seed_studio_defaults_label": "Configurar projeto de cliente padrão",
-  "zil_seed_studio_defaults_description": "Adiciona a este projeto os estados habituais do estúdio (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) e as etiquetas de entregáveis (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
+  "zil_seed_studio_defaults_description": "Adiciona a este projeto os estados habituais do estúdio (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) e as etiquetas de entregáveis (Branding, Web, Landing, Redes Sociales, Email, Merchandising).",
+  "zil_erp": {
+    "client": "Cliente",
+    "project": "Projeto",
+    "no_options": "Nenhum item ativo no Zil Workspace.",
+    "unavailable": "O Zil Workspace não está acessível agora.",
+    "open_in_zil": "Abrir no Zil Workspace",
+    "error_title": "Não foi possível atualizar o vínculo",
+    "error": "O Zil Workspace não aceitou a alteração. Tente novamente.",
+    "save_to_zil": "Salvar no Zil",
+    "lead": "Lead",
+    "saved_title": "Salvo no Zil",
+    "saved": "O arquivo foi salvo em {name}.",
+    "save_error_title": "Não foi possível salvar o arquivo",
+    "save_error": "O Zil Workspace não aceitou o arquivo. Tente novamente.",
+    "unavailable_short": "Indisponível"
+  }
 }

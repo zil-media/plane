@@ -874,5 +874,21 @@
     }
   },
   "zil_seed_studio_defaults_label": "Configurează un proiect standard pentru client",
-  "zil_seed_studio_defaults_description": "Adaugă la acest proiect stările obișnuite ale studioului (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) și etichetele de livrabile (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
+  "zil_seed_studio_defaults_description": "Adaugă la acest proiect stările obișnuite ale studioului (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) și etichetele de livrabile (Branding, Web, Landing, Redes Sociales, Email, Merchandising).",
+  "zil_erp": {
+    "client": "Client",
+    "project": "Proiect",
+    "no_options": "Niciun element activ în Zil Workspace.",
+    "unavailable": "Zil Workspace nu este accesibil momentan.",
+    "open_in_zil": "Deschideți în Zil Workspace",
+    "error_title": "Legătura nu a putut fi actualizată",
+    "error": "Zil Workspace nu a acceptat modificarea. Încercați din nou.",
+    "save_to_zil": "Salvează în Zil",
+    "lead": "Lead",
+    "saved_title": "Salvat în Zil",
+    "saved": "Fișierul a fost salvat în {name}.",
+    "save_error_title": "Fișierul nu a putut fi salvat",
+    "save_error": "Zil Workspace nu a acceptat fișierul. Încercați din nou.",
+    "unavailable_short": "Indisponibil"
+  }
 }

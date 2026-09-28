@@ -874,5 +874,21 @@
     }
   },
   "zil_seed_studio_defaults_label": "Настроить стандартный клиентский проект",
-  "zil_seed_studio_defaults_description": "Добавляет в этот проект обычные статусы студии (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) и метки результатов (Branding, Web, Landing, Redes Sociales, Email, Merchandising)."
+  "zil_seed_studio_defaults_description": "Добавляет в этот проект обычные статусы студии (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) и метки результатов (Branding, Web, Landing, Redes Sociales, Email, Merchandising).",
+  "zil_erp": {
+    "client": "Клиент",
+    "project": "Проект",
+    "no_options": "В Zil Workspace нет активных записей.",
+    "unavailable": "Zil Workspace сейчас недоступен.",
+    "open_in_zil": "Открыть в Zil Workspace",
+    "error_title": "Не удалось обновить связь",
+    "error": "Zil Workspace не принял изменение. Попробуйте ещё раз.",
+    "save_to_zil": "Сохранить в Zil",
+    "lead": "Лид",
+    "saved_title": "Сохранено в Zil",
+    "saved": "Файл сохранён в запись «{name}».",
+    "save_error_title": "Не удалось сохранить файл",
+    "save_error": "Zil Workspace не принял файл. Попробуйте ещё раз.",
+    "unavailable_short": "Недоступно"
+  }
 }

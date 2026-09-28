@@ -874,5 +874,21 @@
     }
   },
   "zil_seed_studio_defaults_label": "Standard-Kundenprojekt einrichten",
-  "zil_seed_studio_defaults_description": "Fügt diesem Projekt die üblichen Status des Studios (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) und die Ergebnis-Labels (Branding, Web, Landing, Redes Sociales, Email, Merchandising) hinzu."
+  "zil_seed_studio_defaults_description": "Fügt diesem Projekt die üblichen Status des Studios (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) und die Ergebnis-Labels (Branding, Web, Landing, Redes Sociales, Email, Merchandising) hinzu.",
+  "zil_erp": {
+    "client": "Kunde",
+    "project": "Projekt",
+    "no_options": "Keine aktiven Einträge in Zil Workspace.",
+    "unavailable": "Zil Workspace ist gerade nicht erreichbar.",
+    "open_in_zil": "In Zil Workspace öffnen",
+    "error_title": "Verknüpfung konnte nicht aktualisiert werden",
+    "error": "Zil Workspace hat die Änderung nicht übernommen. Bitte erneut versuchen.",
+    "save_to_zil": "In Zil speichern",
+    "lead": "Lead",
+    "saved_title": "In Zil gespeichert",
+    "saved": "Die Datei wurde bei {name} gespeichert.",
+    "save_error_title": "Datei konnte nicht gespeichert werden",
+    "save_error": "Zil Workspace hat die Datei nicht übernommen. Bitte erneut versuchen.",
+    "unavailable_short": "Nicht verfügbar"
+  }
 }

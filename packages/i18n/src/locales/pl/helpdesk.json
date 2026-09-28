@@ -51,17 +51,28 @@
       "title": "Wsparcie",
       "intro": "Zgłoszenia i propozycje oraz status każdego z nich.",
       "tab_tracking": "Moje zgłoszenia",
-      "tab_suggestions": "Propozycje",
       "tab_reports": "Zgłoszenia",
       "tab_settings": "Ustawienia",
-      "empty": "Nie wysłano jeszcze żadnego zgłoszenia ani propozycji."
+      "empty": "Nie wysłano jeszcze żadnego zgłoszenia ani propozycji.",
+      "tab_active": "Aktywne",
+      "tab_to_review": "Do przejrzenia",
+      "tab_in_review": "W przeglądzie",
+      "tab_deployed": "Wdrożone",
+      "tab_rejected": "Odrzucone",
+      "tab_all": "Wszystkie",
+      "empty_tab": "Brak elementów w tej karcie.",
+      "awaiting_authorization": "{count, plural, one {# sugestia czeka na zatwierdzenie.} few {# sugestie czekają na zatwierdzenie.} many {# sugestii czeka na zatwierdzenie.} other {# sugestii czeka na zatwierdzenie.}}",
+      "requests": "{count, plural, one {# zgłoszenie} few {# zgłoszenia} many {# zgłoszeń} other {# zgłoszenia}}",
+      "by_author": "od {name}",
+      "asks_you": "Prosi o odpowiedź",
+      "reported_on": "Zgłoszono {date}"
     },
     "section": {
-      "needs_you": "Wymaga odpowiedzi",
+      "needs_you": "Czekają na decyzję",
       "in_progress": "W trakcie",
       "next_deploy": "W następnej wersji",
       "done": "Gotowe",
-      "stalled": "Wstrzymane"
+      "stalled": "Bez postępu / zarchiwizowane"
     },
     "phase": {
       "next_deploy": "W następnej wersji",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "Zgłoszenie problemu",
-      "our_answer": "Nasza odpowiedź",
       "see_suggestion": "Zobacz propozycję",
       "what_you_reported": "Co zgłoszono",
       "resend_hint": "Problem nadal występuje albo jest coś do dodania? Proszę wysłać do wsparcia.",
       "resend": "Wyślij do wsparcia",
       "resent": "Wysłano. Sprawa zostanie sprawdzona ponownie.",
-      "next_window": "wychodzi {date}",
       "request": "Wniosek",
       "analysis": "Analiza",
       "approach": "Podejście",
@@ -116,7 +125,11 @@
       "risks": "Ryzyka",
       "answer_hint": "Proszę odpowiedzieć na pytania, aby kontynuować analizę.",
       "comment": "Dodaj komentarz",
-      "send": "Wyślij"
+      "send": "Wyślij",
+      "what_next": "Co dalej",
+      "how_to": "Jak to zrobić",
+      "what_we_did": "Co zrobiliśmy",
+      "conversation": "Rozmowa"
     },
     "impact": {
       "low": "Niski",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "Analizuje nowe propozycje i buduje zatwierdzone za flagą.",
       "max_builds": "Realizacje tygodniowo",
       "max_builds_hint": "Maksymalna liczba propozycji budowanych przez agenta w ciągu 7 dni."
+    },
+    "kind": {
+      "bug": "Błąd",
+      "feature": "Funkcja"
+    },
+    "deploy": {
+      "today": "Wydanie dziś o {time} · za {left}",
+      "tomorrow": "Wydanie jutro o {time} · za {left}",
+      "left": "{hours} godz. {minutes} min"
+    },
+    "track": {
+      "working": "Agent pracuje",
+      "see_pr": "Zobacz PR",
+      "bug": {
+        "received": "Otrzymano",
+        "diagnosis": "W diagnozie",
+        "fixed": "Naprawiono",
+        "published": "Opublikowano",
+        "derived": "Zamieniono w sugestię",
+        "continues": "Kontynuowane jako sugestia",
+        "derived_banner": "To nie był błąd: powstała z tego sugestia w Pana/Pani imieniu, która jest już analizowana.",
+        "answered_banner": "Odpowiedzieliśmy: zmiana platformy nie była potrzebna.",
+        "dismissed_banner": "Sprawdzono i zamknięto: nie znaleziono błędu platformy.",
+        "archived_banner": "Zarchiwizowano: nie będzie kontynuowane."
+      },
+      "feature": {
+        "received": "Otrzymano",
+        "analysis": "Analiza wpływu",
+        "consult": "Pytanie od zespołu",
+        "consult_waiting": "Oczekiwanie na odpowiedź, aby wznowić analizę",
+        "waiting_approval": "Oczekuje na zatwierdzenie",
+        "approved": "Zatwierdzono",
+        "build": "W realizacji",
+        "review": "W przeglądzie właściciela",
+        "deploy_window": "W oknie wdrożenia",
+        "published": "Opublikowano",
+        "rejected": "Odrzucono: nie zostanie zrealizowane.",
+        "rejected_by": "Odrzucone przez {name}.",
+        "on_hold": "Wstrzymano: nie ruszy, dopóki ktoś tego nie wznowi."
+      }
     }
   }
 }

@@ -874,5 +874,21 @@
       "description": "Export work items to a JSON file.",
       "short_description": "Export as json"
     }
+  },
+  "zil_erp": {
+    "client": "Client",
+    "project": "Project",
+    "no_options": "No active items in Zil Workspace.",
+    "unavailable": "Zil Workspace isn't reachable right now.",
+    "open_in_zil": "Open in Zil Workspace",
+    "error_title": "Couldn't update the link",
+    "error": "Zil Workspace didn't accept the change. Try again.",
+    "save_to_zil": "Save to Zil",
+    "lead": "Lead",
+    "saved_title": "Saved to Zil",
+    "saved": "The file was saved to {name}.",
+    "save_error_title": "Couldn't save the file",
+    "save_error": "Zil Workspace didn't accept the file. Try again.",
+    "unavailable_short": "Unavailable"
   }
 }

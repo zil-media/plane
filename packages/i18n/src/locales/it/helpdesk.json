@@ -51,17 +51,28 @@
       "title": "Supporto",
       "intro": "Le proprie segnalazioni e suggerimenti, con lo stato di ciascuno.",
       "tab_tracking": "Le mie richieste",
-      "tab_suggestions": "Suggerimenti",
       "tab_reports": "Segnalazioni",
       "tab_settings": "Impostazioni",
-      "empty": "Non è stata ancora inviata nessuna segnalazione né alcun suggerimento."
+      "empty": "Non è stata ancora inviata nessuna segnalazione né alcun suggerimento.",
+      "tab_active": "Attive",
+      "tab_to_review": "Da esaminare",
+      "tab_in_review": "In revisione",
+      "tab_deployed": "Rilasciate",
+      "tab_rejected": "Rifiutate",
+      "tab_all": "Tutte",
+      "empty_tab": "Niente in questa scheda.",
+      "awaiting_authorization": "{count, plural, one {# suggerimento attende la Sua autorizzazione.} many {# suggerimenti attendono la Sua autorizzazione.} other {# suggerimenti attendono la Sua autorizzazione.}}",
+      "requests": "{count, plural, one {# richiesta} many {# richieste} other {# richieste}}",
+      "by_author": "di {name}",
+      "asks_you": "Le chiede",
+      "reported_on": "Segnalato il {date}"
     },
     "section": {
-      "needs_you": "Richiede una risposta",
+      "needs_you": "Attendono la Sua decisione",
       "in_progress": "In corso",
       "next_deploy": "Nella prossima versione",
       "done": "Completato",
-      "stalled": "In sospeso"
+      "stalled": "Fermi / archiviati"
     },
     "phase": {
       "next_deploy": "Nella prossima versione",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "Segnalazione di problema",
-      "our_answer": "La nostra risposta",
       "see_suggestion": "Vedi il suggerimento",
       "what_you_reported": "Cosa è stato segnalato",
       "resend_hint": "Il problema persiste o c'è qualcosa da aggiungere? Inviarlo al supporto.",
       "resend": "Invia al supporto",
       "resent": "Inviato. Verrà esaminato di nuovo.",
-      "next_window": "esce il {date}",
       "request": "Richiesta",
       "analysis": "Analisi",
       "approach": "Approccio",
@@ -116,7 +125,11 @@
       "risks": "Rischi",
       "answer_hint": "Rispondere alle domande per proseguire con l'analisi.",
       "comment": "Aggiungi un commento",
-      "send": "Invia"
+      "send": "Invia",
+      "what_next": "Cosa succede ora",
+      "how_to": "Come si fa",
+      "what_we_did": "Cosa abbiamo fatto",
+      "conversation": "Conversazione"
     },
     "impact": {
       "low": "Basso",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "Analizza i nuovi suggerimenti e realizza quelli approvati dietro un flag.",
       "max_builds": "Realizzazioni a settimana",
       "max_builds_hint": "Numero massimo di suggerimenti che l'agente realizza in 7 giorni."
+    },
+    "kind": {
+      "bug": "Bug",
+      "feature": "Funzionalità"
+    },
+    "deploy": {
+      "today": "Esce oggi alle {time} · tra {left}",
+      "tomorrow": "Esce domani alle {time} · tra {left}",
+      "left": "{hours} h {minutes} min"
+    },
+    "track": {
+      "working": "L'agente sta lavorando",
+      "see_pr": "Vedi PR",
+      "bug": {
+        "received": "Ricevuto",
+        "diagnosis": "In diagnosi",
+        "fixed": "Corretto",
+        "published": "Pubblicato",
+        "derived": "Trasformato in suggerimento",
+        "continues": "Prosegue come suggerimento",
+        "derived_banner": "Non era un difetto: è diventato un suggerimento a Suo nome ed è già in analisi.",
+        "answered_banner": "Le abbiamo risposto: non serviva modificare la piattaforma.",
+        "dismissed_banner": "Esaminato e chiuso: non è stato trovato alcun difetto della piattaforma.",
+        "archived_banner": "Archiviato: non andrà avanti."
+      },
+      "feature": {
+        "received": "Ricevuto",
+        "analysis": "Analisi d'impatto",
+        "consult": "Domanda del team",
+        "consult_waiting": "In attesa della Sua risposta per riprendere l'analisi",
+        "waiting_approval": "In attesa di approvazione",
+        "approved": "Approvato",
+        "build": "In sviluppo",
+        "review": "In revisione del responsabile",
+        "deploy_window": "Nella finestra di rilascio",
+        "published": "Pubblicato",
+        "rejected": "Rifiutato: non verrà realizzato.",
+        "rejected_by": "Rifiutato da {name}.",
+        "on_hold": "In pausa: non avanza finché qualcuno non lo riprende."
+      }
     }
   }
 }

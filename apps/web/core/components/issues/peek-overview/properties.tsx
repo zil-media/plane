@@ -45,6 +45,7 @@ import type { TIssueOperations } from "../issue-detail";
 import { IssueCycleSelect } from "../issue-detail/cycle-select";
 import { IssueLabel } from "../issue-detail/label";
 import { IssueModuleSelect } from "../issue-detail/module-select";
+import { IssueZilErpProperties } from "../issue-detail/zil-erp-properties";
 
 interface IPeekOverviewProperties {
   workspaceSlug: string;
@@ -220,6 +221,8 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
             />
           </SidebarPropertyListItem>
         )}
+
+        <IssueZilErpProperties workspaceSlug={workspaceSlug} issueId={issueId} disabled={disabled} />
 
         {projectDetails?.cycle_view && (
           <SidebarPropertyListItem

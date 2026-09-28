@@ -11,12 +11,15 @@ import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Input, Loader, TextArea, ToggleSwitch } from "@plane/ui";
-import { cn, renderFormattedDate } from "@plane/utils";
+import { renderFormattedDate } from "@plane/utils";
 import { SUPPORT_FEATURE_FLAGS_KEY } from "@/hooks/use-feature-flag";
 import type { TFeatureDecision } from "@/services/support.service";
 import { supportService } from "@/services/support.service";
-import { TONE_DOT, featurePhase, nextDeployWindow } from "./phase";
+import { PhaseChip, Tag } from "./item-row";
+import { featurePhase } from "./phase";
+import { PhaseTimeline } from "./phase-timeline";
 import { SupportTimeline } from "./timeline";
+import { computeFeatureTrack } from "./track";
 
 type Props = {
   featureId: string;
@@ -53,7 +56,6 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
       </Loader>
     );
 
-  const phase = featurePhase(feature);
   const spec = feature.spec ?? {};
   const isRequester = feature.requested_by?.id === currentUserId;
   const canComment = isRequester || isAdmin;
@@ -83,16 +85,19 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <div className="flex flex-col gap-1.5">
-        <span className="flex items-center gap-1.5 text-caption-sm-regular text-secondary">
-          <span className={cn("size-2 rounded-full", TONE_DOT[phase.tone])} />
-          {t(phase.labelKey)}
-          {feature.status === "queued" &&
-            ` · ${t("helpdesk.detail.next_window", { date: renderFormattedDate(nextDeployWindow()) ?? "" })}`}
-        </span>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <PhaseChip phase={featurePhase(feature)} />
+          {feature.category && <Tag>{feature.category}</Tag>}
+        </div>
         <h3 className="text-h6-medium text-primary">{feature.display_title || feature.title}</h3>
         {feature.plain_summary && <p className="text-body-xs-regular text-secondary">{feature.plain_summary}</p>}
+        <span className="text-caption-sm-regular text-tertiary">
+          {feature.requested_by?.display_name} · {renderFormattedDate(feature.created_at)}
+        </span>
       </div>
+
+      <PhaseTimeline track={computeFeatureTrack(feature)} />
 
       {feature.build?.last_note && (
         <div className="rounded-md bg-layer-1 p-3 text-body-xs-regular whitespace-pre-wrap text-primary">
@@ -129,7 +134,7 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
         </div>
       )}
 
-      <SupportTimeline progress={feature.build?.progress} comments={feature.comments} />
+      <SupportTimeline comments={feature.comments} />
 
       {canComment && !["merged", "rejected"].includes(feature.status) && (
         <div className="flex flex-col gap-2 border-t border-subtle pt-3">

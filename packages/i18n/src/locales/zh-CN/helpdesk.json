@@ -51,17 +51,28 @@
       "title": "支持",
       "intro": "您的报告和建议，以及每一项的当前状态。",
       "tab_tracking": "我的请求",
-      "tab_suggestions": "建议",
       "tab_reports": "报告",
       "tab_settings": "设置",
-      "empty": "您还没有发送过任何报告或建议。"
+      "empty": "您还没有发送过任何报告或建议。",
+      "tab_active": "进行中",
+      "tab_to_review": "待审核",
+      "tab_in_review": "审核中",
+      "tab_deployed": "已发布",
+      "tab_rejected": "已拒绝",
+      "tab_all": "全部",
+      "empty_tab": "此标签页中没有内容。",
+      "awaiting_authorization": "{count, plural, one {# 条建议正在等待您的批准。} other {# 条建议正在等待您的批准。}}",
+      "requests": "{count, plural, one {# 个请求} other {# 个请求}}",
+      "by_author": "来自 {name}",
+      "asks_you": "向您提问",
+      "reported_on": "报告于 {date}"
     },
     "section": {
-      "needs_you": "需要您的回复",
+      "needs_you": "需要您决定",
       "in_progress": "进行中",
       "next_deploy": "将在下个版本发布",
       "done": "已完成",
-      "stalled": "已暂停"
+      "stalled": "无进展 / 已归档"
     },
     "phase": {
       "next_deploy": "将在下个版本发布",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "问题报告",
-      "our_answer": "我们的回复",
       "see_suggestion": "查看建议",
       "what_you_reported": "报告的内容",
       "resend_hint": "问题仍在发生，或者有什么要补充的吗？发送给支持团队。",
       "resend": "发送给支持团队",
       "resent": "已发送。我们会再看一次。",
-      "next_window": "将于 {date} 发布",
       "request": "请求",
       "analysis": "分析",
       "approach": "方案",
@@ -116,7 +125,11 @@
       "risks": "风险",
       "answer_hint": "请回答这些问题以继续分析。",
       "comment": "添加评论",
-      "send": "发送"
+      "send": "发送",
+      "what_next": "后续进展",
+      "how_to": "操作方法",
+      "what_we_did": "我们做了什么",
+      "conversation": "对话"
     },
     "impact": {
       "low": "低",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "分析新建议，并在标志后开发已批准的建议。",
       "max_builds": "每周开发数量",
       "max_builds_hint": "代理在 7 天内开发的建议的最大数量。"
+    },
+    "kind": {
+      "bug": "缺陷",
+      "feature": "功能"
+    },
+    "deploy": {
+      "today": "今天 {time} 发布 · 还有 {left}",
+      "tomorrow": "明天 {time} 发布 · 还有 {left}",
+      "left": "{hours} 小时 {minutes} 分钟"
+    },
+    "track": {
+      "working": "代理正在处理",
+      "see_pr": "查看 PR",
+      "bug": {
+        "received": "已收到",
+        "diagnosis": "诊断中",
+        "fixed": "已修复",
+        "published": "已发布",
+        "derived": "已转为建议",
+        "continues": "作为建议继续推进",
+        "derived_banner": "这不是缺陷：它已以您的名义转为建议，正在分析中。",
+        "answered_banner": "我们已回复您：无需修改平台。",
+        "dismissed_banner": "已审查并关闭：未发现平台缺陷。",
+        "archived_banner": "已归档：不会继续推进。"
+      },
+      "feature": {
+        "received": "已收到",
+        "analysis": "影响分析",
+        "consult": "团队的提问",
+        "consult_waiting": "正在等待您的回复以继续分析",
+        "waiting_approval": "等待批准",
+        "approved": "已批准",
+        "build": "开发中",
+        "review": "负责人审核中",
+        "deploy_window": "处于发布窗口",
+        "published": "已发布",
+        "rejected": "已拒绝：不会实现。",
+        "rejected_by": "已被 {name} 拒绝。",
+        "on_hold": "已暂停：在有人恢复之前不会推进。"
+      }
     }
   }
 }

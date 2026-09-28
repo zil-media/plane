@@ -51,17 +51,28 @@
       "title": "Suporte",
       "intro": "Seus relatos e sugestões, e em que ponto cada um está.",
       "tab_tracking": "Minhas solicitações",
-      "tab_suggestions": "Sugestões",
       "tab_reports": "Relatos",
       "tab_settings": "Configurações",
-      "empty": "Você ainda não enviou nenhum relato ou sugestão."
+      "empty": "Você ainda não enviou nenhum relato ou sugestão.",
+      "tab_active": "Ativas",
+      "tab_to_review": "Para revisar",
+      "tab_in_review": "Em revisão",
+      "tab_deployed": "Implantadas",
+      "tab_rejected": "Rejeitadas",
+      "tab_all": "Todas",
+      "empty_tab": "Nada nesta aba.",
+      "awaiting_authorization": "{count, plural, one {# sugestão aguarda sua autorização.} many {# sugestões aguardam sua autorização.} other {# sugestões aguardam sua autorização.}}",
+      "requests": "{count, plural, one {# pedido} many {# pedidos} other {# pedidos}}",
+      "by_author": "de {name}",
+      "asks_you": "Pergunta a você",
+      "reported_on": "Reportado em {date}"
     },
     "section": {
-      "needs_you": "Precisa da sua resposta",
+      "needs_you": "Aguardam sua decisão",
       "in_progress": "Em andamento",
       "next_deploy": "Na próxima versão",
       "done": "Concluído",
-      "stalled": "Em espera"
+      "stalled": "Sem avanço / arquivado"
     },
     "phase": {
       "next_deploy": "Na próxima versão",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "Relato de problema",
-      "our_answer": "Nossa resposta",
       "see_suggestion": "Ver a sugestão",
       "what_you_reported": "O que foi relatado",
       "resend_hint": "Ainda está acontecendo ou há algo a acrescentar? Envie ao suporte.",
       "resend": "Enviar ao suporte",
       "resent": "Enviado. Vamos analisar novamente.",
-      "next_window": "sai em {date}",
       "request": "Pedido",
       "analysis": "Análise",
       "approach": "Abordagem",
@@ -116,7 +125,11 @@
       "risks": "Riscos",
       "answer_hint": "Responda às perguntas para continuar a análise.",
       "comment": "Adicionar um comentário",
-      "send": "Enviar"
+      "send": "Enviar",
+      "what_next": "O que vem a seguir",
+      "how_to": "Como fazer",
+      "what_we_did": "O que fizemos",
+      "conversation": "Conversa"
     },
     "impact": {
       "low": "Baixo",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "Analisa as novas sugestões e constrói as aprovadas atrás de um flag.",
       "max_builds": "Construções por semana",
       "max_builds_hint": "Número máximo de sugestões que o agente constrói em 7 dias."
+    },
+    "kind": {
+      "bug": "Bug",
+      "feature": "Funcionalidade"
+    },
+    "deploy": {
+      "today": "Sai hoje às {time} · em {left}",
+      "tomorrow": "Sai amanhã às {time} · em {left}",
+      "left": "{hours} h {minutes} min"
+    },
+    "track": {
+      "working": "O agente está trabalhando",
+      "see_pr": "Ver PR",
+      "bug": {
+        "received": "Recebido",
+        "diagnosis": "Em diagnóstico",
+        "fixed": "Corrigido",
+        "published": "Publicado",
+        "derived": "Convertido em sugestão",
+        "continues": "Segue como sugestão",
+        "derived_banner": "Não era um defeito: virou uma sugestão em seu nome e já está em análise.",
+        "answered_banner": "Respondemos você: não era preciso mudar a plataforma.",
+        "dismissed_banner": "Revisado e encerrado: nenhum defeito da plataforma foi encontrado.",
+        "archived_banner": "Arquivado: não vai avançar."
+      },
+      "feature": {
+        "received": "Recebida",
+        "analysis": "Análise de impacto",
+        "consult": "Pergunta da equipe",
+        "consult_waiting": "Aguardando sua resposta para retomar a análise",
+        "waiting_approval": "Aguardando aprovação",
+        "approved": "Aprovada",
+        "build": "Em desenvolvimento",
+        "review": "Em revisão do responsável",
+        "deploy_window": "Na janela de implantação",
+        "published": "Publicada",
+        "rejected": "Rejeitada: não será construída.",
+        "rejected_by": "Rejeitada por {name}.",
+        "on_hold": "Pausada: não avança até que alguém a retome."
+      }
     }
   }
 }

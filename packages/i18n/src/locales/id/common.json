@@ -874,5 +874,21 @@
     }
   },
   "zil_seed_studio_defaults_label": "Siapkan proyek klien standar",
-  "zil_seed_studio_defaults_description": "Menambahkan status umum studio (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) dan label hasil kerja (Branding, Web, Landing, Redes Sociales, Email, Merchandising) ke proyek ini."
+  "zil_seed_studio_defaults_description": "Menambahkan status umum studio (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) dan label hasil kerja (Branding, Web, Landing, Redes Sociales, Email, Merchandising) ke proyek ini.",
+  "zil_erp": {
+    "client": "Klien",
+    "project": "Proyek",
+    "no_options": "Tidak ada item aktif di Zil Workspace.",
+    "unavailable": "Zil Workspace sedang tidak dapat dijangkau.",
+    "open_in_zil": "Buka di Zil Workspace",
+    "error_title": "Tidak dapat memperbarui tautan",
+    "error": "Zil Workspace tidak menerima perubahan. Coba lagi.",
+    "save_to_zil": "Simpan ke Zil",
+    "lead": "Prospek",
+    "saved_title": "Tersimpan di Zil",
+    "saved": "File telah disimpan ke {name}.",
+    "save_error_title": "Tidak dapat menyimpan file",
+    "save_error": "Zil Workspace tidak menerima file. Coba lagi.",
+    "unavailable_short": "Tidak tersedia"
+  }
 }

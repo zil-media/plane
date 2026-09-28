@@ -874,5 +874,21 @@
     }
   },
   "zil_seed_studio_defaults_label": "設定標準客戶專案",
-  "zil_seed_studio_defaults_description": "向此專案新增工作室常用的狀態（Briefing、Propuesta inicial、Correcciones、Entrega、Suspendidos）和交付物標籤（Branding、Web、Landing、Redes Sociales、Email、Merchandising）。"
+  "zil_seed_studio_defaults_description": "向此專案新增工作室常用的狀態（Briefing、Propuesta inicial、Correcciones、Entrega、Suspendidos）和交付物標籤（Branding、Web、Landing、Redes Sociales、Email、Merchandising）。",
+  "zil_erp": {
+    "client": "客戶",
+    "project": "專案",
+    "no_options": "Zil Workspace 中沒有啟用中的項目。",
+    "unavailable": "目前無法連線到 Zil Workspace。",
+    "open_in_zil": "在 Zil Workspace 中開啟",
+    "error_title": "無法更新關聯",
+    "error": "Zil Workspace 未接受此變更。請再試一次。",
+    "save_to_zil": "儲存到 Zil",
+    "lead": "潛在客戶",
+    "saved_title": "已儲存到 Zil",
+    "saved": "檔案已儲存到 {name}。",
+    "save_error_title": "無法儲存檔案",
+    "save_error": "Zil Workspace 未接受此檔案。請再試一次。",
+    "unavailable_short": "無法使用"
+  }
 }

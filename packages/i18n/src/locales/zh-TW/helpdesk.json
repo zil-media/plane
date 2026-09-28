@@ -51,17 +51,28 @@
       "title": "支援",
       "intro": "您的回報和建議，以及每一項目前的狀態。",
       "tab_tracking": "我的請求",
-      "tab_suggestions": "建議",
       "tab_reports": "回報",
       "tab_settings": "設定",
-      "empty": "您還沒有傳送過任何回報或建議。"
+      "empty": "您還沒有傳送過任何回報或建議。",
+      "tab_active": "進行中",
+      "tab_to_review": "待審核",
+      "tab_in_review": "審核中",
+      "tab_deployed": "已發布",
+      "tab_rejected": "已拒絕",
+      "tab_all": "全部",
+      "empty_tab": "此分頁中沒有內容。",
+      "awaiting_authorization": "{count, plural, one {# 則建議正在等待您的核准。} other {# 則建議正在等待您的核准。}}",
+      "requests": "{count, plural, one {# 個請求} other {# 個請求}}",
+      "by_author": "來自 {name}",
+      "asks_you": "向您提問",
+      "reported_on": "回報於 {date}"
     },
     "section": {
-      "needs_you": "需要您的回覆",
+      "needs_you": "需要您決定",
       "in_progress": "進行中",
       "next_deploy": "將於下一版本推出",
       "done": "已完成",
-      "stalled": "已暫停"
+      "stalled": "無進展 / 已封存"
     },
     "phase": {
       "next_deploy": "將於下一版本推出",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "問題回報",
-      "our_answer": "我們的回覆",
       "see_suggestion": "查看建議",
       "what_you_reported": "回報的內容",
       "resend_hint": "問題仍在發生，或有什麼要補充的嗎？請傳送給支援團隊。",
       "resend": "傳送給支援團隊",
       "resent": "已傳送。我們會再次查看。",
-      "next_window": "將於 {date} 推出",
       "request": "請求",
       "analysis": "分析",
       "approach": "方案",
@@ -116,7 +125,11 @@
       "risks": "風險",
       "answer_hint": "請回答這些問題以繼續分析。",
       "comment": "新增留言",
-      "send": "傳送"
+      "send": "傳送",
+      "what_next": "後續進展",
+      "how_to": "操作方式",
+      "what_we_did": "我們做了什麼",
+      "conversation": "對話"
     },
     "impact": {
       "low": "低",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "分析新建議，並在旗標後開發已核准的建議。",
       "max_builds": "每週開發數量",
       "max_builds_hint": "代理在 7 天內開發的建議上限。"
+    },
+    "kind": {
+      "bug": "缺陷",
+      "feature": "功能"
+    },
+    "deploy": {
+      "today": "今天 {time} 發布 · 還有 {left}",
+      "tomorrow": "明天 {time} 發布 · 還有 {left}",
+      "left": "{hours} 小時 {minutes} 分鐘"
+    },
+    "track": {
+      "working": "代理正在處理",
+      "see_pr": "查看 PR",
+      "bug": {
+        "received": "已收到",
+        "diagnosis": "診斷中",
+        "fixed": "已修正",
+        "published": "已發布",
+        "derived": "已轉為建議",
+        "continues": "以建議形式繼續推進",
+        "derived_banner": "這不是缺陷：它已以您的名義轉為建議，正在分析中。",
+        "answered_banner": "我們已回覆您：不需要修改平台。",
+        "dismissed_banner": "已審查並關閉：未發現平台缺陷。",
+        "archived_banner": "已封存：不會繼續推進。"
+      },
+      "feature": {
+        "received": "已收到",
+        "analysis": "影響分析",
+        "consult": "團隊的提問",
+        "consult_waiting": "正在等待您的回覆以繼續分析",
+        "waiting_approval": "等待核准",
+        "approved": "已核准",
+        "build": "開發中",
+        "review": "負責人審核中",
+        "deploy_window": "位於發布時段",
+        "published": "已發布",
+        "rejected": "已拒絕：不會實作。",
+        "rejected_by": "已被 {name} 拒絕。",
+        "on_hold": "已暫停：在有人恢復之前不會推進。"
+      }
     }
   }
 }

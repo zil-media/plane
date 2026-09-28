@@ -100,7 +100,7 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
       });
       return;
     },
-    [createAttachment, maxFileSize, workspaceSlug, handleFetchPropertyActivities]
+    [createAttachment, maxFileSize, workspaceSlug, handleFetchPropertyActivities, t]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -112,8 +112,8 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
 
   return (
     <>
-      {uploadStatus?.map((uploadStatus) => (
-        <IssueAttachmentsUploadItem key={uploadStatus.id} uploadStatus={uploadStatus} />
+      {uploadStatus?.map((status) => (
+        <IssueAttachmentsUploadItem key={status.id} uploadStatus={status} />
       ))}
       {issueAttachments && (
         <>
@@ -144,6 +144,7 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
             {issueAttachments?.map((attachmentId) => (
               <IssueAttachmentsListItem
                 key={attachmentId}
+                issueId={issueId}
                 attachmentId={attachmentId}
                 disabled={disabled}
                 issueServiceType={issueServiceType}

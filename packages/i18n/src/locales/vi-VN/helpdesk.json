@@ -51,17 +51,28 @@
       "title": "Hỗ trợ",
       "intro": "Các báo cáo và đề xuất của bạn, cùng trạng thái hiện tại của từng mục.",
       "tab_tracking": "Yêu cầu của tôi",
-      "tab_suggestions": "Đề xuất",
       "tab_reports": "Báo cáo",
       "tab_settings": "Cài đặt",
-      "empty": "Bạn chưa gửi báo cáo hoặc đề xuất nào."
+      "empty": "Bạn chưa gửi báo cáo hoặc đề xuất nào.",
+      "tab_active": "Đang hoạt động",
+      "tab_to_review": "Cần xem xét",
+      "tab_in_review": "Đang xét duyệt",
+      "tab_deployed": "Đã triển khai",
+      "tab_rejected": "Đã từ chối",
+      "tab_all": "Tất cả",
+      "empty_tab": "Không có gì trong tab này.",
+      "awaiting_authorization": "{count, plural, one {# đề xuất đang chờ bạn phê duyệt.} other {# đề xuất đang chờ bạn phê duyệt.}}",
+      "requests": "{count, plural, one {# yêu cầu} other {# yêu cầu}}",
+      "by_author": "từ {name}",
+      "asks_you": "Đang hỏi bạn",
+      "reported_on": "Báo cáo ngày {date}"
     },
     "section": {
-      "needs_you": "Cần bạn phản hồi",
+      "needs_you": "Cần bạn quyết định",
       "in_progress": "Đang xử lý",
       "next_deploy": "Trong bản phát hành tiếp theo",
       "done": "Hoàn tất",
-      "stalled": "Tạm hoãn"
+      "stalled": "Không tiến triển / đã lưu trữ"
     },
     "phase": {
       "next_deploy": "Trong bản phát hành tiếp theo",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "Báo cáo sự cố",
-      "our_answer": "Phản hồi của chúng tôi",
       "see_suggestion": "Xem đề xuất",
       "what_you_reported": "Nội dung đã báo cáo",
       "resend_hint": "Sự cố vẫn tiếp diễn hoặc bạn muốn bổ sung điều gì? Hãy gửi cho bộ phận hỗ trợ.",
       "resend": "Gửi cho bộ phận hỗ trợ",
       "resent": "Đã gửi. Chúng tôi sẽ xem xét lại.",
-      "next_window": "phát hành vào {date}",
       "request": "Yêu cầu",
       "analysis": "Phân tích",
       "approach": "Cách tiếp cận",
@@ -116,7 +125,11 @@
       "risks": "Rủi ro",
       "answer_hint": "Trả lời các câu hỏi để tiếp tục phân tích.",
       "comment": "Thêm bình luận",
-      "send": "Gửi"
+      "send": "Gửi",
+      "what_next": "Bước tiếp theo",
+      "how_to": "Cách thực hiện",
+      "what_we_did": "Những gì chúng tôi đã làm",
+      "conversation": "Trao đổi"
     },
     "impact": {
       "low": "Thấp",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "Phân tích các đề xuất mới và xây dựng những đề xuất đã được phê duyệt phía sau một cờ tính năng.",
       "max_builds": "Số lượt xây dựng mỗi tuần",
       "max_builds_hint": "Số đề xuất tối đa mà tác nhân xây dựng trong 7 ngày."
+    },
+    "kind": {
+      "bug": "Lỗi",
+      "feature": "Tính năng"
+    },
+    "deploy": {
+      "today": "Phát hành hôm nay lúc {time} · sau {left}",
+      "tomorrow": "Phát hành ngày mai lúc {time} · sau {left}",
+      "left": "{hours} giờ {minutes} phút"
+    },
+    "track": {
+      "working": "Tác tử đang xử lý",
+      "see_pr": "Xem PR",
+      "bug": {
+        "received": "Đã nhận",
+        "diagnosis": "Đang chẩn đoán",
+        "fixed": "Đã sửa",
+        "published": "Đã phát hành",
+        "derived": "Đã chuyển thành đề xuất",
+        "continues": "Tiếp tục dưới dạng đề xuất",
+        "derived_banner": "Đây không phải là lỗi: nó đã trở thành một đề xuất dưới tên bạn và đang được phân tích.",
+        "answered_banner": "Chúng tôi đã trả lời bạn: không cần thay đổi nền tảng.",
+        "dismissed_banner": "Đã xem xét và đóng: không tìm thấy lỗi của nền tảng.",
+        "archived_banner": "Đã lưu trữ: sẽ không tiếp tục."
+      },
+      "feature": {
+        "received": "Đã nhận",
+        "analysis": "Phân tích tác động",
+        "consult": "Câu hỏi từ nhóm",
+        "consult_waiting": "Đang chờ bạn trả lời để tiếp tục phân tích",
+        "waiting_approval": "Đang chờ phê duyệt",
+        "approved": "Đã phê duyệt",
+        "build": "Đang phát triển",
+        "review": "Đang được người phụ trách xem xét",
+        "deploy_window": "Trong khung phát hành",
+        "published": "Đã phát hành",
+        "rejected": "Đã từ chối: sẽ không được xây dựng.",
+        "rejected_by": "Bị {name} từ chối.",
+        "on_hold": "Tạm dừng: sẽ không tiến triển cho đến khi có người tiếp tục."
+      }
     }
   }
 }

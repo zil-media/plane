@@ -51,17 +51,28 @@
       "title": "지원",
       "intro": "신고와 제안, 그리고 각각의 진행 상태입니다.",
       "tab_tracking": "내 요청",
-      "tab_suggestions": "제안",
       "tab_reports": "신고",
       "tab_settings": "설정",
-      "empty": "아직 신고하거나 제안한 내용이 없습니다."
+      "empty": "아직 신고하거나 제안한 내용이 없습니다.",
+      "tab_active": "진행 중",
+      "tab_to_review": "검토 대기",
+      "tab_in_review": "검토 중",
+      "tab_deployed": "배포됨",
+      "tab_rejected": "거절됨",
+      "tab_all": "전체",
+      "empty_tab": "이 탭에는 항목이 없습니다.",
+      "awaiting_authorization": "{count, plural, one {제안 #개가 승인을 기다리고 있습니다.} other {제안 #개가 승인을 기다리고 있습니다.}}",
+      "requests": "{count, plural, one {요청 #개} other {요청 #개}}",
+      "by_author": "{name} 님",
+      "asks_you": "질문이 있습니다",
+      "reported_on": "{date}에 보고됨"
     },
     "section": {
-      "needs_you": "답변이 필요합니다",
+      "needs_you": "결정 필요",
       "in_progress": "진행 중",
       "next_deploy": "다음 릴리스에 반영",
       "done": "완료",
-      "stalled": "보류"
+      "stalled": "진행 없음 / 보관됨"
     },
     "phase": {
       "next_deploy": "다음 릴리스에 반영",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "문제 신고",
-      "our_answer": "답변",
       "see_suggestion": "제안 보기",
       "what_you_reported": "신고 내용",
       "resend_hint": "아직도 발생하나요, 아니면 추가할 내용이 있나요? 지원팀에 보내주세요.",
       "resend": "지원팀에 보내기",
       "resent": "전송했습니다. 다시 확인하겠습니다.",
-      "next_window": "{date}에 배포됩니다",
       "request": "요청 내용",
       "analysis": "분석",
       "approach": "접근 방식",
@@ -116,7 +125,11 @@
       "risks": "위험 요소",
       "answer_hint": "분석을 계속하려면 질문에 답변해 주세요.",
       "comment": "댓글 추가",
-      "send": "보내기"
+      "send": "보내기",
+      "what_next": "다음 단계",
+      "how_to": "방법",
+      "what_we_did": "조치 내용",
+      "conversation": "대화"
     },
     "impact": {
       "low": "낮음",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "새 제안을 분석하고 승인된 항목을 플래그 뒤에서 구현합니다.",
       "max_builds": "주간 구현 건수",
       "max_builds_hint": "에이전트가 7일 동안 구현하는 제안의 최대 개수입니다."
+    },
+    "kind": {
+      "bug": "버그",
+      "feature": "기능"
+    },
+    "deploy": {
+      "today": "오늘 {time}에 배포 · {left} 남음",
+      "tomorrow": "내일 {time}에 배포 · {left} 남음",
+      "left": "{hours}시간 {minutes}분"
+    },
+    "track": {
+      "working": "에이전트가 작업 중입니다",
+      "see_pr": "PR 보기",
+      "bug": {
+        "received": "접수됨",
+        "diagnosis": "진단 중",
+        "fixed": "수정됨",
+        "published": "게시됨",
+        "derived": "제안으로 전환됨",
+        "continues": "제안으로 계속 진행 중",
+        "derived_banner": "결함이 아니었습니다. 회원님 이름으로 제안이 되었으며 이미 분석 중입니다.",
+        "answered_banner": "답변을 드렸습니다. 플랫폼을 변경할 필요가 없었습니다.",
+        "dismissed_banner": "검토 후 종료되었습니다. 플랫폼 결함이 발견되지 않았습니다.",
+        "archived_banner": "보관됨: 더 이상 진행되지 않습니다."
+      },
+      "feature": {
+        "received": "접수됨",
+        "analysis": "영향 분석",
+        "consult": "팀의 질문",
+        "consult_waiting": "분석을 재개하기 위해 답변을 기다리고 있습니다",
+        "waiting_approval": "승인 대기",
+        "approved": "승인됨",
+        "build": "개발 중",
+        "review": "담당자 검토 중",
+        "deploy_window": "배포 대기 중",
+        "published": "게시됨",
+        "rejected": "거절됨: 구현되지 않습니다.",
+        "rejected_by": "{name} 님이 거절했습니다.",
+        "on_hold": "일시 중지됨: 누군가 재개할 때까지 진행되지 않습니다."
+      }
     }
   }
 }

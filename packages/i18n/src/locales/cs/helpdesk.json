@@ -51,17 +51,28 @@
       "title": "Podpora",
       "intro": "Vaše hlášení a návrhy a stav každého z nich.",
       "tab_tracking": "Moje požadavky",
-      "tab_suggestions": "Návrhy",
       "tab_reports": "Hlášení",
       "tab_settings": "Nastavení",
-      "empty": "Zatím jste neodeslali žádné hlášení ani návrh."
+      "empty": "Zatím jste neodeslali žádné hlášení ani návrh.",
+      "tab_active": "Aktivní",
+      "tab_to_review": "K posouzení",
+      "tab_in_review": "V revizi",
+      "tab_deployed": "Nasazené",
+      "tab_rejected": "Zamítnuté",
+      "tab_all": "Vše",
+      "empty_tab": "Na této kartě nic není.",
+      "awaiting_authorization": "{count, plural, one {# návrh čeká na Vaše schválení.} few {# návrhy čekají na Vaše schválení.} many {# návrhu čeká na Vaše schválení.} other {# návrhů čeká na Vaše schválení.}}",
+      "requests": "{count, plural, one {# požadavek} few {# požadavky} many {# požadavku} other {# požadavků}}",
+      "by_author": "od {name}",
+      "asks_you": "Ptá se Vás",
+      "reported_on": "Nahlášeno {date}"
     },
     "section": {
-      "needs_you": "Čeká na vaši odpověď",
+      "needs_you": "Čekají na Vaše rozhodnutí",
       "in_progress": "Probíhá",
       "next_deploy": "V příští verzi",
       "done": "Hotovo",
-      "stalled": "Pozastaveno"
+      "stalled": "Bez postupu / archivováno"
     },
     "phase": {
       "next_deploy": "V příští verzi",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "Hlášení problému",
-      "our_answer": "Naše odpověď",
       "see_suggestion": "Zobrazit návrh",
       "what_you_reported": "Co bylo nahlášeno",
       "resend_hint": "Stále se to děje, nebo chcete něco doplnit? Pošlete to podpoře.",
       "resend": "Odeslat podpoře",
       "resent": "Odesláno. Podíváme se na to znovu.",
-      "next_window": "vychází {date}",
       "request": "Požadavek",
       "analysis": "Analýza",
       "approach": "Přístup",
@@ -116,7 +125,11 @@
       "risks": "Rizika",
       "answer_hint": "Odpovězte na otázky, aby mohla analýza pokračovat.",
       "comment": "Přidat komentář",
-      "send": "Odeslat"
+      "send": "Odeslat",
+      "what_next": "Co bude dál",
+      "how_to": "Jak na to",
+      "what_we_did": "Co jsme udělali",
+      "conversation": "Konverzace"
     },
     "impact": {
       "low": "Nízký",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "Analyzuje nové návrhy a schválené realizuje za příznakem.",
       "max_builds": "Realizace týdně",
       "max_builds_hint": "Maximální počet návrhů, které agent realizuje za 7 dní."
+    },
+    "kind": {
+      "bug": "Chyba",
+      "feature": "Funkce"
+    },
+    "deploy": {
+      "today": "Vychází dnes v {time} · za {left}",
+      "tomorrow": "Vychází zítra v {time} · za {left}",
+      "left": "{hours} h {minutes} min"
+    },
+    "track": {
+      "working": "Agent pracuje",
+      "see_pr": "Zobrazit PR",
+      "bug": {
+        "received": "Přijato",
+        "diagnosis": "V diagnostice",
+        "fixed": "Opraveno",
+        "published": "Zveřejněno",
+        "derived": "Převedeno na návrh",
+        "continues": "Pokračuje jako návrh",
+        "derived_banner": "Nešlo o chybu: stal se z toho návrh na Vaše jméno, který se už analyzuje.",
+        "answered_banner": "Odpověděli jsme Vám: na platformě nebylo třeba nic měnit.",
+        "dismissed_banner": "Zkontrolováno a uzavřeno: nebyla nalezena chyba platformy.",
+        "archived_banner": "Archivováno: nebude pokračovat."
+      },
+      "feature": {
+        "received": "Přijato",
+        "analysis": "Analýza dopadu",
+        "consult": "Dotaz od týmu",
+        "consult_waiting": "Čeká se na Vaši odpověď, aby mohla analýza pokračovat",
+        "waiting_approval": "Čeká na schválení",
+        "approved": "Schváleno",
+        "build": "Ve vývoji",
+        "review": "V revizi vlastníka",
+        "deploy_window": "V okně nasazení",
+        "published": "Zveřejněno",
+        "rejected": "Zamítnuto: nebude realizováno.",
+        "rejected_by": "Zamítl(a) {name}.",
+        "on_hold": "Pozastaveno: nepokročí, dokud to někdo neobnoví."
+      }
     }
   }
 }

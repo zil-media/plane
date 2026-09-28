@@ -874,5 +874,21 @@
     }
   },
   "zil_seed_studio_defaults_label": "표준 클라이언트 프로젝트 설정",
-  "zil_seed_studio_defaults_description": "이 프로젝트에 스튜디오에서 자주 사용하는 상태(Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos)와 산출물 레이블(Branding, Web, Landing, Redes Sociales, Email, Merchandising)을 추가합니다."
+  "zil_seed_studio_defaults_description": "이 프로젝트에 스튜디오에서 자주 사용하는 상태(Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos)와 산출물 레이블(Branding, Web, Landing, Redes Sociales, Email, Merchandising)을 추가합니다.",
+  "zil_erp": {
+    "client": "고객사",
+    "project": "프로젝트",
+    "no_options": "Zil Workspace에 활성 항목이 없습니다.",
+    "unavailable": "현재 Zil Workspace에 연결할 수 없습니다.",
+    "open_in_zil": "Zil Workspace에서 열기",
+    "error_title": "링크를 업데이트할 수 없습니다",
+    "error": "Zil Workspace가 변경을 받아들이지 않았습니다. 다시 시도하십시오.",
+    "save_to_zil": "Zil에 저장",
+    "lead": "리드",
+    "saved_title": "Zil에 저장됨",
+    "saved": "파일을 {name}에 저장했습니다.",
+    "save_error_title": "파일을 저장할 수 없습니다",
+    "save_error": "Zil Workspace가 파일을 받아들이지 않았습니다. 다시 시도하십시오.",
+    "unavailable_short": "사용할 수 없음"
+  }
 }
