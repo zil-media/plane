@@ -6,14 +6,18 @@
 
 import { useState } from "react";
 import useSWR from "swr";
+import { ArrowRight, CheckCircle2, Lightbulb } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Loader, TextArea } from "@plane/ui";
-import { cn, renderFormattedDate } from "@plane/utils";
+import { cn, renderFormattedDate, renderFormattedTime } from "@plane/utils";
 import { supportService } from "@/services/support.service";
-import { TONE_DOT, bugPhase, nextDeployWindow } from "./phase";
+import { PhaseChip, Tag } from "./item-row";
+import { bugPhase, bugWasAnswered, bugWasDerived } from "./phase";
+import { PhaseTimeline } from "./phase-timeline";
 import { SupportTimeline } from "./timeline";
+import { computeBugTrack } from "./track";
 
 type Props = {
   bugId: string;
@@ -37,9 +41,11 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
       </Loader>
     );
 
-  const phase = bugPhase(bug);
-  const derivedFeatureId = bug.derived_feature_id;
+  const derivedFeatureId = bugWasDerived(bug) ? bug.derived_feature_id : null;
+  const answered = bugWasAnswered(bug);
   const isOwner = bug.reported_by?.id === currentUserId;
+  // Without a generated title the raw text IS the heading, so it isn't repeated below.
+  const heading = bug.display_title?.trim() || bug.description;
 
   const run = async (action: () => Promise<unknown>, success?: string) => {
     setBusy(true);
@@ -58,37 +64,73 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <div className="flex flex-col gap-1.5">
-        <span className="flex items-center gap-1.5 text-caption-sm-regular text-secondary">
-          <span className={cn("size-2 rounded-full", TONE_DOT[phase.tone])} />
-          {t(phase.labelKey)}
-          {bug.status === "fixed" &&
-            ` · ${t("helpdesk.detail.next_window", { date: renderFormattedDate(nextDeployWindow()) ?? "" })}`}
-        </span>
-        <h3 className="text-h6-medium text-primary">{bug.display_title || t("helpdesk.detail.bug_report")}</h3>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <PhaseChip phase={bugPhase(bug)} />
+          {bug.category && <Tag>{bug.category}</Tag>}
+        </div>
+        <h3 className="text-h6-medium break-words whitespace-pre-wrap text-primary">{heading}</h3>
         {bug.plain_summary && <p className="text-body-xs-regular text-secondary">{bug.plain_summary}</p>}
+        <span className="text-caption-sm-regular text-tertiary">
+          {t("helpdesk.board.reported_on", {
+            date: `${renderFormattedDate(bug.created_at) ?? ""} ${renderFormattedTime(bug.created_at, "12-hour")}`,
+          })}
+        </span>
       </div>
 
-      {bug.resolved_message && (
-        <div className="rounded-md bg-layer-1 p-3 text-body-xs-regular whitespace-pre-wrap text-primary">
-          <span className="mb-1 block text-caption-sm-medium text-tertiary">{t("helpdesk.detail.our_answer")}</span>
-          {bug.resolved_message}
+      <PhaseTimeline track={computeBugTrack(bug)} />
+
+      {/* Derived is NOT "how to do it": it can't be done yet, which is why a suggestion was opened. */}
+      {(bug.resolved_message || derivedFeatureId) && (
+        <div
+          className={cn(
+            "flex flex-col gap-2 rounded-md border p-3",
+            derivedFeatureId || answered
+              ? "border-accent-strong bg-accent-subtle"
+              : "border-success-strong bg-success-subtle"
+          )}
+        >
+          <span
+            className={cn(
+              "flex items-center gap-2 text-caption-sm-medium",
+              derivedFeatureId || answered ? "text-accent-primary" : "text-success-primary"
+            )}
+          >
+            {derivedFeatureId ? <Lightbulb className="size-3.5" /> : <CheckCircle2 className="size-3.5" />}
+            {t(
+              derivedFeatureId
+                ? "helpdesk.detail.what_next"
+                : answered
+                  ? "helpdesk.detail.how_to"
+                  : "helpdesk.detail.what_we_did"
+            )}
+          </span>
+          {bug.resolved_message && (
+            <p className="text-body-xs-regular whitespace-pre-wrap text-primary">{bug.resolved_message}</p>
+          )}
+          {derivedFeatureId && (
+            <Button
+              variant="secondary"
+              size="lg"
+              className="self-start"
+              prependIcon={<ArrowRight />}
+              onClick={() => onOpenFeature(derivedFeatureId)}
+            >
+              {t("helpdesk.detail.see_suggestion")}
+            </Button>
+          )}
         </div>
       )}
 
-      {derivedFeatureId && (
-        <Button variant="link" size="lg" className="self-start" onClick={() => onOpenFeature(derivedFeatureId)}>
-          {t("helpdesk.detail.see_suggestion")}
-        </Button>
+      {(heading !== bug.description || bug.url) && (
+        <div className="flex flex-col gap-1 rounded-md border border-subtle p-3">
+          <span className="text-caption-sm-medium text-primary">{t("helpdesk.detail.what_you_reported")}</span>
+          {heading !== bug.description && (
+            <p className="text-body-xs-regular break-words whitespace-pre-wrap text-secondary">{bug.description}</p>
+          )}
+          {bug.url && <span className="text-caption-sm-regular break-all text-tertiary">{bug.url}</span>}
+        </div>
       )}
-
-      <div className="flex flex-col gap-1">
-        <span className="text-caption-sm-medium text-tertiary">{t("helpdesk.detail.what_you_reported")}</span>
-        <p className="text-body-xs-regular break-words whitespace-pre-wrap text-secondary">{bug.description}</p>
-        <span className="text-caption-sm-regular text-tertiary">
-          {renderFormattedDate(bug.created_at)} {bug.url && `· ${bug.url}`}
-        </span>
-      </div>
 
       {bug.attachments.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -104,7 +146,7 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
         </div>
       )}
 
-      <SupportTimeline progress={bug.progress} comments={bug.comments} />
+      <SupportTimeline comments={bug.comments} />
 
       {isOwner && !bug.derived_feature_id && (
         <div className="flex flex-col gap-2 border-t border-subtle pt-3">

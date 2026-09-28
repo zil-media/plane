@@ -51,17 +51,28 @@
       "title": "Support",
       "intro": "Your reports and suggestions, and where each one stands.",
       "tab_tracking": "My requests",
-      "tab_suggestions": "Suggestions",
       "tab_reports": "Reports",
       "tab_settings": "Settings",
-      "empty": "You haven't sent any report or suggestion yet."
+      "empty": "You haven't sent any report or suggestion yet.",
+      "tab_active": "Active",
+      "tab_to_review": "To review",
+      "tab_in_review": "In review",
+      "tab_deployed": "Deployed",
+      "tab_rejected": "Rejected",
+      "tab_all": "All",
+      "empty_tab": "Nothing in this tab.",
+      "awaiting_authorization": "{count, plural, one {# suggestion is waiting for your approval.} other {# suggestions are waiting for your approval.}}",
+      "requests": "{count, plural, one {# request} other {# requests}}",
+      "by_author": "from {name}",
+      "asks_you": "Asks you",
+      "reported_on": "Reported on {date}"
     },
     "section": {
-      "needs_you": "Need your answer",
+      "needs_you": "Need your decision",
       "in_progress": "In progress",
       "next_deploy": "In the next release",
       "done": "Done",
-      "stalled": "On hold"
+      "stalled": "Stalled / archived"
     },
     "phase": {
       "next_deploy": "In the next release",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "Problem report",
-      "our_answer": "Our answer",
       "see_suggestion": "See the suggestion",
       "what_you_reported": "What was reported",
       "resend_hint": "Still happening, or something to add? Send it to support.",
       "resend": "Send to support",
       "resent": "Sent. We're looking at it again.",
-      "next_window": "goes out on {date}",
       "request": "Request",
       "analysis": "Analysis",
       "approach": "Approach",
@@ -116,7 +125,11 @@
       "risks": "Risks",
       "answer_hint": "Answer the questions to continue the analysis.",
       "comment": "Add a comment",
-      "send": "Send"
+      "send": "Send",
+      "what_next": "What's next",
+      "how_to": "How to do it",
+      "what_we_did": "What we did",
+      "conversation": "Conversation"
     },
     "impact": {
       "low": "Low",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "Analyzes new suggestions and builds the approved ones behind a flag.",
       "max_builds": "Builds per week",
       "max_builds_hint": "Maximum number of suggestions the agent builds in 7 days."
+    },
+    "kind": {
+      "bug": "Bug",
+      "feature": "Feature"
+    },
+    "deploy": {
+      "today": "Ships today at {time} · in {left}",
+      "tomorrow": "Ships tomorrow at {time} · in {left}",
+      "left": "{hours} h {minutes} min"
+    },
+    "track": {
+      "working": "The agent is working",
+      "see_pr": "See PR",
+      "bug": {
+        "received": "Received",
+        "diagnosis": "Diagnosing",
+        "fixed": "Fixed",
+        "published": "Published",
+        "derived": "Turned into a suggestion",
+        "continues": "Continues as a suggestion",
+        "derived_banner": "It wasn't a defect: it became a suggestion in your name and is already being analyzed.",
+        "answered_banner": "We answered you: no change to the platform was needed.",
+        "dismissed_banner": "Reviewed and closed: no platform defect was found.",
+        "archived_banner": "Archived: it won't move forward."
+      },
+      "feature": {
+        "received": "Received",
+        "analysis": "Impact analysis",
+        "consult": "Question from the team",
+        "consult_waiting": "Waiting for your answer to resume the analysis",
+        "waiting_approval": "Waiting for approval",
+        "approved": "Approved",
+        "build": "In development",
+        "review": "In owner review",
+        "deploy_window": "In the deploy window",
+        "published": "Published",
+        "rejected": "Rejected: it won't be built.",
+        "rejected_by": "Rejected by {name}.",
+        "on_hold": "Paused: it won't move until someone resumes it."
+      }
     }
   }
 }

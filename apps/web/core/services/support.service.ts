@@ -99,6 +99,7 @@ export type TFeatureSpec = {
   open_questions?: string[];
   blast_radius?: "low" | "medium" | "high";
   flag_key?: string;
+  generated_at?: string;
 };
 
 export type TFeatureBuild = {

@@ -51,17 +51,28 @@
       "title": "Support",
       "intro": "Meldungen und Vorschläge im Überblick, mit dem jeweiligen Stand.",
       "tab_tracking": "Meine Anfragen",
-      "tab_suggestions": "Vorschläge",
       "tab_reports": "Meldungen",
       "tab_settings": "Einstellungen",
-      "empty": "Es wurde noch keine Meldung und kein Vorschlag gesendet."
+      "empty": "Es wurde noch keine Meldung und kein Vorschlag gesendet.",
+      "tab_active": "Aktiv",
+      "tab_to_review": "Zu prüfen",
+      "tab_in_review": "In Prüfung",
+      "tab_deployed": "Bereitgestellt",
+      "tab_rejected": "Abgelehnt",
+      "tab_all": "Alle",
+      "empty_tab": "Nichts in diesem Tab.",
+      "awaiting_authorization": "{count, plural, one {# Vorschlag wartet auf Ihre Freigabe.} other {# Vorschläge warten auf Ihre Freigabe.}}",
+      "requests": "{count, plural, one {# Anfrage} other {# Anfragen}}",
+      "by_author": "von {name}",
+      "asks_you": "Fragt Sie",
+      "reported_on": "Gemeldet am {date}"
     },
     "section": {
-      "needs_you": "Antwort erforderlich",
+      "needs_you": "Warten auf Ihre Entscheidung",
       "in_progress": "In Bearbeitung",
       "next_deploy": "In der nächsten Version",
       "done": "Erledigt",
-      "stalled": "Zurückgestellt"
+      "stalled": "Ohne Fortschritt / archiviert"
     },
     "phase": {
       "next_deploy": "In der nächsten Version",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "Problemmeldung",
-      "our_answer": "Unsere Antwort",
       "see_suggestion": "Vorschlag ansehen",
       "what_you_reported": "Gemeldeter Inhalt",
       "resend_hint": "Tritt das Problem weiterhin auf, oder gibt es etwas zu ergänzen? An den Support senden.",
       "resend": "An den Support senden",
       "resent": "Gesendet. Es wird erneut geprüft.",
-      "next_window": "erscheint am {date}",
       "request": "Anfrage",
       "analysis": "Analyse",
       "approach": "Ansatz",
@@ -116,7 +125,11 @@
       "risks": "Risiken",
       "answer_hint": "Die Fragen beantworten, um mit der Analyse fortzufahren.",
       "comment": "Kommentar hinzufügen",
-      "send": "Senden"
+      "send": "Senden",
+      "what_next": "Wie es weitergeht",
+      "how_to": "So geht es",
+      "what_we_did": "Was wir getan haben",
+      "conversation": "Unterhaltung"
     },
     "impact": {
       "low": "Gering",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "Analysiert neue Vorschläge und setzt genehmigte hinter einem Flag um.",
       "max_builds": "Umsetzungen pro Woche",
       "max_builds_hint": "Maximale Anzahl an Vorschlägen, die der Agent innerhalb von 7 Tagen umsetzt."
+    },
+    "kind": {
+      "bug": "Fehler",
+      "feature": "Funktion"
+    },
+    "deploy": {
+      "today": "Wird heute um {time} veröffentlicht · in {left}",
+      "tomorrow": "Wird morgen um {time} veröffentlicht · in {left}",
+      "left": "{hours} h {minutes} min"
+    },
+    "track": {
+      "working": "Der Agent arbeitet daran",
+      "see_pr": "PR ansehen",
+      "bug": {
+        "received": "Eingegangen",
+        "diagnosis": "In Diagnose",
+        "fixed": "Behoben",
+        "published": "Veröffentlicht",
+        "derived": "In einen Vorschlag umgewandelt",
+        "continues": "Geht als Vorschlag weiter",
+        "derived_banner": "Es war kein Fehler: Daraus wurde ein Vorschlag in Ihrem Namen, der bereits analysiert wird.",
+        "answered_banner": "Wir haben Ihnen geantwortet: An der Plattform musste nichts geändert werden.",
+        "dismissed_banner": "Geprüft und geschlossen: Es wurde kein Fehler der Plattform gefunden.",
+        "archived_banner": "Archiviert: Es geht nicht weiter."
+      },
+      "feature": {
+        "received": "Eingegangen",
+        "analysis": "Auswirkungsanalyse",
+        "consult": "Rückfrage des Teams",
+        "consult_waiting": "Wartet auf Ihre Antwort, um die Analyse fortzusetzen",
+        "waiting_approval": "Wartet auf Freigabe",
+        "approved": "Freigegeben",
+        "build": "In Entwicklung",
+        "review": "In Prüfung durch den Verantwortlichen",
+        "deploy_window": "Im Veröffentlichungsfenster",
+        "published": "Veröffentlicht",
+        "rejected": "Abgelehnt: Wird nicht umgesetzt.",
+        "rejected_by": "Abgelehnt von {name}.",
+        "on_hold": "Pausiert: Geht erst weiter, wenn jemand ihn fortsetzt."
+      }
     }
   }
 }

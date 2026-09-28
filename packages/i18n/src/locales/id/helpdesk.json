@@ -51,17 +51,28 @@
       "title": "Dukungan",
       "intro": "Laporan dan saran Anda, beserta status masing-masing.",
       "tab_tracking": "Permintaan Saya",
-      "tab_suggestions": "Saran",
       "tab_reports": "Laporan",
       "tab_settings": "Pengaturan",
-      "empty": "Anda belum mengirim laporan atau saran apa pun."
+      "empty": "Anda belum mengirim laporan atau saran apa pun.",
+      "tab_active": "Aktif",
+      "tab_to_review": "Perlu ditinjau",
+      "tab_in_review": "Dalam peninjauan",
+      "tab_deployed": "Sudah dirilis",
+      "tab_rejected": "Ditolak",
+      "tab_all": "Semua",
+      "empty_tab": "Tidak ada apa pun di tab ini.",
+      "awaiting_authorization": "{count, plural, one {# saran menunggu persetujuan Anda.} other {# saran menunggu persetujuan Anda.}}",
+      "requests": "{count, plural, one {# permintaan} other {# permintaan}}",
+      "by_author": "dari {name}",
+      "asks_you": "Bertanya kepada Anda",
+      "reported_on": "Dilaporkan pada {date}"
     },
     "section": {
-      "needs_you": "Butuh jawaban Anda",
+      "needs_you": "Menunggu keputusan Anda",
       "in_progress": "Sedang berlangsung",
       "next_deploy": "Di rilis berikutnya",
       "done": "Selesai",
-      "stalled": "Ditunda"
+      "stalled": "Tidak berjalan / diarsipkan"
     },
     "phase": {
       "next_deploy": "Di rilis berikutnya",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "Laporan masalah",
-      "our_answer": "Jawaban kami",
       "see_suggestion": "Lihat saran",
       "what_you_reported": "Yang dilaporkan",
       "resend_hint": "Masih terjadi, atau ada yang ingin ditambahkan? Kirim ke dukungan.",
       "resend": "Kirim ke dukungan",
       "resent": "Terkirim. Kami akan meninjaunya lagi.",
-      "next_window": "dirilis pada {date}",
       "request": "Permintaan",
       "analysis": "Analisis",
       "approach": "Pendekatan",
@@ -116,7 +125,11 @@
       "risks": "Risiko",
       "answer_hint": "Jawab pertanyaan-pertanyaan ini untuk melanjutkan analisis.",
       "comment": "Tambahkan komentar",
-      "send": "Kirim"
+      "send": "Kirim",
+      "what_next": "Langkah berikutnya",
+      "how_to": "Cara melakukannya",
+      "what_we_did": "Yang kami lakukan",
+      "conversation": "Percakapan"
     },
     "impact": {
       "low": "Rendah",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "Menganalisis saran baru dan membangun yang telah disetujui di balik sebuah flag.",
       "max_builds": "Pembangunan per minggu",
       "max_builds_hint": "Jumlah maksimum saran yang dibangun agen dalam 7 hari."
+    },
+    "kind": {
+      "bug": "Bug",
+      "feature": "Fitur"
+    },
+    "deploy": {
+      "today": "Rilis hari ini pukul {time} · dalam {left}",
+      "tomorrow": "Rilis besok pukul {time} · dalam {left}",
+      "left": "{hours} j {minutes} mnt"
+    },
+    "track": {
+      "working": "Agen sedang bekerja",
+      "see_pr": "Lihat PR",
+      "bug": {
+        "received": "Diterima",
+        "diagnosis": "Sedang didiagnosis",
+        "fixed": "Diperbaiki",
+        "published": "Dipublikasikan",
+        "derived": "Diubah menjadi saran",
+        "continues": "Berlanjut sebagai saran",
+        "derived_banner": "Ini bukan cacat: ini menjadi saran atas nama Anda dan sudah dianalisis.",
+        "answered_banner": "Kami sudah menjawab Anda: platform tidak perlu diubah.",
+        "dismissed_banner": "Ditinjau dan ditutup: tidak ditemukan cacat pada platform.",
+        "archived_banner": "Diarsipkan: tidak akan dilanjutkan."
+      },
+      "feature": {
+        "received": "Diterima",
+        "analysis": "Analisis dampak",
+        "consult": "Pertanyaan dari tim",
+        "consult_waiting": "Menunggu jawaban Anda untuk melanjutkan analisis",
+        "waiting_approval": "Menunggu persetujuan",
+        "approved": "Disetujui",
+        "build": "Dalam pengembangan",
+        "review": "Dalam peninjauan penanggung jawab",
+        "deploy_window": "Dalam jendela rilis",
+        "published": "Dipublikasikan",
+        "rejected": "Ditolak: tidak akan dibuat.",
+        "rejected_by": "Ditolak oleh {name}.",
+        "on_hold": "Dijeda: tidak akan berjalan sampai seseorang melanjutkannya."
+      }
     }
   }
 }

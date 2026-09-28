@@ -51,17 +51,28 @@
       "title": "Podpora",
       "intro": "Vaše hlásenia a návrhy a stav každého z nich.",
       "tab_tracking": "Moje požiadavky",
-      "tab_suggestions": "Návrhy",
       "tab_reports": "Hlásenia",
       "tab_settings": "Nastavenia",
-      "empty": "Zatiaľ ste neodoslali žiadne hlásenie ani návrh."
+      "empty": "Zatiaľ ste neodoslali žiadne hlásenie ani návrh.",
+      "tab_active": "Aktívne",
+      "tab_to_review": "Na posúdenie",
+      "tab_in_review": "V revízii",
+      "tab_deployed": "Nasadené",
+      "tab_rejected": "Zamietnuté",
+      "tab_all": "Všetko",
+      "empty_tab": "Na tejto karte nič nie je.",
+      "awaiting_authorization": "{count, plural, one {# návrh čaká na Vaše schválenie.} few {# návrhy čakajú na Vaše schválenie.} many {# návrhu čaká na Vaše schválenie.} other {# návrhov čaká na Vaše schválenie.}}",
+      "requests": "{count, plural, one {# požiadavka} few {# požiadavky} many {# požiadavky} other {# požiadaviek}}",
+      "by_author": "od {name}",
+      "asks_you": "Pýta sa Vás",
+      "reported_on": "Nahlásené {date}"
     },
     "section": {
-      "needs_you": "Čaká na vašu odpoveď",
+      "needs_you": "Čakajú na Vaše rozhodnutie",
       "in_progress": "Prebieha",
       "next_deploy": "V nasledujúcej verzii",
       "done": "Hotovo",
-      "stalled": "Pozastavené"
+      "stalled": "Bez postupu / archivované"
     },
     "phase": {
       "next_deploy": "V nasledujúcej verzii",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "Hlásenie problému",
-      "our_answer": "Naša odpoveď",
       "see_suggestion": "Zobraziť návrh",
       "what_you_reported": "Čo bolo nahlásené",
       "resend_hint": "Stále sa to deje, alebo chcete niečo doplniť? Pošlite to podpore.",
       "resend": "Odoslať podpore",
       "resent": "Odoslané. Pozrieme sa na to znova.",
-      "next_window": "vychádza {date}",
       "request": "Požiadavka",
       "analysis": "Analýza",
       "approach": "Prístup",
@@ -116,7 +125,11 @@
       "risks": "Riziká",
       "answer_hint": "Odpovedzte na otázky, aby mohla analýza pokračovať.",
       "comment": "Pridať komentár",
-      "send": "Odoslať"
+      "send": "Odoslať",
+      "what_next": "Čo bude ďalej",
+      "how_to": "Ako na to",
+      "what_we_did": "Čo sme urobili",
+      "conversation": "Konverzácia"
     },
     "impact": {
       "low": "Nízky",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "Analyzuje nové návrhy a schválené realizuje za príznakom.",
       "max_builds": "Realizácie týždenne",
       "max_builds_hint": "Maximálny počet návrhov, ktoré agent zrealizuje za 7 dní."
+    },
+    "kind": {
+      "bug": "Chyba",
+      "feature": "Funkcia"
+    },
+    "deploy": {
+      "today": "Vychádza dnes o {time} · o {left}",
+      "tomorrow": "Vychádza zajtra o {time} · o {left}",
+      "left": "{hours} h {minutes} min"
+    },
+    "track": {
+      "working": "Agent pracuje",
+      "see_pr": "Zobraziť PR",
+      "bug": {
+        "received": "Prijaté",
+        "diagnosis": "V diagnostike",
+        "fixed": "Opravené",
+        "published": "Zverejnené",
+        "derived": "Premenené na návrh",
+        "continues": "Pokračuje ako návrh",
+        "derived_banner": "Nešlo o chybu: stal sa z toho návrh na Vaše meno, ktorý sa už analyzuje.",
+        "answered_banner": "Odpovedali sme Vám: na platforme nebolo potrebné nič meniť.",
+        "dismissed_banner": "Skontrolované a uzavreté: nenašla sa chyba platformy.",
+        "archived_banner": "Archivované: nebude pokračovať."
+      },
+      "feature": {
+        "received": "Prijaté",
+        "analysis": "Analýza dopadu",
+        "consult": "Otázka od tímu",
+        "consult_waiting": "Čaká sa na Vašu odpoveď, aby analýza mohla pokračovať",
+        "waiting_approval": "Čaká na schválenie",
+        "approved": "Schválené",
+        "build": "Vo vývoji",
+        "review": "V revízii vlastníka",
+        "deploy_window": "V okne nasadenia",
+        "published": "Zverejnené",
+        "rejected": "Zamietnuté: nebude realizované.",
+        "rejected_by": "Zamietol(a) {name}.",
+        "on_hold": "Pozastavené: nepohne sa, kým to niekto neobnoví."
+      }
     }
   }
 }

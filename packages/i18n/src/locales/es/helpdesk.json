@@ -51,17 +51,28 @@
       "title": "Soporte",
       "intro": "Sus reportes y sugerencias, y en qué punto está cada uno.",
       "tab_tracking": "Mi seguimiento",
-      "tab_suggestions": "Sugerencias",
       "tab_reports": "Reportes",
       "tab_settings": "Ajustes",
-      "empty": "Todavía no envió ningún reporte ni sugerencia."
+      "empty": "Todavía no envió ningún reporte ni sugerencia.",
+      "tab_active": "Activas",
+      "tab_to_review": "Para revisar",
+      "tab_in_review": "En revisión",
+      "tab_deployed": "Desplegadas",
+      "tab_rejected": "Rechazadas",
+      "tab_all": "Todas",
+      "empty_tab": "No hay nada en esta pestaña.",
+      "awaiting_authorization": "{count, plural, one {# sugerencia espera su autorización.} other {# sugerencias esperan su autorización.}}",
+      "requests": "{count, plural, one {# pedido} other {# pedidos}}",
+      "by_author": "de {name}",
+      "asks_you": "Le consulta",
+      "reported_on": "Reportado el {date}"
     },
     "section": {
-      "needs_you": "Necesitan su respuesta",
+      "needs_you": "Necesitan su decisión",
       "in_progress": "En curso",
       "next_deploy": "Sale en la próxima versión",
       "done": "Listo",
-      "stalled": "En espera"
+      "stalled": "Sin avanzar / archivado"
     },
     "phase": {
       "next_deploy": "Sale en la próxima versión",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "Reporte de problema",
-      "our_answer": "Nuestra respuesta",
       "see_suggestion": "Ver la sugerencia",
       "what_you_reported": "Lo que se reportó",
       "resend_hint": "¿Sigue pasando o quiere agregar algo? Envíelo a soporte.",
       "resend": "Enviar a soporte",
       "resent": "Enviado. Lo volvemos a mirar.",
-      "next_window": "sale el {date}",
       "request": "Pedido",
       "analysis": "Análisis",
       "approach": "Enfoque",
@@ -116,7 +125,11 @@
       "risks": "Riesgos",
       "answer_hint": "Responda las preguntas para seguir con el análisis.",
       "comment": "Agregar un comentario",
-      "send": "Enviar"
+      "send": "Enviar",
+      "what_next": "Qué sigue",
+      "how_to": "Cómo se hace",
+      "what_we_did": "Qué se hizo",
+      "conversation": "Conversación"
     },
     "impact": {
       "low": "Bajo",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "Analiza las sugerencias nuevas y construye las aprobadas detrás de un flag.",
       "max_builds": "Construcciones por semana",
       "max_builds_hint": "Máximo de sugerencias que el agente construye en 7 días."
+    },
+    "kind": {
+      "bug": "Bug",
+      "feature": "Feature"
+    },
+    "deploy": {
+      "today": "Sale hoy a las {time} · en {left}",
+      "tomorrow": "Sale mañana a las {time} · en {left}",
+      "left": "{hours} h {minutes} min"
+    },
+    "track": {
+      "working": "El agente está trabajando",
+      "see_pr": "Ver PR",
+      "bug": {
+        "received": "Recibido",
+        "diagnosis": "En diagnóstico",
+        "fixed": "Corregido",
+        "published": "Publicado",
+        "derived": "Convertido en sugerencia",
+        "continues": "Sigue como sugerencia",
+        "derived_banner": "No era un defecto: se convirtió en una sugerencia a su nombre y ya está en análisis.",
+        "answered_banner": "Le respondimos: no hacía falta tocar la plataforma.",
+        "dismissed_banner": "Se revisó y se cerró: no se encontró un defecto de la plataforma.",
+        "archived_banner": "Archivado: no va a avanzar."
+      },
+      "feature": {
+        "received": "Recibida",
+        "analysis": "Análisis de impacto",
+        "consult": "Consulta del equipo",
+        "consult_waiting": "Esperando su respuesta para retomar el análisis",
+        "waiting_approval": "Esperando aprobación",
+        "approved": "Aprobada",
+        "build": "En desarrollo",
+        "review": "En revisión del responsable",
+        "deploy_window": "En la ventana de publicación",
+        "published": "Publicada",
+        "rejected": "Rechazada: no se va a construir.",
+        "rejected_by": "Rechazada por {name}.",
+        "on_hold": "En pausa: no avanza hasta que alguien la retome."
+      }
     }
   }
 }

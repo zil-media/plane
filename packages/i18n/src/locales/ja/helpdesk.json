@@ -51,17 +51,28 @@
       "title": "サポート",
       "intro": "報告と提案、およびそれぞれの状況です。",
       "tab_tracking": "自分の依頼",
-      "tab_suggestions": "提案",
       "tab_reports": "報告",
       "tab_settings": "設定",
-      "empty": "まだ報告や提案を送信していません。"
+      "empty": "まだ報告や提案を送信していません。",
+      "tab_active": "進行中",
+      "tab_to_review": "レビュー待ち",
+      "tab_in_review": "レビュー中",
+      "tab_deployed": "リリース済み",
+      "tab_rejected": "却下",
+      "tab_all": "すべて",
+      "empty_tab": "このタブには何もありません。",
+      "awaiting_authorization": "{count, plural, one {# 件の提案があなたの承認を待っています。} other {# 件の提案があなたの承認を待っています。}}",
+      "requests": "{count, plural, one {# 件のリクエスト} other {# 件のリクエスト}}",
+      "by_author": "{name} さんから",
+      "asks_you": "質問があります",
+      "reported_on": "{date} に報告"
     },
     "section": {
-      "needs_you": "回答が必要です",
+      "needs_you": "あなたの判断待ち",
       "in_progress": "対応中",
       "next_deploy": "次のリリースで対応",
       "done": "完了",
-      "stalled": "保留中"
+      "stalled": "停止中 / アーカイブ済み"
     },
     "phase": {
       "next_deploy": "次のリリースで対応",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "問題の報告",
-      "our_answer": "回答",
       "see_suggestion": "提案を見る",
       "what_you_reported": "報告内容",
       "resend_hint": "まだ発生していますか、追加したいことがありますか。サポートに送信してください。",
       "resend": "サポートに送信",
       "resent": "送信しました。もう一度確認します。",
-      "next_window": "{date}にリリース予定",
       "request": "依頼内容",
       "analysis": "分析",
       "approach": "アプローチ",
@@ -116,7 +125,11 @@
       "risks": "リスク",
       "answer_hint": "分析を続けるため、質問に回答してください。",
       "comment": "コメントを追加",
-      "send": "送信"
+      "send": "送信",
+      "what_next": "次のステップ",
+      "how_to": "やり方",
+      "what_we_did": "対応内容",
+      "conversation": "会話"
     },
     "impact": {
       "low": "低",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "新しい提案を分析し、承認されたものをフラグの背後で実装します。",
       "max_builds": "週あたりの実装数",
       "max_builds_hint": "エージェントが7日間で実装する提案の最大数です。"
+    },
+    "kind": {
+      "bug": "バグ",
+      "feature": "機能"
+    },
+    "deploy": {
+      "today": "本日 {time} にリリース · あと {left}",
+      "tomorrow": "明日 {time} にリリース · あと {left}",
+      "left": "{hours} 時間 {minutes} 分"
+    },
+    "track": {
+      "working": "エージェントが作業中です",
+      "see_pr": "PR を見る",
+      "bug": {
+        "received": "受付済み",
+        "diagnosis": "診断中",
+        "fixed": "修正済み",
+        "published": "公開済み",
+        "derived": "提案に変換されました",
+        "continues": "提案として継続中",
+        "derived_banner": "不具合ではありませんでした。あなたの名前で提案になり、すでに分析中です。",
+        "answered_banner": "回答しました。プラットフォームの変更は不要でした。",
+        "dismissed_banner": "確認のうえクローズしました。プラットフォームの不具合は見つかりませんでした。",
+        "archived_banner": "アーカイブ済み：これ以上進みません。"
+      },
+      "feature": {
+        "received": "受付済み",
+        "analysis": "影響分析",
+        "consult": "チームからの質問",
+        "consult_waiting": "分析を再開するため、あなたの回答を待っています",
+        "waiting_approval": "承認待ち",
+        "approved": "承認済み",
+        "build": "開発中",
+        "review": "担当者のレビュー中",
+        "deploy_window": "リリース枠で待機中",
+        "published": "公開済み",
+        "rejected": "却下：実装されません。",
+        "rejected_by": "{name} さんが却下しました。",
+        "on_hold": "一時停止中：誰かが再開するまで進みません。"
+      }
     }
   }
 }

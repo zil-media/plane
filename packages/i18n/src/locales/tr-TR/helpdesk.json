@@ -51,17 +51,28 @@
       "title": "Destek",
       "intro": "Bildirimleriniz ve önerileriniz ile her birinin durumu.",
       "tab_tracking": "Taleplerim",
-      "tab_suggestions": "Öneriler",
       "tab_reports": "Bildirimler",
       "tab_settings": "Ayarlar",
-      "empty": "Henüz hiç bildirim veya öneri göndermediniz."
+      "empty": "Henüz hiç bildirim veya öneri göndermediniz.",
+      "tab_active": "Aktif",
+      "tab_to_review": "İncelenecek",
+      "tab_in_review": "İncelemede",
+      "tab_deployed": "Yayınlanan",
+      "tab_rejected": "Reddedilen",
+      "tab_all": "Tümü",
+      "empty_tab": "Bu sekmede bir şey yok.",
+      "awaiting_authorization": "{count, plural, one {# öneri onayınızı bekliyor.} other {# öneri onayınızı bekliyor.}}",
+      "requests": "{count, plural, one {# talep} other {# talep}}",
+      "by_author": "{name} tarafından",
+      "asks_you": "Size soruyor",
+      "reported_on": "{date} tarihinde bildirildi"
     },
     "section": {
-      "needs_you": "Yanıtınız bekleniyor",
+      "needs_you": "Kararınızı bekleyenler",
       "in_progress": "Devam ediyor",
       "next_deploy": "Sonraki sürümde",
       "done": "Tamamlandı",
-      "stalled": "Beklemede"
+      "stalled": "İlerlemeyen / arşivlenen"
     },
     "phase": {
       "next_deploy": "Sonraki sürümde",
@@ -101,13 +112,11 @@
     },
     "detail": {
       "bug_report": "Sorun bildirimi",
-      "our_answer": "Yanıtımız",
       "see_suggestion": "Öneriyi görüntüle",
       "what_you_reported": "Bildirilen içerik",
       "resend_hint": "Sorun devam mı ediyor, yoksa eklemek istediğiniz bir şey mi var? Destek ekibine gönderin.",
       "resend": "Destek ekibine gönder",
       "resent": "Gönderildi. Tekrar inceliyoruz.",
-      "next_window": "{date} tarihinde yayınlanıyor",
       "request": "Talep",
       "analysis": "Analiz",
       "approach": "Yaklaşım",
@@ -116,7 +125,11 @@
       "risks": "Riskler",
       "answer_hint": "Analize devam edebilmemiz için soruları yanıtlayın.",
       "comment": "Yorum ekle",
-      "send": "Gönder"
+      "send": "Gönder",
+      "what_next": "Sırada ne var",
+      "how_to": "Nasıl yapılır",
+      "what_we_did": "Ne yaptık",
+      "conversation": "Konuşma"
     },
     "impact": {
       "low": "Düşük",
@@ -158,6 +171,46 @@
       "feature_agent_hint": "Yeni önerileri analiz eder ve onaylananları bir flag arkasında geliştirir.",
       "max_builds": "Haftalık geliştirme sayısı",
       "max_builds_hint": "Aracının 7 gün içinde geliştireceği maksimum öneri sayısı."
+    },
+    "kind": {
+      "bug": "Hata",
+      "feature": "Özellik"
+    },
+    "deploy": {
+      "today": "Bugün {time} itibarıyla yayında · {left} sonra",
+      "tomorrow": "Yarın {time} itibarıyla yayında · {left} sonra",
+      "left": "{hours} sa {minutes} dk"
+    },
+    "track": {
+      "working": "Ajan üzerinde çalışıyor",
+      "see_pr": "PR'ı görüntüle",
+      "bug": {
+        "received": "Alındı",
+        "diagnosis": "Teşhiste",
+        "fixed": "Düzeltildi",
+        "published": "Yayınlandı",
+        "derived": "Öneriye dönüştürüldü",
+        "continues": "Öneri olarak devam ediyor",
+        "derived_banner": "Bir hata değildi: adınıza bir öneriye dönüştü ve şu anda analiz ediliyor.",
+        "answered_banner": "Size yanıt verdik: platformda bir değişiklik gerekmiyordu.",
+        "dismissed_banner": "İncelendi ve kapatıldı: platformda bir hata bulunmadı.",
+        "archived_banner": "Arşivlendi: ilerlemeyecek."
+      },
+      "feature": {
+        "received": "Alındı",
+        "analysis": "Etki analizi",
+        "consult": "Ekipten soru",
+        "consult_waiting": "Analize devam etmek için yanıtınız bekleniyor",
+        "waiting_approval": "Onay bekleniyor",
+        "approved": "Onaylandı",
+        "build": "Geliştiriliyor",
+        "review": "Sorumlu incelemesinde",
+        "deploy_window": "Yayın penceresinde",
+        "published": "Yayınlandı",
+        "rejected": "Reddedildi: geliştirilmeyecek.",
+        "rejected_by": "{name} tarafından reddedildi.",
+        "on_hold": "Duraklatıldı: biri devam ettirene kadar ilerlemeyecek."
+      }
     }
   }
 }
