@@ -23,6 +23,11 @@ const IGNORED = [
   // Workbox worker that hasn't unregistered itself yet (see retire-service-worker.ts) —
   // other browsers surface the same case as one of the dynamic-import errors above.
   /^Function statements require a function name$/i,
+  // React's minified hydration error #418: the same legacy Workbox worker serving a stale
+  // cached "/" document whose markup no longer matches the current build, surfacing at
+  // startup instead of at parse time (see retire-service-worker.ts and 3b3428d/f915374 for the
+  // root cause). Self-heals on the visitor's next navigation once the worker unregisters.
+  /Minified React error #418/i,
   /^Script error\.?$/i,
   /chrome-extension:\/\//i,
   /moz-extension:\/\//i,
