@@ -28,6 +28,10 @@ const IGNORED = [
   // startup instead of at parse time (see retire-service-worker.ts and 3b3428d/f915374 for the
   // root cause). Self-heals on the visitor's next navigation once the worker unregisters.
   /Minified React error #418/i,
+  // React's minified hydration error #423 ("error while hydrating this Suspense boundary"):
+  // the same legacy Workbox worker/stale-shell cause as #418 above, just the Suspense-boundary
+  // variant of the same startup mismatch.
+  /Minified React error #423/i,
   /^Script error\.?$/i,
   /chrome-extension:\/\//i,
   /moz-extension:\/\//i,
