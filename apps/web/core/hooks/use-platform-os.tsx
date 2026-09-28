@@ -4,7 +4,16 @@
  * See the LICENSE file for details.
  */
 
-export const usePlatformOS = () => {
+import { useEffect, useState } from "react";
+
+type TPlatformOS = {
+  isMobile: boolean;
+  platform: string;
+};
+
+const DEFAULT_PLATFORM_OS: TPlatformOS = { isMobile: false, platform: "" };
+
+const detectPlatformOS = (): TPlatformOS => {
   const userAgent = window.navigator.userAgent;
   const isMobile = /iPhone|iPad|iPod|Android/i.test(userAgent);
   let platform = "";
@@ -21,4 +30,18 @@ export const usePlatformOS = () => {
     }
   }
   return { isMobile, platform };
+};
+
+export const usePlatformOS = () => {
+  // `window.navigator.userAgent` is unavailable in the build-time prerender and
+  // reads differently on every client, so it can't drive the first render's
+  // output without mismatching the hydrated shell (same class of bug as the
+  // `mounted` guard in app/provider.tsx). Read it only after mount.
+  const [platformOS, setPlatformOS] = useState<TPlatformOS>(DEFAULT_PLATFORM_OS);
+
+  useEffect(() => {
+    setPlatformOS(detectPlatformOS());
+  }, []);
+
+  return platformOS;
 };

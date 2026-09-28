@@ -55,7 +55,11 @@ export const IssuesHeader = observer(function IssuesHeader() {
   const { allowPermissions } = useUserPermissions();
   const { isMobile } = usePlatformOS();
 
-  const SPACE_APP_URL = (SPACE_BASE_URL.trim() === "" ? window.location.origin : SPACE_BASE_URL) + SPACE_BASE_PATH;
+  // `window.location.origin` is unavailable in the build-time prerender and can
+  // differ from the client's first-render value, mismatching the hydrated
+  // shell (same class of bug as the `mounted` guard in app/provider.tsx).
+  const spaceAppOrigin = typeof window !== "undefined" ? window.location.origin : "";
+  const SPACE_APP_URL = (SPACE_BASE_URL.trim() === "" ? spaceAppOrigin : SPACE_BASE_URL) + SPACE_BASE_PATH;
   const publishedURL = `${SPACE_APP_URL}/issues/${currentProjectDetails?.anchor}`;
 
   const issuesCount = getGroupIssueCount(undefined, undefined, false);
