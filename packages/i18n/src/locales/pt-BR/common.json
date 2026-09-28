@@ -888,6 +888,7 @@
     "saved_title": "Salvo no Zil",
     "saved": "O arquivo foi salvo em {name}.",
     "save_error_title": "Não foi possível salvar o arquivo",
-    "save_error": "O Zil Workspace não aceitou o arquivo. Tente novamente."
+    "save_error": "O Zil Workspace não aceitou o arquivo. Tente novamente.",
+    "unavailable_short": "Indisponível"
   }
 }

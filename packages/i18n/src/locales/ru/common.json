@@ -888,6 +888,7 @@
     "saved_title": "Сохранено в Zil",
     "saved": "Файл сохранён в запись «{name}».",
     "save_error_title": "Не удалось сохранить файл",
-    "save_error": "Zil Workspace не принял файл. Попробуйте ещё раз."
+    "save_error": "Zil Workspace не принял файл. Попробуйте ещё раз.",
+    "unavailable_short": "Недоступно"
   }
 }

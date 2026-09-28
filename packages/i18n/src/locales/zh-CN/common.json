@@ -888,6 +888,7 @@
     "saved_title": "已保存到 Zil",
     "saved": "文件已保存到 {name}。",
     "save_error_title": "无法保存文件",
-    "save_error": "Zil Workspace 未接受此文件。请重试。"
+    "save_error": "Zil Workspace 未接受此文件。请重试。",
+    "unavailable_short": "不可用"
   }
 }

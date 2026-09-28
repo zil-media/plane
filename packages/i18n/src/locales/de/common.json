@@ -888,6 +888,7 @@
     "saved_title": "In Zil gespeichert",
     "saved": "Die Datei wurde bei {name} gespeichert.",
     "save_error_title": "Datei konnte nicht gespeichert werden",
-    "save_error": "Zil Workspace hat die Datei nicht übernommen. Bitte erneut versuchen."
+    "save_error": "Zil Workspace hat die Datei nicht übernommen. Bitte erneut versuchen.",
+    "unavailable_short": "Nicht verfügbar"
   }
 }

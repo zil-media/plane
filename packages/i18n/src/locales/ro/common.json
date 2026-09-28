@@ -888,6 +888,7 @@
     "saved_title": "Salvat în Zil",
     "saved": "Fișierul a fost salvat în {name}.",
     "save_error_title": "Fișierul nu a putut fi salvat",
-    "save_error": "Zil Workspace nu a acceptat fișierul. Încercați din nou."
+    "save_error": "Zil Workspace nu a acceptat fișierul. Încercați din nou.",
+    "unavailable_short": "Indisponibil"
   }
 }

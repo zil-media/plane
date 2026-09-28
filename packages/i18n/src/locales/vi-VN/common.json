@@ -888,6 +888,7 @@
     "saved_title": "Đã lưu vào Zil",
     "saved": "Tệp đã được lưu vào {name}.",
     "save_error_title": "Không thể lưu tệp",
-    "save_error": "Zil Workspace không chấp nhận tệp. Vui lòng thử lại."
+    "save_error": "Zil Workspace không chấp nhận tệp. Vui lòng thử lại.",
+    "unavailable_short": "Không khả dụng"
   }
 }

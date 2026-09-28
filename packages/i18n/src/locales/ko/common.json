@@ -888,6 +888,7 @@
     "saved_title": "Zil에 저장됨",
     "saved": "파일을 {name}에 저장했습니다.",
     "save_error_title": "파일을 저장할 수 없습니다",
-    "save_error": "Zil Workspace가 파일을 받아들이지 않았습니다. 다시 시도하십시오."
+    "save_error": "Zil Workspace가 파일을 받아들이지 않았습니다. 다시 시도하십시오.",
+    "unavailable_short": "사용할 수 없음"
   }
 }

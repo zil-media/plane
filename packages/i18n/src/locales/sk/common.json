@@ -888,6 +888,7 @@
     "saved_title": "Uložené do Zil",
     "saved": "Súbor bol uložený k záznamu {name}.",
     "save_error_title": "Súbor sa nepodarilo uložiť",
-    "save_error": "Zil Workspace súbor neprijal. Skúste to znova."
+    "save_error": "Zil Workspace súbor neprijal. Skúste to znova.",
+    "unavailable_short": "Nedostupné"
   }
 }

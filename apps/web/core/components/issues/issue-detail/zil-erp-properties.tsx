@@ -25,11 +25,13 @@ type TKindProps = {
   workspaceSlug: string;
   issueId: string;
   refs: TZilIssueErpRefs | undefined;
+  /** The ERP didn't answer: the link is unknown, which must not read as "none". */
+  unavailable: boolean;
   disabled: boolean;
   onChange: (refs: TZilIssueErpRefs) => void;
 };
 
-function ZilErpRefSelect({ kind, workspaceSlug, issueId, refs, disabled, onChange }: TKindProps) {
+function ZilErpRefSelect({ kind, workspaceSlug, issueId, refs, unavailable, disabled, onChange }: TKindProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -73,7 +75,7 @@ function ZilErpRefSelect({ kind, workspaceSlug, issueId, refs, disabled, onChang
         onChange={(value: string) => void handleChange(value)}
         options={options}
         onOpen={() => setOpen(true)}
-        disabled={disabled || saving}
+        disabled={disabled || saving || unavailable}
         noResultsMessage={error ? t("zil_erp.unavailable") : data ? t("zil_erp.no_options") : t("common.loading")}
         className="min-w-0 grow"
         customButtonClassName="w-full"
@@ -84,7 +86,9 @@ function ZilErpRefSelect({ kind, workspaceSlug, issueId, refs, disabled, onChang
               !current && "text-placeholder"
             )}
           >
-            <span className="truncate">{current?.name ?? t("common.none")}</span>
+            <span className="truncate">
+              {current?.name ?? (unavailable ? t("zil_erp.unavailable_short") : t("common.none"))}
+            </span>
           </span>
         }
       />
@@ -115,7 +119,11 @@ type Props = {
  */
 export function IssueZilErpProperties({ workspaceSlug, issueId, disabled }: Props) {
   const { t } = useTranslation();
-  const { data: refs, mutate } = useSWR(`ZIL_ISSUE_ERP_REFS_${issueId}`, () => zilService.getIssueErpRefs(issueId), {
+  const {
+    data: refs,
+    error,
+    mutate,
+  } = useSWR(`ZIL_ISSUE_ERP_REFS_${issueId}`, () => zilService.getIssueErpRefs(issueId), {
     revalidateOnFocus: false,
     shouldRetryOnError: false,
   });
@@ -129,6 +137,7 @@ export function IssueZilErpProperties({ workspaceSlug, issueId, disabled }: Prop
           workspaceSlug={workspaceSlug}
           issueId={issueId}
           refs={refs}
+          unavailable={!!error}
           disabled={disabled}
           onChange={update}
         />
@@ -139,6 +148,7 @@ export function IssueZilErpProperties({ workspaceSlug, issueId, disabled }: Prop
           workspaceSlug={workspaceSlug}
           issueId={issueId}
           refs={refs}
+          unavailable={!!error}
           disabled={disabled}
           onChange={update}
         />

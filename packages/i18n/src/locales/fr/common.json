@@ -888,6 +888,7 @@
     "saved_title": "Enregistré dans Zil",
     "saved": "Le fichier a été enregistré dans {name}.",
     "save_error_title": "Impossible d'enregistrer le fichier",
-    "save_error": "Zil Workspace n'a pas accepté le fichier. Réessayez."
+    "save_error": "Zil Workspace n'a pas accepté le fichier. Réessayez.",
+    "unavailable_short": "Indisponible"
   }
 }

@@ -888,6 +888,7 @@
     "saved_title": "Zil'e kaydedildi",
     "saved": "Dosya, {name} kaydına kaydedildi.",
     "save_error_title": "Dosya kaydedilemedi",
-    "save_error": "Zil Workspace dosyayı kabul etmedi. Tekrar deneyin."
+    "save_error": "Zil Workspace dosyayı kabul etmedi. Tekrar deneyin.",
+    "unavailable_short": "Kullanılamıyor"
   }
 }

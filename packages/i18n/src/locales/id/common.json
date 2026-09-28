@@ -888,6 +888,7 @@
     "saved_title": "Tersimpan di Zil",
     "saved": "File telah disimpan ke {name}.",
     "save_error_title": "Tidak dapat menyimpan file",
-    "save_error": "Zil Workspace tidak menerima file. Coba lagi."
+    "save_error": "Zil Workspace tidak menerima file. Coba lagi.",
+    "unavailable_short": "Tidak tersedia"
   }
 }

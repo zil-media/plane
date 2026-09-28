@@ -888,6 +888,7 @@
     "saved_title": "Zil に保存しました",
     "saved": "ファイルを {name} に保存しました。",
     "save_error_title": "ファイルを保存できませんでした",
-    "save_error": "Zil Workspace がファイルを受け付けませんでした。もう一度お試しください。"
+    "save_error": "Zil Workspace がファイルを受け付けませんでした。もう一度お試しください。",
+    "unavailable_short": "利用できません"
   }
 }

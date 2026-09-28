@@ -888,6 +888,7 @@
     "saved_title": "Salvato in Zil",
     "saved": "Il file è stato salvato in {name}.",
     "save_error_title": "Impossibile salvare il file",
-    "save_error": "Zil Workspace non ha accettato il file. Riprovi."
+    "save_error": "Zil Workspace non ha accettato il file. Riprovi.",
+    "unavailable_short": "Non disponibile"
   }
 }

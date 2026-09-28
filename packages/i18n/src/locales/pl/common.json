@@ -888,6 +888,7 @@
     "saved_title": "Zapisano w Zil",
     "saved": "Plik został zapisany w rekordzie {name}.",
     "save_error_title": "Nie udało się zapisać pliku",
-    "save_error": "Zil Workspace nie przyjął pliku. Spróbuj ponownie."
+    "save_error": "Zil Workspace nie przyjął pliku. Spróbuj ponownie.",
+    "unavailable_short": "Niedostępne"
   }
 }
