@@ -82,6 +82,7 @@
         "resolved": "해결됨",
         "answered": "답변을 드렸습니다",
         "became_suggestion": "제안으로 전환됨",
+        "in_workspace": "Zil Workspace에서 계속",
         "dismissed": "종료됨",
         "archived": "보관됨",
         "needs_person": "팀 대응 대기 중"
@@ -113,6 +114,7 @@
     "detail": {
       "bug_report": "문제 신고",
       "see_suggestion": "제안 보기",
+      "see_in_workspace": "Zil Workspace에서 보기",
       "what_you_reported": "신고 내용",
       "resend_hint": "아직도 발생하나요, 아니면 추가할 내용이 있나요? 지원팀에 보내주세요.",
       "resend": "지원팀에 보내기",
@@ -191,7 +193,10 @@
         "published": "게시됨",
         "derived": "제안으로 전환됨",
         "continues": "제안으로 계속 진행 중",
+        "to_workspace": "Zil Workspace로 전달됨",
+        "continues_in_workspace": "Zil Workspace에서 진행 중",
         "derived_banner": "결함이 아니었습니다. 회원님 이름으로 제안이 되었으며 이미 분석 중입니다.",
+        "to_workspace_banner": "수정은 Zil Workspace에서 이루어집니다. 진단 내용과 함께 전달했으며 그곳에서 계속 진행됩니다.",
         "answered_banner": "답변을 드렸습니다. 플랫폼을 변경할 필요가 없었습니다.",
         "dismissed_banner": "검토 후 종료되었습니다. 플랫폼 결함이 발견되지 않았습니다.",
         "archived_banner": "보관됨: 더 이상 진행되지 않습니다."

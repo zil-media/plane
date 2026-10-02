@@ -82,6 +82,7 @@
         "resolved": "Вирішено",
         "answered": "Ми вам відповіли",
         "became_suggestion": "Стало пропозицією",
+        "in_workspace": "Продовжується в Zil Workspace",
         "dismissed": "Закрито",
         "archived": "В архіві",
         "needs_person": "Очікує на команду"
@@ -113,6 +114,7 @@
     "detail": {
       "bug_report": "Звіт про проблему",
       "see_suggestion": "Переглянути пропозицію",
+      "see_in_workspace": "Відкрити в Zil Workspace",
       "what_you_reported": "Що було повідомлено",
       "resend_hint": "Проблема досі виникає, або хочете щось додати? Надішліть це в підтримку.",
       "resend": "Надіслати в підтримку",
@@ -191,7 +193,10 @@
         "published": "Опубліковано",
         "derived": "Перетворено на пропозицію",
         "continues": "Продовжується як пропозиція",
+        "to_workspace": "Передано до Zil Workspace",
+        "continues_in_workspace": "Відстежується в Zil Workspace",
         "derived_banner": "Це не був дефект: запит став пропозицією від вашого імені й уже аналізується.",
+        "to_workspace_banner": "Виправлення стосується Zil Workspace: ми передали його з нашим діагнозом, робота триває там.",
         "answered_banner": "Ми вам відповіли: змінювати платформу не знадобилося.",
         "dismissed_banner": "Перевірено й закрито: дефект платформи не знайдено.",
         "archived_banner": "В архіві: далі не просуватиметься."

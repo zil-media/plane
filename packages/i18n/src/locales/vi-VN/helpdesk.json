@@ -82,6 +82,7 @@
         "resolved": "Đã giải quyết",
         "answered": "Chúng tôi đã phản hồi bạn",
         "became_suggestion": "Đã trở thành đề xuất",
+        "in_workspace": "Tiếp tục trong Zil Workspace",
         "dismissed": "Đã đóng",
         "archived": "Đã lưu trữ",
         "needs_person": "Đang chờ đội ngũ"
@@ -113,6 +114,7 @@
     "detail": {
       "bug_report": "Báo cáo sự cố",
       "see_suggestion": "Xem đề xuất",
+      "see_in_workspace": "Xem trong Zil Workspace",
       "what_you_reported": "Nội dung đã báo cáo",
       "resend_hint": "Sự cố vẫn tiếp diễn hoặc bạn muốn bổ sung điều gì? Hãy gửi cho bộ phận hỗ trợ.",
       "resend": "Gửi cho bộ phận hỗ trợ",
@@ -191,7 +193,10 @@
         "published": "Đã phát hành",
         "derived": "Đã chuyển thành đề xuất",
         "continues": "Tiếp tục dưới dạng đề xuất",
+        "to_workspace": "Đã chuyển sang Zil Workspace",
+        "continues_in_workspace": "Theo dõi trong Zil Workspace",
         "derived_banner": "Đây không phải là lỗi: nó đã trở thành một đề xuất dưới tên bạn và đang được phân tích.",
+        "to_workspace_banner": "Bản sửa thuộc về Zil Workspace: chúng tôi đã chuyển kèm chẩn đoán và việc xử lý tiếp tục ở đó.",
         "answered_banner": "Chúng tôi đã trả lời bạn: không cần thay đổi nền tảng.",
         "dismissed_banner": "Đã xem xét và đóng: không tìm thấy lỗi của nền tảng.",
         "archived_banner": "Đã lưu trữ: sẽ không tiếp tục."

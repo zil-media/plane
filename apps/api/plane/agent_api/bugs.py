@@ -20,6 +20,7 @@ from plane.db.models import BugReport
 from plane.utils.agent_pipeline import bugs as bug_ops
 from plane.utils.agent_pipeline import features as feature_ops
 from plane.utils.agent_pipeline import notify
+from plane.utils.zil_client import ZilUnavailable, file_workspace_bug, zil_enabled
 from plane.utils.agent_pipeline.constants import (
     BUG_PROGRESS_PHASES,
     DISPLAY_TITLE_MAX,
@@ -66,6 +67,19 @@ class ToFeatureSerializer(serializers.Serializer):
     problem = serializers.CharField(max_length=10000)
     desired_outcome = serializers.CharField(required=False, allow_blank=True, max_length=10000)
     message = serializers.CharField(max_length=5000)
+
+
+class ToWorkspaceSerializer(serializers.Serializer):
+    # for the Workspace fixer: where the cause is and the evidence, as file:line
+    diagnosis = serializers.CharField(min_length=10, max_length=10000)
+    # true: the whole fix is in Workspace and this report closes here; false: Ops needs its own fix too
+    close = serializers.BooleanField(default=True)
+    message = serializers.CharField(required=False, allow_blank=True, max_length=5000)
+
+    def validate(self, attrs):
+        if attrs["close"] and not attrs.get("message", "").strip():
+            raise serializers.ValidationError({"message": "Required when the report closes here."})
+        return attrs
 
 
 class BulkSerializer(serializers.Serializer):
@@ -244,6 +258,32 @@ class AgentBugActionEndpoint(AgentBugBaseView):
         notify.bug_derived_to_feature(bug)
         transaction.on_commit(lambda: feature_ops.request_spec(feature, "derivada de un reporte de bug"))
         return Response({**bug_summary(bug), "feature_id": str(feature.id)})
+
+    def do_to_workspace(self, request, bug):
+        data = _valid(ToWorkspaceSerializer, request)
+        if bug.status in TERMINAL:
+            return _conflict(f"Bug is {bug.status}.")
+        if not zil_enabled():
+            return _conflict("Zil Workspace is not configured (ZIL_BASE_URL / ZIL_SERVICE_SECRET).")
+        try:
+            filed = file_workspace_bug(
+                {
+                    "opsBugId": str(bug.id),
+                    "opsBugUrl": notify.support_url(bug.workspace, bug.id),
+                    "reporterEmail": bug.reported_by.email if bug.reported_by else "",
+                    "description": bug.description[:10000],
+                    "diagnosis": data["diagnosis"],
+                    "url": bug.url,
+                    "severity": bug.severity,
+                }
+            )
+        except ZilUnavailable:
+            return Response({"error": "ZIL_UNAVAILABLE"}, status=status.HTTP_502_BAD_GATEWAY)
+        bug_ops.hand_to_workspace(bug, filed, close=data["close"], message=data.get("message", ""))
+        if data["close"]:
+            notify.bug_derived_to_workspace(bug)
+            transaction.on_commit(_drain_queue)
+        return Response(bug_summary(bug))
 
 
 class AgentBugBulkEndpoint(AgentBugBaseView):

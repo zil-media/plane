@@ -82,6 +82,7 @@
         "resolved": "已解决",
         "answered": "已回复您",
         "became_suggestion": "已转为建议",
+        "in_workspace": "在 Zil Workspace 中继续",
         "dismissed": "已关闭",
         "archived": "已归档",
         "needs_person": "等待团队处理"
@@ -113,6 +114,7 @@
     "detail": {
       "bug_report": "问题报告",
       "see_suggestion": "查看建议",
+      "see_in_workspace": "在 Zil Workspace 中查看",
       "what_you_reported": "报告的内容",
       "resend_hint": "问题仍在发生，或者有什么要补充的吗？发送给支持团队。",
       "resend": "发送给支持团队",
@@ -191,7 +193,10 @@
         "published": "已发布",
         "derived": "已转为建议",
         "continues": "作为建议继续推进",
+        "to_workspace": "已转交 Zil Workspace",
+        "continues_in_workspace": "在 Zil Workspace 中跟进",
         "derived_banner": "这不是缺陷：它已以您的名义转为建议，正在分析中。",
+        "to_workspace_banner": "需要在 Zil Workspace 中修复：我们已附上诊断转交，后续在那里继续处理。",
         "answered_banner": "我们已回复您：无需修改平台。",
         "dismissed_banner": "已审查并关闭：未发现平台缺陷。",
         "archived_banner": "已归档：不会继续推进。"

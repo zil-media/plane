@@ -82,6 +82,7 @@
         "resolved": "解決済み",
         "answered": "回答済み",
         "became_suggestion": "提案になりました",
+        "in_workspace": "Zil Workspace で継続中",
         "dismissed": "クローズ",
         "archived": "アーカイブ済み",
         "needs_person": "チームの対応待ち"
@@ -113,6 +114,7 @@
     "detail": {
       "bug_report": "問題の報告",
       "see_suggestion": "提案を見る",
+      "see_in_workspace": "Zil Workspace で見る",
       "what_you_reported": "報告内容",
       "resend_hint": "まだ発生していますか、追加したいことがありますか。サポートに送信してください。",
       "resend": "サポートに送信",
@@ -191,7 +193,10 @@
         "published": "公開済み",
         "derived": "提案に変換されました",
         "continues": "提案として継続中",
+        "to_workspace": "Zil Workspace に引き継ぎ",
+        "continues_in_workspace": "Zil Workspace で対応中",
         "derived_banner": "不具合ではありませんでした。あなたの名前で提案になり、すでに分析中です。",
+        "to_workspace_banner": "修正は Zil Workspace 側の対応です。診断内容とともに引き継ぎ、そちらで対応を続けます。",
         "answered_banner": "回答しました。プラットフォームの変更は不要でした。",
         "dismissed_banner": "確認のうえクローズしました。プラットフォームの不具合は見つかりませんでした。",
         "archived_banner": "アーカイブ済み：これ以上進みません。"

@@ -152,3 +152,18 @@ def derive_feature(bug, *, title, problem, desired_outcome, message, agent_user)
         bug.claimed_at = None
         bug.save()
     return feature
+
+
+def hand_to_workspace(bug, filed, *, close, message=""):
+    """Records the report filed in Zil Workspace; closes this one when the whole fix lives there."""
+    bug.workspace_bug_id = filed["id"]
+    bug.workspace_bug_url = filed["tracking_url"]
+    bug.comments = append_entry(
+        bug.comments, comment_entry(None, "agent", "Derivado a Zil Workspace: la causa está en esa plataforma.")
+    )
+    if close:
+        bug.status = BugReport.Status.DISMISSED
+        bug.resolved_message = message
+        bug.resolved_at = timezone.now()
+        bug.claimed_at = None
+    bug.save()

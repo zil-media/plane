@@ -82,6 +82,7 @@
         "resolved": "Çözüldü",
         "answered": "Size yanıt verdik",
         "became_suggestion": "Öneriye dönüştü",
+        "in_workspace": "Zil Workspace'te devam ediyor",
         "dismissed": "Kapatıldı",
         "archived": "Arşivlendi",
         "needs_person": "Ekip bekleniyor"
@@ -113,6 +114,7 @@
     "detail": {
       "bug_report": "Sorun bildirimi",
       "see_suggestion": "Öneriyi görüntüle",
+      "see_in_workspace": "Zil Workspace'te gör",
       "what_you_reported": "Bildirilen içerik",
       "resend_hint": "Sorun devam mı ediyor, yoksa eklemek istediğiniz bir şey mi var? Destek ekibine gönderin.",
       "resend": "Destek ekibine gönder",
@@ -191,7 +193,10 @@
         "published": "Yayınlandı",
         "derived": "Öneriye dönüştürüldü",
         "continues": "Öneri olarak devam ediyor",
+        "to_workspace": "Zil Workspace'e aktarıldı",
+        "continues_in_workspace": "Zil Workspace'te takip ediliyor",
         "derived_banner": "Bir hata değildi: adınıza bir öneriye dönüştü ve şu anda analiz ediliyor.",
+        "to_workspace_banner": "Düzeltme Zil Workspace'e ait: teşhisimizle birlikte aktardık, süreç orada devam ediyor.",
         "answered_banner": "Size yanıt verdik: platformda bir değişiklik gerekmiyordu.",
         "dismissed_banner": "İncelendi ve kapatıldı: platformda bir hata bulunmadı.",
         "archived_banner": "Arşivlendi: ilerlemeyecek."

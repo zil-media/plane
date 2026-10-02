@@ -82,6 +82,7 @@
         "resolved": "Vyřešeno",
         "answered": "Odpověděli jsme vám",
         "became_suggestion": "Stalo se návrhem",
+        "in_workspace": "Pokračuje v Zil Workspace",
         "dismissed": "Uzavřeno",
         "archived": "Archivováno",
         "needs_person": "Čeká na tým"
@@ -113,6 +114,7 @@
     "detail": {
       "bug_report": "Hlášení problému",
       "see_suggestion": "Zobrazit návrh",
+      "see_in_workspace": "Zobrazit v Zil Workspace",
       "what_you_reported": "Co bylo nahlášeno",
       "resend_hint": "Stále se to děje, nebo chcete něco doplnit? Pošlete to podpoře.",
       "resend": "Odeslat podpoře",
@@ -191,7 +193,10 @@
         "published": "Zveřejněno",
         "derived": "Převedeno na návrh",
         "continues": "Pokračuje jako návrh",
+        "to_workspace": "Předáno do Zil Workspace",
+        "continues_in_workspace": "Sleduje se v Zil Workspace",
         "derived_banner": "Nešlo o chybu: stal se z toho návrh na Vaše jméno, který se už analyzuje.",
+        "to_workspace_banner": "Oprava patří do Zil Workspace: předali jsme ji s naší diagnózou a pokračuje se tam.",
         "answered_banner": "Odpověděli jsme Vám: na platformě nebylo třeba nic měnit.",
         "dismissed_banner": "Zkontrolováno a uzavřeno: nebyla nalezena chyba platformy.",
         "archived_banner": "Archivováno: nebude pokračovat."

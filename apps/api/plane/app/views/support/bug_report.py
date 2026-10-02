@@ -205,6 +205,10 @@ class BugReportReopenEndpoint(BaseAPIView):
                 return Response(
                     {"error": "Este pedido ya pasó a Sugerencias; seguilo desde ahí."}, status=status.HTTP_409_CONFLICT
                 )
+            if bug.workspace_bug_id and bug.status == BugReport.Status.DISMISSED:
+                return Response(
+                    {"error": "Esto lo seguimos en Zil Workspace; seguilo desde ahí."}, status=status.HTTP_409_CONFLICT
+                )
             bug.comments = bug_ops.append_entry(
                 bug.comments, bug_ops.comment_entry(request.user, "user", data["comment"])
             )

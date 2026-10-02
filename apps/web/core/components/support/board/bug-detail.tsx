@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { ArrowRight, CheckCircle2, Lightbulb } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CheckCircle2, Lightbulb } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -14,7 +14,7 @@ import { Loader, TextArea } from "@plane/ui";
 import { cn, renderFormattedDate, renderFormattedTime } from "@plane/utils";
 import { supportService } from "@/services/support.service";
 import { PhaseChip, Tag } from "./item-row";
-import { bugPhase, bugWasAnswered, bugWasDerived } from "./phase";
+import { bugPhase, bugWasAnswered, bugWasDerived, bugWentToWorkspace } from "./phase";
 import { PhaseTimeline } from "./phase-timeline";
 import { SupportTimeline } from "./timeline";
 import { computeBugTrack } from "./track";
@@ -43,6 +43,9 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
 
   const derivedFeatureId = bugWasDerived(bug) ? bug.derived_feature_id : null;
   const answered = bugWasAnswered(bug);
+  const workspaceUrl = bugWentToWorkspace(bug) ? bug.workspace_bug_url : null;
+  // a handover (suggestion or Workspace) reads as "what's next", not as "fixed"
+  const handedOver = !!derivedFeatureId || bugWentToWorkspace(bug);
   const isOwner = bug.reported_by?.id === currentUserId;
   // Without a generated title the raw text IS the heading, so it isn't repeated below.
   const heading = bug.display_title?.trim() || bug.description;
@@ -81,24 +84,22 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
       <PhaseTimeline track={computeBugTrack(bug)} />
 
       {/* Derived is NOT "how to do it": it can't be done yet, which is why a suggestion was opened. */}
-      {(bug.resolved_message || derivedFeatureId) && (
+      {(bug.resolved_message || handedOver) && (
         <div
           className={cn(
             "flex flex-col gap-2 rounded-md border p-3",
-            derivedFeatureId || answered
-              ? "border-accent-strong bg-accent-subtle"
-              : "border-success-strong bg-success-subtle"
+            handedOver || answered ? "border-accent-strong bg-accent-subtle" : "border-success-strong bg-success-subtle"
           )}
         >
           <span
             className={cn(
               "flex items-center gap-2 text-caption-sm-medium",
-              derivedFeatureId || answered ? "text-accent-primary" : "text-success-primary"
+              handedOver || answered ? "text-accent-primary" : "text-success-primary"
             )}
           >
-            {derivedFeatureId ? <Lightbulb className="size-3.5" /> : <CheckCircle2 className="size-3.5" />}
+            {handedOver ? <Lightbulb className="size-3.5" /> : <CheckCircle2 className="size-3.5" />}
             {t(
-              derivedFeatureId
+              handedOver
                 ? "helpdesk.detail.what_next"
                 : answered
                   ? "helpdesk.detail.how_to"
@@ -118,6 +119,17 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
             >
               {t("helpdesk.detail.see_suggestion")}
             </Button>
+          )}
+          {workspaceUrl && (
+            <a
+              href={workspaceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 self-start text-body-xs-medium text-accent-primary hover:underline"
+            >
+              {t("helpdesk.detail.see_in_workspace")}
+              <ArrowUpRight className="size-3.5" />
+            </a>
           )}
         </div>
       )}
@@ -148,7 +160,7 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
 
       <SupportTimeline comments={bug.comments} />
 
-      {isOwner && !bug.derived_feature_id && (
+      {isOwner && !bug.derived_feature_id && !bugWentToWorkspace(bug) && (
         <div className="flex flex-col gap-2 border-t border-subtle pt-3">
           <span className="text-caption-sm-medium text-tertiary">{t("helpdesk.detail.resend_hint")}</span>
           <TextArea value={comment} onChange={(event) => setComment(event.target.value)} className="min-h-20" />

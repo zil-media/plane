@@ -76,6 +76,9 @@ class BugReport(BaseModel):
     derived_feature = models.ForeignKey(
         "db.FeatureRequest", on_delete=models.SET_NULL, null=True, blank=True, related_name="source_bugs"
     )
+    # the cause was in Zil Workspace: the report filed there (POST /api/zil/bug-reports)
+    workspace_bug_id = models.CharField(max_length=24, blank=True, default="")
+    workspace_bug_url = models.CharField(max_length=2000, blank=True, default="")
 
     # what the reporter reads: the reply and the readable card the agent rewrites
     resolved_message = models.TextField(blank=True, default="")

@@ -40,15 +40,19 @@ export const COLLAPSIBLE_SECTIONS: TSection[] = ["done", "stalled"];
  */
 export const bugWasDerived = (bug: TBugReport) => bug.status === "dismissed" && !!bug.derived_feature_id;
 
+/** The whole fix lives in Zil Workspace: closed here, followed up there. */
+export const bugWentToWorkspace = (bug: TBugReport) => bug.status === "dismissed" && !!bug.workspace_bug_id;
+
 /** Closed with an answer (how to do it), not dismissed: telling them "closed" would be a lie. */
 export const bugWasAnswered = (bug: TBugReport) =>
-  bug.status === "dismissed" && !!bug.resolved_message?.trim() && !bugWasDerived(bug);
+  bug.status === "dismissed" && !!bug.resolved_message?.trim() && !bugWasDerived(bug) && !bugWentToWorkspace(bug);
 
 /** The build stopped and nobody picks it up alone: it waits for an admin to relaunch or reject. */
 export const isFeatureStuck = (feature: TFeatureRequest) => feature.status === "building" && feature.build_blocked;
 
 export function bugPhase(bug: TBugReport): TPhase {
   if (bugWasDerived(bug)) return { labelKey: "helpdesk.phase.bug.became_suggestion", tone: "info" };
+  if (bugWentToWorkspace(bug)) return { labelKey: "helpdesk.phase.bug.in_workspace", tone: "info" };
   if (bugWasAnswered(bug)) return { labelKey: "helpdesk.phase.bug.answered", tone: "info" };
   if (bug.blocked_at && bug.status === "open") return { labelKey: "helpdesk.phase.bug.needs_person", tone: "waiting" };
   switch (bug.status) {

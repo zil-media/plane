@@ -82,6 +82,7 @@
         "resolved": "Rezolvat",
         "answered": "V-am răspuns",
         "became_suggestion": "A devenit o sugestie",
+        "in_workspace": "Continuă în Zil Workspace",
         "dismissed": "Închis",
         "archived": "Arhivat",
         "needs_person": "Așteaptă echipa"
@@ -113,6 +114,7 @@
     "detail": {
       "bug_report": "Raport de problemă",
       "see_suggestion": "Vezi sugestia",
+      "see_in_workspace": "Vezi în Zil Workspace",
       "what_you_reported": "Ce a fost raportat",
       "resend_hint": "Se mai întâmplă sau aveți ceva de adăugat? Trimiteți-l către asistență.",
       "resend": "Trimite către asistență",
@@ -191,7 +193,10 @@
         "published": "Publicat",
         "derived": "Transformat în sugestie",
         "continues": "Continuă ca sugestie",
+        "to_workspace": "Transmis către Zil Workspace",
+        "continues_in_workspace": "Urmărit în Zil Workspace",
         "derived_banner": "Nu era un defect: a devenit o sugestie în numele dumneavoastră și este deja analizată.",
+        "to_workspace_banner": "Remedierea ține de Zil Workspace: am transmis-o cu diagnosticul nostru și continuă acolo.",
         "answered_banner": "V-am răspuns: nu a fost nevoie de nicio modificare a platformei.",
         "dismissed_banner": "Revizuit și închis: nu s-a găsit niciun defect al platformei.",
         "archived_banner": "Arhivat: nu va avansa."

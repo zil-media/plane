@@ -82,6 +82,7 @@
         "resolved": "Rozwiązane",
         "answered": "Udzielono odpowiedzi",
         "became_suggestion": "Stało się propozycją",
+        "in_workspace": "Kontynuowane w Zil Workspace",
         "dismissed": "Zamknięte",
         "archived": "Zarchiwizowane",
         "needs_person": "Oczekuje na zespół"
@@ -113,6 +114,7 @@
     "detail": {
       "bug_report": "Zgłoszenie problemu",
       "see_suggestion": "Zobacz propozycję",
+      "see_in_workspace": "Zobacz w Zil Workspace",
       "what_you_reported": "Co zgłoszono",
       "resend_hint": "Problem nadal występuje albo jest coś do dodania? Proszę wysłać do wsparcia.",
       "resend": "Wyślij do wsparcia",
@@ -191,7 +193,10 @@
         "published": "Opublikowano",
         "derived": "Zamieniono w sugestię",
         "continues": "Kontynuowane jako sugestia",
+        "to_workspace": "Przekazano do Zil Workspace",
+        "continues_in_workspace": "Śledzone w Zil Workspace",
         "derived_banner": "To nie był błąd: powstała z tego sugestia w Pana/Pani imieniu, która jest już analizowana.",
+        "to_workspace_banner": "Poprawka należy do Zil Workspace: przekazaliśmy ją z naszą diagnozą i sprawa toczy się tam.",
         "answered_banner": "Odpowiedzieliśmy: zmiana platformy nie była potrzebna.",
         "dismissed_banner": "Sprawdzono i zamknięto: nie znaleziono błędu platformy.",
         "archived_banner": "Zarchiwizowano: nie będzie kontynuowane."

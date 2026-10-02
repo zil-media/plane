@@ -82,6 +82,7 @@
         "resolved": "Terselesaikan",
         "answered": "Kami sudah menjawab Anda",
         "became_suggestion": "Menjadi saran",
+        "in_workspace": "Berlanjut di Zil Workspace",
         "dismissed": "Ditutup",
         "archived": "Diarsipkan",
         "needs_person": "Menunggu tim"
@@ -113,6 +114,7 @@
     "detail": {
       "bug_report": "Laporan masalah",
       "see_suggestion": "Lihat saran",
+      "see_in_workspace": "Lihat di Zil Workspace",
       "what_you_reported": "Yang dilaporkan",
       "resend_hint": "Masih terjadi, atau ada yang ingin ditambahkan? Kirim ke dukungan.",
       "resend": "Kirim ke dukungan",
@@ -191,7 +193,10 @@
         "published": "Dipublikasikan",
         "derived": "Diubah menjadi saran",
         "continues": "Berlanjut sebagai saran",
+        "to_workspace": "Diteruskan ke Zil Workspace",
+        "continues_in_workspace": "Dipantau di Zil Workspace",
         "derived_banner": "Ini bukan cacat: ini menjadi saran atas nama Anda dan sudah dianalisis.",
+        "to_workspace_banner": "Perbaikannya ada di Zil Workspace: kami meneruskannya beserta diagnosis kami dan prosesnya berlanjut di sana.",
         "answered_banner": "Kami sudah menjawab Anda: platform tidak perlu diubah.",
         "dismissed_banner": "Ditinjau dan ditutup: tidak ditemukan cacat pada platform.",
         "archived_banner": "Diarsipkan: tidak akan dilanjutkan."

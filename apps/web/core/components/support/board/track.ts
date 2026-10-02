@@ -5,7 +5,7 @@
  */
 
 import type { TBugReportDetail, TFeatureRequestDetail, TProgressEntry } from "@/services/support.service";
-import { bugWasAnswered, bugWasDerived } from "./phase";
+import { bugWasAnswered, bugWasDerived, bugWentToWorkspace } from "./phase";
 
 /**
  * The journey of a report / suggestion as a line of phases. Everything comes from timestamps the
@@ -61,6 +61,17 @@ export function computeBugTrack(bug: TBugReportDetail): TTrack {
         { key: "feature", label: k("helpdesk.track.bug.continues"), state: "active" },
       ],
       banner: { tone: "info", label: k("helpdesk.track.bug.derived_banner") },
+    };
+  }
+
+  if (bugWentToWorkspace(bug)) {
+    return {
+      phases: [
+        { key: "received", label: k("helpdesk.track.bug.received"), state: "done", at: bug.created_at },
+        { key: "to_workspace", label: k("helpdesk.track.bug.to_workspace"), state: "done", at: bug.resolved_at },
+        { key: "workspace", label: k("helpdesk.track.bug.continues_in_workspace"), state: "active" },
+      ],
+      banner: { tone: "info", label: k("helpdesk.track.bug.to_workspace_banner") },
     };
   }
 

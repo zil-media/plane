@@ -82,6 +82,7 @@
         "resolved": "Solved",
         "answered": "We answered you",
         "became_suggestion": "Became a suggestion",
+        "in_workspace": "Continues in Zil Workspace",
         "dismissed": "Closed",
         "archived": "Archived",
         "needs_person": "Waiting for the team"
@@ -113,6 +114,7 @@
     "detail": {
       "bug_report": "Problem report",
       "see_suggestion": "See the suggestion",
+      "see_in_workspace": "See it in Zil Workspace",
       "what_you_reported": "What was reported",
       "resend_hint": "Still happening, or something to add? Send it to support.",
       "resend": "Send to support",
@@ -191,7 +193,10 @@
         "published": "Published",
         "derived": "Turned into a suggestion",
         "continues": "Continues as a suggestion",
+        "to_workspace": "Handed to Zil Workspace",
+        "continues_in_workspace": "Followed up in Zil Workspace",
         "derived_banner": "It wasn't a defect: it became a suggestion in your name and is already being analyzed.",
+        "to_workspace_banner": "The fix belongs to Zil Workspace: we handed it over with our diagnosis and it continues there.",
         "answered_banner": "We answered you: no change to the platform was needed.",
         "dismissed_banner": "Reviewed and closed: no platform defect was found.",
         "archived_banner": "Archived: it won't move forward."

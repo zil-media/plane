@@ -82,6 +82,7 @@
         "resolved": "已解決",
         "answered": "已回覆您",
         "became_suggestion": "已轉為建議",
+        "in_workspace": "在 Zil Workspace 中繼續",
         "dismissed": "已關閉",
         "archived": "已封存",
         "needs_person": "等待團隊處理"
@@ -113,6 +114,7 @@
     "detail": {
       "bug_report": "問題回報",
       "see_suggestion": "查看建議",
+      "see_in_workspace": "在 Zil Workspace 中查看",
       "what_you_reported": "回報的內容",
       "resend_hint": "問題仍在發生，或有什麼要補充的嗎？請傳送給支援團隊。",
       "resend": "傳送給支援團隊",
@@ -191,7 +193,10 @@
         "published": "已發布",
         "derived": "已轉為建議",
         "continues": "以建議形式繼續推進",
+        "to_workspace": "已轉交 Zil Workspace",
+        "continues_in_workspace": "在 Zil Workspace 中跟進",
         "derived_banner": "這不是缺陷：它已以您的名義轉為建議，正在分析中。",
+        "to_workspace_banner": "需要在 Zil Workspace 中修復：我們已附上診斷轉交，後續在那裡繼續處理。",
         "answered_banner": "我們已回覆您：不需要修改平台。",
         "dismissed_banner": "已審查並關閉：未發現平台缺陷。",
         "archived_banner": "已封存：不會繼續推進。"

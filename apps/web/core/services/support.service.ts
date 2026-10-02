@@ -65,6 +65,9 @@ export type TBugReport = {
   reported_by: TSupportPerson | null;
   workspace_slug: string | null;
   derived_feature_id: string | null;
+  /** The cause was in Zil Workspace: the report filed there, and where the reporter follows it. */
+  workspace_bug_id: string | null;
+  workspace_bug_url: string | null;
   resolved_message: string;
   created_at: string;
   last_seen_at: string | null;

@@ -143,6 +143,24 @@ def set_issue_erp_ref(payload):
     return {"client": data.get("client"), "project": data.get("project")}
 
 
+def file_workspace_bug(payload):
+    """File in Zil Workspace a bug whose cause the Ops fixer traced there: {id, trackingUrl}.
+
+    Idempotent on payload["opsBugId"] (a retry returns the report already filed). Raises
+    ZilUnavailable when Zil doesn't take it.
+    """
+    resp = _post("/api/zil/bug-reports", payload)
+    if resp.status_code != 200:
+        raise ZilUnavailable()
+    try:
+        data = resp.json()
+    except ValueError as e:
+        raise ZilUnavailable() from e
+    if not data.get("id"):
+        raise ZilUnavailable()
+    return {"id": data["id"], "tracking_url": data.get("trackingUrl") or ""}
+
+
 # ERP entity types that keep a document array a Plane attachment can be saved into.
 ZIL_DOC_TARGET_TYPES = ("Lead", "MgmtClient")
 

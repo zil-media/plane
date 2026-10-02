@@ -206,6 +206,97 @@ class TestBugAgentApi:
         assert tasks["fire_bug"].call_args.args[2] == "urgent"
 
 
+HANDOFF_ZIL_ENV = {"ZIL_BASE_URL": "http://zil.test", "ZIL_SERVICE_SECRET": "secret"}
+DIAGNOSIS = "server/controllers/opsClientsController.js:58 filtra sólo por la BU dueña"
+
+
+def zil_answers(status_code=200, body=None):
+    resp = mock.Mock(status_code=status_code)
+    resp.json.return_value = body if body is not None else {"id": "a" * 24, "trackingUrl": "http://ws.test/x"}
+    return mock.patch("plane.utils.zil_client.requests.post", return_value=resp)
+
+
+@pytest.fixture
+def zil_env(monkeypatch):
+    for key, value in HANDOFF_ZIL_ENV.items():
+        monkeypatch.setenv(key, value)
+
+
+@pytest.mark.contract
+class TestBugToWorkspace:
+    @pytest.mark.django_db
+    def test_closes_here_and_files_it_in_workspace_in_the_reporters_name(
+        self, zil_env, session_client, bug_agent, create_user, tasks
+    ):
+        bug = report_bug(session_client)
+        BugReport.objects.filter(id=bug["id"]).update(severity=BugReport.Severity.BLOQUEANTE)
+        with zil_answers() as post:
+            response = bug_agent.put(
+                f"/api/agent/bugs/{bug['id']}/to-workspace/",
+                {"diagnosis": DIAGNOSIS, "message": "Lo seguimos en Zil Workspace."},
+                format="json",
+            )
+        assert response.status_code == status.HTTP_200_OK, response.data
+        sent = post.call_args.kwargs["json"]
+        assert sent["opsBugId"] == bug["id"]
+        assert sent["reporterEmail"] == create_user.email
+        assert sent["diagnosis"] == DIAGNOSIS
+        assert sent["severity"] == "bloqueante"
+        assert post.call_args.kwargs["headers"] == {"X-Zil-Service-Key": "secret"}
+
+        saved = BugReport.objects.get(id=bug["id"])
+        assert saved.status == BugReport.Status.DISMISSED
+        assert (saved.workspace_bug_id, saved.workspace_bug_url) == ("a" * 24, "http://ws.test/x")
+        assert response.data["workspace_bug_url"] == "http://ws.test/x"
+        assert tasks["email"].called
+
+    @pytest.mark.django_db
+    def test_keeps_the_report_open_when_ops_needs_its_own_fix(self, zil_env, session_client, bug_agent):
+        bug = report_bug(session_client)
+        bug_agent.put(f"/api/agent/bugs/{bug['id']}/claim/")
+        with zil_answers():
+            response = bug_agent.put(
+                f"/api/agent/bugs/{bug['id']}/to-workspace/", {"diagnosis": DIAGNOSIS, "close": False}, format="json"
+            )
+        assert response.status_code == status.HTTP_200_OK, response.data
+        saved = BugReport.objects.get(id=bug["id"])
+        assert saved.status == BugReport.Status.IN_PROGRESS
+        assert saved.workspace_bug_id == "a" * 24
+
+    @pytest.mark.django_db
+    def test_zil_down_changes_nothing(self, zil_env, session_client, bug_agent):
+        bug = report_bug(session_client)
+        with zil_answers(status_code=500):
+            response = bug_agent.put(
+                f"/api/agent/bugs/{bug['id']}/to-workspace/", {"diagnosis": DIAGNOSIS, "message": "x"}, format="json"
+            )
+        assert response.status_code == status.HTTP_502_BAD_GATEWAY
+        saved = BugReport.objects.get(id=bug["id"])
+        assert (saved.status, saved.workspace_bug_id) == (BugReport.Status.OPEN, "")
+
+    @pytest.mark.django_db
+    def test_closing_needs_a_message_for_the_reporter(self, zil_env, session_client, bug_agent):
+        bug = report_bug(session_client)
+        with zil_answers() as post:
+            response = bug_agent.put(
+                f"/api/agent/bugs/{bug['id']}/to-workspace/", {"diagnosis": DIAGNOSIS}, format="json"
+            )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert not post.called
+
+    @pytest.mark.django_db
+    def test_the_reporter_cannot_reopen_it_here(self, zil_env, session_client, bug_agent):
+        bug = report_bug(session_client)
+        with zil_answers():
+            bug_agent.put(
+                f"/api/agent/bugs/{bug['id']}/to-workspace/", {"diagnosis": DIAGNOSIS, "message": "x"}, format="json"
+            )
+        response = session_client.post(
+            f"/api/support/bug-reports/{bug['id']}/reopen/", {"comment": "sigue igual"}, format="json"
+        )
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+
 @pytest.mark.contract
 class TestFeaturePipeline:
     def spec(self, **overrides):

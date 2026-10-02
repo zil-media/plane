@@ -92,6 +92,19 @@ def bug_derived_to_feature(bug):
     )
 
 
+def bug_derived_to_workspace(bug):
+    if bug.reported_by is None or not bug.resolved_message:
+        return
+    send(
+        bug.reported_by.email,
+        "Lo que reportaste lo seguimos en Zil Workspace",
+        "Lo que reportaste lo seguimos en Zil Workspace",
+        [greeting(bug.reported_by), bug.resolved_message],
+        "Ver el seguimiento",
+        bug.workspace_bug_url or support_url(bug.workspace, bug.id),
+    )
+
+
 def admins_new_bug(bug):
     who = bug.reported_by.email if bug.reported_by else "sin usuario"
     send(

@@ -63,6 +63,8 @@ def bug_summary(bug):
         "reported_by": _person(bug.reported_by),
         "workspace_slug": bug.workspace.slug if bug.workspace_id else None,
         "derived_feature_id": str(bug.derived_feature_id) if bug.derived_feature_id else None,
+        "workspace_bug_id": bug.workspace_bug_id or None,
+        "workspace_bug_url": bug.workspace_bug_url or None,
         "resolved_message": bug.resolved_message,
         "created_at": _iso(bug.created_at),
         "last_seen_at": _iso(bug.last_seen_at),
