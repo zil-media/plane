@@ -53,9 +53,10 @@ export const emojiSuggestion: EmojiOptions["suggestion"] = {
     const handleClose = (editor?: Editor) => {
       component?.destroy();
       component = null;
-      (editor || editorRef)?.commands.removeActiveDropbarExtension(CORE_EXTENSIONS.EMOJI);
-      const emojiStorage = editor?.storage.emoji as ExtendedEmojiStorage;
-      emojiStorage.forceOpen = false;
+      const targetEditor = editor || editorRef;
+      targetEditor?.commands.removeActiveDropbarExtension(CORE_EXTENSIONS.EMOJI);
+      const emojiStorage = targetEditor?.storage.emoji as ExtendedEmojiStorage | undefined;
+      if (emojiStorage) emojiStorage.forceOpen = false;
       cleanup();
     };
 
