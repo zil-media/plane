@@ -28,6 +28,7 @@ import logging
 
 # Django imports
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -35,7 +36,16 @@ from django.utils.text import slugify
 import requests
 
 # Module imports
-from plane.db.models import User, Workspace, WorkspaceMember, Profile, Session
+from plane.db.models import (
+    APIToken,
+    BotTypeEnum,
+    Profile,
+    Session,
+    User,
+    UserNotificationPreference,
+    Workspace,
+    WorkspaceMember,
+)
 from plane.utils.color import get_random_color
 from plane.utils.constants import RESTRICTED_WORKSPACE_SLUGS
 from plane.utils.exception_logger import log_exception
@@ -439,3 +449,124 @@ def deactivate_user(email):
     user.save(update_fields=["is_active", "last_logout_time"])
     revoke_user_sessions(user)
     return user
+
+
+# ---------------------------------------------------------------------------
+# Zil AI agents (Ada, Iris, …): bot users with no interactive login that act
+# on the public API with their own per-agent APIToken.
+# ---------------------------------------------------------------------------
+
+ZIL_AGENT_TOKEN_LABEL = "zil-agent"
+ZIL_AGENT_RATE_LIMIT = "120/min"
+
+
+class ZilAgentConflict(Exception):
+    """The email belongs to a human (or a non-agent bot) — never convert it."""
+
+
+def _active_agent_tokens(agent):
+    return APIToken.objects.filter(user=agent, is_active=True).filter(
+        Q(expired_at__isnull=True) | Q(expired_at__gt=timezone.now())
+    )
+
+
+def expire_agent_tokens(agent):
+    """Revoke every still-usable API token of `agent`. Returns the count."""
+    return _active_agent_tokens(agent).update(is_active=False, expired_at=timezone.now())
+
+
+def sync_zil_agent(email, name, workspaces, rotate_token=False, suspended=False):
+    """Upsert a Zil AI agent's bot account, memberships and API token.
+
+    `workspaces` is the same list Zil sends for a human (`{slug, name, color,
+    logo_url, role, is_owner}`) and is applied authoritatively (memberships
+    not in it are deactivated, with provision_user_workspaces' empty-list
+    guard). An agent never owns a workspace, so `is_owner` is ignored.
+
+    Returns a dict: {user, created, token (plaintext or None), suspended}.
+    Raises ZilAgentConflict if the email belongs to a non-agent account.
+    """
+    email = str(email or "").strip().lower()
+    name = str(name or "").strip()[:255] or email.split("@")[0]
+
+    agent = User.objects.filter(email=email).first()
+    if agent and not (agent.is_bot and agent.bot_type == BotTypeEnum.ZIL_AGENT):
+        raise ZilAgentConflict(email)
+
+    created = False
+    if not agent:
+        if suspended:
+            return {"user": None, "created": False, "token": None, "suspended": True}
+        agent = User(
+            email=email,
+            username=uuid.uuid4().hex,
+            display_name=name,
+            first_name=name,
+            is_bot=True,
+            bot_type=BotTypeEnum.ZIL_AGENT,
+            is_password_autoset=True,
+            is_email_verified=True,
+            is_active=True,
+        )
+        agent.set_unusable_password()
+        try:
+            agent.save()
+            created = True
+        except IntegrityError:
+            # Concurrent first sync of the same agent — use the row that won.
+            agent = User.objects.get(email=email)
+
+    # Bots get no notification preferences from the post_save signal, but the
+    # notification task does UserNotificationPreference.objects.get() for every
+    # subscriber/mention, so an agent without a row would abort it for everyone.
+    # An all-off row keeps the task working and never emails the agent.
+    UserNotificationPreference.objects.get_or_create(
+        user=agent,
+        workspace=None,
+        project=None,
+        defaults={
+            "property_change": False,
+            "state_change": False,
+            "comment": False,
+            "mention": False,
+            "issue_completed": False,
+        },
+    )
+
+    if suspended:
+        if agent.is_active:
+            agent.is_active = False
+            agent.save(update_fields=["is_active"])
+        expire_agent_tokens(agent)
+        WorkspaceMember.objects.filter(member=agent, is_active=True).update(is_active=False)
+        return {"user": agent, "created": created, "token": None, "suspended": True}
+
+    update_fields = []
+    if not agent.is_active:
+        agent.is_active = True
+        update_fields.append("is_active")
+    if agent.display_name != name:
+        agent.display_name = name
+        update_fields.append("display_name")
+    if agent.first_name != name:
+        agent.first_name = name
+        update_fields.append("first_name")
+    if update_fields:
+        agent.save(update_fields=update_fields)
+
+    entries = [{**w, "is_owner": False} for w in (workspaces or []) if isinstance(w, dict)]
+    provision_user_workspaces(agent, entries, authoritative=True)
+
+    token = None
+    if rotate_token or not _active_agent_tokens(agent).exists():
+        with transaction.atomic():
+            expire_agent_tokens(agent)
+            token = APIToken.objects.create(
+                user=agent,
+                user_type=1,
+                label=ZIL_AGENT_TOKEN_LABEL,
+                workspace=None,
+                allowed_rate_limit=ZIL_AGENT_RATE_LIMIT,
+            ).token
+
+    return {"user": agent, "created": created, "token": token, "suspended": False}
