@@ -17,6 +17,7 @@ import { registerController } from "@plane/decorators";
 import { logger, loggerMiddleware } from "@plane/logger";
 // controllers
 import { CONTROLLERS } from "@/controllers";
+import { PAGE_CONTENT_ROUTE } from "@/controllers/page-content.controller";
 // env
 import { env } from "@/env";
 // hocuspocus server
@@ -61,8 +62,11 @@ export class Server {
     this.app.use(compression({ level: env.COMPRESSION_LEVEL, threshold: env.COMPRESSION_THRESHOLD }));
     // Logging middleware
     this.app.use(loggerMiddleware);
-    // Body parsing middleware
-    this.app.use(express.json());
+    // Body parsing middleware (page-content requests carry whole documents and parse their own
+    // body with a larger limit, after the secret-key check)
+    const jsonParser = express.json();
+    const pageContentPath = `${env.LIVE_BASE_PATH}${PAGE_CONTENT_ROUTE}`;
+    this.app.use((req, res, next) => (req.path.startsWith(pageContentPath) ? next() : jsonParser(req, res, next)));
     this.app.use(express.urlencoded({ extended: true }));
     // cors middleware
     this.setupCors();
