@@ -49,6 +49,7 @@ from plane.db.models import (
 from plane.utils.color import get_random_color
 from plane.utils.constants import RESTRICTED_WORKSPACE_SLUGS
 from plane.utils.exception_logger import log_exception
+from plane.utils.zil_agents import sync_zil_agent_project_memberships
 
 logger = logging.getLogger("plane.authentication")
 
@@ -539,6 +540,7 @@ def sync_zil_agent(email, name, workspaces, rotate_token=False, suspended=False)
             agent.save(update_fields=["is_active"])
         expire_agent_tokens(agent)
         WorkspaceMember.objects.filter(member=agent, is_active=True).update(is_active=False)
+        sync_zil_agent_project_memberships(agent)
         return {"user": agent, "created": created, "token": None, "suspended": True}
 
     update_fields = []
@@ -556,6 +558,7 @@ def sync_zil_agent(email, name, workspaces, rotate_token=False, suspended=False)
 
     entries = [{**w, "is_owner": False} for w in (workspaces or []) if isinstance(w, dict)]
     provision_user_workspaces(agent, entries, authoritative=True)
+    sync_zil_agent_project_memberships(agent)
 
     token = None
     if rotate_token or not _active_agent_tokens(agent).exists():

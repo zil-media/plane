@@ -41,6 +41,7 @@ from plane.bgtasks.webhook_task import model_activity, webhook_activity
 from plane.utils.exception_logger import log_exception
 from .base import BaseAPIView
 from plane.utils.host import base_host
+from plane.utils.zil_agents import add_zil_agents_to_project
 from plane.api.serializers import (
     ProjectSerializer,
     ProjectCreateSerializer,
@@ -244,6 +245,8 @@ class ProjectListCreateAPIEndpoint(BaseAPIView):
                             member_id=serializer.instance.project_lead_id,
                             role=20,
                         )
+
+                    add_zil_agents_to_project(serializer.instance)
 
                     State.objects.bulk_create(
                         [

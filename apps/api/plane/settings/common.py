@@ -359,6 +359,7 @@ CELERY_IMPORTS = (
     # zil
     "plane.bgtasks.zil_deliverable_checklist_task",
     "plane.bgtasks.zil_client_link_refresh_task",
+    "plane.bgtasks.zil_agent_events_task",
     # bug-fix / feature agent pipeline
     "plane.bgtasks.agent_pipeline_task",
     # management tasks

@@ -43,6 +43,7 @@ from plane.db.models.intake import IntakeIssueStatus
 from plane.utils.host import base_host
 from plane.utils.order_queryset import PROJECT_ORDER_BY_ALLOWLIST, sanitize_order_by
 from plane.utils.studio_defaults import seed_studio_defaults
+from plane.utils.zil_agents import add_zil_agents_to_project
 
 
 class ProjectViewSet(BaseViewSet):
@@ -278,6 +279,8 @@ class ProjectViewSet(BaseViewSet):
                     member_id=serializer.data["project_lead"],
                     role=ROLE.ADMIN.value,
                 )
+
+            add_zil_agents_to_project(serializer.instance)
 
             State.objects.bulk_create(
                 [
