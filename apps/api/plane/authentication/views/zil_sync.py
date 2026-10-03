@@ -52,6 +52,8 @@ from plane.authentication.utils.zil_provisioning import (
     deactivate_workspace,
     revoke_user_sessions,
     normalize_slug,
+    sync_zil_agent,
+    ZilAgentConflict,
     ZIL_SERVICE_EMAIL,
 )
 from plane.utils.exception_logger import log_exception
@@ -159,6 +161,64 @@ class ZilUserSyncEndpoint(ZilServiceView):
         except Exception as e:
             log_exception(e)
             return Response({"error": "sync_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ZilAgentSyncEndpoint(ZilServiceView):
+    """Provision a Zil AI agent (Ada, Iris, …) as a bot user with an API token.
+
+    Body: {email, name, workspaces, rotate_token, suspended}. `workspaces` has
+    the same shape as ZilUserSyncEndpoint's and is authoritative. The plaintext
+    token is returned only when one is minted (first sync, rotate_token, or no
+    usable token left); it is never readable again. 409 if the email belongs to
+    a human account.
+    """
+
+    def post(self, request):
+        email = str(request.data.get("email") or "").strip().lower()
+        if not email or "@" not in email:
+            return Response({"error": "email required"}, status=status.HTTP_400_BAD_REQUEST)
+        workspaces = request.data.get("workspaces") or []
+        if not isinstance(workspaces, list):
+            return Response({"error": "workspaces must be a list"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            result = sync_zil_agent(
+                email=email,
+                name=request.data.get("name"),
+                workspaces=workspaces,
+                rotate_token=bool(request.data.get("rotate_token")),
+                suspended=bool(request.data.get("suspended")),
+            )
+        except ZilAgentConflict:
+            return Response(
+                {"error": "email_belongs_to_non_agent_user", "email": email},
+                status=status.HTTP_409_CONFLICT,
+            )
+        except Exception as e:
+            log_exception(e)
+            return Response({"error": "sync_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        agent = result["user"]
+        slugs = (
+            list(
+                WorkspaceMember.objects.filter(member=agent, is_active=True)
+                .order_by("workspace__slug")
+                .values_list("workspace__slug", flat=True)
+            )
+            if agent and not result["suspended"]
+            else []
+        )
+        return Response(
+            {
+                "user_id": str(agent.id) if agent else None,
+                "email": email,
+                "created": result["created"],
+                "suspended": result["suspended"],
+                "token": result["token"],
+                "workspaces": slugs,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class ZilUserLogoutEndpoint(ZilServiceView):
