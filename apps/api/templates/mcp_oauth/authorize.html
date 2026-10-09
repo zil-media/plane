@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Conectar con Zil Ops</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --card: #ffffff;
+        --border: #e3e5ea;
+        --text: #16181d;
+        --muted: #5f6470;
+        --brand: #6d86ff;
+        --brand-text: #ffffff;
+        --danger: #d9534f;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0a0a0a;
+          --card: #111113;
+          --border: #2a2c32;
+          --text: #f2f3f4;
+          --muted: #9a9ea8;
+          --danger: #ff8682;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+      }
+      .card {
+        width: 100%;
+        max-width: 420px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 28px;
+      }
+      .brand { font-weight: 600; letter-spacing: 0.02em; color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+      h1 { font-size: 20px; line-height: 1.3; margin: 0 0 12px; }
+      p { margin: 0 0 12px; color: var(--muted); }
+      ul { margin: 0 0 16px; padding-left: 18px; color: var(--muted); }
+      li { margin-bottom: 4px; }
+      strong { color: var(--text); }
+      label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+      select {
+        width: 100%;
+        padding: 9px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        margin-bottom: 20px;
+      }
+      .actions { display: flex; gap: 10px; }
+      button {
+        flex: 1;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text);
+      }
+      button.allow { background: var(--brand); border-color: var(--brand); color: var(--brand-text); }
+      .error { color: var(--danger); }
+      .fine { font-size: 12px; margin-top: 16px; margin-bottom: 0; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="brand">ZIL OPS</div>
+      {% if error %}
+        <h1>No se pudo conectar</h1>
+        <p class="error">{{ error }}</p>
+      {% else %}
+        <h1>{{ client_name }} quiere conectarse a tu cuenta de Zil Ops</h1>
+        <p>Vas a conectar como <strong>{{ user.email }}</strong>. La app podrá, con tus mismos permisos:</p>
+        <ul>
+          <li>Ver y editar proyectos, work items, ciclos y módulos.</li>
+          <li>Leer y editar páginas (documentos).</li>
+        </ul>
+        <form method="post">
+          {% csrf_token %}
+          {% if workspaces|length > 1 %}
+            <label for="workspace">Espacio de trabajo</label>
+            <select id="workspace" name="workspace">
+              {% for workspace in workspaces %}
+                <option value="{{ workspace.slug }}">{{ workspace.name }}</option>
+              {% endfor %}
+            </select>
+          {% else %}
+            <input type="hidden" name="workspace" value="{{ workspaces.0.slug }}" />
+            <p>Espacio de trabajo: <strong>{{ workspaces.0.name }}</strong></p>
+          {% endif %}
+          <div class="actions">
+            <button type="submit" name="decision" value="deny">Cancelar</button>
+            <button type="submit" name="decision" value="allow" class="allow">Permitir</button>
+          </div>
+        </form>
+        <p class="fine">Vuelve a {{ redirect_host }}. Podés desconectarla cuando quieras borrando su token en Configuración → Perfil → Tokens de acceso personal.</p>
+      {% endif %}
+    </main>
+  </body>
+</html>

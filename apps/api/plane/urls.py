@@ -6,6 +6,8 @@
 
 from django.conf import settings
 from django.urls import include, path, re_path
+
+from plane.mcp_oauth.views import AuthorizationServerMetadataView
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -22,6 +24,13 @@ urlpatterns = [
     path("api/instances/", include("plane.license.urls")),
     path("api/v1/", include("plane.api.urls")),
     path("api/zil/", include("plane.authentication.zil_sync_urls")),
+    # OAuth for the Ops MCP server (/mcp, served by the mcp container)
+    re_path(
+        r"^\.well-known/(?:oauth-authorization-server|openid-configuration)(?:/mcp)?/?$",
+        AuthorizationServerMetadataView.as_view(),
+        name="mcp-oauth-metadata",
+    ),
+    path("auth/mcp/", include("plane.mcp_oauth.urls")),
     path("auth/", include("plane.authentication.urls")),
     path("", include("plane.web.urls")),
 ]

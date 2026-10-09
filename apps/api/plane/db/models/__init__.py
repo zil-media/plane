@@ -91,3 +91,5 @@ from .device import Device, DeviceSession
 from .sticky import Sticky
 
 from .description import Description, DescriptionVersion
+
+from .mcp_oauth import McpOAuthClient, McpOAuthCode, McpOAuthGrant, McpOAuthRequest
