@@ -21,6 +21,7 @@ from plane.app.permissions import WorkspaceUserPermission
 from plane.db.models import Project, ProjectMember, ProjectUserProperty, WorkspaceMember
 from plane.bgtasks.project_add_user_email_task import project_add_user_email
 from plane.utils.host import base_host
+from plane.utils.zil_agents import human_or_agent_member_q
 from plane.app.permissions.base import allow_permission, ROLE
 
 
@@ -157,9 +158,9 @@ class ProjectMemberViewSet(BaseViewSet):
     def list(self, request, slug, project_id):
         # Get the list of project members for the project
         project_members = ProjectMember.objects.filter(
+            human_or_agent_member_q(),
             project_id=project_id,
             workspace__slug=slug,
-            member__is_bot=False,
             is_active=True,
             member__member_workspace__workspace__slug=slug,
             member__member_workspace__is_active=True,

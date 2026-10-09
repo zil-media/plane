@@ -51,6 +51,7 @@ def get_default_product_tour():
 
 class BotTypeEnum(models.TextChoices):
     WORKSPACE_SEED = "WORKSPACE_SEED", "Workspace Seed"
+    ZIL_AGENT = "ZIL_AGENT", "Zil Agent"
 
 
 class User(AbstractBaseUser, PermissionsMixin):

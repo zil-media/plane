@@ -8,7 +8,7 @@ import { Buffer } from "buffer";
 import type { Extensions, JSONContent } from "@tiptap/core";
 import { getSchema } from "@tiptap/core";
 import { generateHTML, generateJSON } from "@tiptap/html";
-import { prosemirrorJSONToYDoc, yXmlFragmentToProseMirrorRootNode } from "y-prosemirror";
+import { prosemirrorJSONToYDoc, prosemirrorToYXmlFragment, yXmlFragmentToProseMirrorRootNode } from "y-prosemirror";
 import * as Y from "yjs";
 // extensions
 import type { TDocumentPayload } from "@plane/types";
@@ -121,6 +121,32 @@ export const getBinaryDataFromDocumentEditorHTMLString = (descriptionHTML: strin
   // convert Y.Doc to Uint8Array format
   const encodedData = Y.encodeStateAsUpdate(transformedData);
   return encodedData;
+};
+
+/**
+ * @description applies new HTML content and/or title to an existing document editor Y.Doc as a minimal diff
+ * (same algorithm the collaborative editor uses), so unchanged nodes keep their Yjs identity and updates
+ * from connected collaborators keep merging instead of being replaced wholesale.
+ * @param {Y.Doc} yDoc - the document to update in place
+ * @param {object} args
+ * @param {string} [args.descriptionHTML] - new body; omitted leaves the body untouched
+ * @param {string} [args.title] - new title; omitted leaves the title untouched
+ */
+export const applyHTMLToDocumentEditorYDoc = (
+  yDoc: Y.Doc,
+  args: { descriptionHTML?: string | null; title?: string | null }
+): void => {
+  const { descriptionHTML, title } = args;
+  yDoc.transact(() => {
+    if (descriptionHTML != null) {
+      const contentJSON = generateJSON(descriptionHTML || "<p></p>", DOCUMENT_EDITOR_EXTENSIONS);
+      prosemirrorToYXmlFragment(documentEditorSchema.nodeFromJSON(contentJSON), yDoc.getXmlFragment("default"));
+    }
+    if (title != null) {
+      const titleJSON = generateTitleProsemirrorJson(title);
+      prosemirrorToYXmlFragment(documentEditorSchema.nodeFromJSON(titleJSON), yDoc.getXmlFragment("title"));
+    }
+  });
 };
 
 /**

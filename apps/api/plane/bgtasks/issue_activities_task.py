@@ -17,6 +17,7 @@ from django.utils import timezone
 # Module imports
 from plane.app.serializers import IssueActivitySerializer
 from plane.bgtasks.notification_task import notifications
+from plane.bgtasks.zil_agent_events_task import dispatch_zil_agent_events
 from plane.db.models import (
     CommentReaction,
     Cycle,
@@ -1582,6 +1583,22 @@ def issue_activity(
 
         # Save all the values to database
         issue_activities_created = IssueActivity.objects.bulk_create(issue_activities)
+
+        # Wake Zil AI agents that were newly mentioned/assigned (never blocks the activity log)
+        try:
+            dispatch_zil_agent_events(
+                type=type,
+                requested_data=requested_data,
+                current_instance=current_instance,
+                issue_id=issue_id,
+                project_id=project_id,
+                actor_id=actor_id,
+                epoch=epoch,
+                issue_activities=issue_activities_created,
+                origin=origin,
+            )
+        except Exception as e:
+            log_exception(e)
 
         if notification:
             notifications.delay(

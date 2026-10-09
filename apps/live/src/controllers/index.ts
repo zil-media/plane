@@ -8,6 +8,7 @@ import { AgentPageController } from "./agent-page.controller";
 import { CollaborationController } from "./collaboration.controller";
 import { DocumentController } from "./document.controller";
 import { HealthController } from "./health.controller";
+import { PageContentController } from "./page-content.controller";
 import { PdfExportController } from "./pdf-export.controller";
 
 export const CONTROLLERS = [
@@ -15,5 +16,6 @@ export const CONTROLLERS = [
   CollaborationController,
   DocumentController,
   HealthController,
+  PageContentController,
   PdfExportController,
 ];

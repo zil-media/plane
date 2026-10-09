@@ -359,6 +359,7 @@ CELERY_IMPORTS = (
     # zil
     "plane.bgtasks.zil_deliverable_checklist_task",
     "plane.bgtasks.zil_client_link_refresh_task",
+    "plane.bgtasks.zil_agent_events_task",
     # bug-fix / feature agent pipeline
     "plane.bgtasks.agent_pipeline_task",
     # management tasks
@@ -435,6 +436,8 @@ if LIVE_BASE_URL and not is_valid_url(LIVE_BASE_URL):
 LIVE_BASE_PATH = os.environ.get("LIVE_BASE_PATH", "/live/")
 
 LIVE_URL = urljoin(LIVE_BASE_URL, LIVE_BASE_PATH) if LIVE_BASE_URL else None
+# shared secret for server-to-server calls to the live server
+LIVE_SERVER_SECRET_KEY = os.environ.get("LIVE_SERVER_SECRET_KEY", None)
 
 # WEB URL
 WEB_URL = os.environ.get("WEB_URL")
