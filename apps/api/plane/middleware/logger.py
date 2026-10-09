@@ -149,7 +149,10 @@ class APITokenLogMiddleware:
                 "query_params": request.META.get("QUERY_STRING", ""),
                 "headers": self._redacted_headers(request),
                 "body": self._safe_decode_body(request_body) if request_body else None,
-                "response_body": self._safe_decode_body(response.content) if response.content else None,
+                # streaming responses (e.g. a page's binary description) have no buffered content
+                "response_body": (
+                    None if response.streaming or not response.content else self._safe_decode_body(response.content)
+                ),
                 "response_code": response.status_code,
                 "ip_address": get_client_ip(request=request),
                 "user_agent": request.META.get("HTTP_USER_AGENT", None),

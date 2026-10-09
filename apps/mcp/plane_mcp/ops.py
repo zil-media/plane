@@ -29,14 +29,17 @@ def live_base_url() -> str:
     return os.getenv("OPS_LIVE_URL", "").rstrip("/")
 
 
-def _error_message(response: requests.Response) -> str:
+def _error(response: requests.Response) -> HttpError:
     try:
         body = response.json()
     except ValueError:
-        return response.text[:500] or response.reason
+        return HttpError(response.text[:500] or response.reason, response.status_code)
     if isinstance(body, dict):
-        return str(body.get("error") or body.get("detail") or body.get("error_message") or body)
-    return str(body)
+        message = body.get("error") or body.get("detail") or body.get("error_message") or body
+    else:
+        message = body
+    # the parsed body, as the SDK's HttpError expects (it appends details not already in the message)
+    return HttpError(str(message), response.status_code, body)
 
 
 class OpsSession:
@@ -54,7 +57,7 @@ class OpsSession:
     def _request(self, method: str, url: str, **kwargs: Any) -> Any:
         response = requests.request(method, url, headers={"X-Api-Key": self.api_key}, timeout=TIMEOUT_SECONDS, **kwargs)
         if response.status_code >= 400:
-            raise HttpError(_error_message(response), response.status_code, response)
+            raise _error(response)
         if response.status_code == 204 or not response.content:
             return None
         return response.json()

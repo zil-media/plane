@@ -17,7 +17,7 @@ from unittest.mock import Mock, patch
 import pytest
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from django.test import RequestFactory
 
 from plane.middleware.logger import APITokenLogMiddleware
@@ -56,9 +56,7 @@ class TestAPITokenLogMiddleware:
     def test_token_identifier_is_hashed_not_plaintext(self, middleware, request_factory):
         log_data = self._captured_log_data(middleware, request_factory)
 
-        expected_hash = hmac.new(
-            settings.SECRET_KEY.encode(), self.API_KEY.encode(), hashlib.sha256
-        ).hexdigest()
+        expected_hash = hmac.new(settings.SECRET_KEY.encode(), self.API_KEY.encode(), hashlib.sha256).hexdigest()
         assert log_data["token_identifier"] == expected_hash
         assert self.API_KEY not in log_data["token_identifier"]
 
@@ -77,3 +75,14 @@ class TestAPITokenLogMiddleware:
         with patch("plane.middleware.logger.process_logs") as process_logs:
             middleware.process_request(request, HttpResponse(b"{}"), request_body=b"")
             assert not process_logs.delay.called
+
+    def test_streaming_response_is_logged_without_body(self, middleware, request_factory):
+        request = request_factory.get("/api/v1/workspaces/", HTTP_X_API_KEY=self.API_KEY)
+        request.user = AnonymousUser()
+        response = StreamingHttpResponse(iter([b"\x01\x02"]), content_type="application/octet-stream")
+        with patch("plane.middleware.logger.process_logs") as process_logs:
+            middleware.process_request(request, response, request_body=b"")
+            assert process_logs.delay.called
+            assert process_logs.delay.call_args.kwargs["log_data"]["response_body"] is None
+        # the stream is left for the client
+        assert b"".join(response.streaming_content) == b"\x01\x02"
