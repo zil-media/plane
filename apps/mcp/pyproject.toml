@@ -1,0 +1,64 @@
+[project]
+name = "plane-community-mcp"
+version = "0.7.1"
+description = "Community Edition and self-hosted focused MCP server for Plane"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    {name= "Surya Prashanth", email = "surya.prashanth@plane.so"},
+    {name = "Plane Engineering", email = "support@plane.so"},
+    {name = "tancou", email = "commun@app.optimis.io"}
+]
+keywords = ["mcp", "plane", "fastmcp", "ai", "automation"]
+
+dependencies = [
+    "fastmcp==4.0.2",
+    "plane-sdk==0.2.24",
+    # Imported directly by the auth provider and app-session client.
+    "httpx>=0.28.1",
+    "requests>=2.31.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/windyboy/plane-mcp-server-ce"
+Repository = "https://github.com/windyboy/plane-mcp-server-ce"
+Issues = "https://github.com/windyboy/plane-mcp-server-ce/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+plane-mcp-server-ce = "plane_mcp.__main__:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["plane_mcp*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+# Markdown reference tables in the PQL docstring cannot be wrapped without
+# breaking their rendering.
+"plane_mcp/tools/pql_reference.py" = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]

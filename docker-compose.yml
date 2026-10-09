@@ -119,6 +119,22 @@ services:
         DOCKER_BUILDKIT: 1
     restart: always
 
+  # Ops MCP server: https://<host>/mcp (OAuth via api) — apps/mcp, see docs/ops-mcp.md
+  mcp:
+    container_name: plane-mcp
+    build:
+      context: ./apps/mcp
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      PLANE_MCP_EDITION: community
+      PLANE_INTERNAL_BASE_URL: http://api:8000
+      OPS_LIVE_URL: http://live:3000/live
+      OPS_PUBLIC_URL: ${WEB_URL}
+    depends_on:
+      - api
+      - live
+
   plane-db:
     container_name: plane-db
     image: postgres:15.7-alpine

@@ -124,6 +124,13 @@ class TestApiKeyPageRoutes:
         assert page.archived_at is not None
         assert api_key_client.delete(pages_url(workspace, project, f"{page.id}/archive/")).status_code == 200
 
+    def test_lock_and_unlock(self, api_key_client, workspace, project, create_user):
+        page = make_page(project, create_user)
+        assert api_key_client.post(pages_url(workspace, project, f"{page.id}/lock/")).status_code == 204
+        page.refresh_from_db()
+        assert page.is_locked
+        assert api_key_client.delete(pages_url(workspace, project, f"{page.id}/lock/")).status_code == 204
+
 
 @pytest.mark.contract
 class TestPageSearch:

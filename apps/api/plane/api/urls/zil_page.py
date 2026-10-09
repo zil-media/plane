@@ -30,6 +30,11 @@ urlpatterns = [
         name="api-project-page-archive",
     ),
     path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/lock/",
+        ApiPageViewSet.as_view({"post": "lock", "delete": "unlock"}),
+        name="api-project-page-lock",
+    ),
+    path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/move-in-tree/",
         ApiPageViewSet.as_view({"post": "move_in_tree"}),
         name="api-project-page-move-in-tree",
