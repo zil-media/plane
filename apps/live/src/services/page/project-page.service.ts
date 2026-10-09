@@ -11,6 +11,7 @@ interface ProjectPageServiceParams {
   workspaceSlug: string | null;
   projectId: string | null;
   cookie: string | null;
+  apiKey?: string;
   [key: string]: unknown;
 }
 
@@ -21,6 +22,12 @@ export class ProjectPageService extends PageService {
     super();
     const { workspaceSlug, projectId } = params;
     if (!workspaceSlug || !projectId) throw new AppError("Missing required fields.");
+    // agent edits authenticate with the user's API token against the API-key page routes
+    if (params.apiKey) {
+      this.setHeader("X-Api-Key", params.apiKey);
+      this.basePath = `/api/v1/workspaces/${workspaceSlug}/projects/${projectId}`;
+      return;
+    }
     // validate cookie
     if (!params.cookie) throw new AppError("Cookie is required.");
     // set cookie

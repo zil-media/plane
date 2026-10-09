@@ -32,4 +32,6 @@ export type HocusPocusServerContext = {
   documentType: TDocumentTypes;
   workspaceSlug: string | null;
   userId: string;
+  // personal API token: set for agent (MCP) edits, which reach the API through /api/v1 instead of a session
+  apiKey?: string;
 };
