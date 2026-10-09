@@ -10,10 +10,10 @@ Keep them to these files so an upstream update is a copy plus re-applying this l
 
 | File                                 | Change                                                                                   |
 | ------------------------------------ | ---------------------------------------------------------------------------------------- |
-| `plane_mcp/ops.py` (new)             | Ops settings (`OPS_LIVE_URL`, API base) and API/live HTTP calls with the caller's token  |
+| `plane_mcp/ops.py` (new)             | Ops switch (`OPS_PUBLIC_URL`) and Ops API calls with the caller's token                  |
 | `plane_mcp/auth/ops_oauth.py` (new)  | `/mcp` as an OAuth protected resource of Ops; bearer tokens checked against Ops `whoami` |
-| `plane_mcp/tools/ops_pages.py` (new) | `search_pages`, `read_page`, `edit_page` (block-level edits on the collaborative doc)    |
-| `plane_mcp/page_backends.py`         | `OpsPageBackend`, selected when `OPS_LIVE_URL` is set                                    |
+| `plane_mcp/tools/ops_pages.py` (new) | `search_pages`, `read_page`, `edit_page` (Ops `blocks/` and `edit/` page routes)         |
+| `plane_mcp/page_backends.py`         | `OpsPageBackend` (Ops page API), selected when `OPS_PUBLIC_URL` is set                   |
 | `plane_mcp/tools/__init__.py`        | register Ops page tools; don't hide `page` on Ops                                        |
 | `plane_mcp/server.py`                | `get_ops_mcp()` factory                                                                  |
 | `plane_mcp/__main__.py`              | `build_http_app()`: also mounts `/mcp` (OAuth) when Ops is enabled                       |

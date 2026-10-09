@@ -69,4 +69,6 @@ from .page import (
     PageDetailAPIEndpoint,
     PageArchiveUnarchiveAPIEndpoint,
     PageLockUnlockAPIEndpoint,
+    PageBlocksAPIEndpoint,
+    PageEditAPIEndpoint,
 )

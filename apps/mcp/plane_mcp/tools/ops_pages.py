@@ -1,7 +1,7 @@
 """Zil Ops page content: read a page as block-annotated markdown and edit it block by block.
 
-The edits run on the page's collaborative document in Ops, so they merge with whatever people with
-the page open are typing, and only the touched blocks change.
+Ops applies the edits to the page's collaborative document, so they merge with whatever people
+with the page open are typing, and only the touched blocks change.
 """
 
 from __future__ import annotations
@@ -97,13 +97,12 @@ def register_ops_page_tools(mcp: FastMCP) -> None:
             blocks: Only these block refs.
         """
         client, workspace_slug = get_plane_client_context()
-        ops = OpsSession(client, workspace_slug)
-        params: dict[str, Any] = {**ops.scope(project_id), "offset": offset}
+        params: dict[str, Any] = {"offset": offset}
         if limit:
             params["limit"] = limit
         if blocks:
             params["blocks"] = ",".join(blocks)
-        return ops.live("GET", page_id, params=params)
+        return OpsSession(client, workspace_slug).page("GET", project_id, page_id, "blocks", params=params)
 
     @mcp.tool()
     def edit_page(page_id: str, project_id: str, ops: list[PageEditOp]) -> dict[str, Any]:
@@ -141,9 +140,6 @@ def register_ops_page_tools(mcp: FastMCP) -> None:
             ops: The edits, applied in order.
         """
         client, workspace_slug = get_plane_client_context()
-        session = OpsSession(client, workspace_slug)
-        return session.live(
-            "POST",
-            f"{page_id}/edit",
-            json={**session.scope(project_id), "ops": [op.payload() for op in ops]},
+        return OpsSession(client, workspace_slug).page(
+            "POST", project_id, page_id, "edit", json={"ops": [op.payload() for op in ops]}
         )

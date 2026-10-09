@@ -10,8 +10,9 @@ import secrets
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+import requests
+from unittest import mock
 from django.test import Client
-from rest_framework import status
 
 from plane.db.models import APIToken, Page, Project, ProjectMember, ProjectPage, User, McpOAuthGrant
 
@@ -49,87 +50,124 @@ def pages_url(workspace, project, suffix=""):
     return f"/api/v1/workspaces/{workspace.slug}/projects/{project.id}/pages/{suffix}"
 
 
+def live_answer(body, status_code=200):
+    return mock.Mock(status_code=status_code, json=mock.Mock(return_value=body))
+
+
+EDITED = {
+    "changed": True,
+    "summary": ['replaced 1 occurrence of "plan"'],
+    "blocks": "aaaaaaaa | contenido del PLAN",
+    "total_blocks": 1,
+    "applied_to_live_document": False,
+    "description_binary": base64.b64encode(b"\x01\x02\x03\x04").decode(),
+    "description_html": "<p>contenido del PLAN</p>",
+    "description_json": {"type": "doc"},
+}
+
+
+@pytest.fixture
+def live_configured(settings):
+    settings.LIVE_URL = "http://live:3000/live"
+    settings.LIVE_SERVER_SECRET_KEY = "secret"
+
+
 @pytest.mark.contract
-class TestApiKeyPageRoutes:
-    def test_requires_api_key(self, api_client, workspace, project):
-        assert api_client.get(pages_url(workspace, project)).status_code == status.HTTP_401_UNAUTHORIZED
+class TestPageBlocks:
+    def test_read_sends_the_stored_document_and_reports_edit_rights(
+        self, api_key_client, workspace, project, create_user, live_configured
+    ):
+        page = make_page(project, create_user)
+        content = {"content": "#1       | contenido del plan", "total_blocks": 1, "shown_blocks": 1, "offset": 0}
+        with mock.patch("plane.utils.page_content.requests.post", return_value=live_answer(content)) as post:
+            response = api_key_client.get(pages_url(workspace, project, f"{page.id}/blocks/?limit=5&blocks=aaaa,#2"))
+        assert response.status_code == 200
+        assert response.data["content"] == content["content"]
+        assert response.data["page"]["can_edit"] is True
+        url = post.call_args.args[0]
+        assert url.endswith(f"/page-content/{page.id}/read/")
+        payload = post.call_args.kwargs["json"]
+        assert payload["limit"] == 5 and payload["blocks"] == ["aaaa", "#2"]
+        assert payload["current_description_html"] == "<p>contenido del plan</p>"
+        assert post.call_args.kwargs["headers"] == {"live-server-secret-key": "secret"}
 
-    def test_list_and_retrieve_with_edit_flag(self, api_key_client, workspace, project, create_user, other_user):
-        own = make_page(project, create_user)
-        others_private = make_page(project, other_user, name="Privada", access=Page.PRIVATE_ACCESS)
+    def test_edit_stores_what_the_live_server_returns(
+        self, api_key_client, workspace, project, create_user, live_configured
+    ):
+        page = make_page(project, create_user)
+        ops = [{"op": "replace_text", "find": "plan", "replace": "PLAN"}]
+        with mock.patch("plane.utils.page_content.requests.post", return_value=live_answer(EDITED)) as post:
+            response = api_key_client.post(
+                pages_url(workspace, project, f"{page.id}/edit/"), {"ops": ops}, format="json"
+            )
+        assert response.status_code == 200, response.data
+        assert response.data == {
+            "changed": True,
+            "summary": EDITED["summary"],
+            "blocks": EDITED["blocks"],
+            "total_blocks": 1,
+        }
+        assert post.call_args.kwargs["json"]["ops"] == ops
+        page.refresh_from_db()
+        assert page.description_html == "<p>contenido del PLAN</p>"
+        assert bytes(page.description_binary) == b"\x01\x02\x03\x04"
 
-        listed = api_key_client.get(pages_url(workspace, project))
-        assert listed.status_code == 200
-        ids = {str(page["id"]) for page in listed.data}
-        assert str(own.id) in ids and str(others_private.id) not in ids
+    def test_rejected_edit_changes_nothing(self, api_key_client, workspace, project, create_user, live_configured):
+        page = make_page(project, create_user)
+        rejected = live_answer({"message": 'op 1 (delete): Block "ffff" not found.'}, status_code=422)
+        with mock.patch("plane.utils.page_content.requests.post", return_value=rejected):
+            response = api_key_client.post(
+                pages_url(workspace, project, f"{page.id}/edit/"),
+                {"ops": [{"op": "delete", "block": "ffff"}]},
+                format="json",
+            )
+        assert response.status_code == 422
+        assert "not found" in response.data["error"]
+        page.refresh_from_db()
+        assert page.description_html == "<p>contenido del plan</p>"
 
-        detail = api_key_client.get(pages_url(workspace, project, f"{own.id}/"))
-        assert detail.status_code == 200
-        assert detail.data["can_edit"] is True
-        assert detail.data["is_folder"] is False
+    def test_edit_guards(self, api_client, api_key_client, workspace, project, create_user, live_configured):
+        page = make_page(project, create_user)
+        assert (
+            api_key_client.post(
+                pages_url(workspace, project, f"{page.id}/edit/"), {"ops": []}, format="json"
+            ).status_code
+            == 400
+        )
 
-    def test_guest_cannot_edit_others_public_page(self, api_client, workspace, project, other_user, create_user):
+        page.is_locked = True
+        page.save()
+        with mock.patch("plane.utils.page_content.requests.post") as post:
+            locked = api_key_client.post(
+                pages_url(workspace, project, f"{page.id}/edit/"),
+                {"ops": [{"op": "replace_all", "content": "x"}]},
+                format="json",
+            )
+        assert locked.status_code == 400 and not post.called
+
         guest = User.objects.create(email="guest@plane.so", username="guest")
         ProjectMember.objects.create(project=project, member=guest, role=5, is_active=True)
         project.guest_view_all_features = True
         project.save()
-        token = APIToken.objects.create(user=guest, label="g")
-        page = make_page(project, create_user)
-        api_client.credentials(HTTP_X_API_KEY=token.token)
-        detail = api_client.get(pages_url(workspace, project, f"{page.id}/"))
-        assert detail.status_code == 200
-        assert detail.data["can_edit"] is False
-        patched = api_client.patch(
-            pages_url(workspace, project, f"{page.id}/description/"), {"description_html": "<p>x</p>"}
-        )
-        assert patched.status_code == status.HTTP_403_FORBIDDEN
-
-    def test_name_patch_allowed_but_html_content_refused(self, api_key_client, workspace, project, create_user):
-        page = make_page(project, create_user)
-        renamed = api_key_client.patch(pages_url(workspace, project, f"{page.id}/"), {"name": "Nuevo"}, format="json")
-        assert renamed.status_code == 200
-        refused = api_key_client.patch(
-            pages_url(workspace, project, f"{page.id}/"), {"description_html": "<p>pisar</p>"}, format="json"
-        )
-        assert refused.status_code == 400
-        page.refresh_from_db()
-        assert page.name == "Nuevo" and "contenido" in page.description_html
-
-    def test_description_route_for_the_live_server(self, api_key_client, workspace, project, create_user):
-        page = make_page(project, create_user)
-        stored = api_key_client.patch(
-            pages_url(workspace, project, f"{page.id}/description/"),
-            {
-                "description_html": "<p>desde live</p>",
-                "description_binary": base64.b64encode(b"\x01\x02\x03\x04").decode(),
-            },
+        page.is_locked = False
+        page.save()
+        api_client.credentials(HTTP_X_API_KEY=APIToken.objects.create(user=guest, label="g").token)
+        forbidden = api_client.post(
+            pages_url(workspace, project, f"{page.id}/edit/"),
+            {"ops": [{"op": "replace_all", "content": "x"}]},
             format="json",
         )
-        assert stored.status_code == 200, stored.content
-        binary = api_key_client.get(pages_url(workspace, project, f"{page.id}/description/"))
-        assert binary.status_code == 200
-        assert b"".join(binary.streaming_content) == b"\x01\x02\x03\x04"
+        assert forbidden.status_code == 403
 
-        page.is_locked = True
-        page.save()
-        locked = api_key_client.patch(
-            pages_url(workspace, project, f"{page.id}/description/"), {"description_html": "<p>x</p>"}, format="json"
-        )
-        assert locked.status_code == 400
-
-    def test_archive_and_restore(self, api_key_client, workspace, project, create_user):
+    def test_live_server_down(self, api_key_client, workspace, project, create_user, live_configured):
         page = make_page(project, create_user)
-        assert api_key_client.post(pages_url(workspace, project, f"{page.id}/archive/")).status_code == 200
-        page.refresh_from_db()
-        assert page.archived_at is not None
-        assert api_key_client.delete(pages_url(workspace, project, f"{page.id}/archive/")).status_code == 200
-
-    def test_lock_and_unlock(self, api_key_client, workspace, project, create_user):
-        page = make_page(project, create_user)
-        assert api_key_client.post(pages_url(workspace, project, f"{page.id}/lock/")).status_code == 204
-        page.refresh_from_db()
-        assert page.is_locked
-        assert api_key_client.delete(pages_url(workspace, project, f"{page.id}/lock/")).status_code == 204
+        with mock.patch("plane.utils.page_content.requests.post", side_effect=requests.ConnectionError("down")):
+            response = api_key_client.post(
+                pages_url(workspace, project, f"{page.id}/edit/"),
+                {"ops": [{"op": "replace_all", "content": "x"}]},
+                format="json",
+            )
+        assert response.status_code == 503
 
 
 @pytest.mark.contract

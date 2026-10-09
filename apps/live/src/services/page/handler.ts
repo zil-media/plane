@@ -15,7 +15,6 @@ export const getPageService = (documentType: TDocumentTypes, context: HocusPocus
       workspaceSlug: context.workspaceSlug,
       projectId: context.projectId,
       cookie: context.cookie,
-      apiKey: context.apiKey,
     });
   }
 

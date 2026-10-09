@@ -19,7 +19,6 @@ PUBLIC = "https://ops.example.com"
 
 @pytest.fixture()
 def ops_env(monkeypatch):
-    monkeypatch.setenv("OPS_LIVE_URL", "http://live:3000/live")
     monkeypatch.setenv("OPS_PUBLIC_URL", PUBLIC)
     monkeypatch.setenv("PLANE_INTERNAL_BASE_URL", "http://api:8000")
     monkeypatch.setenv("PLANE_MCP_EDITION", "community")
@@ -157,13 +156,9 @@ class TestOpsTools:
 
         asyncio.run(call())
         method, url, headers, kwargs = calls[0]
-        assert (method, url) == ("POST", "http://live:3000/live/agent/pages/p1/edit")
+        assert (method, url) == ("POST", "http://api:8000/api/v1/workspaces/zil/projects/pr1/pages/p1/edit/")
         assert headers == {"X-Api-Key": "plane_api_k"}
-        assert kwargs["json"] == {
-            "workspace_slug": "zil",
-            "project_id": "pr1",
-            "ops": [{"op": "replace_text", "find": "a", "replace": "b"}],
-        }
+        assert kwargs["json"] == {"ops": [{"op": "replace_text", "find": "a", "replace": "b"}]}
 
 
 class TestOpsPageBackend:
@@ -181,31 +176,31 @@ class TestOpsPageBackend:
         monkeypatch.setattr(ops_module.requests, "request", fake_request)
         return get_page_backend(PlaneClient(base_url="http://api:8000", api_key="plane_api_k"), "zil")
 
-    def test_create_writes_content_through_live(self, ops_env, monkeypatch):
+    def test_create_writes_content_as_a_block_edit(self, ops_env, monkeypatch):
         calls: list = []
         backend = self._backend(monkeypatch, {("POST", "/projects/pr1/pages/"): {"id": "p1"}}, calls)
         page = backend.create_page(CreatePage(name="Plan", description_html="# Hola", parent_id="parent-1"), "pr1")
         assert page.id == "p1"
-        assert calls[0] == (
-            "POST",
-            "http://api:8000/api/v1/workspaces/zil/projects/pr1/pages/",
-            {"name": "Plan", "parent": "parent-1"},
-        )
-        assert calls[1] == (
-            "POST",
-            "http://live:3000/live/agent/pages/p1/edit",
-            {"workspace_slug": "zil", "project_id": "pr1", "ops": [{"op": "replace_all", "content": "# Hola"}]},
-        )
+        base = "http://api:8000/api/v1/workspaces/zil/projects/pr1/pages/"
+        assert calls[0] == ("POST", base, {"name": "Plan", "parent": "parent-1"})
+        assert calls[1] == ("POST", f"{base}p1/edit/", {"ops": [{"op": "replace_all", "content": "# Hola"}]})
 
-    def test_rename_goes_through_the_document_title(self, ops_env, monkeypatch):
+    def test_rename_patches_the_name(self, ops_env, monkeypatch):
         calls: list = []
         backend = self._backend(monkeypatch, {}, calls)
         backend.update_page("p1", "pr1", UpdatePage(name="Nuevo"))
         assert calls[0] == (
-            "POST",
-            "http://live:3000/live/agent/pages/p1/rename",
-            {"workspace_slug": "zil", "project_id": "pr1", "name": "Nuevo"},
+            "PATCH",
+            "http://api:8000/api/v1/workspaces/zil/projects/pr1/pages/p1/",
+            {"name": "Nuevo"},
         )
+
+    def test_list_reads_the_paginated_results(self, ops_env, monkeypatch):
+        backend = self._backend(
+            monkeypatch, {("GET", "/projects/pr1/pages/"): {"results": [{"id": "p1", "name": "A", "parent": "x"}]}}, []
+        )
+        pages = backend.list_pages("pr1", None)
+        assert [(p.id, p.parent_id) for p in pages] == [("p1", "x")]
 
     def test_requires_project(self, ops_env, monkeypatch):
         backend = self._backend(monkeypatch, {}, [])

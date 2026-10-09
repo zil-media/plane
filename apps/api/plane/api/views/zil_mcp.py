@@ -2,13 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-"""Project pages over the API-key API (/api/v1), for the Ops MCP server and the live server.
-
-The app's page views already carry every page rule (private pages, guests, locks, archive, the
-page tree), so these are the same views with API-key auth instead of the session. Two additions:
-retrieve reports whether the caller can edit the page, and page content is never written as HTML
-here: the collaborative document is the source of truth, so agents edit through the live server
-(which stores the result through the description route below, like any editor session).
+"""Support endpoints for the Ops MCP server (apps/mcp): find pages across projects, and tell which
+person and workspace an API token stands for. Page reads/edits live in api/views/page.py.
 """
 
 # Django imports
@@ -19,57 +14,9 @@ from rest_framework import status
 from rest_framework.response import Response
 
 # Module imports
-from plane.api.middleware.api_authentication import APIKeyAuthentication
-from plane.api.rate_limit import ApiKeyRateThrottle
 from plane.api.views.base import BaseAPIView
 from plane.app.permissions import ROLE
-from plane.app.views.page.base import PagesDescriptionViewSet, PageViewSet
 from plane.db.models import APIToken, Page, ProjectMember, Workspace
-
-CONTENT_FIELDS = ("description_html", "description_binary", "description_json", "description")
-
-
-def can_edit_page(page, user, project_id):
-    if page.owned_by_id == user.id:
-        return True
-    if page.access == Page.PRIVATE_ACCESS:
-        return False
-    return ProjectMember.objects.filter(
-        project_id=project_id,
-        member=user,
-        is_active=True,
-        role__in=[ROLE.ADMIN.value, ROLE.MEMBER.value],
-    ).exists()
-
-
-class ApiKeyPageAuthMixin:
-    authentication_classes = [APIKeyAuthentication]
-    throttle_classes = [ApiKeyRateThrottle]
-
-
-class ApiPageViewSet(ApiKeyPageAuthMixin, PageViewSet):
-    def retrieve(self, request, slug, project_id, page_id=None):
-        # an agent reading a page is not a visit: keep it out of the person's recents
-        request._request.GET = request._request.GET.copy()
-        request._request.GET["track_visit"] = "false"
-        response = super().retrieve(request, slug, project_id, page_id=page_id)
-        if response.status_code == status.HTTP_200_OK:
-            page = Page.objects.get(pk=page_id)
-            response.data["is_folder"] = page.is_folder
-            response.data["can_edit"] = can_edit_page(page, request.user, project_id)
-        return response
-
-    def partial_update(self, request, slug, project_id, page_id):
-        if any(field in request.data for field in CONTENT_FIELDS):
-            return Response(
-                {"error": "Page content is edited through the page editor (MCP edit_page), not as HTML."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        return super().partial_update(request, slug, project_id, page_id)
-
-
-class ApiPagesDescriptionViewSet(ApiKeyPageAuthMixin, PagesDescriptionViewSet):
-    pass
 
 
 class ApiPageSearchEndpoint(BaseAPIView):

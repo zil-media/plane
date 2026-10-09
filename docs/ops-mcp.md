@@ -24,17 +24,18 @@ CE-verified tool set of the vendored server), plus pages:
 - `edit_page`: precise edits (replace a phrase, rewrite/insert/delete/move a block, toggle a task,
   replace all). Edits apply to the collaborative document, so they merge with people editing the
   page at the same time and only the touched blocks change.
-- `page`: create, rename, archive, restore, delete.
+- `page`: create, rename, archive, restore (no deletes through the API).
 
 ## How it is built
 
-| Piece                                                                                                      | Where                                                                               |
-| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| MCP server (vendored [plane-mcp-server-ce](https://github.com/windyboy/plane-mcp-server-ce) + Ops patches) | `apps/mcp` (see `apps/mcp/UPSTREAM.md`)                                             |
-| OAuth authorization server, consent page                                                                   | `apps/api/plane/mcp_oauth`                                                          |
-| API-key page routes, page search, whoami                                                                   | `apps/api/plane/api/views/zil_page.py`                                              |
-| Block-level page read/edit on the Yjs doc                                                                  | `apps/live/src/lib/page-edit`, `apps/live/src/controllers/agent-page.controller.ts` |
-| Routing                                                                                                    | `apps/proxy/Caddyfile.ce` (`/mcp`, `/.well-known/...`)                              |
+| Piece                                                                                                      | Where                                                                                 |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| MCP server (vendored [plane-mcp-server-ce](https://github.com/windyboy/plane-mcp-server-ce) + Ops patches) | `apps/mcp` (see `apps/mcp/UPSTREAM.md`)                                               |
+| OAuth authorization server, consent page                                                                   | `apps/api/plane/mcp_oauth`                                                            |
+| Page API (`/api/v1/.../pages/`, incl. `blocks/` and `edit/`)                                               | `apps/api/plane/api/views/page.py`                                                    |
+| Page search, whoami                                                                                        | `apps/api/plane/api/views/zil_mcp.py`                                                 |
+| Block-level read/edit on the Yjs doc (called by the API)                                                   | `apps/live/src/lib/page-edit`, `apps/live/src/controllers/page-content.controller.ts` |
+| Routing                                                                                                    | `apps/proxy/Caddyfile.ce` (`/mcp`, `/.well-known/...`)                                |
 
 ## Deploy (self-host)
 
@@ -48,10 +49,10 @@ mcp:
   environment:
     PLANE_MCP_EDITION: community
     PLANE_INTERNAL_BASE_URL: http://api:8000
-    OPS_LIVE_URL: http://live:3000/live
     OPS_PUBLIC_URL: https://ops.zil.global
-  depends_on: [api, live]
+  depends_on: [api]
 ```
 
 `APP_BASE_URL` (or `WEB_URL`) on `api` must be the public origin (`https://ops.zil.global`): it is
-the OAuth issuer and must match `OPS_PUBLIC_URL`.
+the OAuth issuer and must match `OPS_PUBLIC_URL`. Block edits use the same api → live link as the
+page API (`LIVE_BASE_URL` + `LIVE_SERVER_SECRET_KEY` on `api`).

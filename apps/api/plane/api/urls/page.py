@@ -9,6 +9,8 @@ from plane.api.views import (
     PageDetailAPIEndpoint,
     PageArchiveUnarchiveAPIEndpoint,
     PageLockUnlockAPIEndpoint,
+    PageBlocksAPIEndpoint,
+    PageEditAPIEndpoint,
 )
 
 urlpatterns = [
@@ -31,5 +33,15 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/lock/",
         PageLockUnlockAPIEndpoint.as_view(http_method_names=["post", "delete"]),
         name="page-lock-unlock",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/blocks/",
+        PageBlocksAPIEndpoint.as_view(http_method_names=["get"]),
+        name="page-blocks",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/edit/",
+        PageEditAPIEndpoint.as_view(http_method_names=["post"]),
+        name="page-edit",
     ),
 ]

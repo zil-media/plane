@@ -24,7 +24,13 @@ from plane.bgtasks.page_transaction_task import page_transaction
 from plane.bgtasks.page_version_task import track_page_version
 from plane.db.models import Page, Project, ProjectMember, UserFavorite
 from plane.utils.error_codes import ERROR_CODES
-from plane.utils.page_content import LiveServerUnavailable, apply_page_content
+from plane.utils.page_content import (
+    LiveServerUnavailable,
+    PageEditRejected,
+    apply_page_content,
+    edit_page_blocks,
+    read_page_blocks,
+)
 from plane.utils.page_tree import PageTreeError, set_archived_at_for_page_and_descendants, validate_new_parent
 from .base import BaseAPIView
 
@@ -291,3 +297,140 @@ class PageLockUnlockAPIEndpoint(PageQuerysetMixin, BaseAPIView):
         page.is_locked = False
         page.save(update_fields=["is_locked", "updated_at"])
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def can_edit_page(page, user, project_id):
+    """Owner, or an admin/member of the project on a public page (the app's page edit rule)."""
+    if page.owned_by_id == user.id:
+        return True
+    if page.access == Page.PRIVATE_ACCESS:
+        return False
+    return ProjectMember.objects.filter(
+        project_id=project_id, member=user, is_active=True, role__in=[ROLE.ADMIN.value, ROLE.MEMBER.value]
+    ).exists()
+
+
+def live_unavailable():
+    return Response(
+        {"error": "The collaborative editor server is unavailable, try again later"},
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
+
+
+class PageBlocksAPIEndpoint(PageQuerysetMixin, BaseAPIView):
+    """Read a page block by block (for agents)"""
+
+    permission_classes = [ProjectPagePermission]
+
+    def get(self, request, slug, project_id, page_id):
+        """Get a page as block-annotated markdown
+
+        One line per block: `<ref> | <markdown>`, where the ref (block id prefix, or `#n`) is what
+        `edit/` takes. Query: `offset`, `limit` (blocks) and `blocks=<ref>,<ref>` to read part of it.
+        """
+        page = self.get_queryset().get(pk=page_id)
+        if page.is_folder:
+            return page_error("PAGE_IS_FOLDER", "Folders have no content")
+        try:
+            offset = max(0, int(request.GET.get("offset", 0)))
+            limit = max(0, int(request.GET.get("limit", 0)))
+        except ValueError:
+            return Response({"error": "offset and limit must be integers"}, status=status.HTTP_400_BAD_REQUEST)
+        blocks = [ref for ref in request.GET.get("blocks", "").split(",") if ref.strip()]
+        try:
+            content = read_page_blocks(page, offset=offset, limit=limit, blocks=blocks)
+        except (LiveServerUnavailable, PageEditRejected):
+            return live_unavailable()
+        return Response(
+            {
+                "page": {
+                    "id": str(page.id),
+                    "name": page.name,
+                    "parent": str(page.parent_id) if page.parent_id else None,
+                    "is_locked": page.is_locked,
+                    "archived_at": page.archived_at,
+                    "can_edit": can_edit_page(page, request.user, project_id)
+                    and not page.is_locked
+                    and not page.archived_at,
+                    "updated_at": page.updated_at,
+                },
+                **content,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class PageEditAPIEndpoint(PageQuerysetMixin, BaseAPIView):
+    """Edit a page block by block (for agents)"""
+
+    permission_classes = [ProjectPagePermission]
+
+    MAX_OPS = 100
+
+    def post(self, request, slug, project_id, page_id):
+        """Apply block-level edits to a page
+
+        Body: `{"ops": [...]}` — replace_text, replace_block, insert, delete, move, set_attrs,
+        replace_all (see apps/live/src/lib/page-edit/ops.ts). Applied to the page's collaborative
+        document in one step, so people with the page open receive it live and keep their own
+        edits. All or nothing: if an op can't be applied the answer is 422 and nothing changes.
+        """
+        ops = request.data.get("ops")
+        if not isinstance(ops, list) or not ops or len(ops) > self.MAX_OPS:
+            return Response(
+                {"error": f"ops must be a list of 1 to {self.MAX_OPS} edits"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        if not all(isinstance(op, dict) and isinstance(op.get("op"), str) for op in ops):
+            return Response({"error": "every op needs an 'op' name"}, status=status.HTTP_400_BAD_REQUEST)
+
+        page = self.get_queryset().get(pk=page_id)
+        if page.is_folder:
+            return page_error("PAGE_IS_FOLDER", "Folders have no content")
+        if page.is_locked:
+            return page_error("PAGE_LOCKED", "Page is locked")
+        if page.archived_at:
+            return page_error("PAGE_ARCHIVED", "Page is archived")
+        if not can_edit_page(page, request.user, project_id):
+            return Response({"error": "You can't edit this page"}, status=status.HTTP_403_FORBIDDEN)
+
+        old_description_html = page.description_html
+        with transaction.atomic():
+            # same row lock as patch: a concurrent save from the live server lands after ours
+            page = Page.objects.select_for_update().get(pk=page.id)
+            try:
+                result = edit_page_blocks(page, ops)
+            except PageEditRejected as e:
+                return Response({"error": str(e)}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+            except LiveServerUnavailable:
+                return live_unavailable()
+            if result.get("changed"):
+                binary_serializer = PageBinaryUpdateSerializer(
+                    page,
+                    data={
+                        "description_binary": result["description_binary"],
+                        "description_html": result["description_html"],
+                        "description_json": result["description_json"],
+                    },
+                    partial=True,
+                )
+                binary_serializer.is_valid(raise_exception=True)
+                binary_serializer.save()
+                page.updated_by = request.user
+                page.save(update_fields=["updated_by", "updated_at"])
+
+        if result.get("changed") and page.description_html != old_description_html:
+            page_transaction.delay(
+                new_description_html=page.description_html,
+                old_description_html=old_description_html,
+                page_id=str(page_id),
+            )
+            track_page_version.delay(
+                page_id=str(page_id),
+                existing_instance=json.dumps({"description_html": old_description_html}, cls=DjangoJSONEncoder),
+                user_id=request.user.id,
+            )
+
+        return Response(
+            {key: result.get(key) for key in ("changed", "summary", "blocks", "total_blocks")},
+            status=status.HTTP_200_OK,
+        )

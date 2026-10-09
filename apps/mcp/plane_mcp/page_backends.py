@@ -174,11 +174,11 @@ class CEPageBackend:
 
 
 class OpsPageBackend:
-    """Zil Ops project pages: metadata over the API-key API, content through the live server.
+    """Zil Ops project pages over the Ops API (``/api/v1/.../pages/``).
 
-    Content is never written as HTML to the API: Ops keeps pages as a collaborative document, so
-    a content write is a ``replace_all`` edit on that document (blocks that did not change keep
-    their identity, and people with the page open receive it like any collaborator's edit).
+    Content is written as a ``replace_all`` block edit, which Ops applies to the page's
+    collaborative document: blocks that did not change keep their identity, and people with the
+    page open receive the change like any collaborator's edit. Content may be markdown or HTML.
     """
 
     def __init__(self, client: PlaneClient, workspace_slug: str):
@@ -197,20 +197,15 @@ class OpsPageBackend:
         return Page.model_validate(data)
 
     def list_pages(self, project_id: str | None, params: dict[str, Any] | None) -> list[Page]:
-        project_id = self._project_only(project_id)
-        data = self.ops.api("GET", f"projects/{project_id}/pages/", params=params or None)
-        return [self._page(page) for page in (data or [])]
+        data = self.ops.page("GET", self._project_only(project_id), params=params or None)
+        pages = data.get("results", []) if isinstance(data, dict) else (data or [])
+        return [self._page(page) for page in pages]
 
     def retrieve_page(self, page_id: str, project_id: str | None) -> Page:
-        project_id = self._project_only(project_id)
-        return self._page(self.ops.api("GET", f"projects/{project_id}/pages/{page_id}/"))
+        return self._page(self.ops.page("GET", self._project_only(project_id), page_id))
 
     def _write_content(self, page_id: str, project_id: str, content: str) -> None:
-        self.ops.live(
-            "POST",
-            f"{page_id}/edit",
-            json={**self.ops.scope(project_id), "ops": [{"op": "replace_all", "content": content}]},
-        )
+        self.ops.page("POST", project_id, page_id, "edit", json={"ops": [{"op": "replace_all", "content": content}]})
 
     def create_page(self, data: CreatePage, project_id: str | None) -> Page:
         project_id = self._project_only(project_id)
@@ -221,17 +216,12 @@ class OpsPageBackend:
             for key, value in {
                 "name": data.name,
                 "access": data.access,
-                "color": data.color,
-                "view_props": data.view_props,
                 "logo_props": data.logo_props,
                 "parent": data.parent_id,
-                "external_id": getattr(data, "external_id", None),
-                "external_source": getattr(data, "external_source", None),
             }.items()
             if value is not None
         }
-        created = self.ops.api("POST", f"projects/{project_id}/pages/", json=body)
-        page_id = str(created["id"])
+        page_id = str(self.ops.page("POST", project_id, json=body)["id"])
         if data.description_html:
             try:
                 self._write_content(page_id, project_id, data.description_html)
@@ -243,26 +233,27 @@ class OpsPageBackend:
                     exc.response,
                 ) from exc
         if data.is_locked:
-            self.ops.api("POST", f"projects/{project_id}/pages/{page_id}/lock/")
+            self.ops.page("POST", project_id, page_id, "lock")
         return self.retrieve_page(page_id, project_id)
 
     def update_page(self, page_id: str, project_id: str, data: UpdatePage) -> Page:
         if data.name is not None:
-            self.ops.live("POST", f"{page_id}/rename", json={**self.ops.scope(project_id), "name": data.name})
+            # Ops applies the name to the document's title too, so open editors show it
+            self.ops.page("PATCH", project_id, page_id, json={"name": data.name})
         if data.description_html is not None:
             self._write_content(page_id, project_id, data.description_html)
         return self.retrieve_page(page_id, project_id)
 
     def archive_page(self, page_id: str, project_id: str) -> Page:
-        self.ops.api("POST", f"projects/{project_id}/pages/{page_id}/archive/")
+        self.ops.page("POST", project_id, page_id, "archive")
         return self.retrieve_page(page_id, project_id)
 
     def unarchive_page(self, page_id: str, project_id: str) -> Page:
-        self.ops.api("DELETE", f"projects/{project_id}/pages/{page_id}/archive/")
+        self.ops.page("DELETE", project_id, page_id, "archive")
         return self.retrieve_page(page_id, project_id)
 
     def delete_page(self, page_id: str, project_id: str) -> None:
-        self.ops.api("DELETE", f"projects/{project_id}/pages/{page_id}/")
+        raise ValueError("Zil Ops doesn't delete pages through the API; archive the page instead.")
 
 
 _CE_SESSION_REQUIRED = (

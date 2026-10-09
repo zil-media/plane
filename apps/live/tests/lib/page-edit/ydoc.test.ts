@@ -2,7 +2,7 @@ import { prosemirrorToYXmlFragment } from "y-prosemirror";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { docFromHTML } from "@/lib/page-edit/schema";
-import { applyEditsToYDoc, docFromYDoc, setTitleInYDoc } from "@/lib/page-edit/ydoc";
+import { applyEditsToYDoc, docFromYDoc } from "@/lib/page-edit/ydoc";
 
 const ID = (n: number) => `${String(n).padStart(8, "0")}-0000-4000-8000-000000000000`;
 
@@ -59,11 +59,5 @@ describe("page edits on the Yjs document", () => {
     const result = applyEditsToYDoc(ydoc, [{ op: "replace_text", find: "a", replace: "a" }]);
     expect(result.changed).toBe(false);
     expect(Y.encodeStateAsUpdate(ydoc, before).byteLength).toBeLessThanOrEqual(2);
-  });
-
-  it("sets the title fragment the editor shows", () => {
-    const ydoc = pageYDoc("<p>a</p>");
-    setTitleInYDoc(ydoc, "Nuevo título");
-    expect(ydoc.getXmlFragment("title").toString()).toContain("Nuevo título");
   });
 });

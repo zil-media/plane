@@ -14,7 +14,11 @@ import {
   getBinaryDataFromDocumentEditorHTMLString,
 } from "@plane/editor";
 
-type TController = { applyContent: (req: Request, res: Response) => Promise<unknown> };
+type TController = {
+  applyContent: (req: Request, res: Response) => Promise<unknown>;
+  editBlocks: (req: Request, res: Response) => Promise<unknown>;
+  readBlocks: (req: Request, res: Response) => Promise<unknown>;
+};
 type TResult = { status: number; body: Record<string, unknown> };
 
 let PageContentController: new (server: Hocuspocus) => TController;
@@ -27,7 +31,12 @@ beforeAll(async () => {
   });
 });
 
-const call = async (server: Hocuspocus, pageId: string, body: Record<string, unknown>): Promise<TResult> => {
+const call = async (
+  server: Hocuspocus,
+  pageId: string,
+  body: Record<string, unknown>,
+  action: "applyContent" | "editBlocks" | "readBlocks" = "applyContent"
+): Promise<TResult> => {
   const result: TResult = { status: 0, body: {} };
   const res = {
     status(code: number) {
@@ -39,7 +48,7 @@ const call = async (server: Hocuspocus, pageId: string, body: Record<string, unk
       return this;
     },
   } as unknown as Response;
-  await new PageContentController(server).applyContent({ params: { pageId }, body } as unknown as Request, res);
+  await new PageContentController(server)[action]({ params: { pageId }, body } as unknown as Request, res);
   return result;
 };
 
@@ -116,5 +125,81 @@ describe("PageContentController", () => {
   it("rejects a body with nothing to apply", async () => {
     const result = await call(new Hocuspocus(), "page-4", { current_description_html: STORED_HTML });
     expect(result.status).toBe(400);
+  });
+});
+
+describe("PageContentController block edits", () => {
+  const BLOCKS_HTML =
+    '<p data-id="aaaaaaaa-0000-4000-8000-000000000001">Uno</p><p data-id="bbbbbbbb-0000-4000-8000-000000000002">Dos</p>';
+  const stored = () =>
+    Buffer.from(getBinaryDataFromDocumentEditorHTMLString(BLOCKS_HTML, "Runbook")).toString("base64");
+
+  it("reads the stored page as block-annotated markdown", async () => {
+    const result = await call(new Hocuspocus(), "page-5", { current_description_binary: stored() }, "readBlocks");
+    expect(result.status).toBe(200);
+    expect(result.body.total_blocks).toBe(2);
+    expect(String(result.body.content).split("\n")).toHaveLength(2);
+  });
+
+  it("edits the stored page and returns what to persist plus the touched blocks", async () => {
+    const result = await call(
+      new Hocuspocus(),
+      "page-6",
+      { current_description_binary: stored(), ops: [{ op: "replace_text", find: "Dos", replace: "Dos y medio" }] },
+      "editBlocks"
+    );
+    expect(result.status).toBe(200);
+    expect(result.body.changed).toBe(true);
+    expect(result.body.applied_to_live_document).toBe(false);
+    expect(plain(result.body.description_html)).toContain("Dos y medio");
+    expect(String(result.body.blocks)).toContain("Dos y medio");
+  });
+
+  it("edits the open document so connected editors receive it and keep their own typing", async () => {
+    const server = new Hocuspocus();
+    const liveDocument = new Document("page-7");
+    Y.applyUpdate(liveDocument, convertBase64StringToBinaryData(stored()));
+    server.documents.set("page-7", liveDocument);
+    const editor = new Y.Doc();
+    Y.applyUpdate(editor, Y.encodeStateAsUpdate(liveDocument));
+    const firstParagraph = editor.getXmlFragment("default").get(0) as Y.XmlElement;
+    (firstParagraph.get(0) as Y.XmlText).insert(3, " editado");
+
+    const result = await call(
+      server,
+      "page-7",
+      { ops: [{ op: "insert", at: "end", content: "Agregado por el agente" }] },
+      "editBlocks"
+    );
+    expect(result.status).toBe(200);
+    expect(result.body.applied_to_live_document).toBe(true);
+
+    Y.applyUpdate(editor, Y.encodeStateAsUpdate(liveDocument));
+    Y.applyUpdate(liveDocument, Y.encodeStateAsUpdate(editor));
+    for (const doc of [liveDocument, editor]) {
+      expect(plain(formats(doc).contentHTML)).toBe("<p>Uno editado</p><p>Dos</p><p>Agregado por el agente</p>");
+    }
+  });
+
+  it("answers 422 and changes nothing when an op fails", async () => {
+    const server = new Hocuspocus();
+    const liveDocument = new Document("page-8");
+    Y.applyUpdate(liveDocument, convertBase64StringToBinaryData(stored()));
+    server.documents.set("page-8", liveDocument);
+    const before = Y.encodeStateVector(liveDocument);
+    const result = await call(
+      server,
+      "page-8",
+      {
+        ops: [
+          { op: "replace_text", find: "Uno", replace: "1" },
+          { op: "delete", block: "ffffffff" },
+        ],
+      },
+      "editBlocks"
+    );
+    expect(result.status).toBe(422);
+    expect(String(result.body.message)).toContain("op 2 (delete)");
+    expect(Y.encodeStateAsUpdate(liveDocument, before).byteLength).toBeLessThanOrEqual(2);
   });
 });

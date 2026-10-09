@@ -15,7 +15,7 @@ from .work_item import urlpatterns as work_item_patterns
 from .invite import urlpatterns as invite_patterns
 from .sticky import urlpatterns as sticky_patterns
 from .page import urlpatterns as page_patterns
-from .zil_page import urlpatterns as zil_page_patterns
+from .zil_mcp import urlpatterns as zil_mcp_patterns
 
 urlpatterns = [
     *asset_patterns,
@@ -31,5 +31,5 @@ urlpatterns = [
     *invite_patterns,
     *sticky_patterns,
     *page_patterns,
-    *zil_page_patterns,
+    *zil_mcp_patterns,
 ]

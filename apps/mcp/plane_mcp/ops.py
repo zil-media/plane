@@ -1,8 +1,8 @@
 """Zil Ops: the Plane fork this server is vendored into (apps/mcp in the Ops monorepo).
 
-Ops serves project pages over its API-key API (``/api/v1/.../pages/``) and edits page content
-through its live server, on the collaborative document, block by block. Everything Ops-specific in
-this package goes through here; it is active when ``OPS_LIVE_URL`` is set.
+Ops serves project pages over its API-key API (``/api/v1/.../pages/``), including block-level reads
+and edits that Ops applies to the page's collaborative document. Everything Ops-specific in this
+package goes through here; it is active when ``OPS_PUBLIC_URL`` is set.
 """
 
 from __future__ import annotations
@@ -18,15 +18,11 @@ TIMEOUT_SECONDS = 30
 
 
 def ops_enabled() -> bool:
-    return bool(os.getenv("OPS_LIVE_URL", "").strip())
+    return bool(os.getenv("OPS_PUBLIC_URL", "").strip())
 
 
 def api_base_url() -> str:
     return (os.getenv("PLANE_INTERNAL_BASE_URL") or os.getenv("PLANE_BASE_URL", "")).rstrip("/")
-
-
-def live_base_url() -> str:
-    return os.getenv("OPS_LIVE_URL", "").rstrip("/")
 
 
 def _error(response: requests.Response) -> HttpError:
@@ -43,7 +39,7 @@ def _error(response: requests.Response) -> HttpError:
 
 
 class OpsSession:
-    """HTTP calls to the Ops API and live server with the caller's API token."""
+    """HTTP calls to the Ops API with the caller's API token."""
 
     def __init__(self, client: PlaneClient, workspace_slug: str):
         api_key = client.config.api_key
@@ -65,8 +61,6 @@ class OpsSession:
     def api(self, method: str, path: str, **kwargs: Any) -> Any:
         return self._request(method, f"{api_base_url()}/api/v1/workspaces/{self.workspace_slug}/{path}", **kwargs)
 
-    def live(self, method: str, path: str, **kwargs: Any) -> Any:
-        return self._request(method, f"{live_base_url()}/agent/pages/{path}", **kwargs)
-
-    def scope(self, project_id: str) -> dict[str, str]:
-        return {"workspace_slug": self.workspace_slug, "project_id": project_id}
+    def page(self, method: str, project_id: str, page_id: str = "", action: str = "", **kwargs: Any) -> Any:
+        path = f"projects/{project_id}/pages/" + (f"{page_id}/" if page_id else "") + (f"{action}/" if action else "")
+        return self.api(method, path, **kwargs)

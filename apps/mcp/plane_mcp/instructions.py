@@ -20,6 +20,6 @@ Pages live in projects and form a tree (folders hold pages). Find them with sear
 2. edit_page(page_id, project_id, ops=[...]) changes exactly what you name: replace_text for
    words inside a block, replace_block / insert / delete / move for blocks. Never rewrite the
    whole page to change part of it; people may be editing it at the same time.
-3. Create, rename, archive or delete pages with the page tool (action=create|update|archive|...);
-   page content in create/update is markdown.
+3. Create, rename, archive or restore pages with the page tool (action=create|update|archive|
+   unarchive); page content in create/update is markdown. Ops doesn't delete pages via the API.
 """
