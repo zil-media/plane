@@ -159,12 +159,14 @@ class FeatureRequestCommentEndpoint(BaseAPIView):
                 feature.comments, bug_ops.comment_entry(request.user, role, data["text"])
             )
             feature.save(update_fields=["comments", "updated_at"])
-            # Answering the agent's questions sends the request back to analysis.
-            if feature.status == S.NEEDS_INFO and is_requester:
-                transaction.on_commit(
-                    lambda: feature_ops.request_spec(feature, "quien pidió respondió las preguntas", force=True)
-                )
-        return Response(feature_summary(feature))
+            answers_agent = feature.status == S.NEEDS_INFO and is_requester
+        if not answers_agent:
+            return Response(feature_summary(feature))
+        # Answering the agent's questions sends the request back to analysis. After the commit, and
+        # with the result in the answer: the comment always lands, but the analysis may not restart
+        # (feature agent off), and the panel has to say which one happened.
+        queued, reason = feature_ops.request_spec(feature, "quien pidió respondió las preguntas", force=True)
+        return Response({**feature_summary(feature), "respec": {"queued": queued, "reason": reason}})
 
 
 class FeatureRequestRespecEndpoint(BaseAPIView):

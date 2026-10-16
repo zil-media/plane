@@ -131,7 +131,10 @@
       "what_next": "Qué sigue",
       "how_to": "Cómo se hace",
       "what_we_did": "Qué se hizo",
-      "conversation": "Conversación"
+      "conversation": "Conversación",
+      "respec": "Rehacer el análisis ({runs}/{max})",
+      "respec_done": "Análisis relanzado",
+      "respec_not_done": "El análisis no se relanzó"
     },
     "impact": {
       "low": "Bajo",
@@ -164,7 +167,12 @@
       "hold": "Pausar",
       "reject": "Rechazar",
       "flag_toggle": "Activado para todos",
-      "open_pr": "Abrir pull request"
+      "open_pr": "Abrir pull request",
+      "retry_build": "Volver a intentar el desarrollo",
+      "start_now": "Empezar el desarrollo ahora",
+      "resume_build": "Reanudar el desarrollo",
+      "reject_reason_placeholder": "Por qué no se va a construir (le llega a quien la pidió)",
+      "reject_confirm": "Rechazar"
     },
     "settings": {
       "bug_agent": "Arreglo automático de problemas",
@@ -216,6 +224,40 @@
         "rejected_by": "Rechazada por {name}.",
         "on_hold": "En pausa: no avanza hasta que alguien la retome."
       }
+    },
+    "review": {
+      "checking": "Leyendo lo que escribió…",
+      "ready": "Con esto alcanza para trabajarlo.",
+      "one_missing": "Faltaría un dato",
+      "some_missing": "Faltarían un par de datos",
+      "hint": "Conteste lo que sepa: se suma a su pedido. Si no lo sabe, envíelo igual.",
+      "answer_placeholder": "Su respuesta (opcional)"
+    },
+    "consult": {
+      "title": "El agente necesita su respuesta para seguir",
+      "intro": "No avanza hasta que le conteste. Escríbalo con sus palabras: apenas responda, el análisis se rehace solo.",
+      "placeholder": "Respóndale acá, como se lo explicaría a un compañero…",
+      "send": "Responder",
+      "relaunched": "Análisis relanzado: se está rehaciendo con su respuesta.",
+      "not_relaunched": "Su respuesta quedó registrada, pero el análisis no se relanzó solo. Un admin lo va a retomar.",
+      "not_relaunched_off": "Su respuesta quedó registrada, pero el análisis no se relanzó: el agente de sugerencias está apagado."
+    },
+    "next": {
+      "analyzing": "La estamos analizando. Le avisamos cuando esté lista para decidir.",
+      "needs_info_you": "El agente necesita que le conteste antes de seguir.",
+      "needs_info": "Esperando que quien la pidió conteste las preguntas del agente.",
+      "spec_ready_you": "El análisis está listo: falta que la apruebe.",
+      "spec_ready": "El análisis está listo: falta que un admin la apruebe.",
+      "approved": "Ya está aprobada: el desarrollo arranca solo apenas se libere el turno.",
+      "stuck_you": "El desarrollo se frenó y hace falta una decisión suya.",
+      "stuck": "El desarrollo se frenó: no avanza hasta que un admin lo destrabe.",
+      "building": "Se está desarrollando ahora.",
+      "in_review": "Ya está hecha: falta la revisión final antes de publicarla.",
+      "queued": "Pasó todos los controles: sale en la próxima versión.",
+      "merged_on": "Ya está publicada y activada.",
+      "merged_off": "Ya está publicada: falta activarla.",
+      "on_hold": "Está pausada: no avanza hasta que un admin la reanude.",
+      "rejected": "No se va a construir."
     }
   }
 }

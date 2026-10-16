@@ -131,7 +131,10 @@
       "what_next": "Cosa succede ora",
       "how_to": "Come si fa",
       "what_we_did": "Cosa abbiamo fatto",
-      "conversation": "Conversazione"
+      "conversation": "Conversazione",
+      "respec": "Rifai l'analisi ({runs}/{max})",
+      "respec_done": "Analisi rilanciata",
+      "respec_not_done": "L'analisi non è stata rilanciata"
     },
     "impact": {
       "low": "Basso",
@@ -164,7 +167,12 @@
       "hold": "Metti in pausa",
       "reject": "Rifiuta",
       "flag_toggle": "Attivato per tutti",
-      "open_pr": "Apri la pull request"
+      "open_pr": "Apri la pull request",
+      "retry_build": "Riprova lo sviluppo",
+      "start_now": "Avvia lo sviluppo ora",
+      "resume_build": "Riprendi lo sviluppo",
+      "reject_reason_placeholder": "Perché non verrà realizzata (arriva a chi l'ha richiesta)",
+      "reject_confirm": "Rifiuta"
     },
     "settings": {
       "bug_agent": "Correzione automatica dei problemi",
@@ -216,6 +224,40 @@
         "rejected_by": "Rifiutato da {name}.",
         "on_hold": "In pausa: non avanza finché qualcuno non lo riprende."
       }
+    },
+    "review": {
+      "checking": "Sto leggendo quello che ha scritto…",
+      "ready": "Basta così per lavorarci.",
+      "one_missing": "Manca un dato",
+      "some_missing": "Mancano un paio di dati",
+      "hint": "Risponda a ciò che sa: viene aggiunto alla sua richiesta. Se non lo sa, la invii comunque.",
+      "answer_placeholder": "La sua risposta (facoltativa)"
+    },
+    "consult": {
+      "title": "L'agente ha bisogno della sua risposta per continuare",
+      "intro": "Non va avanti finché non risponde. Lo scriva con parole sue: appena risponde, l'analisi riparte da sola.",
+      "placeholder": "Risponda qui, come lo spiegherebbe a un collega…",
+      "send": "Rispondi",
+      "relaunched": "Analisi rilanciata: la si sta rifacendo con la sua risposta.",
+      "not_relaunched": "La sua risposta è stata registrata, ma l'analisi non è ripartita da sola. Un admin la riprenderà.",
+      "not_relaunched_off": "La sua risposta è stata registrata, ma l'analisi non è ripartita: l'agente dei suggerimenti è disattivato."
+    },
+    "next": {
+      "analyzing": "La stiamo analizzando. La avvisiamo quando sarà pronta per una decisione.",
+      "needs_info_you": "L'agente ha bisogno della sua risposta prima di continuare.",
+      "needs_info": "In attesa che chi l'ha richiesta risponda alle domande dell'agente.",
+      "spec_ready_you": "L'analisi è pronta: manca la sua approvazione.",
+      "spec_ready": "L'analisi è pronta: manca l'approvazione di un admin.",
+      "approved": "Approvata: lo sviluppo parte da solo appena si libera un posto.",
+      "stuck_you": "Lo sviluppo si è fermato e serve una sua decisione.",
+      "stuck": "Lo sviluppo si è fermato: non va avanti finché un admin non lo sblocca.",
+      "building": "È in sviluppo adesso.",
+      "in_review": "È pronta: manca la revisione finale prima di pubblicarla.",
+      "queued": "Ha superato tutti i controlli: esce nella prossima versione.",
+      "merged_on": "È pubblicata e attivata.",
+      "merged_off": "È pubblicata: manca attivarla.",
+      "on_hold": "È in pausa: non va avanti finché un admin non la riprende.",
+      "rejected": "Non verrà realizzata."
     }
   }
 }

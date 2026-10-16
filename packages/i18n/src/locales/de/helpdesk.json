@@ -131,7 +131,10 @@
       "what_next": "Wie es weitergeht",
       "how_to": "So geht es",
       "what_we_did": "Was wir getan haben",
-      "conversation": "Unterhaltung"
+      "conversation": "Unterhaltung",
+      "respec": "Analyse neu erstellen ({runs}/{max})",
+      "respec_done": "Analyse neu gestartet",
+      "respec_not_done": "Die Analyse wurde nicht neu gestartet"
     },
     "impact": {
       "low": "Gering",
@@ -164,7 +167,12 @@
       "hold": "Pausieren",
       "reject": "Ablehnen",
       "flag_toggle": "Für alle aktiviert",
-      "open_pr": "Pull-Request öffnen"
+      "open_pr": "Pull-Request öffnen",
+      "retry_build": "Entwicklung erneut versuchen",
+      "start_now": "Entwicklung jetzt starten",
+      "resume_build": "Entwicklung fortsetzen",
+      "reject_reason_placeholder": "Warum es nicht umgesetzt wird (geht an die anfragende Person)",
+      "reject_confirm": "Ablehnen"
     },
     "settings": {
       "bug_agent": "Automatische Fehlerbehebung",
@@ -216,6 +224,40 @@
         "rejected_by": "Abgelehnt von {name}.",
         "on_hold": "Pausiert: Geht erst weiter, wenn jemand ihn fortsetzt."
       }
+    },
+    "review": {
+      "checking": "Wir lesen, was Sie geschrieben haben…",
+      "ready": "Das reicht, um daran zu arbeiten.",
+      "one_missing": "Eine Angabe fehlt noch",
+      "some_missing": "Ein paar Angaben fehlen noch",
+      "hint": "Beantworten Sie, was Sie wissen: Es wird Ihrer Anfrage hinzugefügt. Wenn nicht, senden Sie sie trotzdem.",
+      "answer_placeholder": "Ihre Antwort (optional)"
+    },
+    "consult": {
+      "title": "Der Agent braucht Ihre Antwort, um weiterzumachen",
+      "intro": "Es geht erst weiter, wenn Sie antworten. Schreiben Sie es in Ihren Worten: Sobald Sie antworten, startet die Analyse von selbst neu.",
+      "placeholder": "Antworten Sie hier, so wie Sie es einem Kollegen erklären würden…",
+      "send": "Antworten",
+      "relaunched": "Analyse neu gestartet: Sie wird mit Ihrer Antwort neu erstellt.",
+      "not_relaunched": "Ihre Antwort wurde gespeichert, aber die Analyse ist nicht von selbst neu gestartet. Ein Admin kümmert sich darum.",
+      "not_relaunched_off": "Ihre Antwort wurde gespeichert, aber die Analyse ist nicht neu gestartet: Der Vorschlags-Agent ist ausgeschaltet."
+    },
+    "next": {
+      "analyzing": "Wir analysieren es. Wir melden uns, sobald eine Entscheidung ansteht.",
+      "needs_info_you": "Der Agent braucht Ihre Antwort, bevor er weitermachen kann.",
+      "needs_info": "Wartet darauf, dass die anfragende Person die Fragen des Agenten beantwortet.",
+      "spec_ready_you": "Die Analyse ist fertig: Sie müssen sie noch genehmigen.",
+      "spec_ready": "Die Analyse ist fertig: Ein Admin muss sie noch genehmigen.",
+      "approved": "Genehmigt: Die Entwicklung startet von selbst, sobald ein Platz frei wird.",
+      "stuck_you": "Die Entwicklung ist ins Stocken geraten und braucht Ihre Entscheidung.",
+      "stuck": "Die Entwicklung ist ins Stocken geraten: Es geht erst weiter, wenn ein Admin sie freigibt.",
+      "building": "Wird gerade entwickelt.",
+      "in_review": "Ist fertig: Vor der Veröffentlichung fehlt noch die abschließende Prüfung.",
+      "queued": "Hat alle Prüfungen bestanden: Kommt mit der nächsten Version.",
+      "merged_on": "Ist veröffentlicht und aktiviert.",
+      "merged_off": "Ist veröffentlicht: Muss noch aktiviert werden.",
+      "on_hold": "Ist pausiert: Es geht erst weiter, wenn ein Admin sie fortsetzt.",
+      "rejected": "Wird nicht umgesetzt."
     }
   }
 }

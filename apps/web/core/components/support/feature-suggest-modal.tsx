@@ -16,6 +16,7 @@ import { cn } from "@plane/utils";
 import type { TFeaturePriority } from "@/services/support.service";
 import { supportService } from "@/services/support.service";
 import { MAX_ATTACHMENTS, compressImage, uploadSupportImage } from "./attachments";
+import { DraftReview } from "./draft-review";
 
 type Props = {
   isOpen: boolean;
@@ -36,6 +37,8 @@ export function FeatureSuggestModal(props: Props) {
   const [step, setStep] = useState<1 | 2 | "sent">(1);
   const [title, setTitle] = useState("");
   const [problem, setProblem] = useState("");
+  // Answers to the draft review, appended to the problem on send (see DraftReview).
+  const [reviewAnswers, setReviewAnswers] = useState("");
   const [desiredOutcome, setDesiredOutcome] = useState("");
   const [priority, setPriority] = useState<TFeaturePriority>("media");
   const [attachments, setAttachments] = useState<TAttachment[]>([]);
@@ -49,6 +52,7 @@ export function FeatureSuggestModal(props: Props) {
     setStep(1);
     setTitle("");
     setProblem("");
+    setReviewAnswers("");
     setDesiredOutcome("");
     setPriority("media");
     setAttachments([]);
@@ -82,7 +86,7 @@ export function FeatureSuggestModal(props: Props) {
     try {
       await supportService.createFeatureRequest({
         title: title.trim(),
-        problem: problem.trim(),
+        problem: [problem.trim(), reviewAnswers.trim()].filter(Boolean).join("\n\n"),
         desired_outcome: desiredOutcome.trim(),
         priority,
         source_url: window.location.pathname,
@@ -148,15 +152,28 @@ export function FeatureSuggestModal(props: Props) {
                 {t("helpdesk.suggest.why_hint")}
               </span>
             </label>
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" size="lg" onClick={handleClose}>
-                {t("helpdesk.cancel")}
-              </Button>
-              <Button variant="primary" size="lg" disabled={!titleOk || !problemOk} onClick={() => setStep(2)}>
-                {t("helpdesk.suggest.next")}
-              </Button>
-            </div>
           </>
+        )}
+
+        {/* Mounted through step 2 (hidden): unmounting would drop the answers on the way back. */}
+        <DraftReview
+          kind="feature"
+          title={title}
+          text={problem}
+          enabled={step !== "sent"}
+          onAnswersChange={setReviewAnswers}
+          className={step === 1 ? "" : "hidden"}
+        />
+
+        {step === 1 && (
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" size="lg" onClick={handleClose}>
+              {t("helpdesk.cancel")}
+            </Button>
+            <Button variant="primary" size="lg" disabled={!titleOk || !problemOk} onClick={() => setStep(2)}>
+              {t("helpdesk.suggest.next")}
+            </Button>
+          </div>
         )}
 
         {step === 2 && (

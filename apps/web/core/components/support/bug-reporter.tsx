@@ -18,6 +18,7 @@ import { getConsoleEntries } from "@/lib/support/console-capture";
 import { getSystemInfo, getViewport } from "@/lib/support/system-info";
 import { supportService } from "@/services/support.service";
 import { MAX_ATTACHMENTS, compressImage, uploadSupportImage } from "./attachments";
+import { DraftReview } from "./draft-review";
 
 type TImage = {
   key: string;
@@ -59,6 +60,8 @@ export function BugReporter(props: Props) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [description, setDescription] = useState("");
+  // Answers to the draft review, appended to the description on send (see DraftReview).
+  const [reviewAnswers, setReviewAnswers] = useState("");
   const [urgent, setUrgent] = useState(false);
   const [images, setImages] = useState<TImage[]>([]);
   const [capturing, setCapturing] = useState(false);
@@ -71,6 +74,7 @@ export function BugReporter(props: Props) {
 
   const reset = useCallback(() => {
     setDescription("");
+    setReviewAnswers("");
     setUrgent(false);
     countRef.current = 0;
     setImages((current) => {
@@ -156,7 +160,7 @@ export function BugReporter(props: Props) {
     setSubmitting(true);
     try {
       await supportService.createBugReport({
-        description: description.trim(),
+        description: [description.trim(), reviewAnswers.trim()].filter(Boolean).join("\n\n"),
         urgent,
         url: window.location.pathname + window.location.search,
         user_agent: window.navigator.userAgent,
@@ -186,7 +190,7 @@ export function BugReporter(props: Props) {
       data-support-panel=""
       role="dialog"
       aria-label={t("helpdesk.reporter.title")}
-      className="fixed right-4 bottom-4 z-40 flex w-[380px] max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-lg border border-subtle bg-surface-1 p-4 shadow-raised-200"
+      className="fixed right-4 bottom-4 z-40 flex max-h-[calc(100vh-2rem)] w-[380px] max-w-[calc(100vw-2rem)] flex-col gap-3 overflow-y-auto rounded-lg border border-subtle bg-surface-1 p-4 shadow-raised-200"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-body-sm-medium text-primary">
@@ -229,6 +233,7 @@ export function BugReporter(props: Props) {
             placeholder={t("helpdesk.reporter.placeholder")}
             className="min-h-28 w-full text-body-xs-regular"
           />
+          <DraftReview kind="bug" text={description} onAnswersChange={setReviewAnswers} />
 
           <div className="flex flex-wrap items-center gap-2">
             {images.map((image) => (

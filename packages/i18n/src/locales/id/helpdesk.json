@@ -131,7 +131,10 @@
       "what_next": "Langkah berikutnya",
       "how_to": "Cara melakukannya",
       "what_we_did": "Yang kami lakukan",
-      "conversation": "Percakapan"
+      "conversation": "Percakapan",
+      "respec": "Ulangi analisis ({runs}/{max})",
+      "respec_done": "Analisis dimulai ulang",
+      "respec_not_done": "Analisis tidak dimulai ulang"
     },
     "impact": {
       "low": "Rendah",
@@ -164,7 +167,12 @@
       "hold": "Jeda",
       "reject": "Tolak",
       "flag_toggle": "Diaktifkan untuk semua orang",
-      "open_pr": "Buka pull request"
+      "open_pr": "Buka pull request",
+      "retry_build": "Coba pengembangan lagi",
+      "start_now": "Mulai pengembangan sekarang",
+      "resume_build": "Lanjutkan pengembangan",
+      "reject_reason_placeholder": "Alasan tidak akan dibangun (dikirim ke pengusul)",
+      "reject_confirm": "Tolak"
     },
     "settings": {
       "bug_agent": "Perbaikan masalah otomatis",
@@ -216,6 +224,40 @@
         "rejected_by": "Ditolak oleh {name}.",
         "on_hold": "Dijeda: tidak akan berjalan sampai seseorang melanjutkannya."
       }
+    },
+    "review": {
+      "checking": "Membaca yang Anda tulis…",
+      "ready": "Ini sudah cukup untuk dikerjakan.",
+      "one_missing": "Ada satu data yang kurang",
+      "some_missing": "Ada beberapa data yang kurang",
+      "hint": "Jawab yang Anda ketahui: akan ditambahkan ke permintaan Anda. Jika tidak tahu, kirim saja.",
+      "answer_placeholder": "Jawaban Anda (opsional)"
+    },
+    "consult": {
+      "title": "Agen membutuhkan jawaban Anda untuk melanjutkan",
+      "intro": "Tidak akan berlanjut sampai Anda menjawab. Tulis dengan kata-kata Anda sendiri: begitu Anda menjawab, analisis akan dimulai ulang dengan sendirinya.",
+      "placeholder": "Jawab di sini, seperti Anda menjelaskannya kepada rekan kerja…",
+      "send": "Jawab",
+      "relaunched": "Analisis dimulai ulang: sedang dibuat ulang dengan jawaban Anda.",
+      "not_relaunched": "Jawaban Anda tersimpan, tetapi analisis tidak dimulai ulang dengan sendirinya. Admin akan menindaklanjutinya.",
+      "not_relaunched_off": "Jawaban Anda tersimpan, tetapi analisis tidak dimulai ulang: agen saran sedang dimatikan."
+    },
+    "next": {
+      "analyzing": "Kami sedang menganalisisnya. Kami akan memberi tahu Anda saat siap untuk diputuskan.",
+      "needs_info_you": "Agen membutuhkan jawaban Anda sebelum melanjutkan.",
+      "needs_info": "Menunggu pengusul menjawab pertanyaan agen.",
+      "spec_ready_you": "Analisis sudah siap: tinggal persetujuan Anda.",
+      "spec_ready": "Analisis sudah siap: tinggal persetujuan admin.",
+      "approved": "Disetujui: pengembangan dimulai sendiri begitu ada slot kosong.",
+      "stuck_you": "Pengembangan terhenti dan membutuhkan keputusan Anda.",
+      "stuck": "Pengembangan terhenti: tidak akan berlanjut sampai admin membukanya.",
+      "building": "Sedang dikembangkan.",
+      "in_review": "Sudah selesai: tinggal tinjauan akhir sebelum dipublikasikan.",
+      "queued": "Lolos semua pemeriksaan: rilis di versi berikutnya.",
+      "merged_on": "Sudah dipublikasikan dan diaktifkan.",
+      "merged_off": "Sudah dipublikasikan: tinggal diaktifkan.",
+      "on_hold": "Dijeda: tidak akan berlanjut sampai admin melanjutkannya.",
+      "rejected": "Tidak akan dibangun."
     }
   }
 }

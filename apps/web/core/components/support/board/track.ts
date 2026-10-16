@@ -174,7 +174,8 @@ export function computeFeatureTrack(feature: TFeatureRequestDetail): TTrack {
     state: buildState,
     waiting: buildState === "active" && feature.build_blocked,
     at: buildState !== "pending" ? (build.claimed_at ?? null) : null,
-    sub: progressSteps(build.progress, build.claimed_at, buildState === "active"),
+    // A blocked build isn't being worked on: no "the agent is working" placeholder for it.
+    sub: progressSteps(build.progress, build.claimed_at, buildState === "active" && !feature.build_blocked),
   });
 
   if (status === "in_review")

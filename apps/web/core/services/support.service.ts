@@ -139,6 +139,8 @@ export type TFeatureRequestDetail = TFeatureRequest & {
   desired_outcome: string;
   source_url: string;
   spec: TFeatureSpec;
+  /** Impact analyses run so far; the agent re-runs it on its own up to 3. */
+  spec_runs: number;
   approval: { by?: string; by_name?: string; at?: string; notes?: string };
   rejection: { by_name?: string; at?: string; notes?: string };
   build: TFeatureBuild;
@@ -176,6 +178,13 @@ export type TAutoBugReport = {
   console_logs: TConsoleEntry[];
   workspace_slug: string;
 };
+
+/** Whether answering the agent sent the request back to analysis, and why not when it didn't. */
+export type TRespecResult = { queued: boolean; reason: string };
+
+export type TDraftKind = "bug" | "feature";
+export type TDraftQuestion = { question: string; why?: string };
+export type TDraftReview = { ready: boolean; questions: TDraftQuestion[] };
 
 export type TCreateFeatureRequest = {
   title: string;
@@ -252,8 +261,26 @@ export class SupportService extends APIService {
     return this.unwrap<TFeatureRequest>(this.post("/api/support/feature-requests/", data));
   }
 
+  /** `respec` only comes back when the comment answered the agent's questions. */
   commentFeatureRequest(id: string, text: string) {
-    return this.unwrap<TFeatureRequest>(this.post(`/api/support/feature-requests/${id}/comments/`, { text }));
+    return this.unwrap<TFeatureRequest & { respec?: TRespecResult }>(
+      this.post(`/api/support/feature-requests/${id}/comments/`, { text })
+    );
+  }
+
+  respecFeatureRequest(id: string) {
+    return this.unwrap<TFeatureRequest & TRespecResult>(this.post(`/api/support/feature-requests/${id}/respec/`));
+  }
+
+  /**
+   * Reads a draft before it's sent and returns what's missing. Resolves to null on ANY problem,
+   * a 4xx/5xx or a throttle included: the panel is a hint, and an error toast here would tell
+   * someone writing a bug report that something else broke too.
+   */
+  reviewDraft(kind: TDraftKind, data: { title?: string; text: string; screen?: string }, signal?: AbortSignal) {
+    return this.post("/api/support/draft-review/", { kind, ...data }, { signal })
+      .then((response: { data: { review: TDraftReview | null } }) => response.data.review ?? null)
+      .catch(() => null);
   }
 
   decideFeatureRequest(id: string, decision: TFeatureDecision, data: { notes?: string; flag_key?: string } = {}) {

@@ -131,7 +131,10 @@
       "what_next": "Čo bude ďalej",
       "how_to": "Ako na to",
       "what_we_did": "Čo sme urobili",
-      "conversation": "Konverzácia"
+      "conversation": "Konverzácia",
+      "respec": "Zopakovať analýzu ({runs}/{max})",
+      "respec_done": "Analýza znova spustená",
+      "respec_not_done": "Analýza sa znova nespustila"
     },
     "impact": {
       "low": "Nízky",
@@ -164,7 +167,12 @@
       "hold": "Pozastaviť",
       "reject": "Odmietnuť",
       "flag_toggle": "Zapnuté pre všetkých",
-      "open_pr": "Otvoriť pull request"
+      "open_pr": "Otvoriť pull request",
+      "retry_build": "Skúsiť vývoj znova",
+      "start_now": "Spustiť vývoj hneď",
+      "resume_build": "Obnoviť vývoj",
+      "reject_reason_placeholder": "Prečo sa to nebude realizovať (dostane autor)",
+      "reject_confirm": "Zamietnuť"
     },
     "settings": {
       "bug_agent": "Automatická oprava chýb",
@@ -216,6 +224,40 @@
         "rejected_by": "Zamietol(a) {name}.",
         "on_hold": "Pozastavené: nepohne sa, kým to niekto neobnoví."
       }
+    },
+    "review": {
+      "checking": "Čítame, čo ste napísali…",
+      "ready": "To stačí na to, aby sme sa do toho mohli pustiť.",
+      "one_missing": "Chýba jeden údaj",
+      "some_missing": "Chýba pár údajov",
+      "hint": "Odpovedzte, čo viete: pridá sa to k vašej požiadavke. Ak neviete, odošlite ju aj tak.",
+      "answer_placeholder": "Vaša odpoveď (nepovinné)"
+    },
+    "consult": {
+      "title": "Agent potrebuje vašu odpoveď, aby mohol pokračovať",
+      "intro": "Nepohne sa to, kým neodpoviete. Napíšte to vlastnými slovami: hneď ako odpoviete, analýza sa sama spustí znova.",
+      "placeholder": "Odpovedzte sem, ako by ste to vysvetlili kolegovi…",
+      "send": "Odpovedať",
+      "relaunched": "Analýza znova spustená: spracúva sa s vašou odpoveďou.",
+      "not_relaunched": "Vaša odpoveď je uložená, ale analýza sa sama znova nespustila. Prevezme ju admin.",
+      "not_relaunched_off": "Vaša odpoveď je uložená, ale analýza sa znova nespustila: agent pre návrhy je vypnutý."
+    },
+    "next": {
+      "analyzing": "Analyzujeme to. Dáme vám vedieť, keď to bude pripravené na rozhodnutie.",
+      "needs_info_you": "Agent potrebuje vašu odpoveď, kým bude pokračovať.",
+      "needs_info": "Čaká sa, kým autor odpovie na otázky agenta.",
+      "spec_ready_you": "Analýza je hotová: chýba vaše schválenie.",
+      "spec_ready": "Analýza je hotová: chýba schválenie admina.",
+      "approved": "Schválené: vývoj sa spustí sám, hneď ako sa uvoľní miesto.",
+      "stuck_you": "Vývoj sa zastavil a potrebuje vaše rozhodnutie.",
+      "stuck": "Vývoj sa zastavil: nepohne sa, kým ho admin neodblokuje.",
+      "building": "Práve sa vyvíja.",
+      "in_review": "Je hotové: pred zverejnením chýba záverečná kontrola.",
+      "queued": "Prešlo všetkými kontrolami: vyjde v ďalšej verzii.",
+      "merged_on": "Je zverejnené a zapnuté.",
+      "merged_off": "Je zverejnené: zostáva to zapnúť.",
+      "on_hold": "Je pozastavené: nepohne sa, kým to admin neobnoví.",
+      "rejected": "Nebude sa realizovať."
     }
   }
 }

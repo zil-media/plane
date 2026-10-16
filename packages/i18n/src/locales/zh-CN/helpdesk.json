@@ -131,7 +131,10 @@
       "what_next": "后续进展",
       "how_to": "操作方法",
       "what_we_did": "我们做了什么",
-      "conversation": "对话"
+      "conversation": "对话",
+      "respec": "重新分析（{runs}/{max}）",
+      "respec_done": "分析已重新开始",
+      "respec_not_done": "分析未重新开始"
     },
     "impact": {
       "low": "低",
@@ -164,7 +167,12 @@
       "hold": "暂停",
       "reject": "拒绝",
       "flag_toggle": "对所有人启用",
-      "open_pr": "打开 Pull Request"
+      "open_pr": "打开 Pull Request",
+      "retry_build": "重试开发",
+      "start_now": "立即开始开发",
+      "resume_build": "恢复开发",
+      "reject_reason_placeholder": "不开发的原因（会发送给提出人）",
+      "reject_confirm": "拒绝"
     },
     "settings": {
       "bug_agent": "自动修复问题",
@@ -216,6 +224,40 @@
         "rejected_by": "已被 {name} 拒绝。",
         "on_hold": "已暂停：在有人恢复之前不会推进。"
       }
+    },
+    "review": {
+      "checking": "正在阅读您写的内容…",
+      "ready": "这些信息已足够处理。",
+      "one_missing": "还缺少一项信息",
+      "some_missing": "还缺少几项信息",
+      "hint": "请回答您知道的部分，它会附加到您的请求中。如果不知道，也可以直接发送。",
+      "answer_placeholder": "您的回答（可选）"
+    },
+    "consult": {
+      "title": "代理需要您的回答才能继续",
+      "intro": "在您回答之前不会继续。请用自己的话写下来：您一回答，分析就会自动重新开始。",
+      "placeholder": "请在这里回答，就像向同事解释一样…",
+      "send": "回答",
+      "relaunched": "分析已重新开始：正在根据您的回答重新进行。",
+      "not_relaunched": "您的回答已保存，但分析没有自动重新开始。管理员会接手处理。",
+      "not_relaunched_off": "您的回答已保存，但分析没有重新开始：建议代理已关闭。"
+    },
+    "next": {
+      "analyzing": "我们正在分析。可以做决定时会通知您。",
+      "needs_info_you": "代理需要您的回答才能继续。",
+      "needs_info": "正在等待提出人回答代理的问题。",
+      "spec_ready_you": "分析已完成：等待您的批准。",
+      "spec_ready": "分析已完成：等待管理员批准。",
+      "approved": "已批准：一有空位，开发就会自动开始。",
+      "stuck_you": "开发已停止，需要您做出决定。",
+      "stuck": "开发已停止：在管理员解除阻塞之前不会继续。",
+      "building": "正在开发中。",
+      "in_review": "已完成：发布前还需最终审核。",
+      "queued": "已通过所有检查：将在下一个版本发布。",
+      "merged_on": "已发布并启用。",
+      "merged_off": "已发布：还需要启用。",
+      "on_hold": "已暂停：在管理员恢复之前不会继续。",
+      "rejected": "不会开发。"
     }
   }
 }

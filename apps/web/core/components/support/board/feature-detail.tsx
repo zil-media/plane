@@ -13,8 +13,9 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Input, Loader, TextArea, ToggleSwitch } from "@plane/ui";
 import { renderFormattedDate } from "@plane/utils";
 import { SUPPORT_FEATURE_FLAGS_KEY } from "@/hooks/use-feature-flag";
-import type { TFeatureDecision } from "@/services/support.service";
+import type { TFeatureDecision, TFeatureRequestDetail } from "@/services/support.service";
 import { supportService } from "@/services/support.service";
+import { AgentConsult } from "./agent-consult";
 import { PhaseChip, Tag } from "./item-row";
 import { featurePhase } from "./phase";
 import { PhaseTimeline } from "./phase-timeline";
@@ -28,6 +29,91 @@ type Props = {
   enabledFlags: string[];
   onChanged: () => void;
 };
+
+/** The agent re-runs the impact analysis on its own up to this many times. */
+const AUTO_SPEC_RUNS = 3;
+
+/** What the primary action means in each state; `null` when an admin has nothing to decide. */
+type TPrimary = { decision: TFeatureDecision; labelKey: string; needsFlag: boolean } | null;
+
+/**
+ * What an admin can do TODAY, in this state. Only what the server accepts from it
+ * (FeatureRequestDecisionEndpoint.ALLOWED_FROM): offering the rest just ends in a 409.
+ */
+function adminOptions(feature: TFeatureRequestDetail) {
+  const blocked = feature.build_blocked;
+  const wasApproved = !!feature.approval?.at;
+  let primary: TPrimary = null;
+  const secondary: { decision: TFeatureDecision; labelKey: string }[] = [];
+  let canReject = false;
+
+  switch (feature.status) {
+    case "spec_ready":
+      primary = { decision: "approve", labelKey: "helpdesk.admin.approve", needsFlag: true };
+      secondary.push({ decision: "hold", labelKey: "helpdesk.admin.hold" });
+      canReject = true;
+      break;
+    case "submitted":
+    case "needs_info":
+      secondary.push({ decision: "hold", labelKey: "helpdesk.admin.hold" });
+      canReject = true;
+      break;
+    case "approved":
+      primary = { decision: "rebuild", labelKey: "helpdesk.admin.start_now", needsFlag: false };
+      secondary.push({ decision: "hold", labelKey: "helpdesk.admin.hold" });
+      canReject = true;
+      break;
+    case "building":
+      // A stuck build stays in "building" with build.blocked_at set (agent build-status "blocked"):
+      // it waits for a person, so retrying is THE action. A live build can still be restarted.
+      if (blocked) primary = { decision: "rebuild", labelKey: "helpdesk.admin.retry_build", needsFlag: false };
+      else secondary.push({ decision: "rebuild", labelKey: "helpdesk.admin.rebuild" });
+      secondary.push({ decision: "hold", labelKey: "helpdesk.admin.hold" });
+      canReject = true;
+      break;
+    case "in_review":
+      secondary.push({ decision: "rebuild", labelKey: "helpdesk.admin.rebuild" });
+      break;
+    case "on_hold":
+      // Paused after it was approved: resuming is building again. Paused with a spec ready but
+      // never approved: resuming is approving it. Paused before any spec: redo the analysis.
+      if (wasApproved) primary = { decision: "rebuild", labelKey: "helpdesk.admin.resume_build", needsFlag: false };
+      else if (feature.spec?.generated_at)
+        primary = { decision: "approve", labelKey: "helpdesk.admin.approve", needsFlag: true };
+      canReject = true;
+      break;
+    default:
+      break;
+  }
+  return { primary, secondary, canReject };
+}
+
+/** The sentence that says who has the ball now, for whoever is looking. */
+function nextStepKey(feature: TFeatureRequestDetail, isAdmin: boolean, isRequester: boolean, flagOn: boolean) {
+  switch (feature.status) {
+    case "needs_info":
+      return isRequester ? "helpdesk.next.needs_info_you" : "helpdesk.next.needs_info";
+    case "spec_ready":
+      return isAdmin ? "helpdesk.next.spec_ready_you" : "helpdesk.next.spec_ready";
+    case "approved":
+      return "helpdesk.next.approved";
+    case "building":
+      if (!feature.build_blocked) return "helpdesk.next.building";
+      return isAdmin ? "helpdesk.next.stuck_you" : "helpdesk.next.stuck";
+    case "in_review":
+      return "helpdesk.next.in_review";
+    case "queued":
+      return "helpdesk.next.queued";
+    case "merged":
+      return flagOn ? "helpdesk.next.merged_on" : "helpdesk.next.merged_off";
+    case "on_hold":
+      return "helpdesk.next.on_hold";
+    case "rejected":
+      return "helpdesk.next.rejected";
+    default:
+      return "helpdesk.next.analyzing";
+  }
+}
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -46,6 +132,7 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
   const [comment, setComment] = useState("");
   const [notes, setNotes] = useState("");
   const [flagKey, setFlagKey] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState(false);
   const [busy, setBusy] = useState(false);
 
   if (!feature)
@@ -58,13 +145,22 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
 
   const spec = feature.spec ?? {};
   const isRequester = feature.requested_by?.id === currentUserId;
-  const canComment = isRequester || isAdmin;
   const flagOn = !!feature.flag_key && enabledFlags.includes(feature.flag_key);
+  const consult = feature.status === "needs_info" && isRequester;
+  // The consult card IS the answer box: a second textarea under it would split the answer.
+  const canComment = (isRequester || isAdmin) && !consult && !["merged", "rejected"].includes(feature.status);
+  const canRespec =
+    (isRequester || isAdmin) && ["submitted", "spec_ready", "needs_info", "on_hold"].includes(feature.status);
+  const { primary, secondary, canReject } = isAdmin
+    ? adminOptions(feature)
+    : { primary: null, secondary: [], canReject: false };
+  const effectiveFlagKey = (flagKey ?? feature.flag_key).trim();
 
-  const run = async (action: () => Promise<unknown>) => {
+  const run = async (action: () => Promise<unknown>, success?: string) => {
     setBusy(true);
     try {
       await action();
+      if (success) setToast({ type: TOAST_TYPE.SUCCESS, title: success });
       await mutate();
       onChanged();
     } catch (error) {
@@ -75,13 +171,28 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
     }
   };
 
-  const decide = (decision: TFeatureDecision) =>
-    run(() =>
-      supportService.decideFeatureRequest(feature.id, decision, {
-        notes: notes.trim(),
-        ...(flagKey ? { flag_key: flagKey } : {}),
-      })
-    );
+  const decide = (decision: TFeatureDecision, data: { notes?: string; flag_key?: string } = {}) =>
+    run(async () => {
+      await supportService.decideFeatureRequest(feature.id, decision, data);
+      setNotes("");
+      setRejecting(false);
+    });
+
+  const respec = () =>
+    run(async () => {
+      const result = await supportService.respecFeatureRequest(feature.id);
+      setToast(
+        result.queued
+          ? { type: TOAST_TYPE.SUCCESS, title: t("helpdesk.detail.respec_done") }
+          : {
+              type: TOAST_TYPE.WARNING,
+              title: t("helpdesk.detail.respec_not_done"),
+              message: t(result.reason === "disabled" ? "helpdesk.consult.not_relaunched_off" : "helpdesk.try_again"),
+            }
+      );
+    });
+
+  const hasActions = !!primary || secondary.length > 0 || canReject || canRespec;
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -95,6 +206,117 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
         <span className="text-caption-sm-regular text-tertiary">
           {feature.requested_by?.display_name} · {renderFormattedDate(feature.created_at)}
         </span>
+      </div>
+
+      {consult && <AgentConsult feature={feature} onAnswered={() => void mutate().then(onChanged)} />}
+
+      {/* ── What's next: who has the ball, and what an admin can do about it right now ── */}
+      <div className="flex flex-col gap-3 rounded-md border border-subtle p-3">
+        <Field label={t("helpdesk.detail.what_next")}>{t(nextStepKey(feature, isAdmin, isRequester, flagOn))}</Field>
+
+        {primary?.needsFlag && (
+          <label className="flex flex-col gap-1">
+            <span className="text-caption-sm-regular text-tertiary">{t("helpdesk.admin.flag_key")}</span>
+            <Input value={flagKey ?? feature.flag_key} onChange={(event) => setFlagKey(event.target.value)} />
+          </label>
+        )}
+
+        {rejecting && (
+          <TextArea
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder={t("helpdesk.admin.reject_reason_placeholder")}
+            className="min-h-16"
+          />
+        )}
+
+        {hasActions && (
+          <div className="flex flex-wrap gap-2">
+            {rejecting ? (
+              <>
+                <Button
+                  variant="error-fill"
+                  size="lg"
+                  loading={busy}
+                  disabled={!notes.trim()}
+                  onClick={() => void decide("reject", { notes: notes.trim() })}
+                >
+                  {t("helpdesk.admin.reject_confirm")}
+                </Button>
+                <Button variant="secondary" size="lg" onClick={() => setRejecting(false)}>
+                  {t("helpdesk.cancel")}
+                </Button>
+              </>
+            ) : (
+              <>
+                {primary && (
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    loading={busy}
+                    disabled={primary.needsFlag && !effectiveFlagKey}
+                    onClick={() =>
+                      void decide(primary.decision, primary.needsFlag ? { flag_key: effectiveFlagKey } : {})
+                    }
+                  >
+                    {t(primary.labelKey)}
+                  </Button>
+                )}
+                {secondary.map((option) => (
+                  <Button
+                    key={option.decision}
+                    variant="secondary"
+                    size="lg"
+                    loading={busy}
+                    onClick={() => void decide(option.decision)}
+                  >
+                    {t(option.labelKey)}
+                  </Button>
+                ))}
+                {canRespec && (
+                  <Button variant="secondary" size="lg" loading={busy} onClick={() => void respec()}>
+                    {t("helpdesk.detail.respec", { runs: String(feature.spec_runs ?? 0), max: String(AUTO_SPEC_RUNS) })}
+                  </Button>
+                )}
+                {canReject && (
+                  <Button variant="error-outline" size="lg" onClick={() => setRejecting(true)}>
+                    {t("helpdesk.admin.reject")}
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {isAdmin && feature.flag_key && ["merged", "queued", "in_review"].includes(feature.status) && (
+          <div className="flex items-center justify-between gap-3 rounded-md bg-layer-1 px-3 py-2">
+            <span className="flex flex-col">
+              <span className="text-body-xs-medium text-primary">{t("helpdesk.admin.flag_toggle")}</span>
+              <span className="text-caption-sm-regular text-tertiary">{feature.flag_key}</span>
+            </span>
+            <ToggleSwitch
+              value={flagOn}
+              size="sm"
+              label={t("helpdesk.admin.flag_toggle")}
+              onChange={() =>
+                void run(async () => {
+                  await supportService.setFeatureFlag(feature.id, !flagOn);
+                  await globalMutate(SUPPORT_FEATURE_FLAGS_KEY);
+                })
+              }
+            />
+          </div>
+        )}
+        {isAdmin && feature.pr_url && (
+          <a
+            href={feature.pr_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-caption-sm-regular text-link-primary hover:underline"
+          >
+            {t("helpdesk.admin.open_pr")}
+          </a>
+        )}
       </div>
 
       <PhaseTimeline track={computeFeatureTrack(feature)} />
@@ -136,13 +358,9 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
 
       <SupportTimeline comments={feature.comments} />
 
-      {canComment && !["merged", "rejected"].includes(feature.status) && (
+      {canComment && (
         <div className="flex flex-col gap-2 border-t border-subtle pt-3">
-          <span className="text-caption-sm-medium text-tertiary">
-            {feature.status === "needs_info" && isRequester
-              ? t("helpdesk.detail.answer_hint")
-              : t("helpdesk.detail.comment")}
-          </span>
+          <span className="text-caption-sm-medium text-tertiary">{t("helpdesk.detail.comment")}</span>
           <TextArea value={comment} onChange={(event) => setComment(event.target.value)} className="min-h-20" />
           <Button
             variant="secondary"
@@ -159,72 +377,6 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
           >
             {t("helpdesk.detail.send")}
           </Button>
-        </div>
-      )}
-
-      {isAdmin && (
-        <div className="flex flex-col gap-2 border-t border-subtle pt-3">
-          <span className="text-caption-sm-medium text-tertiary">{t("helpdesk.admin.decision")}</span>
-          {feature.status !== "merged" && (
-            <>
-              <label className="flex flex-col gap-1">
-                <span className="text-caption-sm-regular text-tertiary">{t("helpdesk.admin.flag_key")}</span>
-                <Input
-                  value={flagKey ?? feature.flag_key}
-                  onChange={(event) => setFlagKey(event.target.value)}
-                  placeholder="miFeature"
-                />
-              </label>
-              <TextArea
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder={t("helpdesk.admin.notes_placeholder")}
-                className="min-h-16"
-              />
-              <div className="flex flex-wrap gap-2">
-                {(["approve", "rebuild", "hold", "reject"] as const).map((decision) => (
-                  <Button
-                    key={decision}
-                    variant={decision === "approve" ? "primary" : decision === "reject" ? "error-outline" : "secondary"}
-                    size="lg"
-                    loading={busy}
-                    onClick={() => void decide(decision)}
-                  >
-                    {t(`helpdesk.admin.${decision}`)}
-                  </Button>
-                ))}
-              </div>
-            </>
-          )}
-          {feature.flag_key && ["merged", "queued", "in_review"].includes(feature.status) && (
-            <div className="flex items-center justify-between gap-3 rounded-md bg-layer-1 px-3 py-2">
-              <span className="flex flex-col">
-                <span className="text-body-xs-medium text-primary">{t("helpdesk.admin.flag_toggle")}</span>
-                <span className="text-caption-sm-regular text-tertiary">{feature.flag_key}</span>
-              </span>
-              <ToggleSwitch
-                value={flagOn}
-                size="sm"
-                label={t("helpdesk.admin.flag_toggle")}
-                onChange={() =>
-                  void run(async () => {
-                    await supportService.setFeatureFlag(feature.id, !flagOn);
-                    await globalMutate(SUPPORT_FEATURE_FLAGS_KEY);
-                  })
-                }
-              />
-            </div>
-          )}
-          {feature.pr_url && (
-            <a
-              href={feature.pr_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-caption-sm-regular text-link-primary hover:underline"
-            >
-              {t("helpdesk.admin.open_pr")}
-            </a>
-          )}
         </div>
       )}
     </div>

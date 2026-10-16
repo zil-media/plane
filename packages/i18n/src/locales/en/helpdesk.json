@@ -131,7 +131,10 @@
       "what_next": "What's next",
       "how_to": "How to do it",
       "what_we_did": "What we did",
-      "conversation": "Conversation"
+      "conversation": "Conversation",
+      "respec": "Redo the analysis ({runs}/{max})",
+      "respec_done": "Analysis restarted",
+      "respec_not_done": "The analysis didn't restart"
     },
     "impact": {
       "low": "Low",
@@ -164,7 +167,12 @@
       "hold": "Pause",
       "reject": "Reject",
       "flag_toggle": "Enabled for everyone",
-      "open_pr": "Open pull request"
+      "open_pr": "Open pull request",
+      "retry_build": "Retry development",
+      "start_now": "Start development now",
+      "resume_build": "Resume development",
+      "reject_reason_placeholder": "Why it won't be built (sent to the requester)",
+      "reject_confirm": "Reject"
     },
     "settings": {
       "bug_agent": "Automatic bug fixing",
@@ -216,6 +224,40 @@
         "rejected_by": "Rejected by {name}.",
         "on_hold": "Paused: it won't move until someone resumes it."
       }
+    },
+    "review": {
+      "checking": "Reading what you wrote…",
+      "ready": "That's enough to work on it.",
+      "one_missing": "One detail is missing",
+      "some_missing": "A couple of details are missing",
+      "hint": "Answer what you know: it's added to your request. If you don't know, send it anyway.",
+      "answer_placeholder": "Your answer (optional)"
+    },
+    "consult": {
+      "title": "The agent needs your answer to continue",
+      "intro": "It won't move until you reply. Write it in your own words: as soon as you answer, the analysis restarts on its own.",
+      "placeholder": "Answer here, the way you'd explain it to a teammate…",
+      "send": "Reply",
+      "relaunched": "Analysis restarted: it's being redone with your answer.",
+      "not_relaunched": "Your answer was saved, but the analysis didn't restart on its own. An admin will pick it up.",
+      "not_relaunched_off": "Your answer was saved, but the analysis didn't restart: the suggestions agent is turned off."
+    },
+    "next": {
+      "analyzing": "We're analyzing it. We'll let you know when it's ready for a decision.",
+      "needs_info_you": "The agent needs your answer before it can continue.",
+      "needs_info": "Waiting for the requester to answer the agent's questions.",
+      "spec_ready_you": "The analysis is ready: it needs your approval.",
+      "spec_ready": "The analysis is ready: it needs an admin's approval.",
+      "approved": "Approved: development starts on its own as soon as a slot frees up.",
+      "stuck_you": "Development stopped and needs your decision.",
+      "stuck": "Development stopped: it won't move until an admin unblocks it.",
+      "building": "It's being built right now.",
+      "in_review": "It's done: it needs a final review before it's published.",
+      "queued": "It passed every check: it ships in the next release.",
+      "merged_on": "It's published and turned on.",
+      "merged_off": "It's published: it still needs to be turned on.",
+      "on_hold": "It's paused: it won't move until an admin resumes it.",
+      "rejected": "It won't be built."
     }
   }
 }

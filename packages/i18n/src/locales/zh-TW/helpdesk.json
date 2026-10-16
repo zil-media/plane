@@ -131,7 +131,10 @@
       "what_next": "後續進展",
       "how_to": "操作方式",
       "what_we_did": "我們做了什麼",
-      "conversation": "對話"
+      "conversation": "對話",
+      "respec": "重新分析（{runs}/{max}）",
+      "respec_done": "分析已重新開始",
+      "respec_not_done": "分析未重新開始"
     },
     "impact": {
       "low": "低",
@@ -164,7 +167,12 @@
       "hold": "暫停",
       "reject": "拒絕",
       "flag_toggle": "對所有人啟用",
-      "open_pr": "開啟 Pull Request"
+      "open_pr": "開啟 Pull Request",
+      "retry_build": "重試開發",
+      "start_now": "立即開始開發",
+      "resume_build": "恢復開發",
+      "reject_reason_placeholder": "不開發的原因（會傳送給提出人）",
+      "reject_confirm": "拒絕"
     },
     "settings": {
       "bug_agent": "自動修復問題",
@@ -216,6 +224,40 @@
         "rejected_by": "已被 {name} 拒絕。",
         "on_hold": "已暫停：在有人恢復之前不會推進。"
       }
+    },
+    "review": {
+      "checking": "正在閱讀您寫的內容…",
+      "ready": "這些資訊已足夠處理。",
+      "one_missing": "還缺少一項資訊",
+      "some_missing": "還缺少幾項資訊",
+      "hint": "請回答您知道的部分，它會附加到您的請求中。如果不知道，也可以直接送出。",
+      "answer_placeholder": "您的回答（選填）"
+    },
+    "consult": {
+      "title": "代理需要您的回答才能繼續",
+      "intro": "在您回答之前不會繼續。請用自己的話寫下來：您一回答，分析就會自動重新開始。",
+      "placeholder": "請在這裡回答，就像向同事說明一樣…",
+      "send": "回答",
+      "relaunched": "分析已重新開始：正在根據您的回答重新進行。",
+      "not_relaunched": "您的回答已儲存，但分析沒有自動重新開始。管理員會接手處理。",
+      "not_relaunched_off": "您的回答已儲存，但分析沒有重新開始：建議代理已關閉。"
+    },
+    "next": {
+      "analyzing": "我們正在分析。可以做決定時會通知您。",
+      "needs_info_you": "代理需要您的回答才能繼續。",
+      "needs_info": "正在等待提出人回答代理的問題。",
+      "spec_ready_you": "分析已完成：等待您的核准。",
+      "spec_ready": "分析已完成：等待管理員核准。",
+      "approved": "已核准：一有空檔，開發就會自動開始。",
+      "stuck_you": "開發已停止，需要您做出決定。",
+      "stuck": "開發已停止：在管理員解除封鎖之前不會繼續。",
+      "building": "正在開發中。",
+      "in_review": "已完成：發布前還需最終審查。",
+      "queued": "已通過所有檢查：將在下一個版本發布。",
+      "merged_on": "已發布並啟用。",
+      "merged_off": "已發布：還需要啟用。",
+      "on_hold": "已暫停：在管理員恢復之前不會繼續。",
+      "rejected": "不會開發。"
     }
   }
 }

@@ -13,6 +13,7 @@ from plane.app.views.support.bug_report import (
     BugReportSendToFixerEndpoint,
     MyBugReportsEndpoint,
 )
+from plane.app.views.support.draft_review import SupportDraftReviewEndpoint
 from plane.app.views.support.feature_request import (
     AgentPipelineConfigEndpoint,
     FeatureFlagsEndpoint,
@@ -28,6 +29,7 @@ from plane.app.views.support.feature_request import (
 urlpatterns = [
     path("support/me/", SupportMeEndpoint.as_view(), name="support-me"),
     path("support/config/", AgentPipelineConfigEndpoint.as_view(), name="support-config"),
+    path("support/draft-review/", SupportDraftReviewEndpoint.as_view(), name="support-draft-review"),
     path("support/feature-flags/", FeatureFlagsEndpoint.as_view(), name="support-feature-flags"),
     path("support/bug-reports/", BugReportEndpoint.as_view(), name="support-bug-reports"),
     path("support/bug-reports/auto/", BugReportAutoEndpoint.as_view(), name="support-bug-reports-auto"),

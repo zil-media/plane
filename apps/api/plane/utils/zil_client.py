@@ -161,6 +161,29 @@ def file_workspace_bug(payload):
     return {"id": data["id"], "tracking_url": data.get("trackingUrl") or ""}
 
 
+def review_draft(kind, title, text, screen):
+    """Zil Workspace's draft reviewer, for the support forms: {ready, questions}, or None.
+
+    Never raises. The review is a hint over a draft the person already wrote: Zil being down or
+    answering something unexpected means no review panel, never a broken form (the same contract
+    the reviewer has inside Workspace).
+    """
+    try:
+        resp = _post("/api/zil/draft-review", {"kind": kind, "title": title, "text": text, "screen": screen})
+    except ZilUnavailable:
+        return None
+    if resp.status_code != 200:
+        return None
+    try:
+        review = resp.json().get("review")
+    except ValueError:
+        return None
+    if not isinstance(review, dict) or not isinstance(review.get("ready"), bool):
+        return None
+    questions = review.get("questions")
+    return {"ready": review["ready"], "questions": questions if isinstance(questions, list) else []}
+
+
 # ERP entity types that keep a document array a Plane attachment can be saved into.
 ZIL_DOC_TARGET_TYPES = ("Lead", "MgmtClient")
 

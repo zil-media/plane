@@ -131,7 +131,10 @@
       "what_next": "Co dalej",
       "how_to": "Jak to zrobić",
       "what_we_did": "Co zrobiliśmy",
-      "conversation": "Rozmowa"
+      "conversation": "Rozmowa",
+      "respec": "Powtórz analizę ({runs}/{max})",
+      "respec_done": "Analiza uruchomiona ponownie",
+      "respec_not_done": "Analiza nie została uruchomiona ponownie"
     },
     "impact": {
       "low": "Niski",
@@ -164,7 +167,12 @@
       "hold": "Wstrzymaj",
       "reject": "Odrzuć",
       "flag_toggle": "Włączona dla wszystkich",
-      "open_pr": "Otwórz pull request"
+      "open_pr": "Otwórz pull request",
+      "retry_build": "Ponów prace",
+      "start_now": "Rozpocznij prace teraz",
+      "resume_build": "Wznów prace",
+      "reject_reason_placeholder": "Dlaczego nie zostanie zrealizowane (trafi do autora)",
+      "reject_confirm": "Odrzuć"
     },
     "settings": {
       "bug_agent": "Automatyczna naprawa problemów",
@@ -216,6 +224,40 @@
         "rejected_by": "Odrzucone przez {name}.",
         "on_hold": "Wstrzymano: nie ruszy, dopóki ktoś tego nie wznowi."
       }
+    },
+    "review": {
+      "checking": "Czytamy, co zostało napisane…",
+      "ready": "To wystarczy, żeby się tym zająć.",
+      "one_missing": "Brakuje jednej informacji",
+      "some_missing": "Brakuje kilku informacji",
+      "hint": "Wystarczy odpowiedzieć na to, co wiadomo: zostanie dodane do zgłoszenia. W razie wątpliwości można wysłać bez odpowiedzi.",
+      "answer_placeholder": "Odpowiedź (opcjonalnie)"
+    },
+    "consult": {
+      "title": "Agent potrzebuje odpowiedzi, żeby kontynuować",
+      "intro": "Nic nie ruszy bez odpowiedzi. Wystarczy napisać własnymi słowami: po odpowiedzi analiza uruchomi się ponownie sama.",
+      "placeholder": "Odpowiedź tutaj, tak jak wyjaśniałoby się to współpracownikowi…",
+      "send": "Odpowiedz",
+      "relaunched": "Analiza uruchomiona ponownie: jest przygotowywana z uwzględnieniem odpowiedzi.",
+      "not_relaunched": "Odpowiedź została zapisana, ale analiza nie uruchomiła się ponownie sama. Zajmie się tym admin.",
+      "not_relaunched_off": "Odpowiedź została zapisana, ale analiza nie uruchomiła się ponownie: agent propozycji jest wyłączony."
+    },
+    "next": {
+      "analyzing": "Trwa analiza. Damy znać, gdy będzie gotowa do decyzji.",
+      "needs_info_you": "Agent potrzebuje odpowiedzi, zanim będzie mógł kontynuować.",
+      "needs_info": "Oczekiwanie na odpowiedź autora na pytania agenta.",
+      "spec_ready_you": "Analiza jest gotowa: brakuje zatwierdzenia.",
+      "spec_ready": "Analiza jest gotowa: brakuje zatwierdzenia przez admina.",
+      "approved": "Zatwierdzona: prace ruszą same, gdy tylko zwolni się miejsce.",
+      "stuck_you": "Prace stanęły i wymagają decyzji.",
+      "stuck": "Prace stanęły: nic nie ruszy, dopóki admin ich nie odblokuje.",
+      "building": "Trwają prace.",
+      "in_review": "Gotowe: przed publikacją brakuje końcowego przeglądu.",
+      "queued": "Przeszło wszystkie kontrole: trafi do następnej wersji.",
+      "merged_on": "Opublikowane i włączone.",
+      "merged_off": "Opublikowane: pozostaje włączyć.",
+      "on_hold": "Wstrzymane: nic nie ruszy, dopóki admin tego nie wznowi.",
+      "rejected": "Nie zostanie zrealizowane."
     }
   }
 }

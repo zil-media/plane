@@ -131,7 +131,10 @@
       "what_next": "O que vem a seguir",
       "how_to": "Como fazer",
       "what_we_did": "O que fizemos",
-      "conversation": "Conversa"
+      "conversation": "Conversa",
+      "respec": "Refazer a análise ({runs}/{max})",
+      "respec_done": "Análise reiniciada",
+      "respec_not_done": "A análise não foi reiniciada"
     },
     "impact": {
       "low": "Baixo",
@@ -164,7 +167,12 @@
       "hold": "Pausar",
       "reject": "Rejeitar",
       "flag_toggle": "Ativado para todos",
-      "open_pr": "Abrir pull request"
+      "open_pr": "Abrir pull request",
+      "retry_build": "Tentar o desenvolvimento de novo",
+      "start_now": "Começar o desenvolvimento agora",
+      "resume_build": "Retomar o desenvolvimento",
+      "reject_reason_placeholder": "Por que não vai ser construída (chega a quem pediu)",
+      "reject_confirm": "Rejeitar"
     },
     "settings": {
       "bug_agent": "Correção automática de problemas",
@@ -216,6 +224,40 @@
         "rejected_by": "Rejeitada por {name}.",
         "on_hold": "Pausada: não avança até que alguém a retome."
       }
+    },
+    "review": {
+      "checking": "Lendo o que você escreveu…",
+      "ready": "Isso já basta para trabalhar.",
+      "one_missing": "Falta um dado",
+      "some_missing": "Faltam alguns dados",
+      "hint": "Responda o que souber: é somado ao seu pedido. Se não souber, envie mesmo assim.",
+      "answer_placeholder": "Sua resposta (opcional)"
+    },
+    "consult": {
+      "title": "O agente precisa da sua resposta para continuar",
+      "intro": "Não avança até você responder. Escreva com suas palavras: assim que responder, a análise recomeça sozinha.",
+      "placeholder": "Responda aqui, como você explicaria a um colega…",
+      "send": "Responder",
+      "relaunched": "Análise reiniciada: está sendo refeita com a sua resposta.",
+      "not_relaunched": "Sua resposta foi registrada, mas a análise não reiniciou sozinha. Um admin vai retomá-la.",
+      "not_relaunched_off": "Sua resposta foi registrada, mas a análise não reiniciou: o agente de sugestões está desligado."
+    },
+    "next": {
+      "analyzing": "Estamos analisando. Avisamos quando estiver pronta para decidir.",
+      "needs_info_you": "O agente precisa da sua resposta antes de continuar.",
+      "needs_info": "Aguardando quem pediu responder às perguntas do agente.",
+      "spec_ready_you": "A análise está pronta: falta você aprovar.",
+      "spec_ready": "A análise está pronta: falta um admin aprovar.",
+      "approved": "Aprovada: o desenvolvimento começa sozinho assim que houver vaga.",
+      "stuck_you": "O desenvolvimento parou e precisa de uma decisão sua.",
+      "stuck": "O desenvolvimento parou: não avança até um admin desbloquear.",
+      "building": "Está sendo desenvolvida agora.",
+      "in_review": "Está pronta: falta a revisão final antes de publicar.",
+      "queued": "Passou em todas as verificações: sai na próxima versão.",
+      "merged_on": "Já está publicada e ativada.",
+      "merged_off": "Já está publicada: falta ativá-la.",
+      "on_hold": "Está pausada: não avança até um admin retomá-la.",
+      "rejected": "Não vai ser construída."
     }
   }
 }

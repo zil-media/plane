@@ -131,7 +131,10 @@
       "what_next": "Ce urmează",
       "how_to": "Cum se face",
       "what_we_did": "Ce am făcut",
-      "conversation": "Conversație"
+      "conversation": "Conversație",
+      "respec": "Refă analiza ({runs}/{max})",
+      "respec_done": "Analiza a repornit",
+      "respec_not_done": "Analiza nu a repornit"
     },
     "impact": {
       "low": "Scăzut",
@@ -164,7 +167,12 @@
       "hold": "Pune în pauză",
       "reject": "Refuză",
       "flag_toggle": "Activat pentru toată lumea",
-      "open_pr": "Deschide pull request-ul"
+      "open_pr": "Deschide pull request-ul",
+      "retry_build": "Reîncearcă dezvoltarea",
+      "start_now": "Pornește dezvoltarea acum",
+      "resume_build": "Reia dezvoltarea",
+      "reject_reason_placeholder": "De ce nu va fi construită (ajunge la solicitant)",
+      "reject_confirm": "Respinge"
     },
     "settings": {
       "bug_agent": "Remediere automată a problemelor",
@@ -216,6 +224,40 @@
         "rejected_by": "Respinsă de {name}.",
         "on_hold": "Pusă pe pauză: nu avansează până nu o reia cineva."
       }
+    },
+    "review": {
+      "checking": "Citim ce ați scris…",
+      "ready": "Atât este suficient ca să ne ocupăm.",
+      "one_missing": "Lipsește o informație",
+      "some_missing": "Lipsesc câteva informații",
+      "hint": "Răspundeți la ce știți: se adaugă la cererea dumneavoastră. Dacă nu știți, trimiteți-o oricum.",
+      "answer_placeholder": "Răspunsul dumneavoastră (opțional)"
+    },
+    "consult": {
+      "title": "Agentul are nevoie de răspunsul dumneavoastră ca să continue",
+      "intro": "Nu avansează până nu răspundeți. Scrieți cu cuvintele dumneavoastră: imediat ce răspundeți, analiza repornește singură.",
+      "placeholder": "Răspundeți aici, cum i-ați explica unui coleg…",
+      "send": "Răspunde",
+      "relaunched": "Analiza a repornit: se reface cu răspunsul dumneavoastră.",
+      "not_relaunched": "Răspunsul a fost înregistrat, dar analiza nu a repornit singură. Un admin o va relua.",
+      "not_relaunched_off": "Răspunsul a fost înregistrat, dar analiza nu a repornit: agentul de sugestii este oprit."
+    },
+    "next": {
+      "analyzing": "O analizăm. Vă anunțăm când este gata pentru o decizie.",
+      "needs_info_you": "Agentul are nevoie de răspunsul dumneavoastră înainte să continue.",
+      "needs_info": "Se așteaptă ca solicitantul să răspundă la întrebările agentului.",
+      "spec_ready_you": "Analiza este gata: trebuie să o aprobați.",
+      "spec_ready": "Analiza este gata: trebuie aprobată de un admin.",
+      "approved": "Aprobată: dezvoltarea pornește singură imediat ce se eliberează un loc.",
+      "stuck_you": "Dezvoltarea s-a oprit și are nevoie de decizia dumneavoastră.",
+      "stuck": "Dezvoltarea s-a oprit: nu avansează până nu o deblochează un admin.",
+      "building": "Este în dezvoltare acum.",
+      "in_review": "Este gata: mai lipsește revizuirea finală înainte de publicare.",
+      "queued": "A trecut de toate verificările: apare în versiunea următoare.",
+      "merged_on": "Este publicată și activată.",
+      "merged_off": "Este publicată: mai trebuie activată.",
+      "on_hold": "Este pe pauză: nu avansează până nu o reia un admin.",
+      "rejected": "Nu va fi construită."
     }
   }
 }

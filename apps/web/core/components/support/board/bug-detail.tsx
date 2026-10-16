@@ -12,6 +12,7 @@ import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Loader, TextArea } from "@plane/ui";
 import { cn, renderFormattedDate, renderFormattedTime } from "@plane/utils";
+import type { TBugStatus } from "@/services/support.service";
 import { supportService } from "@/services/support.service";
 import { PhaseChip, Tag } from "./item-row";
 import { bugPhase, bugWasAnswered, bugWasDerived, bugWentToWorkspace } from "./phase";
@@ -26,6 +27,13 @@ type Props = {
   onChanged: () => void;
   onOpenFeature: (id: string) => void;
 };
+
+/** The closing actions that still mean something for this status: no "resolve" on a resolved report. */
+function closeActions(status: TBugStatus): ("resolve" | "dismiss" | "archive")[] {
+  if (status === "archived") return [];
+  if (status === "resolved" || status === "dismissed") return ["archive"];
+  return ["resolve", "dismiss", "archive"];
+}
 
 export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onOpenFeature }: Props) {
   const { t } = useTranslation();
@@ -219,7 +227,7 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
                 {t("helpdesk.admin.unblock")}
               </Button>
             )}
-            {(["resolve", "dismiss", "archive"] as const).map((action) => (
+            {closeActions(bug.status).map((action) => (
               <Button
                 key={action}
                 variant="secondary"

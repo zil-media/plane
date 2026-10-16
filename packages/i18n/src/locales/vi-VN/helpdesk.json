@@ -131,7 +131,10 @@
       "what_next": "Bước tiếp theo",
       "how_to": "Cách thực hiện",
       "what_we_did": "Những gì chúng tôi đã làm",
-      "conversation": "Trao đổi"
+      "conversation": "Trao đổi",
+      "respec": "Phân tích lại ({runs}/{max})",
+      "respec_done": "Đã chạy lại phân tích",
+      "respec_not_done": "Phân tích không được chạy lại"
     },
     "impact": {
       "low": "Thấp",
@@ -164,7 +167,12 @@
       "hold": "Tạm dừng",
       "reject": "Từ chối",
       "flag_toggle": "Đã bật cho mọi người",
-      "open_pr": "Mở pull request"
+      "open_pr": "Mở pull request",
+      "retry_build": "Thử phát triển lại",
+      "start_now": "Bắt đầu phát triển ngay",
+      "resume_build": "Tiếp tục phát triển",
+      "reject_reason_placeholder": "Lý do sẽ không xây dựng (gửi cho người đề xuất)",
+      "reject_confirm": "Từ chối"
     },
     "settings": {
       "bug_agent": "Tự động khắc phục sự cố",
@@ -216,6 +224,40 @@
         "rejected_by": "Bị {name} từ chối.",
         "on_hold": "Tạm dừng: sẽ không tiến triển cho đến khi có người tiếp tục."
       }
+    },
+    "review": {
+      "checking": "Đang đọc nội dung bạn viết…",
+      "ready": "Như vậy là đủ để xử lý.",
+      "one_missing": "Còn thiếu một thông tin",
+      "some_missing": "Còn thiếu vài thông tin",
+      "hint": "Trả lời những gì bạn biết: phần này sẽ được thêm vào yêu cầu của bạn. Nếu không biết, cứ gửi đi.",
+      "answer_placeholder": "Câu trả lời của bạn (không bắt buộc)"
+    },
+    "consult": {
+      "title": "Tác nhân cần câu trả lời của bạn để tiếp tục",
+      "intro": "Sẽ không tiếp tục cho đến khi bạn trả lời. Hãy viết bằng lời của bạn: ngay khi bạn trả lời, phân tích sẽ tự chạy lại.",
+      "placeholder": "Trả lời ở đây, như khi bạn giải thích cho đồng nghiệp…",
+      "send": "Trả lời",
+      "relaunched": "Đã chạy lại phân tích: đang làm lại với câu trả lời của bạn.",
+      "not_relaunched": "Đã lưu câu trả lời của bạn, nhưng phân tích không tự chạy lại. Quản trị viên sẽ tiếp nhận.",
+      "not_relaunched_off": "Đã lưu câu trả lời của bạn, nhưng phân tích không chạy lại: tác nhân đề xuất đang tắt."
+    },
+    "next": {
+      "analyzing": "Chúng tôi đang phân tích. Sẽ báo bạn khi sẵn sàng để quyết định.",
+      "needs_info_you": "Tác nhân cần câu trả lời của bạn trước khi tiếp tục.",
+      "needs_info": "Đang chờ người đề xuất trả lời câu hỏi của tác nhân.",
+      "spec_ready_you": "Phân tích đã sẵn sàng: chờ bạn phê duyệt.",
+      "spec_ready": "Phân tích đã sẵn sàng: chờ quản trị viên phê duyệt.",
+      "approved": "Đã phê duyệt: việc phát triển tự bắt đầu ngay khi có chỗ trống.",
+      "stuck_you": "Việc phát triển đã dừng và cần quyết định của bạn.",
+      "stuck": "Việc phát triển đã dừng: sẽ không tiếp tục cho đến khi quản trị viên gỡ chặn.",
+      "building": "Đang được phát triển.",
+      "in_review": "Đã xong: còn bước xem xét cuối trước khi phát hành.",
+      "queued": "Đã qua mọi kiểm tra: sẽ có trong phiên bản tiếp theo.",
+      "merged_on": "Đã phát hành và bật.",
+      "merged_off": "Đã phát hành: còn cần bật.",
+      "on_hold": "Đang tạm dừng: sẽ không tiếp tục cho đến khi quản trị viên tiếp tục.",
+      "rejected": "Sẽ không được xây dựng."
     }
   }
 }
