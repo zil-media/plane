@@ -174,7 +174,17 @@ from .page.base import (
     PageDuplicateEndpoint,
 )
 from .page.version import PageVersionEndpoint
-from .page.zil_client import ZilClientSearchEndpoint, PageZilClientLinkEndpoint
+from .page.zil_client import (
+    ZilClientSearchEndpoint,
+    PageZilClientLinkEndpoint,
+    PageZilClientsRootEndpoint,
+    PageZilClientProfileEndpoint,
+    PageZilClientAssetsEndpoint,
+    PageZilClientAssetDetailEndpoint,
+    PageZilClientDriveEndpoint,
+    PageZilClientBrandFilesEndpoint,
+    PageZilClientBrandFileEndpoint,
+)
 
 from .search.base import GlobalSearchEndpoint, SearchEndpoint
 from .search.issue import IssueSearchEndpoint

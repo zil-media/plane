@@ -13,6 +13,13 @@ from plane.app.views import (
     PageDuplicateEndpoint,
     ZilClientSearchEndpoint,
     PageZilClientLinkEndpoint,
+    PageZilClientsRootEndpoint,
+    PageZilClientProfileEndpoint,
+    PageZilClientAssetsEndpoint,
+    PageZilClientAssetDetailEndpoint,
+    PageZilClientDriveEndpoint,
+    PageZilClientBrandFilesEndpoint,
+    PageZilClientBrandFileEndpoint,
 )
 
 urlpatterns = [
@@ -91,5 +98,42 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-client/",
         PageZilClientLinkEndpoint.as_view(),
         name="page-zil-client",
+    ),
+    # the project's clients root: Zil's client roster becomes its sub-folders
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-clients-root/",
+        PageZilClientsRootEndpoint.as_view(),
+        name="page-zil-clients-root",
+    ),
+    # a client folder's profile (info, assets, brand files, calls), relayed to Zil
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-client/profile/",
+        PageZilClientProfileEndpoint.as_view(),
+        name="page-zil-client-profile",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-client/assets/",
+        PageZilClientAssetsEndpoint.as_view(),
+        name="page-zil-client-assets",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-client/assets/<str:asset_id>/",
+        PageZilClientAssetDetailEndpoint.as_view(),
+        name="page-zil-client-asset",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-client/assets/<str:asset_id>/drive/",
+        PageZilClientDriveEndpoint.as_view(),
+        name="page-zil-client-asset-drive",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-client/brand-files/",
+        PageZilClientBrandFilesEndpoint.as_view(),
+        name="page-zil-client-brand-files",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-client/brand-files/<str:file_id>/",
+        PageZilClientBrandFileEndpoint.as_view(),
+        name="page-zil-client-brand-file",
     ),
 ]

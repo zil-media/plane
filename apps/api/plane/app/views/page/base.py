@@ -101,7 +101,7 @@ class PageViewSet(BaseViewSet):
             .prefetch_related("projects")
             .select_related("workspace")
             .select_related("owned_by")
-            .select_related("zil_client_link")
+            .select_related("zil_client_link", "zil_clients_root")
             .annotate(is_favorite=Exists(subquery))
             .order_by(self.request.GET.get("order_by", "-created_at"))
             .prefetch_related("labels")

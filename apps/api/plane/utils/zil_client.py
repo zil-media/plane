@@ -195,3 +195,47 @@ def save_issue_doc_to_zil(payload):
     if resp.status_code != 200:
         raise ZilUnavailable()
     return True
+
+
+ZIL_RELAY_TIMEOUT_SECONDS = 15
+
+
+def get_zil_client_roster(workspace_slug):
+    """Every client of the workspace that must have a folder (active + paused). Raises ZilUnavailable."""
+    resp = _get("/api/sso/clients/roster", {"workspaceSlug": workspace_slug})
+    if resp.status_code != 200:
+        raise ZilUnavailable()
+    try:
+        return resp.json().get("clients") or []
+    except ValueError as e:
+        raise ZilUnavailable() from e
+
+
+def zil_client_relay(method, client_id, subpath, workspace_slug, actor_email, json=None, files=None):
+    """Relay a client-profile call (profile, assets, brand files) to Zil as `actor_email`.
+
+    Zil re-checks the actor's access to the workspace and the client's scope, so Plane only
+    forwards. Returns (status_code, body dict). Raises ZilUnavailable when Zil can't be reached.
+    """
+    base = os.environ.get("ZIL_BASE_URL", "").rstrip("/")
+    secret = os.environ.get("ZIL_SERVICE_SECRET", "")
+    try:
+        resp = requests.request(
+            method,
+            f"{base}/api/sso/clients/{client_id}{subpath}",
+            params={"workspaceSlug": workspace_slug, "actor": actor_email},
+            json=json,
+            files=files,
+            headers={"X-Zil-Service-Key": secret},
+            timeout=ZIL_RELAY_TIMEOUT_SECONDS,
+        )
+    except Exception as e:
+        log_exception(e)
+        raise ZilUnavailable() from e
+    if resp.status_code >= 500:
+        raise ZilUnavailable()
+    try:
+        body = resp.json()
+    except ValueError:
+        body = {}
+    return resp.status_code, body

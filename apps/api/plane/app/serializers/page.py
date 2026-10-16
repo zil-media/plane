@@ -37,6 +37,7 @@ class PageSerializer(BaseSerializer):
     label_ids = serializers.ListField(child=serializers.UUIDField(), required=False)
     project_ids = serializers.ListField(child=serializers.UUIDField(), required=False)
     zil_client = serializers.SerializerMethodField()
+    is_zil_clients_root = serializers.SerializerMethodField()
 
     class Meta:
         model = Page
@@ -63,8 +64,18 @@ class PageSerializer(BaseSerializer):
             "kind",
             "sort_order",
             "zil_client",
+            "is_zil_clients_root",
         ]
         read_only_fields = ["workspace", "owned_by"]
+
+    def get_is_zil_clients_root(self, obj):
+        if not obj.is_folder:
+            return False
+        try:
+            root = obj.zil_clients_root
+        except ObjectDoesNotExist:
+            return False
+        return root is not None and root.deleted_at is None
 
     def get_zil_client(self, obj):
         try:

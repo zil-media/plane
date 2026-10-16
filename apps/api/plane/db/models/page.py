@@ -109,6 +109,10 @@ class PageZilClientLink(BaseModel):
     lifecycle_status = models.CharField(max_length=32, blank=True, default="")
     business_unit_slug = models.CharField(max_length=64, blank=True, default="")
     synced_at = models.DateTimeField(null=True, blank=True)
+    # created by the clients-root sync (not linked by hand): only these folders are renamed
+    # and archived by it; `auto_name` is the name it gave, so a hand rename is left alone
+    auto_created = models.BooleanField(default=False)
+    auto_name = models.CharField(max_length=255, blank=True, default="")
 
     class Meta:
         verbose_name = "Page Zil Client Link"
@@ -128,6 +132,36 @@ class PageZilClientLink(BaseModel):
 
     def __str__(self):
         return f"{self.page_id} -> {self.zil_client_id}"
+
+
+class ZilClientsRoot(BaseModel):
+    """The folder of a project that holds one sub-folder per Zil client.
+
+    Zil pushes each workspace's full roster (POST /api/zil/sync/client-folders/) and
+    plane.utils.zil_client_folders creates, links, renames, archives and restores the
+    client folders under it. One per project.
+    """
+
+    workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="zil_clients_roots")
+    project = models.ForeignKey("db.Project", on_delete=models.CASCADE, related_name="zil_clients_roots")
+    page = models.OneToOneField("db.Page", on_delete=models.CASCADE, related_name="zil_clients_root")
+    synced_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Zil Clients Root"
+        verbose_name_plural = "Zil Clients Roots"
+        db_table = "zil_clients_roots"
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="zil_clients_root_unique_per_project",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.project_id} -> {self.page_id}"
 
 
 class PageLog(BaseModel):
