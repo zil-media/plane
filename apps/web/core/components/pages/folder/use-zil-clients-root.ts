@@ -9,6 +9,8 @@ import { useParams } from "next/navigation";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+// hooks
+import { EPageStoreType, usePageStore } from "@/hooks/store";
 // services
 import { ProjectPageService } from "@/services/page";
 // store
@@ -27,6 +29,7 @@ export function useZilClientsRoot(page: TPageInstance) {
   const { t } = useTranslation();
   const { workspaceSlug } = useParams();
   const [isUpdating, setIsUpdating] = useState(false);
+  const { fetchPagesList } = usePageStore(EPageStoreType.PROJECT);
   const projectId = page.project_ids?.[0];
   const canManage = page.isFolder && !page.archived_at && !page.zil_client && page.canCurrentUserManageZilClientsRoot;
 
@@ -37,6 +40,8 @@ export function useZilClientsRoot(page: TPageInstance) {
     try {
       await projectPageService.setZilClientsRoot(workspaceSlug.toString(), projectId, page.id, next);
       page.mutateProperties({ is_zil_clients_root: next }, false);
+      // the server already created the client folders: bring them into the tree
+      if (next) void fetchPagesList(workspaceSlug.toString(), projectId);
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: t(
@@ -52,7 +57,7 @@ export function useZilClientsRoot(page: TPageInstance) {
     } finally {
       setIsUpdating(false);
     }
-  }, [workspaceSlug, projectId, page, t]);
+  }, [workspaceSlug, projectId, page, t, fetchPagesList]);
 
   return { canManage, isUpdating, toggle };
 }

@@ -208,8 +208,10 @@ class PageZilClientsRootEndpoint(BaseAPIView):
                     "updated_by": request.user,
                 },
             )
-        sync_zil_client_folders.delay(slug)
-        return Response({"is_zil_clients_root": True}, status=status.HTTP_200_OK)
+        # first fill right away so the folders are there when the list is reloaded; when Zil
+        # can't be reached they arrive with its next push (cron ops-client-folders)
+        stats = sync_zil_client_folders(slug)
+        return Response({"is_zil_clients_root": True, "folders": stats}, status=status.HTTP_200_OK)
 
     @allow_permission([ROLE.ADMIN])
     def delete(self, request, slug, project_id, page_id):

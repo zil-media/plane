@@ -156,7 +156,7 @@
         "unset": "Stop using as clients folder",
         "badge": "Clients folder",
         "hint": "Every active client of the project's Business Units gets its own folder here, kept in sync with Zil Workspace.",
-        "set_success": "Clients folder set. Client folders will appear in a moment.",
+        "set_success": "Clients folder set: each client now has its folder here.",
         "unset_success": "This folder no longer receives client folders.",
         "error": "Could not update the clients folder. Please try again.",
         "not_public": "The clients folder must be public.",

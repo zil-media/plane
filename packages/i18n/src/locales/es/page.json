@@ -156,7 +156,7 @@
         "unset": "Dejar de usar como carpeta de clientes",
         "badge": "Carpeta de clientes",
         "hint": "Cada cliente activo de las unidades del proyecto tiene su carpeta acá, sincronizada con Zil Workspace.",
-        "set_success": "Carpeta de clientes configurada. Las carpetas de los clientes aparecen en un momento.",
+        "set_success": "Carpeta de clientes configurada: cada cliente ya tiene su carpeta acá.",
         "unset_success": "Esta carpeta ya no recibe carpetas de clientes.",
         "error": "No se pudo actualizar la carpeta de clientes. Inténtelo de nuevo.",
         "not_public": "La carpeta de clientes tiene que ser pública.",

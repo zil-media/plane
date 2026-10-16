@@ -20,7 +20,7 @@ def no_background_tasks():
         mock.patch("plane.app.views.page.base.page_transaction.delay"),
         mock.patch("plane.app.views.page.base.recent_visited_task.delay"),
         mock.patch("plane.app.views.page.base.refresh_zil_client_link.delay"),
-        mock.patch("plane.app.views.page.zil_client.sync_zil_client_folders.delay") as sync,
+        mock.patch("plane.app.views.page.zil_client.sync_zil_client_folders", return_value=None) as sync,
         mock.patch.dict("os.environ", ZIL_ENV),
     ):
         yield sync
