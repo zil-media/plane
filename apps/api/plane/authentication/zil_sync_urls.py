@@ -5,6 +5,7 @@
 from django.urls import path
 
 from plane.authentication.views.zil_client_folders import ZilClientFoldersSyncEndpoint
+from plane.authentication.views.zil_metrics import ZilMetricsEndpoint
 from plane.authentication.views.zil_sync import (
     ZilWorkspaceSyncEndpoint,
     ZilUserSyncEndpoint,
@@ -41,6 +42,8 @@ urlpatterns = [
     # service-key (ERP pickers / drift monitor): read-only
     path("sync/search/", ZilSearchEndpoint.as_view(), name="zil-sync-search"),
     path("sync/memberships/", ZilMembershipsEndpoint.as_view(), name="zil-sync-memberships"),
+    # service-key (Gestión Ops metrics): usage, interactions and timing of a workspace
+    path("sync/metrics/", ZilMetricsEndpoint.as_view(), name="zil-sync-metrics"),
     # per-user session (Plane member → Zil doc): membership-gated 302
     path("erp-asset/", ZilErpAssetRedirectEndpoint.as_view(), name="zil-erp-asset"),
     # per-user session (web chip): ERP entities linked to a project/page
