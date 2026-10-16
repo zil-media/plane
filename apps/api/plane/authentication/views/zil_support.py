@@ -88,7 +88,8 @@ class ZilSupportTrackingEndpoint(ZilServiceView):
 
     GET ?email=<email> → {is_admin, features, bugs}.
     - features: the person's own suggestions; for an instance admin (the only ones who decide
-      here) also the ones waiting on an admin: spec ready, or approved with the build blocked.
+      here) also the ones waiting on an admin: spec ready, or a stuck build (status "building"
+      with build.blocked_at: the agent reported it blocked and nobody resumes it alone).
     - bugs: the person's own reports marked "sugerencia". Reports already handed to Workspace are
       left out: that report lives in Workspace and shows there on its own.
     An email with no active Ops user answers empty lists, not an error: not everyone uses Ops.
@@ -119,14 +120,14 @@ class ZilSupportTrackingEndpoint(ZilServiceView):
 
             scope = Q(requested_by=user)
             if is_admin:
-                scope |= Q(status__in=(S.SPEC_READY, S.APPROVED))
+                scope |= Q(status__in=(S.SPEC_READY, S.BUILDING))
             candidates = FeatureRequest.objects.filter(scope).select_related("requested_by", "workspace")
             features = [
                 f
                 for f in candidates[: self._MAX_FEATURES]
                 if f.requested_by_id == user.id
                 or f.status == S.SPEC_READY
-                or (f.status == S.APPROVED and (f.build or {}).get("blocked_at"))
+                or (f.status == S.BUILDING and (f.build or {}).get("blocked_at"))
             ]
             flag_keys = [f.flag_key for f in features if f.flag_key]
             enabled = dict(
