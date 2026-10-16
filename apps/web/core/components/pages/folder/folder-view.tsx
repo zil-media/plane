@@ -6,12 +6,13 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { Building2, FilePlus2, FolderOpen, FolderPlus } from "lucide-react";
+import { Building2, FilePlus2, FolderOpen, FolderPlus, Users } from "lucide-react";
 // plane imports
 import { EPageAccess } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { Logo } from "@plane/propel/emoji-icon-picker";
+import { Tooltip } from "@plane/propel/tooltip";
 import type { TPageNavigationTabs } from "@plane/types";
 import { getPageName } from "@plane/utils";
 // components
@@ -25,7 +26,9 @@ import { usePageTreeOperations } from "@/hooks/use-page-tree-operations";
 import type { TPageInstance } from "@/store/pages/base-page";
 // local imports
 import { ZilClientBadge } from "./zil-client-badge";
+import { ZilClientPanel } from "./zil-client-panel";
 import { ZilClientPickerModal } from "./zil-client-picker-modal";
+import { useZilClientsRoot } from "./use-zil-clients-root";
 
 type Props = {
   page: TPageInstance;
@@ -38,7 +41,8 @@ const getTabForPage = (page: TPageInstance): TPageNavigationTabs => {
 };
 
 /**
- * A folder has no editor: it shows its name, the linked Zil client and an index of its children.
+ * A folder has no editor: it shows its name and an index of its children. A folder linked to a Zil
+ * client also shows the client's profile, assets and calls; the clients folder holds one per client.
  */
 export const FolderPageView = observer(function FolderPageView(props: Props) {
   const { page, storeType } = props;
@@ -48,8 +52,9 @@ export const FolderPageView = observer(function FolderPageView(props: Props) {
   const { t } = useTranslation();
   const { data } = usePageStore(storeType);
   const { canCreateChild, createChild } = usePageTreeOperations({ page, storeType });
+  const zilClientsRoot = useZilClientsRoot(page);
   // derived values
-  const { name, logo_props, zil_client, canCurrentUserEditPage, archived_at, updateTitle } = page;
+  const { name, logo_props, zil_client, is_zil_clients_root, canCurrentUserEditPage, archived_at, updateTitle } = page;
   const canEdit = canCurrentUserEditPage && !archived_at;
   // children are shown regardless of their access, each in the tab it belongs to
   const children = Object.values(data).filter(
@@ -59,6 +64,29 @@ export const FolderPageView = observer(function FolderPageView(props: Props) {
     ...children.filter((child) => child.isFolder),
     ...children.filter((child) => !child.isFolder),
   ];
+
+  const childrenIndex =
+    orderedChildren.length > 0 ? (
+      <div className="rounded-md border border-subtle">
+        <ListLayout>
+          {orderedChildren.map((child) => (
+            <PageTreeNode
+              key={child.id}
+              pageId={child.id as string}
+              pageType={getTabForPage(child)}
+              storeType={storeType}
+              depth={0}
+            />
+          ))}
+        </ListLayout>
+      </div>
+    ) : (
+      <div className="flex flex-col items-center gap-1 rounded-md border border-dashed border-subtle py-16 text-center">
+        <FolderOpen className="mb-2 size-8 text-placeholder" />
+        <h4 className="text-14 font-medium text-primary">{t("page_tree.folder.empty_title")}</h4>
+        <p className="text-13 text-secondary">{t("page_tree.folder.empty_description")}</p>
+      </div>
+    );
 
   return (
     <div className="flex size-full flex-col overflow-y-auto">
@@ -82,10 +110,29 @@ export const FolderPageView = observer(function FolderPageView(props: Props) {
 
         <div className="flex flex-wrap items-center gap-2">
           {zil_client && <ZilClientBadge client={zil_client} />}
-          {canEdit && (
+          {is_zil_clients_root && (
+            <Tooltip tooltipContent={t("page_tree.zil_client.clients_root.hint")}>
+              <span className="inline-flex items-center gap-1 rounded-sm border border-subtle px-1.5 py-0.5 text-11 text-secondary">
+                <Users className="size-3 flex-shrink-0" />
+                {t("page_tree.zil_client.clients_root.badge")}
+              </span>
+            </Tooltip>
+          )}
+          {canEdit && !is_zil_clients_root && (
             <Button variant="ghost" size="lg" onClick={() => setIsZilClientModalOpen(true)}>
               <Building2 className="size-3.5" />
               {zil_client ? t("page_tree.zil_client.change") : t("page_tree.zil_client.link")}
+            </Button>
+          )}
+          {zilClientsRoot.canManage && !is_zil_clients_root && (
+            <Button
+              variant="ghost"
+              size="lg"
+              loading={zilClientsRoot.isUpdating}
+              onClick={() => void zilClientsRoot.toggle()}
+            >
+              <Users className="size-3.5" />
+              {t("page_tree.zil_client.clients_root.set")}
             </Button>
           )}
           <span className="text-13 text-tertiary">
@@ -105,26 +152,10 @@ export const FolderPageView = observer(function FolderPageView(props: Props) {
           )}
         </div>
 
-        {orderedChildren.length > 0 ? (
-          <div className="rounded-md border border-subtle">
-            <ListLayout>
-              {orderedChildren.map((child) => (
-                <PageTreeNode
-                  key={child.id}
-                  pageId={child.id as string}
-                  pageType={getTabForPage(child)}
-                  storeType={storeType}
-                  depth={0}
-                />
-              ))}
-            </ListLayout>
-          </div>
+        {zil_client ? (
+          <ZilClientPanel page={page} pagesCount={orderedChildren.length} pages={childrenIndex} />
         ) : (
-          <div className="flex flex-col items-center gap-1 rounded-md border border-dashed border-subtle py-16 text-center">
-            <FolderOpen className="mb-2 size-8 text-placeholder" />
-            <h4 className="text-14 font-medium text-primary">{t("page_tree.folder.empty_title")}</h4>
-            <p className="text-13 text-secondary">{t("page_tree.folder.empty_description")}</p>
-          </div>
+          childrenIndex
         )}
       </div>
       <ZilClientPickerModal isOpen={isZilClientModalOpen} onClose={() => setIsZilClientModalOpen(false)} page={page} />

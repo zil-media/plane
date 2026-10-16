@@ -6,7 +6,17 @@
 
 // types
 import { API_BASE_URL } from "@plane/constants";
-import type { TDocumentPayload, TPage, TPageZilClient, TZilClientSearchResult } from "@plane/types";
+import type {
+  TDocumentPayload,
+  TPage,
+  TPageZilClient,
+  TZilClientAsset,
+  TZilClientAssetInput,
+  TZilClientBrandFile,
+  TZilClientDriveListing,
+  TZilClientProfile,
+  TZilClientSearchResult,
+} from "@plane/types";
 // helpers
 // services
 import { APIService } from "@/services/api.service";
@@ -234,6 +244,110 @@ export class ProjectPageService extends APIService {
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;
+      });
+  }
+
+  async setZilClientsRoot(workspaceSlug: string, projectId: string, pageId: string, isRoot: boolean): Promise<void> {
+    const url = `/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/zil-clients-root/`;
+    return (isRoot ? this.post(url) : this.delete(url))
+      .then(() => undefined)
+      .catch((error) => {
+        throw { status: error?.response?.status, ...error?.response?.data };
+      });
+  }
+
+  private zilClientUrl(workspaceSlug: string, projectId: string, pageId: string, suffix: string) {
+    return `/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/zil-client/${suffix}`;
+  }
+
+  /** Link that opens a client brand file (the server redirects to a short-lived signed URL). */
+  zilClientBrandFileHref(workspaceSlug: string, projectId: string, pageId: string, fileId: string): string {
+    return `${API_BASE_URL}${this.zilClientUrl(workspaceSlug, projectId, pageId, `brand-files/${fileId}/`)}`;
+  }
+
+  async getZilClientProfile(workspaceSlug: string, projectId: string, pageId: string): Promise<TZilClientProfile> {
+    return this.get(this.zilClientUrl(workspaceSlug, projectId, pageId, "profile/"))
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw { status: error?.response?.status, ...error?.response?.data };
+      });
+  }
+
+  async createZilClientAsset(
+    workspaceSlug: string,
+    projectId: string,
+    pageId: string,
+    data: TZilClientAssetInput
+  ): Promise<TZilClientAsset> {
+    return this.post(this.zilClientUrl(workspaceSlug, projectId, pageId, "assets/"), data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw { status: error?.response?.status, ...error?.response?.data };
+      });
+  }
+
+  async updateZilClientAsset(
+    workspaceSlug: string,
+    projectId: string,
+    pageId: string,
+    assetId: string,
+    data: TZilClientAssetInput
+  ): Promise<TZilClientAsset> {
+    return this.patch(this.zilClientUrl(workspaceSlug, projectId, pageId, `assets/${assetId}/`), data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw { status: error?.response?.status, ...error?.response?.data };
+      });
+  }
+
+  async deleteZilClientAsset(workspaceSlug: string, projectId: string, pageId: string, assetId: string): Promise<void> {
+    return this.delete(this.zilClientUrl(workspaceSlug, projectId, pageId, `assets/${assetId}/`))
+      .then(() => undefined)
+      .catch((error) => {
+        throw { status: error?.response?.status, ...error?.response?.data };
+      });
+  }
+
+  async getZilClientDriveListing(
+    workspaceSlug: string,
+    projectId: string,
+    pageId: string,
+    assetId: string
+  ): Promise<TZilClientDriveListing> {
+    return this.get(this.zilClientUrl(workspaceSlug, projectId, pageId, `assets/${assetId}/drive/`))
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw { status: error?.response?.status, ...error?.response?.data };
+      });
+  }
+
+  async uploadZilClientBrandFile(
+    workspaceSlug: string,
+    projectId: string,
+    pageId: string,
+    file: File
+  ): Promise<TZilClientBrandFile> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return this.post(this.zilClientUrl(workspaceSlug, projectId, pageId, "brand-files/"), formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw { status: error?.response?.status, ...error?.response?.data };
+      });
+  }
+
+  async deleteZilClientBrandFile(
+    workspaceSlug: string,
+    projectId: string,
+    pageId: string,
+    fileId: string
+  ): Promise<void> {
+    return this.delete(this.zilClientUrl(workspaceSlug, projectId, pageId, `brand-files/${fileId}/`))
+      .then(() => undefined)
+      .catch((error) => {
+        throw { status: error?.response?.status, ...error?.response?.data };
       });
   }
 

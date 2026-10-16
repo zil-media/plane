@@ -65,6 +65,7 @@ export type TBasePagePermissions = {
   canCurrentUserDeletePage: boolean;
   canCurrentUserFavoritePage: boolean;
   canCurrentUserMovePage: boolean;
+  canCurrentUserManageZilClientsRoot: boolean;
   isContentEditable: boolean;
 };
 
@@ -116,6 +117,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
   kind: TPageKind | undefined;
   sort_order: number | undefined;
   zil_client: TPageZilClient | null | undefined;
+  is_zil_clients_root: boolean;
   // helpers
   oldName: string = "";
   // services
@@ -158,6 +160,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
     this.kind = page?.kind || "page";
     this.sort_order = page?.sort_order;
     this.zil_client = page?.zil_client || null;
+    this.is_zil_clients_root = !!page?.is_zil_clients_root;
 
     makeObservable(this, {
       // loaders
@@ -186,6 +189,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       kind: observable.ref,
       sort_order: observable.ref,
       zil_client: observable.ref,
+      is_zil_clients_root: observable.ref,
       isSyncingWithServer: observable.ref,
       // helpers
       oldName: observable.ref,

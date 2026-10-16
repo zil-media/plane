@@ -20,6 +20,97 @@ export type TPageZilClient = {
   synced_at: string | null;
 };
 
+export type TZilClientAssetKind =
+  | "ad_account"
+  | "social"
+  | "domain"
+  | "pixel"
+  | "drive_folder"
+  | "vault"
+  | "link"
+  | "other";
+
+/** An asset of a Zil client (account, profile, Drive folder, vault collection, link). Zil owns it. */
+export type TZilClientAsset = {
+  id: string;
+  kind: TZilClientAssetKind;
+  label: string;
+  url: string;
+  externalId: string;
+  notes: string;
+  businessUnitSlug: string;
+  addedByName: string;
+  addedAt: string | null;
+  updatedAt: string | null;
+};
+
+export type TZilClientAssetInput = Partial<Pick<TZilClientAsset, "kind" | "label" | "url" | "externalId" | "notes">>;
+
+export type TZilClientBrandFile = {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  uploadedBy: string;
+  uploadedAt: string | null;
+};
+
+export type TZilBusinessUnitRef = { slug: string; label: string };
+
+/** A Zil client's profile as its folder shows it: read live from Zil, never stored in Ops. */
+export type TZilClientProfile = {
+  id: string;
+  zilUrl: string;
+  info: {
+    alias: string;
+    companyName: string;
+    lifecycleStatus: string;
+    country: string;
+    businessUnit: TZilBusinessUnitRef | null;
+    relatedBusinessUnits: (TZilBusinessUnitRef & { via: ("project" | "contract" | "grant")[] })[];
+    primaryContact: { name: string; email: string; phone: string } | null;
+    operationalContacts: { name: string; email: string; role: string }[];
+  };
+  projects: { id: string; name: string; service: string; businessUnitSlug: string }[];
+  services: { id: string; startDate: string; endDate: string; autoRenewal: boolean; titles: string[] }[];
+  assets: TZilClientAsset[];
+  adAccounts: {
+    platform: "meta" | "google";
+    assetType: string;
+    externalId: string;
+    name: string;
+    businessUnitSlug: string;
+  }[];
+  brandFiles: TZilClientBrandFile[];
+  calls: {
+    id: string;
+    title: string;
+    startedAt: string;
+    durationSeconds: number;
+    ownerName: string;
+    summary: string;
+  }[];
+};
+
+/** A linked Drive folder's index, read as the viewer (they see what their Google account sees). */
+export type TZilClientDriveListing =
+  | {
+      ok: true;
+      url: string;
+      folder: { id: string; name: string };
+      items: {
+        id: string;
+        name: string;
+        mimeType: string;
+        isFolder: boolean;
+        size: number | null;
+        modifiedTime: string | null;
+        url: string | null;
+      }[];
+      truncated: boolean;
+    }
+  | { ok: false; error: string; message: string; url: string };
+
 /** A client as returned by the Zil client search. */
 export type TZilClientSearchResult = {
   id: string;
@@ -55,6 +146,7 @@ export type TPage = {
   kind?: TPageKind | undefined;
   sort_order?: number | undefined;
   zil_client?: TPageZilClient | null | undefined;
+  is_zil_clients_root?: boolean;
 } & TPageExtended;
 
 // page filters
