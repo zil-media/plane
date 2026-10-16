@@ -71,7 +71,6 @@ export class ProjectPage extends BasePage implements TProjectPage {
       canCurrentUserDeletePage: computed,
       canCurrentUserFavoritePage: computed,
       canCurrentUserMovePage: computed,
-      canCurrentUserManageZilClientsRoot: computed,
       isContentEditable: computed,
     });
   }
@@ -161,13 +160,6 @@ export class ProjectPage extends BasePage implements TProjectPage {
   get canCurrentUserFavoritePage() {
     const highestRole = this.getHighestRoleAcrossProjects();
     return !!highestRole && highestRole >= EUserPermissions.MEMBER;
-  }
-
-  /**
-   * @description project admins choose the folder that holds one sub-folder per Zil client
-   */
-  get canCurrentUserManageZilClientsRoot() {
-    return this.getHighestRoleAcrossProjects() === EUserPermissions.ADMIN;
   }
 
   /**

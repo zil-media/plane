@@ -247,15 +247,6 @@ export class ProjectPageService extends APIService {
       });
   }
 
-  async setZilClientsRoot(workspaceSlug: string, projectId: string, pageId: string, isRoot: boolean): Promise<void> {
-    const url = `/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/zil-clients-root/`;
-    return (isRoot ? this.post(url) : this.delete(url))
-      .then(() => undefined)
-      .catch((error) => {
-        throw { status: error?.response?.status, ...error?.response?.data };
-      });
-  }
-
   private zilClientUrl(workspaceSlug: string, projectId: string, pageId: string, suffix: string) {
     return `/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/zil-client/${suffix}`;
   }

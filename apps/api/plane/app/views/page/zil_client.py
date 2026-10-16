@@ -12,9 +12,7 @@ from rest_framework.response import Response
 
 # Module imports
 from plane.app.permissions import allow_permission, ROLE
-from plane.bgtasks.zil_client_folders_task import sync_zil_client_folders
-from plane.db.models import Page, PageZilClientLink, ZilClientsRoot
-from plane.utils.page_tree import get_ancestor_ids
+from plane.db.models import Page, PageZilClientLink
 from plane.utils.zil_client import (
     ZilUnavailable,
     apply_zil_client_fields,
@@ -157,66 +155,6 @@ class PageZilClientLinkEndpoint(BaseAPIView):
             return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
 
         PageZilClientLink.all_objects.filter(page_id=page.id).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class PageZilClientsRootEndpoint(BaseAPIView):
-    """Mark a folder as the project's clients root: Zil's client roster becomes its sub-folders."""
-
-    def _get_folder(self, slug, project_id, page_id):
-        return Page.objects.filter(
-            pk=page_id,
-            workspace__slug=slug,
-            projects__id=project_id,
-            project_pages__deleted_at__isnull=True,
-            kind=Page.FOLDER_KIND,
-        ).first()
-
-    @allow_permission([ROLE.ADMIN])
-    def post(self, request, slug, project_id, page_id):
-        if not zil_enabled():
-            return Response({"error": "ZIL_DISABLED"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        page = self._get_folder(slug, project_id, page_id)
-        if page is None:
-            return Response({"error": "Folder not found"}, status=status.HTTP_404_NOT_FOUND)
-        if page.access == Page.PRIVATE_ACCESS or page.archived_at is not None:
-            return Response(
-                {"error": "The clients folder must be public and not archived", "error_message": "ZIL_ROOT_NOT_PUBLIC"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if PageZilClientLink.objects.filter(page_id=page.id).exists():
-            return Response(
-                {"error": "A client folder can't hold the other clients", "error_message": "ZIL_ROOT_IS_CLIENT"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        # the client folders go one level below: the root must leave room for them
-        if len(get_ancestor_ids(page.id)) + 2 > Page.MAX_TREE_DEPTH:
-            return Response(
-                {"error": "This folder is too deep to hold client folders", "error_message": "ZIL_ROOT_TOO_DEEP"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        with transaction.atomic():
-            ZilClientsRoot.objects.filter(project_id=project_id).exclude(page_id=page.id).delete()
-            ZilClientsRoot.all_objects.filter(page_id=page.id, deleted_at__isnull=False).delete()
-            ZilClientsRoot.objects.get_or_create(
-                page_id=page.id,
-                defaults={
-                    "workspace_id": page.workspace_id,
-                    "project_id": project_id,
-                    "created_by": request.user,
-                    "updated_by": request.user,
-                },
-            )
-        # first fill right away so the folders are there when the list is reloaded; when Zil
-        # can't be reached they arrive with its next push (cron ops-client-folders)
-        stats = sync_zil_client_folders(slug)
-        return Response({"is_zil_clients_root": True, "folders": stats}, status=status.HTTP_200_OK)
-
-    @allow_permission([ROLE.ADMIN])
-    def delete(self, request, slug, project_id, page_id):
-        # the client folders already created stay where they are, still linked
-        ZilClientsRoot.objects.filter(project_id=project_id, page_id=page_id).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

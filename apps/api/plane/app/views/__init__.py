@@ -177,7 +177,6 @@ from .page.version import PageVersionEndpoint
 from .page.zil_client import (
     ZilClientSearchEndpoint,
     PageZilClientLinkEndpoint,
-    PageZilClientsRootEndpoint,
     PageZilClientProfileEndpoint,
     PageZilClientAssetsEndpoint,
     PageZilClientAssetDetailEndpoint,

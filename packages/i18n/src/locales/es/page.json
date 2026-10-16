@@ -152,16 +152,8 @@
       "error": "No se pudo actualizar la vinculación del cliente. Inténtelo de nuevo.",
       "missing": "Cliente no encontrado en Zil Workspace",
       "clients_root": {
-        "set": "Usar como carpeta de clientes",
-        "unset": "Dejar de usar como carpeta de clientes",
         "badge": "Carpeta de clientes",
-        "hint": "Cada cliente activo de las unidades del proyecto tiene su carpeta acá, sincronizada con Zil Workspace.",
-        "set_success": "Carpeta de clientes configurada: cada cliente ya tiene su carpeta acá.",
-        "unset_success": "Esta carpeta ya no recibe carpetas de clientes.",
-        "error": "No se pudo actualizar la carpeta de clientes. Inténtelo de nuevo.",
-        "not_public": "La carpeta de clientes tiene que ser pública.",
-        "too_deep": "Esta carpeta está demasiado anidada para contener carpetas de clientes.",
-        "is_client": "La carpeta de un cliente no puede contener a los demás clientes."
+        "hint": "Zil Workspace mantiene acá una carpeta por cada cliente activo de la unidad: se crean y se archivan solas."
       },
       "profile": {
         "tab_info": "Ficha",

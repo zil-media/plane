@@ -2,10 +2,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-"""One folder per Zil client under each project's clients root (ZilClientsRoot).
+"""One folder per Zil client under the workspace's "Clientes" folder (ZilClientsRoot).
 
 Zil sends a workspace's full client roster (the active and paused clients its Business
-Units own or work on); this applies it to every clients root of that workspace:
+Units own or work on). Nobody sets anything up in Ops: the first roster with clients gives
+the workspace its "Clientes" folder (an existing top-level "Clientes" folder is adopted;
+otherwise one is created at the root of the BU's main project), and every roster is then
+applied to it:
 
 - a client with no folder linked in that project gets one: a public sub-folder of the root,
   owned by the root's owner, linked with `auto_created=True`;
@@ -25,9 +28,13 @@ from django.db import transaction
 from django.utils import timezone
 
 # Module imports
-from plane.db.models import Page, PageZilClientLink, ProjectPage, ZilClientsRoot
+from plane.authentication.utils.zil_provisioning import get_service_user
+from plane.db.models import Page, PageZilClientLink, Project, ProjectPage, Workspace, ZilClientsRoot
 from plane.utils.page_tree import next_child_sort_order, set_archived_at_for_page_and_descendants
 from plane.utils.zil_client import apply_zil_client_fields, is_valid_client_id
+
+
+CLIENTS_FOLDER_NAME = "Clientes"
 
 
 def client_folder_name(client):
@@ -41,6 +48,72 @@ def live_roots(workspace_id):
         page__archived_at__isnull=True,
         page__kind=Page.FOLDER_KIND,
     ).select_related("page", "project")
+
+
+def _main_project(workspace):
+    """The BU's own project (named like the workspace), else the workspace's oldest live project."""
+    projects = list(Project.objects.filter(workspace_id=workspace.id, archived_at__isnull=True).order_by("created_at"))
+    name = (workspace.name or "").strip().lower()
+    return next((p for p in projects if (p.name or "").strip().lower() == name), projects[0] if projects else None)
+
+
+def ensure_clients_root(workspace):
+    """The workspace's clients folder, adopting or creating it when there is none. None without projects."""
+    root = live_roots(workspace.id).first()
+    if root is not None:
+        return root
+    # a clients folder that was archived or deleted is replaced: Zil decides that it exists (R3)
+    ZilClientsRoot.objects.filter(workspace_id=workspace.id).delete()
+
+    folder = (
+        Page.objects.filter(
+            workspace_id=workspace.id,
+            kind=Page.FOLDER_KIND,
+            parent__isnull=True,
+            name__iexact=CLIENTS_FOLDER_NAME,
+            access=Page.PUBLIC_ACCESS,
+            archived_at__isnull=True,
+            project_pages__deleted_at__isnull=True,
+            project_pages__project__archived_at__isnull=True,
+            zil_client_link__isnull=True,
+        )
+        .order_by("created_at")
+        .first()
+    )
+    if folder is not None:
+        project_id = folder.project_pages.filter(deleted_at__isnull=True).values_list("project_id", flat=True).first()
+    else:
+        project = _main_project(workspace)
+        if project is None:
+            return None
+        owner = get_service_user()
+        folder = Page.objects.create(
+            name=CLIENTS_FOLDER_NAME,
+            kind=Page.FOLDER_KIND,
+            access=Page.PUBLIC_ACCESS,
+            owned_by_id=owner.id,
+            workspace_id=workspace.id,
+            description_json={},
+            description_binary=None,
+            description_html="<p></p>",
+            sort_order=next_child_sort_order(None, project.id),
+            created_by_id=owner.id,
+            updated_by_id=owner.id,
+        )
+        ProjectPage.objects.create(
+            workspace_id=workspace.id,
+            project_id=project.id,
+            page_id=folder.id,
+            created_by_id=owner.id,
+            updated_by_id=owner.id,
+        )
+        project_id = project.id
+    # a project has one clients folder: a stale root of that project goes first
+    ZilClientsRoot.all_objects.filter(page_id=folder.id).delete()
+    root = ZilClientsRoot.objects.create(
+        workspace_id=workspace.id, project_id=project_id, page_id=folder.id, created_by_id=folder.owned_by_id
+    )
+    return ZilClientsRoot.objects.select_related("page", "project").get(pk=root.pk)
 
 
 def _create_client_folder(root, client):
@@ -127,7 +200,7 @@ def _apply_to_root(root, clients_by_id, authoritative, stats):
 
 
 def apply_client_folders(workspace_id, clients, authoritative):
-    """Apply a workspace's client roster to all its clients roots. Returns counters."""
+    """Apply a workspace's client roster to its clients folder (created on the first one). Returns counters."""
     clients_by_id = {}
     for client in clients or []:
         client_id = str(client.get("id") or "").strip().lower()
@@ -135,6 +208,10 @@ def apply_client_folders(workspace_id, clients, authoritative):
             clients_by_id[client_id] = {**client, "id": client_id}
 
     stats = {"roots": 0, "created": 0, "renamed": 0, "archived": 0, "restored": 0}
+    # no clients yet: no folder to hold them
+    if clients_by_id:
+        with transaction.atomic():
+            ensure_clients_root(Workspace.objects.get(pk=workspace_id))
     for root in live_roots(workspace_id):
         with transaction.atomic():
             _apply_to_root(root, clients_by_id, authoritative, stats)

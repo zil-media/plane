@@ -152,16 +152,8 @@
       "error": "Impossible de mettre à jour l’association du client. Veuillez réessayer.",
       "missing": "Client introuvable dans Zil Workspace",
       "clients_root": {
-        "set": "Use as clients folder",
-        "unset": "Stop using as clients folder",
         "badge": "Clients folder",
-        "hint": "Every active client of the project's Business Units gets its own folder here, kept in sync with Zil Workspace.",
-        "set_success": "Clients folder set: each client now has its folder here.",
-        "unset_success": "This folder no longer receives client folders.",
-        "error": "Could not update the clients folder. Please try again.",
-        "not_public": "The clients folder must be public.",
-        "too_deep": "This folder is too deep to hold client folders.",
-        "is_client": "A client's folder cannot hold the other clients."
+        "hint": "Zil Workspace keeps one folder here for each active client of the unit, created and archived automatically."
       },
       "profile": {
         "tab_info": "Profile",

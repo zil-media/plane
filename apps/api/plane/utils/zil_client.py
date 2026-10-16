@@ -200,17 +200,6 @@ def save_issue_doc_to_zil(payload):
 ZIL_RELAY_TIMEOUT_SECONDS = 15
 
 
-def get_zil_client_roster(workspace_slug):
-    """Every client of the workspace that must have a folder (active + paused). Raises ZilUnavailable."""
-    resp = _get("/api/sso/clients/roster", {"workspaceSlug": workspace_slug})
-    if resp.status_code != 200:
-        raise ZilUnavailable()
-    try:
-        return resp.json().get("clients") or []
-    except ValueError as e:
-        raise ZilUnavailable() from e
-
-
 def zil_client_relay(method, client_id, subpath, workspace_slug, actor_email, json=None, files=None):
     """Relay a client-profile call (profile, assets, brand files) to Zil as `actor_email`.
 

@@ -20,10 +20,9 @@ def no_background_tasks():
         mock.patch("plane.app.views.page.base.page_transaction.delay"),
         mock.patch("plane.app.views.page.base.recent_visited_task.delay"),
         mock.patch("plane.app.views.page.base.refresh_zil_client_link.delay"),
-        mock.patch("plane.app.views.page.zil_client.sync_zil_client_folders", return_value=None) as sync,
         mock.patch.dict("os.environ", ZIL_ENV),
     ):
-        yield sync
+        yield
 
 
 @pytest.fixture
@@ -70,34 +69,47 @@ def folder_of(client_id):
     return PageZilClientLink.objects.select_related("page").get(zil_client_id=client_id).page
 
 
-@pytest.fixture
-def root(session_client, workspace, project, no_background_tasks):
-    folder = create_folder(session_client, workspace, project)
-    response = session_client.post(pages_url(workspace, project, f"{folder['id']}/zil-clients-root/"))
-    assert response.status_code == status.HTTP_200_OK, response.data
-    no_background_tasks.assert_called_once_with(workspace.slug)
-    return folder
+def clients_root(project):
+    return ZilClientsRoot.objects.select_related("page").get(project_id=project["id"])
 
 
 @pytest.mark.contract
-class TestClientsRoot:
+class TestClientsFolder:
     @pytest.mark.django_db
-    def test_root_is_flagged_and_one_per_project(self, session_client, workspace, project, root):
-        detail = session_client.get(pages_url(workspace, project, f"{root['id']}/"))
-        assert detail.data["is_zil_clients_root"] is True
-
-        other = create_folder(session_client, workspace, project, name="Otra")
-        response = session_client.post(pages_url(workspace, project, f"{other['id']}/zil-clients-root/"))
+    def test_first_roster_creates_the_clients_folder_with_nobody_setting_it_up(self, api_client, workspace, project):
+        response = push(api_client, workspace, [client_dto(NIKE, "Nike")])
         assert response.status_code == status.HTTP_200_OK
-        assert ZilClientsRoot.objects.filter(project_id=project["id"]).count() == 1
-        assert ZilClientsRoot.objects.get(project_id=project["id"]).page_id == other["id"]
+        assert response.data["roots"] == 1 and response.data["created"] == 1
+
+        root = clients_root(project).page
+        assert root.name == "Clientes" and root.kind == Page.FOLDER_KIND and root.parent_id is None
+        assert root.access == Page.PUBLIC_ACCESS
+        assert folder_of(NIKE).parent_id == root.id
 
     @pytest.mark.django_db
-    def test_private_folder_cannot_be_root(self, session_client, workspace, project):
-        folder = create_folder(session_client, workspace, project, access=1)
-        response = session_client.post(pages_url(workspace, project, f"{folder['id']}/zil-clients-root/"))
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data["error_message"] == "ZIL_ROOT_NOT_PUBLIC"
+    def test_adopts_an_existing_clientes_folder(self, session_client, api_client, workspace, project):
+        existing = create_folder(session_client, workspace, project)
+        push(api_client, workspace, [client_dto(NIKE, "Nike")])
+        assert str(clients_root(project).page_id) == str(existing["id"])
+        assert Page.objects.filter(name="Clientes", kind=Page.FOLDER_KIND).count() == 1
+
+    @pytest.mark.django_db
+    def test_no_clients_no_folder(self, api_client, workspace, project):
+        response = push(api_client, workspace, [])
+        assert response.data["roots"] == 0
+        assert not ZilClientsRoot.objects.exists()
+
+    @pytest.mark.django_db
+    def test_an_archived_clients_folder_is_replaced_and_keeps_its_clients(self, api_client, workspace, project):
+        push(api_client, workspace, [client_dto(NIKE, "Nike")])
+        old_root = clients_root(project).page
+        Page.objects.filter(pk__in=[old_root.pk, folder_of(NIKE).pk]).update(archived_at="2026-10-01")
+
+        push(api_client, workspace, [client_dto(NIKE, "Nike")])
+        new_root = clients_root(project).page
+        assert new_root.pk != old_root.pk and new_root.archived_at is None
+        nike = folder_of(NIKE)
+        assert nike.parent_id == new_root.pk and nike.archived_at is None
 
 
 @pytest.mark.contract
@@ -110,21 +122,22 @@ class TestClientFoldersSync:
         assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
 
     @pytest.mark.django_db
-    def test_creates_one_linked_folder_per_client_idempotently(self, api_client, workspace, root):
+    def test_creates_one_linked_folder_per_client_idempotently(self, api_client, workspace, project):
         response = push(api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")])
         assert response.status_code == status.HTTP_200_OK
         assert response.data["created"] == 2
 
         nike = folder_of(NIKE)
-        assert nike.name == "Nike" and nike.parent_id == root["id"] and nike.kind == Page.FOLDER_KIND
-        assert nike.access == Page.PUBLIC_ACCESS
+        assert nike.name == "Nike" and nike.parent_id == clients_root(project).page_id
+        assert nike.kind == Page.FOLDER_KIND and nike.access == Page.PUBLIC_ACCESS
 
         again = push(api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")])
         assert again.data["created"] == 0
         assert PageZilClientLink.objects.count() == 2
+        assert ZilClientsRoot.objects.count() == 1
 
     @pytest.mark.django_db
-    def test_renames_unless_renamed_by_hand(self, api_client, workspace, root):
+    def test_renames_unless_renamed_by_hand(self, api_client, workspace, project):
         push(api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")])
         Page.objects.filter(pk=folder_of(ADIDAS).pk).update(name="Adidas (cuenta LATAM)")
 
@@ -134,7 +147,7 @@ class TestClientFoldersSync:
         assert folder_of(ADIDAS).name == "Adidas (cuenta LATAM)"
 
     @pytest.mark.django_db
-    def test_archives_only_on_authoritative_roster_and_restores(self, api_client, workspace, root):
+    def test_archives_only_on_authoritative_roster_and_restores(self, api_client, workspace, project):
         push(api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")])
 
         push(api_client, workspace, [client_dto(NIKE, "Nike")], authoritative=False)
@@ -149,7 +162,7 @@ class TestClientFoldersSync:
         assert folder_of(ADIDAS).archived_at is None
 
     @pytest.mark.django_db
-    def test_respects_a_folder_linked_by_hand(self, session_client, api_client, workspace, project, root):
+    def test_respects_a_folder_linked_by_hand(self, session_client, api_client, workspace, project):
         manual = create_folder(session_client, workspace, project, name="Nike a mano")
         with mock.patch("plane.app.views.page.zil_client.get_zil_client", return_value=client_dto(NIKE, "Nike")):
             linked = session_client.post(
@@ -157,31 +170,30 @@ class TestClientFoldersSync:
             )
         assert linked.status_code == status.HTTP_200_OK
 
-        response = push(api_client, workspace, [client_dto(ADIDAS, "Adidas")])
+        response = push(api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")])
         assert response.data["created"] == 1
+        push(api_client, workspace, [client_dto(ADIDAS, "Adidas")])
         # a hand-linked folder is never archived by the sync
-        assert folder_of(NIKE).pk == manual["id"] and folder_of(NIKE).archived_at is None
+        assert str(folder_of(NIKE).pk) == str(manual["id"]) and folder_of(NIKE).archived_at is None
 
 
 @pytest.mark.contract
 class TestClientProfileRelay:
     @pytest.mark.django_db
     def test_profile_is_relayed_as_the_user_and_refreshes_the_cache(
-        self, session_client, api_client, workspace, project, root, create_user
+        self, session_client, api_client, workspace, project, create_user
     ):
         push(api_client, workspace, [client_dto(NIKE, "Nike")])
         folder = folder_of(NIKE)
-        profile = {
-            "id": NIKE,
-            "info": {
-                "alias": "Nike Inc",
-                "companyName": "Nike SA",
-                "lifecycleStatus": "paused",
-                "businessUnit": {"slug": "mw"},
-            },
+        info = {
+            "alias": "Nike Inc",
+            "companyName": "Nike SA",
+            "lifecycleStatus": "paused",
+            "businessUnit": {"slug": "mw"},
         }
         with mock.patch(
-            "plane.app.views.page.zil_client.zil_client_relay", return_value=(200, {"profile": profile})
+            "plane.app.views.page.zil_client.zil_client_relay",
+            return_value=(200, {"profile": {"id": NIKE, "info": info}}),
         ) as relay:
             response = session_client.get(pages_url(workspace, project, f"{folder.id}/zil-client/profile/"))
         assert response.status_code == status.HTTP_200_OK
@@ -190,7 +202,7 @@ class TestClientProfileRelay:
         assert PageZilClientLink.objects.get(zil_client_id=NIKE).lifecycle_status == "paused"
 
     @pytest.mark.django_db
-    def test_zil_refusal_passes_through(self, session_client, api_client, workspace, project, root):
+    def test_zil_refusal_passes_through(self, session_client, api_client, workspace, project):
         push(api_client, workspace, [client_dto(NIKE, "Nike")])
         folder = folder_of(NIKE)
         with mock.patch(
@@ -206,7 +218,7 @@ class TestClientProfileRelay:
         assert response.data["error"] == "actor not in workspace"
 
     @pytest.mark.django_db
-    def test_brand_file_redirects_to_the_signed_url(self, session_client, api_client, workspace, project, root):
+    def test_brand_file_redirects_to_the_signed_url(self, session_client, api_client, workspace, project):
         push(api_client, workspace, [client_dto(NIKE, "Nike")])
         folder = folder_of(NIKE)
         signed = "https://r2.test/client-brand/logo.png?sig=1"

@@ -80,7 +80,6 @@ export const BlockItemAction = observer(function BlockItemAction(props: Props) {
           "add-sub-page",
           "add-folder",
           "link-zil-client",
-          "zil-clients-root",
           "open-in-new-tab",
           "copy-link",
           "move",

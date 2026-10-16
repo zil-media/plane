@@ -13,7 +13,6 @@ from plane.app.views import (
     PageDuplicateEndpoint,
     ZilClientSearchEndpoint,
     PageZilClientLinkEndpoint,
-    PageZilClientsRootEndpoint,
     PageZilClientProfileEndpoint,
     PageZilClientAssetsEndpoint,
     PageZilClientAssetDetailEndpoint,
@@ -98,12 +97,6 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-client/",
         PageZilClientLinkEndpoint.as_view(),
         name="page-zil-client",
-    ),
-    # the project's clients root: Zil's client roster becomes its sub-folders
-    path(
-        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-clients-root/",
-        PageZilClientsRootEndpoint.as_view(),
-        name="page-zil-clients-root",
     ),
     # a client folder's profile (info, assets, brand files, calls), relayed to Zil
     path(

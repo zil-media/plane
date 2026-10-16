@@ -136,16 +136,7 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
         extraOptions={EXTRA_MENU_OPTIONS}
         optionsOrder={
           page.isFolder
-            ? [
-                "add-sub-page",
-                "add-folder",
-                "link-zil-client",
-                "zil-clients-root",
-                "move",
-                "archive-restore",
-                "delete",
-                "toggle-access",
-              ]
+            ? ["add-sub-page", "add-folder", "link-zil-client", "move", "archive-restore", "delete", "toggle-access"]
             : [
                 "full-screen",
                 "sticky-toolbar",

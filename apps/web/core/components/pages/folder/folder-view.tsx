@@ -28,7 +28,6 @@ import type { TPageInstance } from "@/store/pages/base-page";
 import { ZilClientBadge } from "./zil-client-badge";
 import { ZilClientPanel } from "./zil-client-panel";
 import { ZilClientPickerModal } from "./zil-client-picker-modal";
-import { useZilClientsRoot } from "./use-zil-clients-root";
 
 type Props = {
   page: TPageInstance;
@@ -52,7 +51,6 @@ export const FolderPageView = observer(function FolderPageView(props: Props) {
   const { t } = useTranslation();
   const { data } = usePageStore(storeType);
   const { canCreateChild, createChild } = usePageTreeOperations({ page, storeType });
-  const zilClientsRoot = useZilClientsRoot(page);
   // derived values
   const { name, logo_props, zil_client, is_zil_clients_root, canCurrentUserEditPage, archived_at, updateTitle } = page;
   const canEdit = canCurrentUserEditPage && !archived_at;
@@ -122,17 +120,6 @@ export const FolderPageView = observer(function FolderPageView(props: Props) {
             <Button variant="ghost" size="lg" onClick={() => setIsZilClientModalOpen(true)}>
               <Building2 className="size-3.5" />
               {zil_client ? t("page_tree.zil_client.change") : t("page_tree.zil_client.link")}
-            </Button>
-          )}
-          {zilClientsRoot.canManage && !is_zil_clients_root && (
-            <Button
-              variant="ghost"
-              size="lg"
-              loading={zilClientsRoot.isUpdating}
-              onClick={() => void zilClientsRoot.toggle()}
-            >
-              <Users className="size-3.5" />
-              {t("page_tree.zil_client.clients_root.set")}
             </Button>
           )}
           <span className="text-13 text-tertiary">

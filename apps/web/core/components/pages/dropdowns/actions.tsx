@@ -15,7 +15,6 @@ import {
   FolderPlus,
   LockKeyhole,
   LockKeyholeOpen,
-  Users,
 } from "lucide-react";
 // constants
 import { EPageAccess } from "@plane/constants";
@@ -27,7 +26,6 @@ import type { TContextMenuItem } from "@plane/ui";
 import { ContextMenu, CustomMenu } from "@plane/ui";
 // components
 import { cn } from "@plane/utils";
-import { useZilClientsRoot } from "@/components/pages/folder/use-zil-clients-root";
 import { ZilClientPickerModal } from "@/components/pages/folder/zil-client-picker-modal";
 import { DeletePageModal } from "@/components/pages/modals/delete-page-modal";
 import { usePageTreeOperations } from "@/hooks/use-page-tree-operations";
@@ -57,8 +55,7 @@ export type TPageActions =
   | "move"
   | "add-sub-page"
   | "add-folder"
-  | "link-zil-client"
-  | "zil-clients-root";
+  | "link-zil-client";
 
 type Props = {
   extraOptions?: (TContextMenuItem & { key: TPageActions })[];
@@ -87,7 +84,6 @@ export const PageActions = observer(function PageActions(props: Props) {
     page,
   });
   const { canCreateChild, createChild } = usePageTreeOperations({ page, storeType });
-  const zilClientsRoot = useZilClientsRoot(page);
   // derived values
   const {
     access,
@@ -194,15 +190,6 @@ export const PageActions = observer(function PageActions(props: Props) {
           icon: Building2,
           shouldRender: isFolder && canCurrentUserEditPage && !archived_at && !page.is_zil_clients_root,
         },
-        {
-          key: "zil-clients-root",
-          action: () => void zilClientsRoot.toggle(),
-          title: page.is_zil_clients_root
-            ? t("page_tree.zil_client.clients_root.unset")
-            : t("page_tree.zil_client.clients_root.set"),
-          icon: Users,
-          shouldRender: zilClientsRoot.canManage,
-        },
       ];
       if (extraOptions) {
         menuItems.push(...extraOptions);
@@ -227,7 +214,6 @@ export const PageActions = observer(function PageActions(props: Props) {
       canCurrentUserEditPage,
       isFolder,
       zil_client,
-      zilClientsRoot,
       page.is_zil_clients_root,
       t,
     ]

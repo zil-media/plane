@@ -65,7 +65,6 @@ export type TBasePagePermissions = {
   canCurrentUserDeletePage: boolean;
   canCurrentUserFavoritePage: boolean;
   canCurrentUserMovePage: boolean;
-  canCurrentUserManageZilClientsRoot: boolean;
   isContentEditable: boolean;
 };
 
