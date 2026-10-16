@@ -33,6 +33,10 @@ const IGNORED = [
   // variant of the same startup mismatch.
   /Minified React error #423/i,
   /^Script error\.?$/i,
+  // A 403 from the API is an access decision, not a defect: a user without membership in a
+  // project still fires its background fetches before ProjectAccessRestriction renders, and
+  // those rejections (raw `{ error }` bodies) reach `unhandledrejection`.
+  /^You don't have the required permissions\.?$/i,
   /chrome-extension:\/\//i,
   /moz-extension:\/\//i,
 ];
