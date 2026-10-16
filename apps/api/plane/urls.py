@@ -24,6 +24,7 @@ urlpatterns = [
     path("api/instances/", include("plane.license.urls")),
     path("api/v1/", include("plane.api.urls")),
     path("api/zil/", include("plane.authentication.zil_sync_urls")),
+    path("api/zil/", include("plane.authentication.zil_support_urls")),
     # OAuth for the Ops MCP server (/mcp, served by the mcp container)
     re_path(
         r"^\.well-known/(?:oauth-authorization-server|openid-configuration)(?:/mcp)?/?$",
