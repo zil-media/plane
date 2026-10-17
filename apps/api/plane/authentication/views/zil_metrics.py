@@ -58,6 +58,11 @@ class ZilMetricsEndpoint(ZilServiceView):
     exclusive; default: the last 28 days up to today).
     """
 
+    # Service-key calls have no session, so DRF's default anon throttle (30/min per caller IP)
+    # would answer 429 midway through Zil's 60-day backfill (two calls per workspace and day) and
+    # its all-units view (two per workspace).
+    throttle_classes = []
+
     def get(self, request):
         workspace = _workspace(request)
         if workspace is None:
@@ -74,6 +79,8 @@ class ZilPersonMetricsEndpoint(ZilServiceView):
     GET ?workspace_slug=&email=&since=&until= (same window as the workspace metrics). The person
     must be a member of the workspace.
     """
+
+    throttle_classes = []
 
     def get(self, request):
         workspace = _workspace(request)

@@ -277,6 +277,17 @@ class TestWorkspaceMetrics:
         assert set(ok.data) >= {"usage", "flow", "interactions", "projects", "people"}
         assert (date.fromisoformat(ok.data["until"]) - date.fromisoformat(ok.data["since"])) == timedelta(days=30)
 
+    @pytest.mark.django_db
+    def test_zil_bursts_are_not_anon_throttled(self, api_client, workspace, create_user):
+        # Zil's 60-day backfill and its all-units view call these in bursts with the service key and
+        # no session: DRF's default anon throttle (30/min per caller IP) would answer 429 midway.
+        api_client.credentials(HTTP_X_ZIL_SERVICE_KEY="secret")
+        window = {"workspace_slug": workspace.slug, "since": "2026-10-01", "until": "2026-10-02"}
+        for _ in range(20):
+            assert api_client.get("/api/zil/sync/metrics/", window).status_code == status.HTTP_200_OK
+            person = api_client.get("/api/zil/sync/metrics/person/", {**window, "email": create_user.email})
+            assert person.status_code == status.HTTP_200_OK
+
 
 @pytest.mark.contract
 class TestPersonMetrics:
@@ -567,3 +578,31 @@ class TestUnitAndPersonAgree:
             assert {k: row[k] for k in set(row) - {"user_id", "name", "email"}} == {
                 k: mine[k] for k in set(row) - {"user_id", "name", "email"}
             }
+
+    @pytest.mark.django_db
+    def test_a_session_across_midnight_is_one_save_in_any_window(self, workspace, project, create_user):
+        """A save belongs to the day its session started: adjacent windows (the daily snapshots, "this period"
+        against "the previous one") add up to the window around both, and the presence after midnight stays."""
+        UsageDay.objects.filter(workspace_slug=workspace.slug).delete()
+        brief = Page.objects.create(name="Brief ACME", workspace=workspace, owned_by=create_user)
+        # versions out of the order they were written in: the session is what the clock says
+        for day, hour, minute in [(7, 0, 10), (6, 23, 40), (7, 0, 0), (6, 23, 50), (7, 0, 25)]:
+            PageVersion.objects.create(
+                workspace=workspace,
+                page=brief,
+                owned_by=create_user,
+                last_saved_at=datetime(2026, 10, day, hour, minute, tzinfo=TZ),
+            )
+
+        def saves(since, until):
+            unit = compute_workspace_metrics(workspace, since, until)
+            row = next(p for p in unit["people"] if p["email"] == create_user.email)
+            page = compute_person_metrics(workspace, create_user, since, until)
+            assert page["kinds"].get("page", 0) == page["totals"]["page_saves"] == row["actions"]
+            assert sum(map(sum, page["heatmap"])) == sum(map(sum, unit["usage"]["heatmap"])) == row["actions"]
+            return row["actions"], row["action_days"], row["active_days"], page["totals"]["active_minutes"]
+
+        assert saves(date(2026, 10, 6), date(2026, 10, 7)) == (1, 1, 1, 15)
+        # the session goes on after midnight: not a new save, still a day spent in Ops (00:00-00:25 and 5 more)
+        assert saves(date(2026, 10, 7), date(2026, 10, 8)) == (0, 0, 1, 30)
+        assert saves(date(2026, 10, 6), date(2026, 10, 8)) == (1, 1, 2, 45)

@@ -287,6 +287,36 @@ class TestArchiveStateOnlyThroughTheArchiveEndpoints:
         assert folder_of(NIKE).archived_at is not None
         lookup.assert_not_called()
 
+    @pytest.mark.django_db
+    def test_a_plain_page_is_archived_and_restored_only_by_the_archive_endpoints(
+        self, session_client, workspace, project
+    ):
+        # creating (also what duplicating a page sends) and updating ignore archived_at; the page comes back unarchived
+        created = session_client.post(
+            pages_url(workspace, project), {"name": "Notas", "archived_at": "2026-10-01"}, format="json"
+        )
+        assert created.status_code == status.HTTP_201_CREATED
+        notes = Page.objects.get(pk=created.data["id"])
+        assert notes.archived_at is None and created.data["archived_at"] is None
+
+        patch = session_client.patch(
+            pages_url(workspace, project, f"{notes.id}/"), {"archived_at": "2026-10-01"}, format="json"
+        )
+        assert patch.status_code == status.HTTP_200_OK and patch.data["archived_at"] is None
+        assert Page.objects.get(pk=notes.pk).archived_at is None
+
+        assert archive(session_client, workspace, project, notes).status_code == status.HTTP_200_OK
+        archived_at = Page.objects.get(pk=notes.pk).archived_at
+        assert archived_at is not None
+        patch = session_client.patch(
+            pages_url(workspace, project, f"{notes.id}/"), {"archived_at": None, "name": "Notas 2"}, format="json"
+        )
+        assert patch.status_code == status.HTTP_200_OK and patch.data["name"] == "Notas 2"
+        assert Page.objects.get(pk=notes.pk).archived_at == archived_at
+
+        assert restore(session_client, workspace, project, notes).status_code == status.HTTP_200_OK
+        assert Page.objects.get(pk=notes.pk).archived_at is None
+
 
 @pytest.mark.contract
 class TestOtherPagesNeverAskZil:

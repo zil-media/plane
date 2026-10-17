@@ -197,13 +197,16 @@ def _page_saves(workspace, win, person_id=None):
     within 10 minutes of the version's start go into it, so a 2-hour session leaves 12 versions, and two people
     editing a page together leave one per autosave (~10 s), as each save goes to whoever typed last. One
     person's versions of a page less than 30 minutes apart are therefore one save; each version still counts
-    as presence, for active time. Versions Plane hid (it keeps the last 20 of a page) count until the nightly
-    cleanup deletes them. A page edited in the window with no version of that person (a rename, a move, or
-    pages saved before versions were recorded, Oct 2026) counts its last edit once."""
+    as presence, for active time. A save belongs to the window its session started in. Versions Plane hid (it
+    keeps the last 20 of a page) count until the nightly cleanup deletes them. A page edited in the window with
+    no version of that person (a rename, a move, or pages saved before versions were recorded, Oct 2026)
+    counts its last edit once."""
+    # versions of the SESSION_GAP before the window say whether the first one inside it goes on with a session
+    # that started the day before: that save was counted by the window it started in, so adjacent windows add up
     versions = PageVersion.all_objects.filter(
         workspace_id=workspace.id,
         page__deleted_at__isnull=True,
-        last_saved_at__gte=win.start,
+        last_saved_at__gte=win.start - SESSION_GAP,
         last_saved_at__lt=win.end,
     )
     pages = Page.objects.filter(workspace_id=workspace.id, updated_at__gte=win.start, updated_at__lt=win.end)
@@ -214,7 +217,7 @@ def _page_saves(workspace, win, person_id=None):
         (v["owned_by_id"], v["last_saved_at"], v["page_id"], v["page__name"] or "")
         for v in versions.values("page_id", "page__name", "owned_by_id", "last_saved_at")
     ]
-    versioned = {(page_id, who) for who, _, page_id, _ in edits}
+    versioned = {(page_id, who) for who, ts, page_id, _ in edits if win.has(ts)}
     edits += [
         (p["updated_by_id"], p["updated_at"], p["id"], p["name"] or "")
         for p in pages.values("id", "name", "updated_by_id", "updated_at")
@@ -223,10 +226,10 @@ def _page_saves(workspace, win, person_id=None):
     saves, last = [], {}
     for who, ts, page_id, name in sorted(edits, key=lambda e: e[1]):
         prev = last.get((who, page_id))
-        if prev is None or ts - prev > SESSION_GAP:
+        if win.has(ts) and (prev is None or ts - prev > SESSION_GAP):
             saves.append((who, ts, name))
         last[(who, page_id)] = ts
-    return saves, [(who, ts) for who, ts, _, _ in edits]
+    return saves, [(who, ts) for who, ts, _, _ in edits if win.has(ts)]
 
 
 class _Work:
