@@ -10,7 +10,65 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Only the images whose code changed in the push are built: a push that touches the API does not
+  # rebuild the six frontends. The backend is always built (its layers come from cache, only the
+  # GIT_SHA one changes) because it is what tells Zil's ops-deploy-check which commit is live.
+  # A manual run, a new branch or a change to this workflow builds everything.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.pick.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: pick
+        name: Pick the images to build
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          ALL='[
+            {"image":"plane-backend","context":"./apps/api","file":"./apps/api/Dockerfile.api","paths":"^apps/api/"},
+            {"image":"plane-web","context":".","file":"./apps/web/Dockerfile.web","paths":"^apps/web/"},
+            {"image":"plane-space","context":".","file":"./apps/space/Dockerfile.space","paths":"^apps/space/"},
+            {"image":"plane-admin","context":".","file":"./apps/admin/Dockerfile.admin","paths":"^apps/admin/"},
+            {"image":"plane-live","context":".","file":"./apps/live/Dockerfile.live","paths":"^apps/live/"},
+            {"image":"plane-proxy","context":"./apps/proxy","file":"./apps/proxy/Dockerfile.ce","paths":"^apps/proxy/"},
+            {"image":"plane-mcp","context":"./apps/mcp","file":"./apps/mcp/Dockerfile","paths":"^apps/mcp/"}
+          ]'
+          # what every frontend is built from besides its own folder
+          SHARED='^(packages/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|turbo\.json$|\.npmrc$)'
+          FRONTENDS='plane-web plane-space plane-admin plane-live'
+
+          if [ "$EVENT" != "push" ] || [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
+            || ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            echo "matrix=$(echo "$ALL" | jq -c '[.[] | del(.paths)]')" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
+          echo "Changed files:"; echo "$CHANGED"
+          if echo "$CHANGED" | grep -qx '.github/workflows/build-and-push.yml'; then
+            echo "matrix=$(echo "$ALL" | jq -c '[.[] | del(.paths)]')" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PICKED="plane-backend"
+          for row in $(echo "$ALL" | jq -c '.[] | {image, paths}'); do
+            image=$(echo "$row" | jq -r .image)
+            paths=$(echo "$row" | jq -r .paths)
+            [ "$image" = plane-backend ] && continue
+            if echo "$CHANGED" | grep -qE "$paths"; then PICKED="$PICKED $image"; continue; fi
+            case " $FRONTENDS " in
+              *" $image "*) echo "$CHANGED" | grep -qE "$SHARED" && PICKED="$PICKED $image" ;;
+            esac
+          done
+          echo "Building: $PICKED"
+          echo "matrix=$(echo "$ALL" | jq -c --arg picked "$PICKED" '[.[] | select(.image as $i | ($picked | split(" ") | index($i))) | del(.paths)]')" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: changes
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -18,28 +76,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - image: plane-backend
-            context: ./apps/api
-            file: ./apps/api/Dockerfile.api
-          - image: plane-web
-            context: .
-            file: ./apps/web/Dockerfile.web
-          - image: plane-space
-            context: .
-            file: ./apps/space/Dockerfile.space
-          - image: plane-admin
-            context: .
-            file: ./apps/admin/Dockerfile.admin
-          - image: plane-live
-            context: .
-            file: ./apps/live/Dockerfile.live
-          - image: plane-proxy
-            context: ./apps/proxy
-            file: ./apps/proxy/Dockerfile.ce
-          - image: plane-mcp
-            context: ./apps/mcp
-            file: ./apps/mcp/Dockerfile
+        include: ${{ fromJSON(needs.changes.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
