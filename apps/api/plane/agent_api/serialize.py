@@ -76,7 +76,7 @@ def bug_summary(bug):
 
 
 # Internal triage fields: admins and the agent see them, the person who reported does not.
-REPORTER_HIDDEN = ("admin_notes", "commit_hash", "blocked_reason")
+REPORTER_HIDDEN = ("admin_notes", "commit_hash", "blocked_reason", "resolved_by")
 
 
 def _closed_as(data):
@@ -86,6 +86,8 @@ def _closed_as(data):
         return "archived"  # archived before anyone closed it: it really didn't advance
     if data.get("derived_feature_id") or data.get("workspace_bug_id"):
         return "dismissed"
+    if data.get("resolved_by"):
+        return "resolved"  # resolve_bug ran (a person or CI), whatever message the agent left
     if data.get("resolved_message") and not (data.get("fixed_at") or data.get("commit_hash")):
         return "dismissed"  # answered: nothing in the platform changed
     return "resolved"
@@ -114,6 +116,8 @@ def bug_detail(bug, request):
         "comments": bug.comments,
         "admin_notes": bug.admin_notes,
         "commit_hash": bug.commit_hash,
+        # Who resolved it (resolve_bug): a person or CI. An answer (dismiss) has none.
+        "resolved_by": str(bug.resolved_by_id) if bug.resolved_by_id else None,
     }
 
 

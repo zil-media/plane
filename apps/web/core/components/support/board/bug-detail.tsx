@@ -35,6 +35,22 @@ function closeActions(status: TBugStatus): ("resolve" | "dismiss" | "archive")[]
   return ["resolve", "dismiss", "archive"];
 }
 
+/**
+ * Where "see it in Workspace" goes. Workspace's tracking link is the reporter's own Seguimiento, which
+ * only lists their reports: an admin looking at someone else's gets that report in Workspace's bug
+ * admin page instead (an automatic one's link already points there).
+ */
+function workspaceLink(bug: { workspace_bug_url: string | null; workspace_bug_id: string | null }, asAdmin: boolean) {
+  if (!asAdmin || !bug.workspace_bug_url || !bug.workspace_bug_id) return bug.workspace_bug_url;
+  try {
+    const url = new URL(bug.workspace_bug_url);
+    if (url.pathname.startsWith("/dashboard/bug-reports")) return bug.workspace_bug_url;
+    return `${url.origin}/dashboard/bug-reports?bugId=${encodeURIComponent(bug.workspace_bug_id)}`;
+  } catch {
+    return bug.workspace_bug_url;
+  }
+}
+
 /** The routine's reason (routines.fire_bug_routine), said for the admin who pressed the button. */
 function fixerNotStartedKey(reason: string) {
   if (reason === "disabled") return "helpdesk.admin.fixer_off";
@@ -62,10 +78,10 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
 
   const derivedFeatureId = bugWasDerived(bug) ? bug.derived_feature_id : null;
   const answered = bugWasAnswered(bug);
-  const workspaceUrl = bugWentToWorkspace(bug) ? bug.workspace_bug_url : null;
+  const isOwner = bug.reported_by?.id === currentUserId;
+  const workspaceUrl = bugWentToWorkspace(bug) ? workspaceLink(bug, isAdmin && !isOwner) : null;
   // a handover (suggestion or Workspace) reads as "what's next", not as "fixed"
   const handedOver = !!derivedFeatureId || bugWentToWorkspace(bug);
-  const isOwner = bug.reported_by?.id === currentUserId;
   // Without a generated title the raw text IS the heading, so it isn't repeated below.
   const heading = bug.display_title?.trim() || bug.description;
 
@@ -90,8 +106,9 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
         <div className="flex flex-wrap items-center gap-2">
           <PhaseChip phase={bugPhase(bug)} />
           {bug.category && <Tag>{bug.category}</Tag>}
-          {/* What the reporter ticked: it promises it gets looked at first. */}
-          {bug.severity === "bloqueante" && <Tag>{t("helpdesk.reporter.urgent")}</Tag>}
+          {/* What the reporter ticked: it promises it gets looked at first. Only a person ticks it (a CI
+              incident is filed as bloqueante too). */}
+          {bug.source === "manual" && bug.severity === "bloqueante" && <Tag>{t("helpdesk.reporter.urgent")}</Tag>}
         </div>
         <h3 className="text-h6-medium break-words whitespace-pre-wrap text-primary">{heading}</h3>
         {bug.plain_summary && <p className="text-body-xs-regular text-secondary">{bug.plain_summary}</p>}

@@ -4,6 +4,7 @@
 
 # Python imports
 import hashlib
+from datetime import timedelta
 
 # Django imports
 from django.db import transaction
@@ -15,6 +16,10 @@ from plane.db.models import BugReport, FeatureRequest
 from .constants import ESCALATE_EVERY, ESCALATE_MIN_GAP, NOISE_PATTERNS
 
 ACTIVE_STATUSES = (BugReport.Status.OPEN, BugReport.Status.IN_PROGRESS, BugReport.Status.FIXED)
+# A crash handed to Workspace is closed here, but its fix ships there (within a day, normally). While
+# that happens, its recurrences belong to that report: a new one here went back to the fixer, was
+# handed over again and filed a duplicate there. Past this, a crash still happening is news again.
+HANDED_OFF_QUIET = timedelta(days=7)
 
 
 def agent_queue():
@@ -85,6 +90,24 @@ def file_auto_bug_report(
             .first()
         )
         if bug is None:
+            handed = (
+                BugReport.objects.select_for_update()
+                .filter(
+                    fingerprint=fingerprint,
+                    status=BugReport.Status.DISMISSED,
+                    resolved_at__gte=now - HANDED_OFF_QUIET,
+                )
+                .exclude(workspace_bug_id="")
+                .order_by("-created_at")
+                .first()
+            )
+            if handed is not None:
+                handed.occurrences += 1
+                handed.last_seen_at = now
+                if user_id and user_id not in handed.affected_user_ids:
+                    handed.affected_user_ids = [*handed.affected_user_ids, user_id]
+                handed.save(update_fields=["occurrences", "last_seen_at", "affected_user_ids", "updated_at"])
+                return handed, False
             bug = BugReport.objects.create(
                 reported_by=user,
                 workspace=workspace,

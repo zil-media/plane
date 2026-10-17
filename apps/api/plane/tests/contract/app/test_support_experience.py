@@ -829,3 +829,55 @@ class TestRoundEight:
         feature = own_feature(create_user, spec={"summary": "Exportar", "blast_radius": "medium"})
         notify.admins_feature_needs_decision(feature)
         assert "Impacto estimado: medio" in tasks["email"].call_args[0][3]
+
+    @pytest.mark.django_db
+    def test_a_crash_handed_to_workspace_stays_one_report_while_its_fix_ships(self, create_user):
+        from datetime import timedelta
+
+        from plane.utils.agent_pipeline.bugs import file_auto_bug_report
+
+        first, _ = file_auto_bug_report(key="TypeError:x", description="Se cae", user=create_user)
+        BugReport.objects.filter(id=first.id).update(
+            status=BugReport.Status.DISMISSED, workspace_bug_id="a" * 24, resolved_at=timezone.now()
+        )
+        again, escalate = file_auto_bug_report(key="TypeError:x", description="Se cae", user=create_user)
+        # Not a new report for the fixer to hand over again (a duplicate in Workspace).
+        assert again.id == first.id and escalate is False
+        assert BugReport.objects.filter(fingerprint=first.fingerprint).count() == 1
+
+        BugReport.objects.filter(id=first.id).update(resolved_at=timezone.now() - timedelta(days=8))
+        later, escalate = file_auto_bug_report(key="TypeError:x", description="Se cae", user=create_user)
+        # Still happening a week later: news again.
+        assert later.id != first.id and escalate is True
+
+    @pytest.mark.django_db
+    def test_an_archived_report_a_person_resolved_reads_resolved(self, session_client, create_user, admin_client):
+        admin = User.objects.get(email="owner@zil.global")
+        bug = BugReport.objects.create(
+            reported_by=create_user,
+            description="x",
+            status=BugReport.Status.ARCHIVED,
+            resolved_at=timezone.now(),
+            resolved_by=admin,
+            resolved_message="Ya quedó.",
+        )
+        response = session_client.get(f"/api/support/bug-reports/{bug.id}/")
+        assert response.data["status"] == "resolved"
+        assert "resolved_by" not in response.data
+
+    @pytest.mark.django_db
+    def test_sending_it_back_forgets_the_previous_fix(self, session_client, create_user):
+        bug = BugReport.objects.create(
+            reported_by=create_user,
+            description="x",
+            status=BugReport.Status.RESOLVED,
+            commit_hash="abc123",
+            fixed_at=timezone.now(),
+            resolved_at=timezone.now(),
+        )
+        with mock.patch("plane.app.views.support.bug_report._fire"):
+            session_client.post(
+                f"/api/support/bug-reports/{bug.id}/reopen/", {"comment": "Sigue pasando"}, format="json"
+            )
+        bug.refresh_from_db()
+        assert bug.status == BugReport.Status.OPEN and bug.commit_hash == ""

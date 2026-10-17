@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ImagePlus, Lightbulb, Loader2, X } from "lucide-react";
 import Link from "next/link";
+import { mutate as globalMutate } from "swr";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -110,6 +111,8 @@ export function FeatureSuggestModal(props: Props) {
         workspace_slug: workspaceSlug,
       });
       setStep("sent");
+      // "Ver el avance" lands on the board: it lists the new one now, not on its next 20s poll.
+      void globalMutate("SUPPORT_FEATURES");
     } catch (error) {
       setToast({
         type: TOAST_TYPE.ERROR,

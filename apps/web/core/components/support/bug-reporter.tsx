@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClipboardEvent } from "react";
 import { toJpeg } from "html-to-image";
 import Link from "next/link";
+import { mutate as globalMutate } from "swr";
 import { Bug, CheckCircle2, ImagePlus, Loader2, X } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
@@ -201,6 +202,8 @@ export function BugReporter(props: Props) {
         workspace_slug: workspaceSlug,
       });
       setSent(true);
+      // The board (if it's open behind) lists it now, not on its next 20s poll.
+      void globalMutate("SUPPORT_MY_BUGS");
     } catch (error) {
       setToast({
         type: TOAST_TYPE.ERROR,
