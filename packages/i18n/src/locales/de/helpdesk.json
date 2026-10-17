@@ -171,7 +171,11 @@
       "start_now": "Entwicklung jetzt starten",
       "resume_build": "Entwicklung fortsetzen",
       "reject_reason_placeholder": "Warum es nicht umgesetzt wird (geht an die anfragende Person)",
-      "reject_confirm": "Ablehnen"
+      "reject_confirm": "Ablehnen",
+      "build_not_started": "Die Entwicklung hat noch nicht begonnen",
+      "build_busy": "Es läuft bereits eine andere Entwicklung: Diese startet von selbst, sobald sie fertig ist.",
+      "build_cap": "Das wöchentliche Entwicklungslimit ist erreicht: Sie startet von selbst, sobald wieder Platz ist.",
+      "build_limit": "Sie wurde zu oft ohne Abschluss versucht: Sie ist pausiert, bis das Team sie prüft."
     },
     "settings": {
       "bug_agent": "Automatische Fehlerbehebung",

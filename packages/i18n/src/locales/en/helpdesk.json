@@ -171,7 +171,11 @@
       "start_now": "Start development now",
       "resume_build": "Resume development",
       "reject_reason_placeholder": "Why it won't be built (sent to the requester)",
-      "reject_confirm": "Reject"
+      "reject_confirm": "Reject",
+      "build_not_started": "Development hasn't started yet",
+      "build_busy": "Another build is running: this one starts on its own when it finishes.",
+      "build_cap": "The weekly build limit was reached: it starts on its own when there's room.",
+      "build_limit": "It was tried too many times without finishing: it's paused for the team to review."
     },
     "settings": {
       "bug_agent": "Automatic bug fixing",

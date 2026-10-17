@@ -171,7 +171,11 @@
       "start_now": "Empezar el desarrollo ahora",
       "resume_build": "Reanudar el desarrollo",
       "reject_reason_placeholder": "Por qué no se va a construir (le llega a quien la pidió)",
-      "reject_confirm": "Rechazar"
+      "reject_confirm": "Rechazar",
+      "build_not_started": "El desarrollo todavía no arrancó",
+      "build_busy": "Hay otro desarrollo en curso: este arranca solo cuando termine.",
+      "build_cap": "Se alcanzó el tope semanal de desarrollos: arranca solo cuando haya lugar.",
+      "build_limit": "Se intentó demasiadas veces sin terminar: quedó en pausa para que el equipo la revise."
     },
     "settings": {
       "bug_agent": "Arreglo automático de problemas",

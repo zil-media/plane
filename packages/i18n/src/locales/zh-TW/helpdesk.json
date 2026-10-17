@@ -171,7 +171,11 @@
       "start_now": "立即開始開發",
       "resume_build": "恢復開發",
       "reject_reason_placeholder": "不開發的原因（會傳送給提出人）",
-      "reject_confirm": "拒絕"
+      "reject_confirm": "拒絕",
+      "build_not_started": "開發尚未開始",
+      "build_busy": "另一項開發正在進行：它結束後這項會自動開始。",
+      "build_cap": "已達每週開發上限：有空檔時會自動開始。",
+      "build_limit": "嘗試次數過多仍未完成：已暫停，等待團隊審查。"
     },
     "settings": {
       "bug_agent": "自動修復問題",

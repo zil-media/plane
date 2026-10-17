@@ -71,12 +71,16 @@ export function BugReporter(props: Props) {
   // Source of truth for the attachment cap: state updaters run later than this code needs to know.
   const countRef = useRef(0);
   const capturedRef = useRef(false);
+  // Bumped by reset(): "Report another" is a new report, and it gets its own screen capture.
+  const [round, setRound] = useState(0);
 
   const reset = useCallback(() => {
     setDescription("");
     setReviewAnswers("");
     setUrgent(false);
     countRef.current = 0;
+    capturedRef.current = false;
+    setRound((value) => value + 1);
     setImages((current) => {
       current.forEach((image) => URL.revokeObjectURL(image.preview));
       return [];
@@ -115,18 +119,25 @@ export function BugReporter(props: Props) {
       .then((dataUrl) => compressImage(dataUrl, "pantalla.jpg"))
       .then((file) => (cancelled ? undefined : addImage(file)))
       .catch(() => undefined)
-      .finally(() => !cancelled && setCapturing(false));
+      // Always: closed mid-capture, the spinner would otherwise stay on for the next open.
+      .finally(() => setCapturing(false));
     return () => {
       cancelled = true;
     };
-  }, [isOpen, addImage]);
+  }, [isOpen, addImage, round]);
+
+  // Escape closes the same way the X does: after a send, the next open is a blank form.
+  const close = useCallback(() => {
+    if (sent) reset();
+    onClose();
+  }, [sent, reset, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && close();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, onClose]);
+  }, [isOpen, close]);
 
   const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
     const files = Array.from(event.clipboardData.items)
@@ -176,11 +187,6 @@ export function BugReporter(props: Props) {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const close = () => {
-    if (sent) reset();
-    onClose();
   };
 
   // Closed without sending, the description stays: so do the review's questions and answers, which

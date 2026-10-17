@@ -66,6 +66,8 @@ export function DraftReview(props: Props) {
     if (!enabled || !longEnough) {
       setQuestions(null);
       setReady(false);
+      // The questions are gone, so the same text coming back (undo, paste) has to be reviewed again.
+      lastReviewed.current = null;
       return;
     }
     if (paused || lastReviewed.current === draftKey) return;

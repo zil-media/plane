@@ -34,6 +34,15 @@ export function agentQuestions(feature: TFeatureRequestDetail): string[] {
   return lines;
 }
 
+function answeredAfterQuestion(feature: TFeatureRequestDetail) {
+  const comments = feature.comments ?? [];
+  let lastQuestion = -1;
+  comments.forEach((comment, index) => {
+    if (comment.role === "agent") lastQuestion = index;
+  });
+  return lastQuestion >= 0 && comments.slice(lastQuestion + 1).some((comment) => comment.role === "user");
+}
+
 /**
  * The needs-info loop, made prominent: what the agent asked and the box to answer it. Before
  * this the questions sat in the comment thread and the answer box looked like any comment.
@@ -46,8 +55,12 @@ export function AgentConsult({ feature, onAnswered }: Props) {
   const { t } = useTranslation();
   const [answer, setAnswer] = useState("");
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<TRespecResult | null>(null);
   const questions = agentQuestions(feature);
+  // Already answered and still here: the analysis didn't restart (agent off). Asking again for an
+  // answer that's in the thread would be wrong; say what happened instead.
+  const [result, setResult] = useState<TRespecResult | null>(() =>
+    answeredAfterQuestion(feature) ? { queued: false, reason: "" } : null
+  );
 
   const send = async () => {
     setBusy(true);

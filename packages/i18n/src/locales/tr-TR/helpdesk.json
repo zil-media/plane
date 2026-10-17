@@ -171,7 +171,11 @@
       "start_now": "Geliştirmeyi şimdi başlat",
       "resume_build": "Geliştirmeye devam et",
       "reject_reason_placeholder": "Neden geliştirilmeyeceği (talep sahibine gider)",
-      "reject_confirm": "Reddet"
+      "reject_confirm": "Reddet",
+      "build_not_started": "Geliştirme henüz başlamadı",
+      "build_busy": "Başka bir geliştirme sürüyor: bu, o bitince kendiliğinden başlar.",
+      "build_cap": "Haftalık geliştirme sınırına ulaşıldı: yer açılınca kendiliğinden başlar.",
+      "build_limit": "Bitmeden çok fazla denendi: ekip incelesin diye duraklatıldı."
     },
     "settings": {
       "bug_agent": "Otomatik hata düzeltme",

@@ -171,7 +171,11 @@
       "start_now": "지금 개발 시작",
       "resume_build": "개발 재개",
       "reject_reason_placeholder": "구현하지 않는 이유 (요청자에게 전달됩니다)",
-      "reject_confirm": "거절"
+      "reject_confirm": "거절",
+      "build_not_started": "개발이 아직 시작되지 않았습니다",
+      "build_busy": "다른 개발이 진행 중입니다. 끝나면 자동으로 시작됩니다.",
+      "build_cap": "주간 개발 한도에 도달했습니다. 자리가 나면 자동으로 시작됩니다.",
+      "build_limit": "완료되지 않은 채 너무 많이 시도했습니다. 팀이 검토할 때까지 일시 중지됩니다."
     },
     "settings": {
       "bug_agent": "문제 자동 수정",

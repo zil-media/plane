@@ -171,7 +171,11 @@
       "start_now": "Bắt đầu phát triển ngay",
       "resume_build": "Tiếp tục phát triển",
       "reject_reason_placeholder": "Lý do sẽ không xây dựng (gửi cho người đề xuất)",
-      "reject_confirm": "Từ chối"
+      "reject_confirm": "Từ chối",
+      "build_not_started": "Việc phát triển chưa bắt đầu",
+      "build_busy": "Đang có một việc phát triển khác: việc này sẽ tự bắt đầu khi việc kia xong.",
+      "build_cap": "Đã đạt giới hạn phát triển hằng tuần: sẽ tự bắt đầu khi có chỗ trống.",
+      "build_limit": "Đã thử quá nhiều lần mà không xong: tạm dừng để nhóm xem xét."
     },
     "settings": {
       "bug_agent": "Tự động khắc phục sự cố",

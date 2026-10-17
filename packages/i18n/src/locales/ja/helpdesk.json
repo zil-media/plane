@@ -171,7 +171,11 @@
       "start_now": "今すぐ開発を開始",
       "resume_build": "開発を再開",
       "reject_reason_placeholder": "実装しない理由（依頼者に届きます）",
-      "reject_confirm": "却下する"
+      "reject_confirm": "却下する",
+      "build_not_started": "開発はまだ始まっていません",
+      "build_busy": "別の開発が進行中です。終わり次第、自動で始まります。",
+      "build_cap": "週ごとの開発上限に達しました。枠が空き次第、自動で始まります。",
+      "build_limit": "完了しないまま試行回数が多すぎました。チームが確認するまで一時停止しています。"
     },
     "settings": {
       "bug_agent": "問題の自動修正",

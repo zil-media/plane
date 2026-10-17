@@ -171,7 +171,11 @@
       "start_now": "Rozpocznij prace teraz",
       "resume_build": "Wznów prace",
       "reject_reason_placeholder": "Dlaczego nie zostanie zrealizowane (trafi do autora)",
-      "reject_confirm": "Odrzuć"
+      "reject_confirm": "Odrzuć",
+      "build_not_started": "Prace jeszcze nie ruszyły",
+      "build_busy": "Trwają inne prace: te ruszą same, gdy tamte się skończą.",
+      "build_cap": "Osiągnięto tygodniowy limit prac: ruszą same, gdy zwolni się miejsce.",
+      "build_limit": "Zbyt wiele prób bez ukończenia: wstrzymane do przeglądu przez zespół."
     },
     "settings": {
       "bug_agent": "Automatyczna naprawa problemów",

@@ -130,7 +130,12 @@ export function computeFeatureTrack(feature: TFeatureRequestDetail): TTrack {
   const status = feature.status;
   const frozen = status === "rejected" || status === "on_hold";
   // Frozen: drawn up to where it got (a spec means it passed the analysis) and nothing pulses.
-  const rank = frozen ? (feature.spec?.generated_at ? 2 : 1) : (FEATURE_RANK[status] ?? 1);
+  // Frozen: drawn up to where it got. Approved for the current spec counts as approved (the same
+  // check the detail uses: an approval older than the spec approved a different analysis).
+  const approvedAt = feature.approval?.at;
+  const specAt = feature.spec?.generated_at;
+  const approvedCurrent = !!approvedAt && (!specAt || approvedAt >= specAt);
+  const rank = frozen ? (approvedCurrent ? 3 : specAt ? 2 : 1) : (FEATURE_RANK[status] ?? 1);
   const build = feature.build ?? {};
 
   const phases: TTrackPhase[] = [

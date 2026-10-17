@@ -171,7 +171,11 @@
       "start_now": "Spustiť vývoj hneď",
       "resume_build": "Obnoviť vývoj",
       "reject_reason_placeholder": "Prečo sa to nebude realizovať (dostane autor)",
-      "reject_confirm": "Zamietnuť"
+      "reject_confirm": "Zamietnuť",
+      "build_not_started": "Vývoj sa zatiaľ nespustil",
+      "build_busy": "Prebieha iný vývoj: tento sa spustí sám, keď skončí.",
+      "build_cap": "Dosiahol sa týždenný limit vývojov: spustí sa sám, keď bude miesto.",
+      "build_limit": "Skúšalo sa to príliš veľakrát bez dokončenia: je pozastavené, kým to tím neskontroluje."
     },
     "settings": {
       "bug_agent": "Automatická oprava chýb",

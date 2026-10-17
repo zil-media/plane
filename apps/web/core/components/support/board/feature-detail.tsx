@@ -32,6 +32,26 @@ type Props = {
 
 /** The agent re-runs the impact analysis on its own up to this many times. */
 const AUTO_SPEC_RUNS = 3;
+/** Same pace as the board list: without it the panel kept offering decisions someone else already took. */
+const REFRESH_MS = 20_000;
+
+/** Why an approved feature didn't start building (request_build's reasons), in the person's words. */
+function buildNotStartedKey(reason: string) {
+  if (reason === "disabled") return "helpdesk.detail.agent_off";
+  if (reason === "another build in flight") return "helpdesk.admin.build_busy";
+  if (reason === "build run limit") return "helpdesk.admin.build_limit";
+  if (reason.startsWith("tope semanal")) return "helpdesk.admin.build_cap";
+  return "helpdesk.try_again";
+}
+
+/** The server's message: `{error}` from the views, or the first field error from DRF validation. */
+function errorMessage(error: unknown): string | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const body = error as Record<string, unknown>;
+  if (typeof body.error === "string") return body.error;
+  const first = Object.values(body).find((value) => Array.isArray(value) && typeof value[0] === "string");
+  return Array.isArray(first) ? String(first[0]) : undefined;
+}
 
 /** What the primary action means in each state; `null` when an admin has nothing to decide. */
 type TPrimary = { decision: TFeatureDecision; labelKey: string; needsFlag: boolean } | null;
@@ -130,8 +150,10 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enabledFlags, onChanged }: Props) {
   const { t } = useTranslation();
-  const { data: feature, mutate } = useSWR(`SUPPORT_FEATURE:${featureId}`, () =>
-    supportService.featureRequest(featureId)
+  const { data: feature, mutate } = useSWR(
+    `SUPPORT_FEATURE:${featureId}`,
+    () => supportService.featureRequest(featureId),
+    { refreshInterval: REFRESH_MS }
   );
   const [comment, setComment] = useState("");
   const [notes, setNotes] = useState("");
@@ -172,8 +194,13 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
       await mutate();
       onChanged();
     } catch (error) {
-      const message = (error as { error?: string } | undefined)?.error ?? t("helpdesk.try_again");
-      setToast({ type: TOAST_TYPE.ERROR, title: t("helpdesk.error_title"), message });
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("helpdesk.error_title"),
+        message: errorMessage(error) ?? t("helpdesk.try_again"),
+      });
+      // A 409 usually means someone else moved it first: show where it is now.
+      await mutate();
     } finally {
       setBusy(false);
     }
@@ -181,9 +208,15 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
 
   const decide = (decision: TFeatureDecision, data: { notes?: string; flag_key?: string } = {}) =>
     run(async () => {
-      await supportService.decideFeatureRequest(feature.id, decision, data);
+      const result = await supportService.decideFeatureRequest(feature.id, decision, data);
       setNotes("");
       setRejecting(false);
+      if (result.build && !result.build.fired)
+        setToast({
+          type: TOAST_TYPE.WARNING,
+          title: t("helpdesk.admin.build_not_started"),
+          message: t(buildNotStartedKey(result.build.reason)),
+        });
     });
 
   const respec = () =>

@@ -283,8 +283,11 @@ export class SupportService extends APIService {
       .catch(() => null);
   }
 
+  /** Approve and rebuild also say whether the build started, and why not (see request_build). */
   decideFeatureRequest(id: string, decision: TFeatureDecision, data: { notes?: string; flag_key?: string } = {}) {
-    return this.unwrap<TFeatureRequest>(this.post(`/api/support/feature-requests/${id}/${decision}/`, data));
+    return this.unwrap<TFeatureRequest & { build?: { fired: boolean; reason: string } }>(
+      this.post(`/api/support/feature-requests/${id}/${decision}/`, data)
+    );
   }
 
   setFeatureFlag(id: string, enabled: boolean) {

@@ -171,7 +171,11 @@
       "start_now": "Pornește dezvoltarea acum",
       "resume_build": "Reia dezvoltarea",
       "reject_reason_placeholder": "De ce nu va fi construită (ajunge la solicitant)",
-      "reject_confirm": "Respinge"
+      "reject_confirm": "Respinge",
+      "build_not_started": "Dezvoltarea nu a pornit încă",
+      "build_busy": "Este în curs o altă dezvoltare: aceasta pornește singură când se termină.",
+      "build_cap": "S-a atins limita săptămânală de dezvoltări: pornește singură când se eliberează un loc.",
+      "build_limit": "S-a încercat de prea multe ori fără să se termine: e pe pauză până o verifică echipa."
     },
     "settings": {
       "bug_agent": "Remediere automată a problemelor",

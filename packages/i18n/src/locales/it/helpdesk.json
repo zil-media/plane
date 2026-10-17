@@ -171,7 +171,11 @@
       "start_now": "Avvia lo sviluppo ora",
       "resume_build": "Riprendi lo sviluppo",
       "reject_reason_placeholder": "Perché non verrà realizzata (arriva a chi l'ha richiesta)",
-      "reject_confirm": "Rifiuta"
+      "reject_confirm": "Rifiuta",
+      "build_not_started": "Lo sviluppo non è ancora partito",
+      "build_busy": "C'è un altro sviluppo in corso: questo parte da solo quando finisce.",
+      "build_cap": "È stato raggiunto il limite settimanale di sviluppi: parte da solo quando c'è posto.",
+      "build_limit": "È stata tentata troppe volte senza finire: è in pausa perché il team la riveda."
     },
     "settings": {
       "bug_agent": "Correzione automatica dei problemi",
