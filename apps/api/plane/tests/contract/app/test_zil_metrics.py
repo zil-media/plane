@@ -288,6 +288,23 @@ class TestWorkspaceMetrics:
             person = api_client.get("/api/zil/sync/metrics/person/", {**window, "email": create_user.email})
             assert person.status_code == status.HTTP_200_OK
 
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("path", ["/api/zil/sync/metrics/", "/api/zil/sync/metrics/person/"])
+    @pytest.mark.parametrize("key", [None, "", "wrong"])
+    def test_without_the_service_key_nothing_is_computed(self, api_client, workspace, create_user, path, key):
+        # with the anon throttle off these views, the key is the only door: refused before any work, every time
+        if key is not None:
+            api_client.credentials(HTTP_X_ZIL_SERVICE_KEY=key)
+        query = {"workspace_slug": workspace.slug, "email": create_user.email}
+        with (
+            mock.patch("plane.authentication.views.zil_metrics.compute_workspace_metrics") as unit,
+            mock.patch("plane.authentication.views.zil_metrics.compute_person_metrics") as person,
+        ):
+            codes = {api_client.get(path, query).status_code for _ in range(40)}
+        assert codes <= {status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN}
+        unit.assert_not_called()
+        person.assert_not_called()
+
 
 @pytest.mark.contract
 class TestPersonMetrics:
@@ -606,3 +623,26 @@ class TestUnitAndPersonAgree:
         # the session goes on after midnight: not a new save, still a day spent in Ops (00:00-00:25 and 5 more)
         assert saves(date(2026, 10, 7), date(2026, 10, 8)) == (0, 0, 1, 30)
         assert saves(date(2026, 10, 6), date(2026, 10, 8)) == (1, 1, 2, 45)
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("minute,across", [(30, True), (29, False)])
+    def test_the_session_gap_is_the_same_on_both_sides_of_the_cut(self, workspace, create_user, minute, across):
+        """A version exactly 30 minutes before midnight still goes on into 00:00 (the gap must be more than 30
+        minutes to split), one 31 minutes before does not: no lookback shorter than that gap may decide it."""
+        UsageDay.objects.filter(workspace_slug=workspace.slug).delete()
+        brief = Page.objects.create(name="Brief ACME", workspace=workspace, owned_by=create_user)
+        for day, hour, mins in [(6, 23, minute), (7, 0, 0)]:
+            PageVersion.objects.create(
+                workspace=workspace,
+                page=brief,
+                owned_by=create_user,
+                last_saved_at=datetime(2026, 10, day, hour, mins, tzinfo=TZ),
+            )
+
+        def saves(since, until):
+            unit = compute_workspace_metrics(workspace, since, until)
+            return next(p for p in unit["people"] if p["email"] == create_user.email)["actions"]
+
+        assert saves(date(2026, 10, 6), date(2026, 10, 7)) == 1
+        assert saves(date(2026, 10, 7), date(2026, 10, 8)) == (0 if across else 1)
+        assert saves(date(2026, 10, 6), date(2026, 10, 8)) == (1 if across else 2)

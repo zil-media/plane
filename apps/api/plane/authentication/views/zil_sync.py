@@ -91,6 +91,10 @@ class ZilServiceView(APIView):
     """Base view for the Zil service-to-service sync endpoints."""
 
     permission_classes = [ZilServicePermission]
+    # The key is the credential, not a session: every Zil call looks anonymous to DRF's default
+    # anon throttle (30/min per caller IP, one bucket for all of Zil), so a full user sync, the
+    # roster push of all workspaces or the team's pickers would answer 429 midway.
+    throttle_classes = []
 
 
 class ZilWorkspaceSyncEndpoint(ZilServiceView):
