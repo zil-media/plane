@@ -87,7 +87,9 @@ def bug_resolved(bug):
 
 
 def bug_user_guidance(bug):
-    if bug.reported_by is None:
+    # Only someone who reported it by hand gets told: an automatic crash report's reported_by is just
+    # the first person it happened to.
+    if bug.source != bug.Source.MANUAL or bug.reported_by is None:
         return
     send(
         bug.reported_by.email,
@@ -100,7 +102,9 @@ def bug_user_guidance(bug):
 
 
 def bug_derived_to_feature(bug):
-    if bug.reported_by is None or not bug.resolved_message:
+    # Only someone who reported it by hand gets told: an automatic crash report's reported_by is just
+    # the first person it happened to.
+    if bug.source != bug.Source.MANUAL or bug.reported_by is None:
         return
     send(
         bug.reported_by.email,
@@ -113,7 +117,9 @@ def bug_derived_to_feature(bug):
 
 
 def bug_derived_to_workspace(bug):
-    if bug.reported_by is None or not bug.resolved_message:
+    # Only someone who reported it by hand gets told: an automatic crash report's reported_by is just
+    # the first person it happened to.
+    if bug.source != bug.Source.MANUAL or bug.reported_by is None:
         return
     send(
         bug.reported_by.email,
