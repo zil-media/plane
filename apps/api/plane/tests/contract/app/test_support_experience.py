@@ -1051,3 +1051,16 @@ class TestRoundTwelve:
         BugReport.objects.filter(id=bug.id).update(status=BugReport.Status.OPEN, occurrences=ESCALATE_EVERY - 1)
         _, escalate = file_auto_bug_report(key="TypeError:y", description="Se cae", user=create_user)
         assert escalate is True
+
+    @pytest.mark.django_db
+    def test_with_the_fixer_off_a_closed_report_stays_closed(self, admin_client, create_user):
+        config = AgentPipelineConfig.get()
+        config.bug_agent_enabled = False
+        config.save()
+        bug = BugReport.objects.create(
+            reported_by=create_user, description="x", status=BugReport.Status.RESOLVED, resolved_message="Listo."
+        )
+        response = admin_client.post(f"/api/support/bug-reports/{bug.id}/send-to-fixer/", format="json")
+        assert response.status_code == status.HTTP_409_CONFLICT
+        bug.refresh_from_db()
+        assert bug.status == BugReport.Status.RESOLVED and bug.resolved_message == "Listo."

@@ -15,7 +15,7 @@ from rest_framework.throttling import UserRateThrottle
 from plane.agent_api.bugs import resolve_bug
 from plane.agent_api.serialize import bug_detail, bug_summary, for_reporter
 from plane.app.views.base import BaseAPIView
-from plane.db.models import BugReport, FileAsset, Workspace
+from plane.db.models import AgentPipelineConfig, BugReport, FileAsset, Workspace
 from plane.utils.agent_pipeline import bugs as bug_ops
 from plane.utils.agent_pipeline import notify, routines
 from plane.utils.agent_pipeline.constants import REOPEN_MIN_GAP
@@ -310,6 +310,13 @@ class BugReportSendToFixerEndpoint(BaseAPIView):
 
     def post(self, request, pk):
         bug = BugReport.objects.get(id=pk)
+        # With the fixer off nothing would pick it up: reopening first put a closed report back to
+        # "Recibido" for its reporter while the toast said the fixer didn't start.
+        if not AgentPipelineConfig.get().bug_agent_enabled:
+            return Response(
+                {"error": "El agente de reportes está apagado: prendelo en Ajustes y volvé a mandarlo."},
+                status=status.HTTP_409_CONFLICT,
+            )
         # Fixed = its fix waits on agent-batch for the next window. A new session starts from preview
         # (without that fix), writes it again and conflicts with it, and the window resolves the bug
         # anyway. After the window it can go back (it's resolved then, and preview has the fix).
