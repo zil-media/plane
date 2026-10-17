@@ -52,6 +52,10 @@ RUN mkdir -p /code/plane/logs
 RUN chmod +x ./bin/*
 RUN chmod -R 777 /code
 
+# The commit this image was built from (GET /api/zil/sync/version/): last, so it never busts the cache
+ARG GIT_SHA=""
+ENV ZIL_OPS_GIT_SHA=$GIT_SHA
+
 # Expose container port and run entry point script
 EXPOSE 8000
 

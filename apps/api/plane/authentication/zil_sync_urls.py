@@ -6,6 +6,7 @@ from django.urls import path
 
 from plane.authentication.views.zil_client_folders import ZilClientFoldersSyncEndpoint
 from plane.authentication.views.zil_metrics import ZilMetricsEndpoint, ZilPersonMetricsEndpoint
+from plane.authentication.views.zil_version import ZilVersionEndpoint
 from plane.authentication.views.zil_sync import (
     ZilWorkspaceSyncEndpoint,
     ZilUserSyncEndpoint,
@@ -45,6 +46,8 @@ urlpatterns = [
     # service-key (Gestión Ops metrics): usage, interactions and timing of a workspace
     path("sync/metrics/", ZilMetricsEndpoint.as_view(), name="zil-sync-metrics"),
     path("sync/metrics/person/", ZilPersonMetricsEndpoint.as_view(), name="zil-sync-metrics-person"),
+    # service-key: the commit this Ops build runs (Zil checks the NAS is not behind preview)
+    path("sync/version/", ZilVersionEndpoint.as_view(), name="zil-sync-version"),
     # per-user session (Plane member → Zil doc): membership-gated 302
     path("erp-asset/", ZilErpAssetRedirectEndpoint.as_view(), name="zil-erp-asset"),
     # per-user session (web chip): ERP entities linked to a project/page
