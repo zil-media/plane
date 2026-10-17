@@ -82,7 +82,7 @@ class TestZilSupportTracking:
         mine = feature(create_user, workspace, status=S.NEEDS_INFO, comments=[question])
         theirs = feature(other_user, status=S.SPEC_READY)
         suggestion = bug(create_user, severity=BugReport.Severity.SUGERENCIA, workspace=workspace)
-        bug(create_user, severity=BugReport.Severity.MOLESTO)
+        annoying = bug(create_user, severity=BugReport.Severity.MOLESTO)
         bug(create_user, severity=BugReport.Severity.SUGERENCIA, workspace_bug_id="0123456789abcdef01234567")
         bug(create_user, severity=BugReport.Severity.SUGERENCIA, status=BugReport.Status.ARCHIVED)
         bug(other_user, severity=BugReport.Severity.SUGERENCIA)
@@ -100,8 +100,10 @@ class TestZilSupportTracking:
             {"author_name": "", "role": "agent", "text": "- ¿Qué formato?", "at": "2026-10-01T10:00:00+00:00"}
         ]
         assert item["url"] == f"http://ops.test/{workspace.slug}/support?feature={mine.id}"
-        assert ids(response.data["bugs"]) == {str(suggestion.id)}
-        assert response.data["bugs"][0]["url"] == f"http://ops.test/{workspace.slug}/support?bug={suggestion.id}"
+        assert ids(response.data["bugs"]) == {str(suggestion.id), str(annoying.id)}
+        by_id = {b["id"]: b for b in response.data["bugs"]}
+        assert by_id[str(suggestion.id)]["url"] == f"http://ops.test/{workspace.slug}/support?bug={suggestion.id}"
+        assert "admin_notes" not in by_id[str(suggestion.id)] and "blocked_reason" not in by_id[str(suggestion.id)]
 
     @pytest.mark.django_db
     def test_item_without_workspace_opens_through_one_of_the_viewers(

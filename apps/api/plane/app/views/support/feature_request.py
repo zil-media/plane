@@ -192,8 +192,19 @@ class FeatureRequestDecisionEndpoint(BaseAPIView):
 
     ALLOWED_FROM = {
         "approve": (S.SPEC_READY, S.NEEDS_INFO, S.ON_HOLD, S.SUBMITTED),
-        "reject": (S.SUBMITTED, S.SPEC_READY, S.NEEDS_INFO, S.ON_HOLD, S.APPROVED, S.BUILDING),
-        "hold": (S.SUBMITTED, S.SPEC_READY, S.NEEDS_INFO, S.APPROVED, S.BUILDING),
+        # in_review/queued need a human exit too: a PR closed without merging, or a batch that dropped it,
+        # would otherwise leave the feature there forever. Rejected code that already merged stays dark.
+        "reject": (
+            S.SUBMITTED,
+            S.SPEC_READY,
+            S.NEEDS_INFO,
+            S.ON_HOLD,
+            S.APPROVED,
+            S.BUILDING,
+            S.IN_REVIEW,
+            S.QUEUED,
+        ),
+        "hold": (S.SUBMITTED, S.SPEC_READY, S.NEEDS_INFO, S.APPROVED, S.BUILDING, S.IN_REVIEW),
         "rebuild": (S.BUILDING, S.APPROVED, S.IN_REVIEW, S.ON_HOLD),
     }
 

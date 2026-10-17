@@ -132,6 +132,21 @@ def admins_bug_blocked(bug):
     )
 
 
+def admins_feature_build_blocked(feature, note):
+    send(
+        admin_emails(),
+        "Un desarrollo automático necesita una persona",
+        "El agente no puede seguir solo",
+        [
+            f"Sugerencia: {feature.display_title or feature.title}",
+            f"Motivo: {note or 'sin detalle'}",
+            "Mientras tanto, el carril de desarrollo sigue con la próxima sugerencia aprobada.",
+        ],
+        "Abrir la sugerencia",
+        support_url(feature.workspace, feature.id, "feature"),
+    )
+
+
 def admins_new_feature(feature):
     who = feature.requested_by.email if feature.requested_by else "—"
     send(

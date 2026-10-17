@@ -17,7 +17,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 # Module imports
-from plane.agent_api.serialize import bug_summary, feature_summary
+from plane.agent_api.serialize import bug_summary, feature_summary, for_reporter
 from plane.authentication.views.zil_sync import ZilServiceView
 from plane.db.models import AgentFeatureFlag, BugReport, FeatureRequest, User, WorkspaceMember
 from plane.utils.agent_pipeline.notify import support_url
@@ -65,6 +65,8 @@ def _feature(feature, url, flag_enabled_at):
             "blocked_at": build.get("blocked_at"),
             "merged_at": build.get("merged_at"),
             "pr_url": build.get("pr_url", ""),
+            # Why a build stopped or was paused, in words meant for the requester (it's also mailed to them).
+            "last_note": build.get("last_note", ""),
             "progress": build.get("progress") or [],
         },
         "comments": [_comment(c) for c in feature.comments or []],
@@ -75,7 +77,7 @@ def _feature(feature, url, flag_enabled_at):
 
 def _bug(bug, url):
     return {
-        **bug_summary(bug),
+        **for_reporter(bug_summary(bug)),
         # bug_summary cuts the text at 500 for the admin lists; the person's own report goes whole.
         "description": bug.description,
         "progress": bug.progress or [],
@@ -92,8 +94,8 @@ class ZilSupportTrackingEndpoint(ZilServiceView):
     - features: the person's own suggestions; for an instance admin (the only ones who decide
       here) also the ones waiting on an admin: spec ready, or a stuck build (status "building"
       with build.blocked_at: the agent reported it blocked and nobody resumes it alone).
-    - bugs: the person's own reports marked "sugerencia". Reports already handed to Workspace are
-      left out: that report lives in Workspace and shows there on its own.
+    - bugs: the person's own manual reports (Workspace's Seguimiento shows your own bugs too). Reports
+      already handed to Workspace are left out: that report lives in Workspace and shows there on its own.
     An email with no active Ops user answers empty lists, not an error: not everyone uses Ops.
     """
 
@@ -147,7 +149,6 @@ class ZilSupportTrackingEndpoint(ZilServiceView):
                 BugReport.objects.filter(
                     reported_by=user,
                     source=BugReport.Source.MANUAL,
-                    severity=BugReport.Severity.SUGERENCIA,
                     workspace_bug_id="",
                 )
                 .exclude(status=BugReport.Status.ARCHIVED)

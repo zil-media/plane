@@ -73,6 +73,14 @@ def bug_summary(bug):
     }
 
 
+# Internal triage fields: admins and the agent see them, the person who reported does not.
+REPORTER_HIDDEN = ("admin_notes", "commit_hash", "blocked_reason")
+
+
+def for_reporter(data):
+    return {key: value for key, value in data.items() if key not in REPORTER_HIDDEN}
+
+
 def bug_detail(bug, request):
     return {
         **bug_summary(bug),
@@ -92,6 +100,16 @@ def bug_detail(bug, request):
     }
 
 
+def _answered(feature):
+    """needs_info whose last agent question already has the requester's answer after it: the analysis
+    didn't relaunch (feature agent off), so it now waits on an admin, not on the requester."""
+    if feature.status != "needs_info":
+        return False
+    comments = feature.comments or []
+    last_question = max((i for i, c in enumerate(comments) if c.get("role") == "agent"), default=-1)
+    return last_question >= 0 and any(c.get("role") == "user" for c in comments[last_question + 1 :])
+
+
 def feature_summary(feature):
     spec = feature.spec or {}
     build = feature.build or {}
@@ -109,6 +127,7 @@ def feature_summary(feature):
         "workspace_slug": feature.workspace.slug if feature.workspace_id else None,
         "pr_url": build.get("pr_url"),
         "build_blocked": bool(build.get("blocked_at")),
+        "answered": _answered(feature),
         "created_at": _iso(feature.created_at),
         "updated_at": _iso(feature.updated_at),
     }

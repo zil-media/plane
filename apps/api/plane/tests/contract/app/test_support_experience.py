@@ -11,9 +11,10 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from plane.db.models import AgentPipelineConfig, FeatureRequest, User
+from plane.db.models import AgentPipelineConfig, BugReport, FeatureRequest, User
 from plane.license.models import Instance, InstanceAdmin
-from plane.utils.agent_pipeline.features import request_spec
+from plane.agent_api.serialize import feature_summary
+from plane.utils.agent_pipeline.features import lane_busy, request_build, request_spec
 
 ZIL_ENV = {"ZIL_BASE_URL": "http://zil.test", "ZIL_SERVICE_SECRET": "secret"}
 DRAFT = "No me deja mover el work item al ciclo nuevo y pierdo lo que cargué"
@@ -230,3 +231,100 @@ class TestRedoingTheAnalysis:
         busy.save()
         response = admin_client.post(f"/api/support/feature-requests/{ready.id}/rebuild/", {}, format="json")
         assert response.data["build"]["fired"] is True
+
+
+@pytest.mark.contract
+class TestTheBuildLane:
+    @pytest.mark.django_db
+    def test_a_blocked_build_does_not_hold_the_lane(self, create_user, agent_on, tasks):
+        own_feature(create_user, status=S.BUILDING, build={"blocked_at": "2026-10-16T00:00:00+00:00"})
+        assert lane_busy() is False
+        waiting = own_feature(create_user, status=S.APPROVED, flag_key="next")
+        assert request_build(waiting) == (True, "queued")
+        assert lane_busy() is True
+
+    @pytest.mark.django_db
+    def test_a_blocked_build_tells_admins_and_frees_the_lane(self, create_user, agent_on, tasks, monkeypatch):
+        key = "f" * 64
+        monkeypatch.setenv("OPS_FEATURE_AGENT_API_KEY", key)
+        agent = User.objects.create(email="agent@zil.global", username=uuid.uuid4().hex, is_active=True)
+        monkeypatch.setenv("AGENT_ADMIN_EMAIL", agent.email)
+        building = own_feature(create_user, status=S.BUILDING, build={"claimed_at": "2026-10-16T00:00:00+00:00"})
+        waiting = own_feature(create_user, status=S.APPROVED, flag_key="next")
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {key}")
+        with mock.patch("plane.utils.agent_pipeline.notify.admins_feature_build_blocked") as admins:
+            response = client.post(
+                f"/api/agent/features/{building.id}/build-status/",
+                {"state": "blocked", "note": "Toca un archivo de la lista protegida"},
+                format="json",
+            )
+        assert response.status_code == status.HTTP_200_OK, response.data
+        admins.assert_called_once()
+        waiting.refresh_from_db()
+        assert waiting.status == S.BUILDING
+
+    @pytest.mark.django_db
+    def test_a_new_run_starts_without_the_previous_runs_note_and_progress(self, create_user, agent_on, tasks):
+        old = {
+            "runs": 1,
+            "last_note": "Sin señales de vida",
+            "progress": [{"phase": "terminando", "note": "", "at": "x"}],
+        }
+        feature = own_feature(create_user, status=S.APPROVED, flag_key="again", build=old)
+        assert request_build(feature) == (True, "queued")
+        feature.refresh_from_db()
+        assert feature.build["last_note"] == "" and feature.build["progress"] == [] and feature.build["runs"] == 2
+
+    @pytest.mark.django_db
+    def test_a_stale_copy_cannot_start_a_build(self, create_user, agent_on, tasks):
+        feature = own_feature(create_user, status=S.APPROVED, flag_key="x1")
+        FeatureRequest.objects.filter(id=feature.id).update(status=S.REJECTED)
+        assert request_build(feature) == (False, "status rejected")
+        tasks["fire_feature"].assert_not_called()
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("state", [S.IN_REVIEW, S.QUEUED])
+    def test_in_review_and_queued_can_be_rejected(self, admin_client, create_user, tasks, state):
+        feature = own_feature(create_user, status=state)
+        response = admin_client.post(
+            f"/api/support/feature-requests/{feature.id}/reject/", {"notes": "No va"}, format="json"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["status"] == "rejected"
+
+    @pytest.mark.django_db
+    def test_answered_question_is_flagged_for_the_board(self, create_user):
+        feature = own_feature(
+            create_user,
+            status=S.NEEDS_INFO,
+            comments=[
+                {"role": "agent", "text": "- ¿Qué formato?", "at": "1", "author_name": ""},
+                {"role": "user", "text": "CSV", "at": "2", "author_name": "Ana"},
+            ],
+        )
+        assert feature_summary(feature)["answered"] is True
+        feature.comments = feature.comments[:1]
+        assert feature_summary(feature)["answered"] is False
+
+
+@pytest.mark.contract
+class TestReporterViews:
+    @pytest.mark.django_db
+    def test_send_to_fixer_reopens_a_fixed_bug(self, admin_client, create_user):
+        bug = BugReport.objects.create(reported_by=create_user, description="No guarda", status=BugReport.Status.FIXED)
+        with mock.patch("plane.utils.agent_pipeline.routines.fire_bug_routine", return_value={"fired": True}):
+            response = admin_client.post(f"/api/support/bug-reports/{bug.id}/send-to-fixer/", format="json")
+        assert response.status_code == status.HTTP_200_OK
+        bug.refresh_from_db()
+        assert bug.status == BugReport.Status.OPEN
+
+    @pytest.mark.django_db
+    def test_the_reporter_does_not_get_triage_fields(self, session_client, create_user):
+        bug = BugReport.objects.create(
+            reported_by=create_user, description="No guarda", admin_notes="interno", blocked_reason="denylist"
+        )
+        detail = session_client.get(f"/api/support/bug-reports/{bug.id}/").data
+        mine = session_client.get("/api/support/bug-reports/mine/").data[0]
+        for data in (detail, mine):
+            assert "admin_notes" not in data and "blocked_reason" not in data and "commit_hash" not in data

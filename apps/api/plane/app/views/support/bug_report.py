@@ -13,7 +13,7 @@ from rest_framework.throttling import UserRateThrottle
 
 # Module imports
 from plane.agent_api.bugs import resolve_bug
-from plane.agent_api.serialize import bug_detail, bug_summary
+from plane.agent_api.serialize import bug_detail, bug_summary, for_reporter
 from plane.app.views.base import BaseAPIView
 from plane.db.models import BugReport, FileAsset, Workspace
 from plane.utils.agent_pipeline import bugs as bug_ops
@@ -177,7 +177,7 @@ class MyBugReportsEndpoint(BaseAPIView):
         )
         return Response(
             [
-                {**bug_summary(bug), "progress": bug.progress, "comments": bug.comments}
+                for_reporter({**bug_summary(bug), "progress": bug.progress, "comments": bug.comments})
                 for bug in queryset.exclude(status=BugReport.Status.ARCHIVED)[:100]
             ]
         )
@@ -186,9 +186,11 @@ class MyBugReportsEndpoint(BaseAPIView):
 class BugReportDetailEndpoint(BaseAPIView):
     def get(self, request, pk):
         bug = BugReport.objects.select_related("reported_by", "workspace").get(id=pk)
-        if bug.reported_by_id != request.user.id and not is_instance_admin(request.user):
+        is_admin = is_instance_admin(request.user)
+        if bug.reported_by_id != request.user.id and not is_admin:
             return Response({"error": "Not found."}, status=status.HTTP_404_NOT_FOUND)
-        return Response(bug_detail(bug, request))
+        detail = bug_detail(bug, request)
+        return Response(detail if is_admin else for_reporter(detail))
 
 
 class BugReportReopenEndpoint(BaseAPIView):
@@ -253,7 +255,14 @@ class BugReportSendToFixerEndpoint(BaseAPIView):
 
     def post(self, request, pk):
         bug = BugReport.objects.get(id=pk)
-        if bug.status in (BugReport.Status.RESOLVED, BugReport.Status.DISMISSED, BugReport.Status.ARCHIVED):
+        # FIXED too: the fixer only claims open/in-progress bugs, so a 'fixed' one sent back stayed
+        # unclaimable while the button said it went out.
+        if bug.status in (
+            BugReport.Status.FIXED,
+            BugReport.Status.RESOLVED,
+            BugReport.Status.DISMISSED,
+            BugReport.Status.ARCHIVED,
+        ):
             bug.status = BugReport.Status.OPEN
         bug.blocked_at = None
         bug.blocked_reason = ""
