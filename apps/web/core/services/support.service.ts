@@ -65,6 +65,8 @@ export type TBugReport = {
   reported_by: TSupportPerson | null;
   workspace_slug: string | null;
   derived_feature_id: string | null;
+  /** Status of the suggestion this report became (null when it didn't become one). */
+  derived_feature_status: TFeatureStatus | null;
   /** The cause was in Zil Workspace: the report filed there, and where the reporter follows it. */
   workspace_bug_id: string | null;
   workspace_bug_url: string | null;
@@ -203,6 +205,8 @@ export function supportErrorMessage(error: unknown): string | undefined {
   if (!error || typeof error !== "object") return undefined;
   const body = error as Record<string, unknown>;
   if (typeof body.error === "string") return body.error;
+  // DRF's own errors (throttles, permission denials) come as `detail`.
+  if (typeof body.detail === "string") return body.detail;
   const first = Object.values(body).find((value) => Array.isArray(value) && typeof value[0] === "string");
   return Array.isArray(first) ? String(first[0]) : undefined;
 }

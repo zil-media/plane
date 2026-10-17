@@ -55,13 +55,14 @@ def fire_feature_routine_task(feature_id, mode, reason=""):
             # A re-analysis of a spec that was ready keeps it ready to decide (the sweep retries submitted ones).
             has_spec = bool((feature.spec or {}).get("generated_at"))
             feature.status = FeatureRequest.Status.SPEC_READY if has_spec else FeatureRequest.Status.SUBMITTED
-            feature.spec_runs = max(0, feature.spec_runs - 1)
+            # The failed attempt counts toward the run cap: the sweep retries submitted ones, and with a
+            # persistent failure (bad key, outage) uncounted attempts retried forever, one comment each.
             feature.comments = bugs.append_entry(feature.comments, bugs.comment_entry(None, "agent", note))
-            feature.save(update_fields=["status", "spec_runs", "comments", "updated_at"])
+            feature.save(update_fields=["status", "comments", "updated_at"])
         elif mode == "BUILD" and feature.status == FeatureRequest.Status.BUILDING:
             build = dict(feature.build or {})
             build["claimed_at"] = None
-            build["runs"] = max(0, int(build.get("runs", 1)) - 1)
+            # Counted too (see above): the drain re-fires approved builds, so an uncounted failure looped.
             build["last_note"] = note
             feature.build = build
             feature.status = FeatureRequest.Status.APPROVED

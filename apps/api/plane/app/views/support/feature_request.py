@@ -7,7 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 
 # Third party imports
-from rest_framework import serializers, status
+from rest_framework import exceptions, serializers, status
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 
@@ -35,6 +35,11 @@ class FeatureRequestCreateThrottle(UserRateThrottle):
         if request.method != "POST":
             return True
         return super().allow_request(request, view)
+
+
+class SuggestionsThrottled(exceptions.APIException):
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    default_detail = "Ya envió varias sugerencias en esta hora. Puede enviar otra dentro de un rato."
 
 
 class FeatureRequestCreateSerializer(serializers.Serializer):
@@ -108,6 +113,11 @@ class FeatureFlagsEndpoint(BaseAPIView):
 
 class FeatureRequestEndpoint(BaseAPIView):
     throttle_classes = [FeatureRequestCreateThrottle]
+
+    def throttled(self, request, wait):
+        # The person sees this in the modal. Not DRF's Throttled: the instance exception handler turns
+        # that into a bare RATE_LIMIT_EXCEEDED code, and the modal could only say "try again".
+        raise SuggestionsThrottled()
 
     def get(self, request):
         queryset = FeatureRequest.objects.select_related("requested_by", "workspace")

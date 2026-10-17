@@ -13,7 +13,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Loader, TextArea } from "@plane/ui";
 import { cn, renderFormattedDate, renderFormattedTime } from "@plane/utils";
 import type { TBugStatus } from "@/services/support.service";
-import { supportService } from "@/services/support.service";
+import { supportErrorMessage, supportService } from "@/services/support.service";
 import { PhaseChip, Tag } from "./item-row";
 import { bugPhase, bugWasAnswered, bugWasDerived, bugWentToWorkspace } from "./phase";
 import { PhaseTimeline } from "./phase-timeline";
@@ -69,7 +69,7 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
       await mutate();
       onChanged();
     } catch (error) {
-      const message = (error as { error?: string } | undefined)?.error ?? t("helpdesk.try_again");
+      const message = supportErrorMessage(error) ?? t("helpdesk.try_again");
       setToast({ type: TOAST_TYPE.ERROR, title: t("helpdesk.error_title"), message });
     } finally {
       setBusy(false);
@@ -175,7 +175,12 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
       {isOwner && !bug.derived_feature_id && !bugWentToWorkspace(bug) && (
         <div className="flex flex-col gap-2 border-t border-subtle pt-3">
           <span className="text-caption-sm-medium text-tertiary">{t("helpdesk.detail.resend_hint")}</span>
-          <TextArea value={comment} onChange={(event) => setComment(event.target.value)} className="min-h-20" />
+          <TextArea
+            value={comment}
+            onChange={(event) => setComment(event.target.value)}
+            maxLength={5000}
+            className="min-h-20"
+          />
           <Button
             variant="secondary"
             size="lg"

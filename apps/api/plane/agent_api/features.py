@@ -142,6 +142,25 @@ class AgentFeatureDetailEndpoint(AgentFeatureBaseView):
         return Response(feature_detail(feature, request))
 
 
+def _start_auto_approved(feature):
+    """Requests the build, then tells the requester what actually happened: an approved feature only
+    starts building when the lane has room (another build, the weekly cap, the agent switch)."""
+    fired, _ = feature_ops.request_build(feature, "aprobada automáticamente")
+    if fired:
+        notify.requester_feature_update(
+            feature,
+            "Tu sugerencia se empieza a construir",
+            "Analizamos tu sugerencia y quedó aprobada. Ya empezamos a construirla; podés seguir el avance.",
+        )
+    else:
+        notify.requester_feature_update(
+            feature,
+            "Tu sugerencia quedó aprobada",
+            "Analizamos tu sugerencia y quedó aprobada. El desarrollo arranca apenas se libere el turno; "
+            "podés seguir el avance.",
+        )
+
+
 class AgentFeatureActionEndpoint(AgentFeatureBaseView):
     def put(self, request, pk, action):
         return self._dispatch(request, pk, action)
@@ -177,12 +196,7 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
                 "notes": "Aprobada automáticamente (primer análisis, sin preguntas abiertas).",
             }
             feature.save()
-            notify.requester_feature_update(
-                feature,
-                "Tu sugerencia se empieza a construir",
-                "Analizamos tu sugerencia y quedó aprobada. Ya empezamos a construirla; podés seguir el avance.",
-            )
-            transaction.on_commit(lambda: feature_ops.request_build(feature, "aprobada automáticamente"))
+            transaction.on_commit(lambda: _start_auto_approved(feature))
         else:
             feature.save()
             notify.admins_feature_needs_decision(feature)

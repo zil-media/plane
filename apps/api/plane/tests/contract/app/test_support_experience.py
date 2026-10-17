@@ -398,7 +398,8 @@ class TestRoundFour:
         with mock.patch("plane.utils.agent_pipeline.routines.fire_feature_routine", return_value=failed):
             fire_feature_routine_task(str(feature.id), "SPEC", "rehacer")
         feature.refresh_from_db()
-        assert feature.status == S.SPEC_READY and feature.spec_runs == 1
+        # The failed attempt counts toward the cap: retries are bounded.
+        assert feature.status == S.SPEC_READY and feature.spec_runs == 2
 
     @pytest.mark.django_db
     def test_the_sweep_restarts_a_pending_analysis(self, create_user, agent_on, tasks):
@@ -424,3 +425,85 @@ class TestRoundFour:
         assert drain_feature_queue() == (True, "queued")
         first.refresh_from_db()
         assert first.status == S.BUILDING
+
+
+@pytest.mark.contract
+class TestRoundFive:
+    @pytest.mark.django_db
+    def test_a_demoted_director_no_longer_auto_approves(self, create_user, workspace):
+        from plane.db.models import WorkspaceMember
+        from plane.utils.agent_pipeline.permissions import is_workspace_director
+
+        assert is_workspace_director(create_user, workspace) is True
+        WorkspaceMember.objects.filter(workspace=workspace, member=create_user).update(role=15)
+        assert is_workspace_director(create_user, workspace) is False
+
+    @pytest.mark.django_db
+    def test_admin_links_go_through_a_workspace_the_admin_is_in(self, create_user, workspace, tasks, settings):
+        from plane.db.models import Workspace, WorkspaceMember
+        from plane.utils.agent_pipeline import notify
+
+        settings.WEB_URL = "http://ops.test"
+        instance = Instance.objects.create(
+            instance_name="Test Instance",
+            instance_id=str(uuid.uuid4()),
+            current_version="1.0.0",
+            domain="http://localhost:8000",
+            last_checked_at=timezone.now(),
+            is_setup_done=True,
+        )
+        admin = User.objects.create(email="owner@zil.global", username=uuid.uuid4().hex, is_active=True)
+        InstanceAdmin.objects.create(instance=instance, user=admin, role=20)
+        mine = Workspace.objects.create(name="Admin", owner=admin, slug="admin-ws")
+        WorkspaceMember.objects.create(workspace=mine, member=admin, role=20)
+        feature = own_feature(create_user, workspace=workspace)
+
+        notify.admins_new_feature(feature)
+
+        args = tasks["email"].call_args[0]
+        assert args[0] == ["owner@zil.global"]
+        assert args[5] == f"http://ops.test/admin-ws/support?feature={feature.id}"
+
+    @pytest.mark.django_db
+    def test_auto_approval_mail_says_what_happened(self, create_user, agent_on, tasks):
+        from plane.agent_api.features import _start_auto_approved
+
+        own_feature(create_user, status=S.BUILDING)  # the lane is taken
+        waiting = own_feature(create_user, status=S.APPROVED, flag_key="later")
+        with mock.patch("plane.utils.agent_pipeline.notify.requester_feature_update") as told:
+            _start_auto_approved(waiting)
+        assert told.call_args[0][1] == "Tu sugerencia quedó aprobada"
+
+    @pytest.mark.django_db
+    def test_a_throttled_suggestion_says_why(self, session_client):
+        from plane.app.views.support.feature_request import FeatureRequestCreateThrottle
+
+        with (
+            mock.patch.object(FeatureRequestCreateThrottle, "allow_request", return_value=False),
+            mock.patch.object(FeatureRequestCreateThrottle, "wait", return_value=600),
+        ):
+            response = session_client.post(
+                "/api/support/feature-requests/",
+                {"title": "Exportar", "problem": "No puedo exportar los work items del ciclo"},
+                format="json",
+            )
+        assert response.status_code == 429
+        assert "varias sugerencias" in response.data["detail"]
+
+    @pytest.mark.django_db
+    def test_a_stale_agent_message_is_cleared_when_a_person_closes_or_reopens(self, admin_client, create_user, tasks):
+        bug = BugReport.objects.create(
+            reported_by=create_user, description="x", status=BugReport.Status.IN_PROGRESS, resolved_message="Ya quedó."
+        )
+        admin_client.post("/api/support/bug-reports/bulk/", {"action": "dismiss", "ids": [str(bug.id)]}, format="json")
+        bug.refresh_from_db()
+        assert bug.status == BugReport.Status.DISMISSED and bug.resolved_message == ""
+
+    @pytest.mark.django_db
+    def test_a_derived_report_carries_its_suggestions_status(self, session_client, create_user):
+        merged = own_feature(create_user, status=S.MERGED)
+        BugReport.objects.create(
+            reported_by=create_user, description="x", status=BugReport.Status.DISMISSED, derived_feature=merged
+        )
+        mine = session_client.get("/api/support/bug-reports/mine/").data[0]
+        assert mine["derived_feature_status"] == "merged"

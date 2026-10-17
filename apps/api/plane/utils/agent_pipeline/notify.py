@@ -11,13 +11,27 @@ from django.conf import settings
 from plane.license.models import Instance, InstanceAdmin
 
 
-def admin_emails():
+def admin_users():
     instance = Instance.objects.first()
-    return list(
-        InstanceAdmin.objects.filter(instance=instance, role__gte=15, user__is_active=True)
-        .values_list("user__email", flat=True)
-        .distinct()
-    )
+    return [
+        admin.user
+        for admin in InstanceAdmin.objects.filter(instance=instance, role__gte=15, user__is_active=True)
+        .select_related("user")
+        .order_by("user__email")
+    ]
+
+
+def door(user, workspace):
+    """The workspace a link should go through for this person: the item's own when they are in it,
+    else one of theirs (the support board is instance-wide). A link to a workspace they're not in
+    answers "Workspace not found", and one with no workspace opens the app home."""
+    from plane.db.models import WorkspaceMember
+
+    memberships = WorkspaceMember.objects.filter(member=user, is_active=True, deleted_at__isnull=True)
+    if workspace is not None and memberships.filter(workspace=workspace).exists():
+        return workspace
+    first = memberships.select_related("workspace").order_by("created_at").first()
+    return first.workspace if first else None
 
 
 def support_url(workspace=None, item_id=None, kind="bug"):
@@ -35,6 +49,12 @@ def send(to, subject, heading, paragraphs, cta_label=None, cta_url=None):
     from plane.bgtasks.agent_pipeline_task import send_support_email_task
 
     send_support_email_task.delay(recipients, subject, heading, list(paragraphs), cta_label, cta_url)
+
+
+def send_admins(subject, heading, paragraphs, cta_label, workspace, item_id, kind="bug"):
+    """One email per admin, each with a link that opens for them (see door)."""
+    for admin in admin_users():
+        send(admin.email, subject, heading, paragraphs, cta_label, support_url(door(admin, workspace), item_id, kind))
 
 
 def first_name(user):
@@ -62,7 +82,7 @@ def bug_resolved(bug):
             "Si vuelve a pasar, respondé desde tu seguimiento y lo miramos de nuevo.",
         ],
         "Ver mi seguimiento",
-        support_url(bug.workspace, bug.id),
+        support_url(door(bug.reported_by, bug.workspace), bug.id),
     )
 
 
@@ -75,7 +95,7 @@ def bug_user_guidance(bug):
         "Sobre lo que nos consultaste",
         [greeting(bug.reported_by), bug.resolved_message],
         "Ver mi seguimiento",
-        support_url(bug.workspace, bug.id),
+        support_url(door(bug.reported_by, bug.workspace), bug.id),
     )
 
 
@@ -88,7 +108,7 @@ def bug_derived_to_feature(bug):
         "Tu pedido pasó a Sugerencias",
         [greeting(bug.reported_by), bug.resolved_message],
         "Ver mi seguimiento",
-        support_url(bug.workspace, bug.derived_feature_id, "feature"),
+        support_url(door(bug.reported_by, bug.workspace), bug.derived_feature_id, "feature"),
     )
 
 
@@ -101,25 +121,24 @@ def bug_derived_to_workspace(bug):
         "Lo que reportaste lo seguimos en Zil Workspace",
         [greeting(bug.reported_by), bug.resolved_message],
         "Ver el seguimiento",
-        bug.workspace_bug_url or support_url(bug.workspace, bug.id),
+        bug.workspace_bug_url or support_url(door(bug.reported_by, bug.workspace), bug.id),
     )
 
 
 def admins_new_bug(bug):
     who = bug.reported_by.email if bug.reported_by else "sin usuario"
-    send(
-        admin_emails(),
+    send_admins(
         f"Nuevo reporte de problema ({bug.severity})",
         "Entró un reporte nuevo",
         [f"De: {who}", f"Pantalla: {bug.url or '—'}", bug.description[:1500]],
         "Abrir la bandeja",
-        support_url(bug.workspace, bug.id),
+        bug.workspace,
+        bug.id,
     )
 
 
 def admins_bug_blocked(bug):
-    send(
-        admin_emails(),
+    send_admins(
         "Un arreglo automático necesita una persona",
         "El agente no puede seguir solo",
         [
@@ -128,13 +147,13 @@ def admins_bug_blocked(bug):
             "El reporte salió de la cola del agente hasta que alguien lo revise.",
         ],
         "Abrir la bandeja",
-        support_url(bug.workspace, bug.id),
+        bug.workspace,
+        bug.id,
     )
 
 
 def admins_feature_build_blocked(feature, note):
-    send(
-        admin_emails(),
+    send_admins(
         "Un desarrollo automático necesita una persona",
         "El agente no puede seguir solo",
         [
@@ -143,25 +162,27 @@ def admins_feature_build_blocked(feature, note):
             "Mientras tanto, el carril de desarrollo sigue con la próxima sugerencia aprobada.",
         ],
         "Abrir la sugerencia",
-        support_url(feature.workspace, feature.id, "feature"),
+        feature.workspace,
+        feature.id,
+        "feature",
     )
 
 
 def admins_new_feature(feature):
     who = feature.requested_by.email if feature.requested_by else "—"
-    send(
-        admin_emails(),
+    send_admins(
         "Nueva sugerencia",
         "Entró una sugerencia nueva",
         [f"De: {who}", feature.title, feature.problem[:1500]],
         "Ver sugerencias",
-        support_url(feature.workspace, feature.id, "feature"),
+        feature.workspace,
+        feature.id,
+        "feature",
     )
 
 
 def admins_feature_needs_decision(feature):
-    send(
-        admin_emails(),
+    send_admins(
         "Una sugerencia espera tu decisión",
         "Hay un análisis listo para aprobar",
         [
@@ -170,7 +191,9 @@ def admins_feature_needs_decision(feature):
             f"Impacto estimado: {(feature.spec or {}).get('blast_radius', '—')}",
         ],
         "Revisar y decidir",
-        support_url(feature.workspace, feature.id, "feature"),
+        feature.workspace,
+        feature.id,
+        "feature",
     )
 
 
@@ -183,5 +206,5 @@ def requester_feature_update(feature, heading, message):
         heading,
         [greeting(feature.requested_by), message],
         "Ver mi seguimiento",
-        support_url(feature.workspace, feature.id, "feature"),
+        support_url(door(feature.requested_by, feature.workspace), feature.id, "feature"),
     )

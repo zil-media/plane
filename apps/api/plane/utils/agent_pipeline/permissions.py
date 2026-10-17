@@ -25,7 +25,15 @@ def is_workspace_director(user, workspace):
     """
     if user is None or workspace is None or not user.is_authenticated:
         return False
-    return workspace.owner_id == user.id
+    if workspace.owner_id != user.id:
+        return False
+    # Ownership only ever moves TO a director: a director demoted to operativo stays owner. Still being
+    # an active admin-role member there is what a demotion takes away (operativos sync as Member, 15).
+    from plane.db.models import WorkspaceMember
+
+    return WorkspaceMember.objects.filter(
+        workspace=workspace, member=user, is_active=True, deleted_at__isnull=True, role__gte=20
+    ).exists()
 
 
 class IsInstanceAdmin(BasePermission):

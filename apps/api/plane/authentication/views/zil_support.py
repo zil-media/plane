@@ -153,7 +153,7 @@ class ZilSupportTrackingEndpoint(ZilServiceView):
                 # Handed to Workspace AND closed here: that report lives in Workspace. One handed over
                 # but still open here (part of the fix is Ops's) keeps showing.
                 .exclude(~Q(workspace_bug_id=""), status=BugReport.Status.DISMISSED)
-                .select_related("reported_by", "workspace")[: self._MAX_BUGS]
+                .select_related("reported_by", "workspace", "derived_feature")[: self._MAX_BUGS]
             )
 
             return Response(

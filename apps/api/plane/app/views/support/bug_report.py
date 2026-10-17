@@ -107,7 +107,7 @@ class BugReportEndpoint(BaseAPIView):
         return super().get_permissions()
 
     def get(self, request):
-        queryset = BugReport.objects.select_related("reported_by", "workspace")
+        queryset = BugReport.objects.select_related("reported_by", "workspace", "derived_feature")
         if request.query_params.get("status"):
             queryset = queryset.filter(status=request.query_params["status"])
         if request.query_params.get("source"):
@@ -188,7 +188,7 @@ class MyBugReportsEndpoint(BaseAPIView):
 
 class BugReportDetailEndpoint(BaseAPIView):
     def get(self, request, pk):
-        bug = BugReport.objects.select_related("reported_by", "workspace").get(id=pk)
+        bug = BugReport.objects.select_related("reported_by", "workspace", "derived_feature").get(id=pk)
         is_admin = is_instance_admin(request.user)
         if bug.reported_by_id != request.user.id and not is_admin:
             return Response({"error": "Not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -226,6 +226,8 @@ class BugReportReopenEndpoint(BaseAPIView):
             # out of the agent's queue (agent_queue skips blocked) with nobody told.
             bug.blocked_at = None
             bug.blocked_reason = ""
+            # Nor does the previous "what we did" message describe this round.
+            bug.resolved_message = ""
             bug.save()
             _fire("quien reportó lo reenvió a soporte", bug, bug_ops.trigger_urgency_for_new(bug))
         return Response(for_reporter(bug_summary(bug)))
@@ -250,6 +252,9 @@ class BugReportBulkEndpoint(BaseAPIView):
                 if action != "unblock":
                     bug.status = BugReport.Status.DISMISSED if action == "dismiss" else BugReport.Status.ARCHIVED
                     bug.claimed_at = None
+                    # A person closed it without an answer: a message the agent wrote before (e.g. "it's
+                    # fixed", before CI blocked it) would read as "we answered you".
+                    bug.resolved_message = ""
                 bug.admin_notes = "\n".join(n for n in (bug.admin_notes, notes) if n)
                 bug.save()
                 changed += 1
@@ -275,6 +280,7 @@ class BugReportSendToFixerEndpoint(BaseAPIView):
             # Back in the queue: the previous close's dates would read as this run's on the timeline.
             bug.resolved_at = None
             bug.fixed_at = None
+            bug.resolved_message = ""
         bug.blocked_at = None
         bug.blocked_reason = ""
         bug.save()
