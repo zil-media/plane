@@ -9,6 +9,8 @@ import pytest
 from rest_framework import status
 
 from plane.db.models import (
+    Module,
+    ModuleIssue,
     Issue,
     IssueActivity,
     IssueAssignee,
@@ -114,6 +116,8 @@ class TestWorkspaceMetrics:
         IssueAssignee.objects.create(issue=done, assignee=designer, project_id=project["id"], workspace_id=workspace.id)
         activity(done, designer, at(6, 10), "Backlog", "In Progress")
         activity(done, designer, at(7, 10), "In Progress", "Done")
+        module = Module.objects.create(name="ACME", project_id=project["id"])
+        ModuleIssue.objects.create(module=module, issue=done, project_id=project["id"], workspace_id=workspace.id)
         comment(done, create_user, at(5, 11))
         comment(done, designer, at(5, 14))
         # open, unassigned, untouched since Oct 1: stale at the end of the window
@@ -155,7 +159,25 @@ class TestWorkspaceMetrics:
         assert inter["mentions"] == 1 and inter["notifications_read_rate"] == 0.5
         assert inter["time_to_read_hours"]["median"] == 2.0
 
+        # weekly series covers the window, Monday-based
+        assert sum(w["completed"] for w in flow["weekly"]) == 1 and flow["weekly"][0]["week"] == "2026-09-28"
+        # time spent in each state before leaving it: Backlog 1 day, In Progress 1 day
+        in_progress = next(s for s in flow["state_time"] if s["state"] == "In Progress")
+        assert in_progress["median_hours"] == 24.0 and in_progress["group"] == "started"
+        assert sum(b["open"] for b in flow["aging"]) == 1
+        # reply pairs and heatmap (Oct 5 2026 is a Monday)
+        assert inter["reply_pairs"][0]["replies"] == 1 and inter["reply_pairs"][0]["median_hours"] == 3.0
+        assert m["usage"]["heatmap"][0][11] >= 1
+        # per client, from the module the item is in
+        acme = next(c for c in m["clients"] if c["name"] == "ACME")
+        assert (acme["completed"], acme["comments"], acme["lead_time_median_hours"]) == (1, 2, 48.0)
+        # items to act on
+        assert [x["name"] for x in m["items"]["stale"]] == ["Pendiente"]
+        assert [x["name"] for x in m["items"]["unassigned"]] == ["Pendiente"]
+
         joaquin = next(p for p in m["people"] if p["name"] == "Joaquin")
+        assert joaquin["reply_median_hours"] == 3.0 and joaquin["on_time_rate"] == 1.0
+        assert joaquin["action_days"] == 3 and joaquin["lead_time_median_hours"] == 48.0
         assert (joaquin["completed_assigned"], joaquin["comments"], joaquin["notifications_read"]) == (1, 1, 1)
 
     @pytest.mark.django_db
