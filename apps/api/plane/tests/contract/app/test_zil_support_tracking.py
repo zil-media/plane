@@ -9,7 +9,7 @@ import pytest
 from django.utils import timezone
 from rest_framework import status
 
-from plane.db.models import AgentFeatureFlag, BugReport, FeatureRequest, User
+from plane.db.models import AgentFeatureFlag, BugReport, FeatureRequest, User, Workspace
 from plane.license.models import Instance, InstanceAdmin
 
 URL = "/api/zil/sync/support-tracking/"
@@ -49,7 +49,8 @@ def feature(user, workspace=None, **fields):
 
 
 def bug(user, **fields):
-    return BugReport.objects.create(reported_by=user, description="Quiero un filtro por cliente", **fields)
+    fields.setdefault("description", "Quiero un filtro por cliente")
+    return BugReport.objects.create(reported_by=user, **fields)
 
 
 def ids(items):
@@ -135,3 +136,25 @@ class TestZilSupportTracking:
         assert by_id[str(stuck.id)]["build"]["blocked_at"] == "2026-10-03T00:00:00+00:00"
         assert by_id[str(shipped.id)]["approval"]["auto"] is True
         assert by_id[str(shipped.id)]["flag_enabled_at"] == enabled_at.isoformat()
+
+    @pytest.mark.django_db
+    def test_item_in_a_workspace_the_viewer_is_not_in_opens_through_theirs(
+        self, service_client, create_user, workspace, other_user, instance
+    ):
+        InstanceAdmin.objects.create(instance=instance, user=create_user, role=20)
+        elsewhere = Workspace.objects.create(name="Otra", owner=other_user, slug="otra-unidad")
+        ready = feature(other_user, elsewhere, status=S.SPEC_READY)
+        response = service_client.get(URL, {"email": create_user.email})
+        assert response.data["features"][0]["url"] == f"http://ops.test/{workspace.slug}/support?feature={ready.id}"
+
+    @pytest.mark.django_db
+    def test_the_report_goes_whole(self, service_client, create_user, instance):
+        long_text = "Quiero filtrar por cliente. " * 40
+        bug(create_user, severity=BugReport.Severity.SUGERENCIA, description=long_text)
+        response = service_client.get(URL, {"email": create_user.email})
+        assert response.data["bugs"][0]["description"] == long_text
+
+    @pytest.mark.django_db
+    def test_board_polls_are_not_anon_throttled(self, service_client, create_user):
+        for _ in range(35):
+            assert service_client.get(URL, {"email": create_user.email}).status_code == status.HTTP_200_OK

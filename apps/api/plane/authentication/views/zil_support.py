@@ -76,6 +76,8 @@ def _feature(feature, url, flag_enabled_at):
 def _bug(bug, url):
     return {
         **bug_summary(bug),
+        # bug_summary cuts the text at 500 for the admin lists; the person's own report goes whole.
+        "description": bug.description,
         "progress": bug.progress or [],
         "comments": [_comment(c) for c in bug.comments or []],
         "updated_at": bug.updated_at.isoformat() if bug.updated_at else None,
@@ -97,6 +99,9 @@ class ZilSupportTrackingEndpoint(ZilServiceView):
 
     _MAX_FEATURES = 200
     _MAX_BUGS = 100
+    # Service-key calls have no session, so DRF's default anon throttle (30/min per caller IP)
+    # would bucket every Workspace board poll together and answer 429 to the whole team.
+    throttle_classes = []
 
     def get(self, request):
         email = (request.query_params.get("email") or "").strip().lower()
@@ -108,15 +113,19 @@ class ZilSupportTrackingEndpoint(ZilServiceView):
                 return Response({"is_admin": False, "features": [], "bugs": []}, status=status.HTTP_200_OK)
 
             is_admin = is_instance_admin(user)
-            # Items with no workspace (or one the person isn't in) still open on the board, which is
-            # instance-wide: any workspace of the viewer's serves as the door.
-            fallback_ws = (
+            # Items with no workspace, or one the viewer isn't in (an admin looking at someone else's
+            # suggestion), still open on the board, which is instance-wide: any workspace of the
+            # viewer's serves as the door. A link to a workspace they're not in answers "not found".
+            memberships = list(
                 WorkspaceMember.objects.filter(member=user, is_active=True, deleted_at__isnull=True)
                 .select_related("workspace")
                 .order_by("created_at")
-                .first()
             )
-            fallback = fallback_ws.workspace if fallback_ws else None
+            member_of = {m.workspace_id for m in memberships}
+            fallback = memberships[0].workspace if memberships else None
+
+            def door(item):
+                return item.workspace if item.workspace_id in member_of else fallback
 
             scope = Q(requested_by=user)
             if is_admin:
@@ -151,12 +160,12 @@ class ZilSupportTrackingEndpoint(ZilServiceView):
                     "features": [
                         _feature(
                             f,
-                            support_url(f.workspace or fallback, f.id, "feature"),
+                            support_url(door(f), f.id, "feature"),
                             enabled[f.flag_key].isoformat() if enabled.get(f.flag_key) else None,
                         )
                         for f in features
                     ],
-                    "bugs": [_bug(b, support_url(b.workspace or fallback, b.id, "bug")) for b in bugs],
+                    "bugs": [_bug(b, support_url(door(b), b.id, "bug")) for b in bugs],
                 },
                 status=status.HTTP_200_OK,
             )
