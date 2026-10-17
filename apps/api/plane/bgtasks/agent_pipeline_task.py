@@ -8,6 +8,8 @@ import logging
 # Django imports
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.template.loader import render_to_string
+from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 # Third party imports
@@ -17,7 +19,7 @@ from celery import shared_task
 from plane.db.models import FeatureRequest, User, Workspace
 from plane.license.utils.instance_value import get_email_configuration
 from plane.utils.agent_pipeline import bugs, features, routines
-from plane.utils.agent_pipeline.constants import FEATURE_RUN_EXPIRY
+from plane.utils.agent_pipeline.constants import FEATURE_RUN_EXPIRY, MAX_SPEC_RUNS
 from plane.utils.email import generate_plain_text_from_html
 from plane.utils.exception_logger import log_exception
 
@@ -40,21 +42,30 @@ def fire_feature_routine_task(feature_id, mode, reason=""):
     if result.get("fired"):
         return result
 
-    # The session never started: put the request back where a later fire can pick it up.
-    note = f"No se pudo iniciar el análisis automático ({result.get('reason')})."
-    if mode == "SPEC" and feature.status == FeatureRequest.Status.SPEC_RUNNING:
-        feature.status = FeatureRequest.Status.SUBMITTED
-        feature.spec_runs = max(0, feature.spec_runs - 1)
-        feature.comments = bugs.append_entry(feature.comments, bugs.comment_entry(None, "agent", note))
-        feature.save(update_fields=["status", "spec_runs", "comments", "updated_at"])
-    elif mode == "BUILD" and feature.status == FeatureRequest.Status.BUILDING:
-        build = dict(feature.build or {})
-        build["claimed_at"] = None
-        build["runs"] = max(0, int(build.get("runs", 1)) - 1)
-        build["last_note"] = note
-        feature.build = build
-        feature.status = FeatureRequest.Status.APPROVED
-        feature.save(update_fields=["build", "status", "updated_at"])
+    # The session never started: put the request back where a later fire can pick it up. Re-read under
+    # a lock: the POST above can take a while, and a hold, a rejection or a comment made meanwhile
+    # must not be overwritten by the copy read before it.
+    what = "el análisis" if mode == "SPEC" else "el desarrollo"
+    note = f"No se pudo iniciar {what} automático ({result.get('reason')})."
+    with transaction.atomic():
+        feature = FeatureRequest.objects.select_for_update().filter(id=feature_id).first()
+        if feature is None:
+            return result
+        if mode == "SPEC" and feature.status == FeatureRequest.Status.SPEC_RUNNING:
+            # A re-analysis of a spec that was ready keeps it ready to decide (the sweep retries submitted ones).
+            has_spec = bool((feature.spec or {}).get("generated_at"))
+            feature.status = FeatureRequest.Status.SPEC_READY if has_spec else FeatureRequest.Status.SUBMITTED
+            feature.spec_runs = max(0, feature.spec_runs - 1)
+            feature.comments = bugs.append_entry(feature.comments, bugs.comment_entry(None, "agent", note))
+            feature.save(update_fields=["status", "spec_runs", "comments", "updated_at"])
+        elif mode == "BUILD" and feature.status == FeatureRequest.Status.BUILDING:
+            build = dict(feature.build or {})
+            build["claimed_at"] = None
+            build["runs"] = max(0, int(build.get("runs", 1)) - 1)
+            build["last_note"] = note
+            feature.build = build
+            feature.status = FeatureRequest.Status.APPROVED
+            feature.save(update_fields=["build", "status", "updated_at"])
     return result
 
 
@@ -76,6 +87,9 @@ def agent_claim_sweep():
 def _last_activity(feature, started_at):
     stamps = [started_at] + [p.get("at") for p in (feature.build or {}).get("progress", []) if p.get("at")]
     return max(s for s in stamps if s)
+
+
+SPEC_RETRIES_PER_SWEEP = 3
 
 
 @shared_task
@@ -104,8 +118,21 @@ def feature_run_sweep():
             feature.save(update_fields=["build", "status", "updated_at"])
             released += 1
 
+    # Specs released above, or that never started (agent off at the time, or the fire failed), go back
+    # on their own: nothing else re-requests a submitted feature. A few per tick, oldest first, within
+    # the automatic-run cap (request_spec checks it and the agent switch).
+    pending_since = timezone.now() - FEATURE_RUN_EXPIRY
+    retried = 0
+    for feature in FeatureRequest.objects.filter(
+        Q(spec_requested_at__isnull=True) | Q(spec_requested_at__lt=pending_since),
+        status=FeatureRequest.Status.SUBMITTED,
+        spec_runs__lt=MAX_SPEC_RUNS,
+    ).order_by("created_at")[:SPEC_RETRIES_PER_SWEEP]:
+        queued, _ = features.request_spec(feature, "barrido periódico: análisis pendiente")
+        retried += int(queued)
+
     drained = features.drain_feature_queue("barrido periódico")
-    return {"released": released, "drained": drained}
+    return {"released": released, "retried": retried, "drained": drained}
 
 
 @shared_task

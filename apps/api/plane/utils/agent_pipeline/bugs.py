@@ -150,6 +150,8 @@ def derive_feature(bug, *, title, problem, desired_outcome, message, agent_user)
         bug.resolved_message = message
         bug.resolved_at = timezone.now()
         bug.claimed_at = None
+        bug.blocked_at = None
+        bug.blocked_reason = ""
         bug.save()
     return feature
 
@@ -166,4 +168,6 @@ def hand_to_workspace(bug, filed, *, close, message=""):
         bug.resolved_message = message
         bug.resolved_at = timezone.now()
         bug.claimed_at = None
+        bug.blocked_at = None
+        bug.blocked_reason = ""
     bug.save()

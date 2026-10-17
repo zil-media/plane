@@ -233,7 +233,10 @@ class FeatureRequestDecisionEndpoint(BaseAPIView):
                 if decision == "approve":
                     feature.approval = record
                 build = dict(feature.build or {})
-                build.update({"blocked_at": None, "claimed_at": None, "manual_retry": decision == "rebuild"})
+                # A person decided: the previous stop's note no longer explains anything while it waits.
+                build.update(
+                    {"blocked_at": None, "claimed_at": None, "last_note": "", "manual_retry": decision == "rebuild"}
+                )
                 feature.build = build
                 feature.status = S.APPROVED
                 feature.save()

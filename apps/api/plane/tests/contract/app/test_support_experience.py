@@ -244,7 +244,9 @@ class TestTheBuildLane:
         assert lane_busy() is True
 
     @pytest.mark.django_db
-    def test_a_blocked_build_tells_admins_and_frees_the_lane(self, create_user, agent_on, tasks, monkeypatch):
+    def test_a_blocked_build_tells_admins_and_frees_the_lane(
+        self, create_user, agent_on, tasks, monkeypatch, django_capture_on_commit_callbacks
+    ):
         key = "f" * 64
         monkeypatch.setenv("OPS_FEATURE_AGENT_API_KEY", key)
         agent = User.objects.create(email="agent@zil.global", username=uuid.uuid4().hex, is_active=True)
@@ -253,7 +255,10 @@ class TestTheBuildLane:
         waiting = own_feature(create_user, status=S.APPROVED, flag_key="next")
         client = APIClient()
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {key}")
-        with mock.patch("plane.utils.agent_pipeline.notify.admins_feature_build_blocked") as admins:
+        with (
+            mock.patch("plane.utils.agent_pipeline.notify.admins_feature_build_blocked") as admins,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
             response = client.post(
                 f"/api/agent/features/{building.id}/build-status/",
                 {"state": "blocked", "note": "Toca un archivo de la lista protegida"},
@@ -328,3 +333,94 @@ class TestReporterViews:
         mine = session_client.get("/api/support/bug-reports/mine/").data[0]
         for data in (detail, mine):
             assert "admin_notes" not in data and "blocked_reason" not in data and "commit_hash" not in data
+
+
+@pytest.mark.contract
+class TestRoundFour:
+    @pytest.mark.django_db
+    def test_reopen_clears_an_old_block_and_hides_its_reason(self, session_client, create_user, tasks):
+        bug = BugReport.objects.create(
+            reported_by=create_user,
+            description="No guarda",
+            status=BugReport.Status.RESOLVED,
+            blocked_at=timezone.now(),
+            blocked_reason="denylist",
+        )
+        with mock.patch("plane.app.views.support.bug_report._fire"):
+            response = session_client.post(
+                f"/api/support/bug-reports/{bug.id}/reopen/", {"comment": "Sigue pasando"}, format="json"
+            )
+        assert response.status_code == status.HTTP_200_OK, response.data
+        assert "blocked_reason" not in response.data
+        bug.refresh_from_db()
+        assert bug.status == BugReport.Status.OPEN and bug.blocked_at is None
+
+    @pytest.mark.django_db
+    def test_blocked_filter_lists_only_reports_still_waiting(self, admin_client, create_user):
+        waiting = BugReport.objects.create(reported_by=create_user, description="a", blocked_at=timezone.now())
+        BugReport.objects.create(
+            reported_by=create_user, description="b", blocked_at=timezone.now(), status=BugReport.Status.RESOLVED
+        )
+        rows = admin_client.get("/api/support/bug-reports/", {"blocked": "true"}).data
+        assert [row["id"] for row in rows] == [str(waiting.id)]
+
+    @pytest.mark.django_db
+    def test_send_to_fixer_clears_the_previous_close(self, admin_client, create_user):
+        bug = BugReport.objects.create(
+            reported_by=create_user,
+            description="x",
+            status=BugReport.Status.RESOLVED,
+            resolved_at=timezone.now(),
+            fixed_at=timezone.now(),
+        )
+        with mock.patch("plane.utils.agent_pipeline.routines.fire_bug_routine", return_value={"fired": True}):
+            admin_client.post(f"/api/support/bug-reports/{bug.id}/send-to-fixer/", format="json")
+        bug.refresh_from_db()
+        assert bug.resolved_at is None and bug.fixed_at is None
+
+    @pytest.mark.django_db
+    def test_run_limit_hold_tells_admins(self, create_user, agent_on, tasks):
+        feature = own_feature(create_user, status=S.APPROVED, flag_key="tired", build={"runs": 3})
+        with mock.patch("plane.utils.agent_pipeline.notify.admins_feature_build_blocked") as admins:
+            assert request_build(feature) == (False, "build run limit")
+        admins.assert_called_once()
+        feature.refresh_from_db()
+        assert feature.status == S.ON_HOLD
+
+    @pytest.mark.django_db
+    def test_a_failed_reanalysis_keeps_a_ready_spec_ready(self, create_user, agent_on):
+        from plane.bgtasks.agent_pipeline_task import fire_feature_routine_task
+
+        feature = own_feature(
+            create_user, status=S.SPEC_RUNNING, spec={"generated_at": "2026-10-01T00:00:00+00:00"}, spec_runs=2
+        )
+        failed = {"fired": False, "reason": "post failed"}
+        with mock.patch("plane.utils.agent_pipeline.routines.fire_feature_routine", return_value=failed):
+            fire_feature_routine_task(str(feature.id), "SPEC", "rehacer")
+        feature.refresh_from_db()
+        assert feature.status == S.SPEC_READY and feature.spec_runs == 1
+
+    @pytest.mark.django_db
+    def test_the_sweep_restarts_a_pending_analysis(self, create_user, agent_on, tasks):
+        from plane.bgtasks.agent_pipeline_task import feature_run_sweep
+
+        pending = own_feature(create_user, status=S.SUBMITTED)
+        feature_run_sweep()
+        pending.refresh_from_db()
+        assert pending.status == S.SPEC_RUNNING
+        tasks["fire_feature"].assert_called_once()
+
+    @pytest.mark.django_db
+    def test_the_build_queue_goes_by_approval_date(self, create_user, agent_on, tasks):
+        from plane.utils.agent_pipeline.features import drain_feature_queue
+
+        later = own_feature(
+            create_user, status=S.APPROVED, flag_key="later", approval={"at": "2026-10-05T00:00:00+00:00"}
+        )
+        first = own_feature(
+            create_user, status=S.APPROVED, flag_key="first", approval={"at": "2026-10-01T00:00:00+00:00"}
+        )
+        later.save()  # a comment or any save bumps updated_at
+        assert drain_feature_queue() == (True, "queued")
+        first.refresh_from_db()
+        assert first.status == S.BUILDING

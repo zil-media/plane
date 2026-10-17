@@ -131,7 +131,7 @@ class ZilSupportTrackingEndpoint(ZilServiceView):
 
             scope = Q(requested_by=user)
             if is_admin:
-                scope |= Q(status__in=(S.SPEC_READY, S.BUILDING))
+                scope |= Q(status__in=(S.SPEC_READY, S.BUILDING, S.NEEDS_INFO))
             candidates = FeatureRequest.objects.filter(scope).select_related("requested_by", "workspace")
             features = [
                 f
@@ -139,6 +139,8 @@ class ZilSupportTrackingEndpoint(ZilServiceView):
                 if f.requested_by_id == user.id
                 or f.status == S.SPEC_READY
                 or (f.status == S.BUILDING and (f.build or {}).get("blocked_at"))
+                # Answered and nothing relaunched it: an admin's to restart, like Ops's own board says.
+                or (f.status == S.NEEDS_INFO and feature_summary(f)["answered"])
             ]
             flag_keys = [f.flag_key for f in features if f.flag_key]
             enabled = dict(
@@ -146,12 +148,11 @@ class ZilSupportTrackingEndpoint(ZilServiceView):
             )
 
             bugs = (
-                BugReport.objects.filter(
-                    reported_by=user,
-                    source=BugReport.Source.MANUAL,
-                    workspace_bug_id="",
-                )
+                BugReport.objects.filter(reported_by=user, source=BugReport.Source.MANUAL)
                 .exclude(status=BugReport.Status.ARCHIVED)
+                # Handed to Workspace AND closed here: that report lives in Workspace. One handed over
+                # but still open here (part of the fix is Ops's) keeps showing.
+                .exclude(~Q(workspace_bug_id=""), status=BugReport.Status.DISMISSED)
                 .select_related("reported_by", "workspace")[: self._MAX_BUGS]
             )
 

@@ -84,6 +84,8 @@ def request_build(feature, reason="aprobada"):
     """
     from plane.bgtasks.agent_pipeline_task import fire_feature_routine_task
 
+    from . import notify
+
     with transaction.atomic():
         config = AgentPipelineConfig.objects.select_for_update().get(pk=AgentPipelineConfig.get().pk)
         if not config.feature_agent_enabled:
@@ -98,42 +100,46 @@ def request_build(feature, reason="aprobada"):
 
         build = dict(current.build or {})
         runs = int(build.get("runs", 0))
-        if runs >= MAX_BUILD_RUNS and not build.get("manual_retry"):
+        held = runs >= MAX_BUILD_RUNS and not build.get("manual_retry")
+        if held:
             # Out of the approved queue, not just skipped: the drain only ever tries the oldest approved
             # feature, so one stuck here would starve every build behind it.
             build["last_note"] = (
                 f"La construcción se intentó {runs} veces sin terminar. Queda en espera hasta que el equipo la revise."
             )
-            current.build = build
             current.status = S.ON_HOLD
-            current.save(update_fields=["build", "status", "updated_at"])
-            feature.build, feature.status = current.build, current.status
-            return False, "build run limit"
-
-        build.update(
-            {
-                "claimed_at": timezone.now().isoformat(),
-                "runs": runs + 1,
-                "branch": f"feat/agent/{current.id}",
-                "blocked_at": None,
-                # A new run: the previous run's note and progress would read as this one's.
-                "last_note": "",
-                "progress": [],
-                # A person's rebuild buys exactly one run; the sweep's re-fires count against the cap again.
-                "manual_retry": False,
-            }
-        )
+        else:
+            build.update(
+                {
+                    "claimed_at": timezone.now().isoformat(),
+                    "runs": runs + 1,
+                    "branch": f"feat/agent/{current.id}",
+                    "blocked_at": None,
+                    # A new run: the previous run's note and progress would read as this one's.
+                    "last_note": "",
+                    "progress": [],
+                    # A person's rebuild buys exactly one run; the sweep's re-fires count against the cap again.
+                    "manual_retry": False,
+                }
+            )
+            current.status = S.BUILDING
         current.build = build
-        current.status = S.BUILDING
         current.save(update_fields=["build", "status", "updated_at"])
     feature.build, feature.status = current.build, current.status
+
+    if held:
+        # On hold and out of the queue: only a person picks it up again, so a person has to know.
+        notify.admins_feature_build_blocked(feature, build["last_note"])
+        return False, "build run limit"
     fire_feature_routine_task.delay(str(feature.id), "BUILD", reason)
     return True, "queued"
 
 
 def drain_feature_queue(reason="se liberó la corrida anterior"):
     """Starts the oldest approved build once the lane is free."""
-    next_feature = FeatureRequest.objects.filter(status=S.APPROVED).order_by("updated_at").first()
+    # Oldest APPROVAL first: updated_at moves with any comment ("¿novedades?"), which sent a waiting
+    # feature behind every later approval.
+    next_feature = FeatureRequest.objects.filter(status=S.APPROVED).order_by("approval__at", "created_at").first()
     if next_feature is None:
         return False, "empty"
     return request_build(next_feature, reason)

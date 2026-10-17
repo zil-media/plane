@@ -220,7 +220,10 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
             notify.requester_feature_update(feature, "Tu sugerencia necesita una revisión", data["note"])
             # Only a person unblocks it: tell them, and free the lane for the next approved feature.
             notify.admins_feature_build_blocked(feature, data["note"])
-            feature_ops.drain_feature_queue("un build quedó trabado esperando a una persona")
+            # After the commit, like the other branches: the next build's task must read committed rows.
+            transaction.on_commit(
+                lambda: feature_ops.drain_feature_queue("un build quedó trabado esperando a una persona")
+            )
             return Response(feature_summary(feature))
 
         if feature.status not in (S.BUILDING, S.IN_REVIEW, S.QUEUED):

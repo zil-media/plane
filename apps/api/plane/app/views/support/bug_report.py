@@ -113,7 +113,10 @@ class BugReportEndpoint(BaseAPIView):
         if request.query_params.get("source"):
             queryset = queryset.filter(source=request.query_params["source"])
         if request.query_params.get("blocked") == "true":
-            queryset = queryset.filter(blocked_at__isnull=False)
+            # Only what still waits on a person: a closed report keeps its old block for the record.
+            queryset = queryset.filter(
+                blocked_at__isnull=False, status__in=(BugReport.Status.OPEN, BugReport.Status.IN_PROGRESS)
+            )
         return Response([bug_summary(bug) for bug in queryset[:300]])
 
     def post(self, request):
@@ -219,9 +222,13 @@ class BugReportReopenEndpoint(BaseAPIView):
                 bug.status = BugReport.Status.OPEN
                 bug.resolved_at = None
                 bug.fixed_at = None
+            # The reporter sent it back with more to go on: a block left over from before would keep it
+            # out of the agent's queue (agent_queue skips blocked) with nobody told.
+            bug.blocked_at = None
+            bug.blocked_reason = ""
             bug.save()
             _fire("quien reportó lo reenvió a soporte", bug, bug_ops.trigger_urgency_for_new(bug))
-        return Response(bug_summary(bug))
+        return Response(for_reporter(bug_summary(bug)))
 
 
 class BugReportBulkEndpoint(BaseAPIView):
@@ -235,11 +242,12 @@ class BugReportBulkEndpoint(BaseAPIView):
             for bug in BugReport.objects.select_for_update().filter(id__in=data["ids"]):
                 if action == "resolve":
                     changed += resolve_bug(bug, request.user, admin_notes=notes)
+                    # Closed by a person: no longer waiting on one.
+                    BugReport.objects.filter(id=bug.id).update(blocked_at=None, blocked_reason="")
                     continue
-                if action == "unblock":
-                    bug.blocked_at = None
-                    bug.blocked_reason = ""
-                else:
+                bug.blocked_at = None
+                bug.blocked_reason = ""
+                if action != "unblock":
                     bug.status = BugReport.Status.DISMISSED if action == "dismiss" else BugReport.Status.ARCHIVED
                     bug.claimed_at = None
                 bug.admin_notes = "\n".join(n for n in (bug.admin_notes, notes) if n)
@@ -264,6 +272,9 @@ class BugReportSendToFixerEndpoint(BaseAPIView):
             BugReport.Status.ARCHIVED,
         ):
             bug.status = BugReport.Status.OPEN
+            # Back in the queue: the previous close's dates would read as this run's on the timeline.
+            bug.resolved_at = None
+            bug.fixed_at = None
         bug.blocked_at = None
         bug.blocked_reason = ""
         bug.save()

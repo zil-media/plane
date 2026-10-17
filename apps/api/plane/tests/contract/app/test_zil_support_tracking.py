@@ -83,7 +83,12 @@ class TestZilSupportTracking:
         theirs = feature(other_user, status=S.SPEC_READY)
         suggestion = bug(create_user, severity=BugReport.Severity.SUGERENCIA, workspace=workspace)
         annoying = bug(create_user, severity=BugReport.Severity.MOLESTO)
-        bug(create_user, severity=BugReport.Severity.SUGERENCIA, workspace_bug_id="0123456789abcdef01234567")
+        bug(
+            create_user,
+            severity=BugReport.Severity.SUGERENCIA,
+            workspace_bug_id="0123456789abcdef01234567",
+            status=BugReport.Status.DISMISSED,
+        )
         bug(create_user, severity=BugReport.Severity.SUGERENCIA, status=BugReport.Status.ARCHIVED)
         bug(other_user, severity=BugReport.Severity.SUGERENCIA)
 
@@ -160,3 +165,26 @@ class TestZilSupportTracking:
     def test_board_polls_are_not_anon_throttled(self, service_client, create_user):
         for _ in range(35):
             assert service_client.get(URL, {"email": create_user.email}).status_code == status.HTTP_200_OK
+
+    @pytest.mark.django_db
+    def test_admin_also_gets_an_answered_consult(self, service_client, create_user, other_user, instance):
+        InstanceAdmin.objects.create(instance=instance, user=create_user, role=20)
+        answered = feature(
+            other_user,
+            status=S.NEEDS_INFO,
+            comments=[
+                {"role": "agent", "text": "- ¿Formato?", "at": "1", "author_name": ""},
+                {"role": "user", "text": "CSV", "at": "2", "author_name": "Leo"},
+            ],
+        )
+        feature(other_user, status=S.NEEDS_INFO, comments=[{"role": "agent", "text": "- ¿Formato?", "at": "1"}])
+        response = service_client.get(URL, {"email": create_user.email})
+        assert ids(response.data["features"]) == {str(answered.id)}
+        assert response.data["features"][0]["answered"] is True
+
+    @pytest.mark.django_db
+    def test_a_handoff_still_open_here_keeps_showing(self, service_client, create_user, instance):
+        still_open = bug(create_user, workspace_bug_id="0123456789abcdef01234567")
+        bug(create_user, workspace_bug_id="0123456789abcdef01234568", status=BugReport.Status.DISMISSED)
+        response = service_client.get(URL, {"email": create_user.email})
+        assert ids(response.data["bugs"]) == {str(still_open.id)}
