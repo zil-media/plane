@@ -778,3 +778,54 @@ class TestRoundSeven:
         assert session_client.get(f"/api/support/bug-reports/{closed.id}/").data["status"] == shown
         # Archived before anyone closed it: that one really didn't advance.
         assert session_client.get(f"/api/support/bug-reports/{never.id}/").data["status"] == "archived"
+
+    @pytest.mark.django_db
+    def test_the_button_survives_the_zil_relay(self):
+        import re
+
+        from django.template.loader import render_to_string
+
+        html = render_to_string(
+            "emails/support/notice.html",
+            {"heading": "x", "paragraphs": ["y"], "cta_label": "Ver mi seguimiento", "cta_url": "http://ops.test/x"},
+        )
+        # Workspace's mailRelay takes the button from the html with this pattern (extractPrimaryCta).
+        found = re.search(r"""<a\b[^>]*href=["'](https?://[^"']+)["'][^>]*>([\s\S]*?)</a>""", html)
+        assert found and found.group(2).strip() == "Ver mi seguimiento"
+
+
+@pytest.mark.contract
+class TestRoundEight:
+    @pytest.mark.django_db
+    def test_reporting_has_a_ceiling_and_says_why(self, session_client):
+        from plane.app.views.support.bug_report import BugReportCreateThrottle
+
+        with (
+            mock.patch.object(BugReportCreateThrottle, "allow_request", return_value=False),
+            mock.patch.object(BugReportCreateThrottle, "wait", return_value=600),
+            mock.patch("plane.utils.agent_pipeline.notify.admins_new_bug") as admins,
+        ):
+            response = session_client.post(
+                "/api/support/bug-reports/", {"description": "No guarda", "urgent": True}, format="json"
+            )
+        assert response.status_code == 429
+        assert "varios reportes" in response.data["detail"]
+        admins.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_the_admins_read_the_impact_in_spanish(self, create_user, tasks):
+        from plane.utils.agent_pipeline import notify
+
+        admin = User.objects.create(email="owner@zil.global", username=uuid.uuid4().hex, is_active=True)
+        instance = Instance.objects.create(
+            instance_name="Test Instance",
+            instance_id=str(uuid.uuid4()),
+            current_version="1.0.0",
+            domain="http://localhost:8000",
+            last_checked_at=timezone.now(),
+            is_setup_done=True,
+        )
+        InstanceAdmin.objects.create(instance=instance, user=admin, role=20)
+        feature = own_feature(create_user, spec={"summary": "Exportar", "blast_radius": "medium"})
+        notify.admins_feature_needs_decision(feature)
+        assert "Impacto estimado: medio" in tasks["email"].call_args[0][3]

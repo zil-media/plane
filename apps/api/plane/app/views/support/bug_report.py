@@ -7,7 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 
 # Third party imports
-from rest_framework import serializers, status
+from rest_framework import exceptions, serializers, status
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 
@@ -100,7 +100,32 @@ def _fire(reason, bug=None, urgency=None):
     transaction.on_commit(lambda: fire_bug_routine_task.delay(reason, bug_id, urgency))
 
 
+class BugReportCreateThrottle(UserRateThrottle):
+    """A person reports a handful of things in an hour. Each report fires the fixer (a blocking one
+    skips its queue and cooldown) and emails every admin, so a loop must not be free."""
+
+    rate = "10/hour"
+    scope = "bug_report_create"
+
+    def allow_request(self, request, view):
+        if request.method != "POST":
+            return True
+        return super().allow_request(request, view)
+
+
+class ReportsThrottled(exceptions.APIException):
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    default_detail = "Ya envió varios reportes en esta hora. Puede enviar otro dentro de un rato."
+
+
 class BugReportEndpoint(BaseAPIView):
+    throttle_classes = [BugReportCreateThrottle]
+
+    def throttled(self, request, wait):
+        # Shown in the reporter (supportErrorMessage reads `detail`); DRF's Throttled becomes a bare
+        # RATE_LIMIT_EXCEEDED code in the instance exception handler.
+        raise ReportsThrottled()
+
     def get_permissions(self):
         if self.request.method == "GET":
             return [IsInstanceAdmin()]

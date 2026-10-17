@@ -51,6 +51,10 @@ def send(to, subject, heading, paragraphs, cta_label=None, cta_url=None):
     send_support_email_task.delay(recipients, subject, heading, list(paragraphs), cta_label, cta_url)
 
 
+# The spec's blast_radius, said like the board says it (helpdesk.impact.*).
+IMPACT = {"low": "bajo", "medium": "medio", "high": "alto"}
+
+
 def send_admins(subject, heading, paragraphs, cta_label, workspace, item_id, kind="bug", exclude=None):
     """One email per admin, each with a link that opens for them (see door). `exclude`: the admin who
     just did it (filed it themselves) doesn't need to hear about it."""
@@ -208,7 +212,7 @@ def admins_feature_needs_decision(feature):
         [
             feature.display_title or feature.title,
             (feature.spec or {}).get("summary", "")[:1500],
-            f"Impacto estimado: {(feature.spec or {}).get('blast_radius', '—')}",
+            f"Impacto estimado: {IMPACT.get((feature.spec or {}).get('blast_radius'), '—')}",
         ],
         "Revisar y decidir",
         feature.workspace,
