@@ -782,9 +782,34 @@ _ERP_REF_KINDS = ("client", "project")
 _ERP_OPTIONS_LIMIT = 200
 
 
-def _client_option(client):
+def _client_options(client):
+    """The client, then one option per brand of it: picking a brand links the client with that brand.
+
+    `id` is the select value (unique per row); `erp_id` / `brand_id` are what gets saved.
+    """
+    client_id = client.get("id")
     alias, company = client.get("alias") or "", client.get("companyName") or ""
-    return {"id": client.get("id"), "name": alias or company, "subtitle": company if alias and company != alias else ""}
+    name = alias or company
+    options = [
+        {
+            "id": client_id,
+            "erp_id": client_id,
+            "brand_id": None,
+            "name": name,
+            "subtitle": company if alias and company != alias else "",
+        }
+    ]
+    for brand in client.get("brands") or []:
+        options.append(
+            {
+                "id": f"{client_id}:{brand.get('id')}",
+                "erp_id": client_id,
+                "brand_id": brand.get("id"),
+                "name": brand.get("name") or "",
+                "subtitle": name,
+            }
+        )
+    return options
 
 
 def _project_option(project):
@@ -793,9 +818,11 @@ def _project_option(project):
 
 
 class ZilErpOptionsEndpoint(APIView):
-    """Active ERP clients / projects of a workspace's Business Unit(s), for the
-    work item "Cliente" / "Proyecto" properties. Per-user session auth: only
-    active members of the workspace. Proxied from the ERP, never persisted.
+    """Active ERP clients (with their brands) / projects of a workspace's Business Unit(s), for
+    the work item "Cliente" / "Proyecto" properties. Per-user session auth: only active members
+    of the workspace, and the ERP narrows the list to what that person can pick. `client_id` /
+    `brand_id` (projects only) keep the projects of the work item's Cliente. Proxied from the
+    ERP, never persisted.
     """
 
     permission_classes = [IsAuthenticated]
@@ -803,17 +830,29 @@ class ZilErpOptionsEndpoint(APIView):
     def get(self, request):
         slug = request.query_params.get("workspace_slug")
         kind = request.query_params.get("kind")
-        if kind not in _ERP_REF_KINDS or not slug:
+        client_id = request.query_params.get("client_id") or None
+        brand_id = request.query_params.get("brand_id") or None
+        if (
+            kind not in _ERP_REF_KINDS
+            or not slug
+            or (client_id and not is_valid_client_id(client_id))
+            or (brand_id and not is_valid_client_id(brand_id))
+        ):
             return Response({"error": "invalid_params"}, status=status.HTTP_400_BAD_REQUEST)
         if not WorkspaceMember.objects.filter(workspace__slug=slug, member=request.user, is_active=True).exists():
             return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
         if not zil_enabled():
             return Response({"error": "zil_not_configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         try:
+            actor = request.user.email
             if kind == "client":
-                options = [_client_option(c) for c in search_zil_clients(slug, "", _ERP_OPTIONS_LIMIT)]
+                clients = search_zil_clients(slug, "", _ERP_OPTIONS_LIMIT, actor_email=actor)
+                options = [option for client in clients for option in _client_options(client)]
             else:
-                options = [_project_option(p) for p in search_zil_projects(slug, "", _ERP_OPTIONS_LIMIT)]
+                projects = search_zil_projects(
+                    slug, "", _ERP_OPTIONS_LIMIT, actor_email=actor, client_id=client_id, brand_id=brand_id
+                )
+                options = [_project_option(p) for p in projects]
         except ZilUnavailable:
             return Response({"error": "zil_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
         return Response({"options": options}, status=status.HTTP_200_OK)
@@ -845,8 +884,11 @@ class ZilIssueErpRefsEndpoint(APIView):
     entity-link `set`/`clear` back (IssueLink chip + back-ref). This view only
     authorizes the requester against the work item's project and relays.
 
-    GET  ?issue_id=               → {client, project} (each {id, name, url} or null)
-    POST {issue_id, kind, erp_id} → link (erp_id) or unlink (erp_id=null); returns the new refs
+    GET  ?issue_id=                         → {client, project} (each {id, name, url} or null;
+                                              the client also carries its `brand` or null)
+    POST {issue_id, kind, erp_id, brand_id?} → link (erp_id, plus one of the client's brands)
+                                              or unlink (erp_id=null); returns the new refs.
+                                              The ERP keeps Cliente and Proyecto consistent.
     """
 
     permission_classes = [IsAuthenticated]
@@ -865,7 +907,12 @@ class ZilIssueErpRefsEndpoint(APIView):
     def post(self, request):
         kind = request.data.get("kind")
         erp_id = request.data.get("erp_id")
-        if kind not in _ERP_REF_KINDS or (erp_id is not None and not is_valid_client_id(erp_id)):
+        brand_id = request.data.get("brand_id") or None
+        if (
+            kind not in _ERP_REF_KINDS
+            or (erp_id is not None and not is_valid_client_id(erp_id))
+            or (brand_id is not None and (kind != "client" or not erp_id or not is_valid_client_id(brand_id)))
+        ):
             return Response({"error": "invalid_params"}, status=status.HTTP_400_BAD_REQUEST)
         # Editing a work item's properties needs Member or Admin on its project.
         issue = _member_issue(request, request.data.get("issue_id"), min_role=15)
@@ -878,6 +925,7 @@ class ZilIssueErpRefsEndpoint(APIView):
                 {
                     "kind": kind,
                     "erp_id": erp_id,
+                    "brand_id": brand_id,
                     "workspace_slug": issue.workspace.slug,
                     "plane_issue_id": str(issue.id),
                     "actor_email": request.user.email,

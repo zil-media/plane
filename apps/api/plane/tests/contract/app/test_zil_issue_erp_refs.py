@@ -11,6 +11,8 @@ from plane.db.models import Issue, ProjectMember, User, WorkspaceMember
 from plane.utils.zil_client import ZilUnavailable
 
 CLIENT_ID = "0123456789abcdef01234567"
+OTHER_ID = "0123456789abcdef01234568"
+BRAND_ID = "0123456789abcdef01234569"
 ZIL_ENV = {"ZIL_BASE_URL": "http://zil.test", "ZIL_SERVICE_SECRET": "secret"}
 REFS = {
     "client": {"id": CLIENT_ID, "name": "Joyas Esmeralda", "url": "http://zil.test/c"},
@@ -45,10 +47,10 @@ def zil_env():
 @pytest.mark.contract
 class TestZilErpOptions:
     @pytest.mark.django_db
-    def test_client_options_are_mapped_from_zil(self, session_client, workspace, zil_env):
+    def test_client_options_are_mapped_from_zil(self, session_client, workspace, create_user, zil_env):
         clients = [
             {"id": CLIENT_ID, "alias": "Joyas", "companyName": "Joyas Esmeralda SA"},
-            {"id": "0123456789abcdef01234568", "alias": "", "companyName": "Auraluxe"},
+            {"id": OTHER_ID, "alias": "", "companyName": "DEGASA S. A.", "brands": [{"id": BRAND_ID, "name": "KFC"}]},
         ]
         with mock.patch(
             "plane.authentication.views.zil_sync.search_zil_clients", return_value=clients
@@ -57,20 +59,50 @@ class TestZilErpOptions:
                 "/api/zil/erp-options/", {"workspace_slug": workspace.slug, "kind": "client"}
             )
         assert response.status_code == status.HTTP_200_OK
-        search.assert_called_once_with(workspace.slug, "", 200)
+        # Zil narrows the list to what the person asking can pick.
+        search.assert_called_once_with(workspace.slug, "", 200, actor_email=create_user.email)
         assert response.data["options"] == [
-            {"id": CLIENT_ID, "name": "Joyas", "subtitle": "Joyas Esmeralda SA"},
-            {"id": "0123456789abcdef01234568", "name": "Auraluxe", "subtitle": ""},
+            {"id": CLIENT_ID, "erp_id": CLIENT_ID, "brand_id": None, "name": "Joyas", "subtitle": "Joyas Esmeralda SA"},
+            {"id": OTHER_ID, "erp_id": OTHER_ID, "brand_id": None, "name": "DEGASA S. A.", "subtitle": ""},
+            # one row per brand, saved as the client plus that brand
+            {
+                "id": f"{OTHER_ID}:{BRAND_ID}",
+                "erp_id": OTHER_ID,
+                "brand_id": BRAND_ID,
+                "name": "KFC",
+                "subtitle": "DEGASA S. A.",
+            },
         ]
 
     @pytest.mark.django_db
-    def test_project_options_carry_client_and_service(self, session_client, workspace, zil_env):
+    def test_project_options_carry_client_and_service(self, session_client, workspace, create_user, zil_env):
         projects = [{"id": CLIENT_ID, "name": "SEO 2026", "clientName": "Joyas", "brand": "", "service": "SEO"}]
-        with mock.patch("plane.authentication.views.zil_sync.search_zil_projects", return_value=projects):
+        with mock.patch("plane.authentication.views.zil_sync.search_zil_projects", return_value=projects) as search:
             response = session_client.get(
                 "/api/zil/erp-options/", {"workspace_slug": workspace.slug, "kind": "project"}
             )
         assert response.data["options"] == [{"id": CLIENT_ID, "name": "SEO 2026", "subtitle": "Joyas · SEO"}]
+        search.assert_called_once_with(
+            workspace.slug, "", 200, actor_email=create_user.email, client_id=None, brand_id=None
+        )
+
+    @pytest.mark.django_db
+    def test_project_options_follow_the_work_item_client(self, session_client, workspace, create_user, zil_env):
+        with mock.patch("plane.authentication.views.zil_sync.search_zil_projects", return_value=[]) as search:
+            session_client.get(
+                "/api/zil/erp-options/",
+                {"workspace_slug": workspace.slug, "kind": "project", "client_id": CLIENT_ID, "brand_id": BRAND_ID},
+            )
+        search.assert_called_once_with(
+            workspace.slug, "", 200, actor_email=create_user.email, client_id=CLIENT_ID, brand_id=BRAND_ID
+        )
+
+    @pytest.mark.django_db
+    def test_invalid_client_filter_is_400(self, session_client, workspace, zil_env):
+        response = session_client.get(
+            "/api/zil/erp-options/", {"workspace_slug": workspace.slug, "kind": "project", "client_id": "nope"}
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
     def test_non_member_gets_404(self, session_client, zil_env):
@@ -113,12 +145,41 @@ class TestZilIssueErpRefs:
             {
                 "kind": "client",
                 "erp_id": CLIENT_ID,
+                "brand_id": None,
                 "workspace_slug": workspace.slug,
                 "plane_issue_id": str(issue.id),
                 "actor_email": create_user.email,
             }
         )
         assert response.data == REFS
+
+    @pytest.mark.django_db
+    def test_set_relays_the_brand(self, session_client, issue, zil_env):
+        with mock.patch(
+            "plane.authentication.views.zil_sync.set_issue_erp_ref", return_value=REFS
+        ) as set_ref:
+            response = session_client.post(
+                "/api/zil/issue-erp-refs/",
+                {"issue_id": str(issue.id), "kind": "client", "erp_id": CLIENT_ID, "brand_id": BRAND_ID},
+                format="json",
+            )
+        assert response.status_code == status.HTTP_200_OK
+        assert set_ref.call_args[0][0]["brand_id"] == BRAND_ID
+
+    @pytest.mark.django_db
+    def test_brand_only_with_a_client(self, session_client, issue, zil_env):
+        bodies = (
+            {"kind": "project", "erp_id": CLIENT_ID, "brand_id": BRAND_ID},
+            {"kind": "client", "erp_id": None, "brand_id": BRAND_ID},
+            {"kind": "client", "erp_id": CLIENT_ID, "brand_id": "nope"},
+        )
+        with mock.patch("plane.authentication.views.zil_sync.set_issue_erp_ref") as set_ref:
+            for body in bodies:
+                response = session_client.post(
+                    "/api/zil/issue-erp-refs/", {"issue_id": str(issue.id), **body}, format="json"
+                )
+                assert response.status_code == status.HTTP_400_BAD_REQUEST
+        set_ref.assert_not_called()
 
     @pytest.mark.django_db
     def test_entity_outside_the_workspace_is_404(self, session_client, issue, zil_env):

@@ -76,9 +76,16 @@ def _post(path, payload):
         raise ZilUnavailable() from e
 
 
-def search_zil_clients(workspace_slug, q="", limit=20):
-    """Active clients of the Business Units mapped to this workspace. Raises ZilUnavailable."""
-    resp = _get("/api/sso/clients", {"workspaceSlug": workspace_slug, "q": q[:100], "limit": limit})
+def search_zil_clients(workspace_slug, q="", limit=20, actor_email=None):
+    """Active clients of the Business Units mapped to this workspace, each with its active brands.
+
+    With `actor_email`, only the ones that person can pick (Zil decides: a director or finance
+    sees them all, anyone else the clients of the projects they are assigned to). Raises ZilUnavailable.
+    """
+    params = {"workspaceSlug": workspace_slug, "q": q[:100], "limit": limit}
+    if actor_email:
+        params["actor"] = actor_email
+    resp = _get("/api/sso/clients", params)
     if resp.status_code != 200:
         raise ZilUnavailable()
     try:
@@ -102,9 +109,17 @@ def get_zil_client(workspace_slug, client_id):
         raise ZilUnavailable() from e
 
 
-def search_zil_projects(workspace_slug, q="", limit=20):
-    """Active projects (TimeProject) of the Business Units mapped to this workspace. Raises ZilUnavailable."""
-    resp = _get("/api/sso/projects", {"workspaceSlug": workspace_slug, "q": q[:100], "limit": limit})
+def search_zil_projects(workspace_slug, q="", limit=20, actor_email=None, client_id=None, brand_id=None):
+    """Active projects (TimeProject) of the Business Units mapped to this workspace. Raises ZilUnavailable.
+
+    `actor_email` keeps the ones that person can pick; `client_id` / `brand_id` the ones of that
+    client (and of that brand or without one), so a work item's Proyecto matches its Cliente.
+    """
+    params = {"workspaceSlug": workspace_slug, "q": q[:100], "limit": limit}
+    for key, value in (("actor", actor_email), ("clientId", client_id), ("brandId", brand_id)):
+        if value:
+            params[key] = value
+    resp = _get("/api/sso/projects", params)
     if resp.status_code != 200:
         raise ZilUnavailable()
     try:

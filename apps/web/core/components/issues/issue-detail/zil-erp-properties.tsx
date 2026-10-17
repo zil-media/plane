@@ -35,11 +35,18 @@ function ZilErpRefSelect({ kind, workspaceSlug, issueId, refs, unavailable, disa
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Projects only list those of the work item's Cliente (and brand), so the pair stays consistent.
+  const filterClientId = kind === "project" ? (refs?.client?.id ?? null) : null;
+  const filterBrandId = kind === "project" ? (refs?.client?.brand?.id ?? null) : null;
   // Options load on first open: the list lives in the ERP and most views never need it.
-  const { data, error } = useSWR(open ? `ZIL_ERP_OPTIONS_${workspaceSlug}_${kind}` : null, () =>
-    zilService.getErpOptions(workspaceSlug, kind)
+  const { data, error } = useSWR(
+    open ? `ZIL_ERP_OPTIONS_${workspaceSlug}_${kind}_${filterClientId ?? ""}_${filterBrandId ?? ""}` : null,
+    () => zilService.getErpOptions(workspaceSlug, kind, { clientId: filterClientId, brandId: filterBrandId })
   );
   const current = refs?.[kind] ?? null;
+  const currentBrand = current?.brand ?? null;
+  // A client picked with one of its brands is the row `${clientId}:${brandId}`.
+  const currentValue = current ? (currentBrand ? `${current.id}:${currentBrand.id}` : current.id) : NONE;
 
   const options = [
     { value: NONE, query: t("common.none"), content: <span className="text-tertiary">{t("common.none")}</span> },
@@ -56,11 +63,13 @@ function ZilErpRefSelect({ kind, workspaceSlug, issueId, refs, unavailable, disa
   ];
 
   const handleChange = async (value: string) => {
-    const erpId = value === NONE ? null : value;
-    if (erpId === (current?.id ?? null)) return;
+    if (value === currentValue) return;
+    const option = data?.options.find((o) => o.id === value);
+    const erpId = value === NONE ? null : (option?.erp_id ?? value);
+    const brandId = value === NONE ? null : (option?.brand_id ?? null);
     setSaving(true);
     try {
-      onChange(await zilService.setIssueErpRef(issueId, kind, erpId));
+      onChange(await zilService.setIssueErpRef(issueId, kind, erpId, brandId));
     } catch {
       setToast({ type: TOAST_TYPE.ERROR, title: t("zil_erp.error_title"), message: t("zil_erp.error") });
     } finally {
@@ -71,7 +80,7 @@ function ZilErpRefSelect({ kind, workspaceSlug, issueId, refs, unavailable, disa
   return (
     <div className="flex w-full grow items-center gap-1">
       <CustomSearchSelect
-        value={current?.id ?? NONE}
+        value={currentValue}
         onChange={(value: string) => void handleChange(value)}
         options={options}
         onOpen={() => setOpen(true)}
@@ -86,9 +95,16 @@ function ZilErpRefSelect({ kind, workspaceSlug, issueId, refs, unavailable, disa
               !current && "text-placeholder"
             )}
           >
-            <span className="truncate">
-              {current?.name ?? (unavailable ? t("zil_erp.unavailable_short") : t("common.none"))}
-            </span>
+            {current && currentBrand ? (
+              <span className="flex min-w-0 items-baseline gap-1">
+                <span className="truncate">{currentBrand.name}</span>
+                <span className="shrink-0 truncate text-caption-sm-regular text-tertiary">{current.name}</span>
+              </span>
+            ) : (
+              <span className="truncate">
+                {current?.name ?? (unavailable ? t("zil_erp.unavailable_short") : t("common.none"))}
+              </span>
+            )}
           </span>
         }
       />

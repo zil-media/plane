@@ -16,9 +16,16 @@ export type TZilErpLink = {
 
 export type TZilErpRefKind = "client" | "project";
 
-export type TZilErpOption = { id: string; name: string; subtitle?: string };
+/**
+ * A picker row. `id` is the select value (unique per row); for clients, `erp_id` / `brand_id` are what gets
+ * saved: a client has one row of its own plus one per brand.
+ */
+export type TZilErpOption = { id: string; name: string; subtitle?: string; erp_id?: string; brand_id?: string | null };
 
-export type TZilErpRef = { id: string; name: string; url: string } | null;
+export type TZilErpBrand = { id: string; name: string };
+
+/** The client ref also carries the brand the work item belongs to (null = the client itself). */
+export type TZilErpRef = { id: string; name: string; url: string; brand?: TZilErpBrand | null } | null;
 
 export type TZilIssueErpRefs = { client: TZilErpRef; project: TZilErpRef };
 
@@ -44,8 +51,20 @@ export class ZilService extends APIService {
       });
   }
 
-  async getErpOptions(workspaceSlug: string, kind: TZilErpRefKind): Promise<{ options: TZilErpOption[] }> {
-    return this.get(`/api/zil/erp-options/`, { params: { workspace_slug: workspaceSlug, kind } })
+  /** Projects can be narrowed to the work item's Cliente (and brand). */
+  async getErpOptions(
+    workspaceSlug: string,
+    kind: TZilErpRefKind,
+    filter: { clientId?: string | null; brandId?: string | null } = {}
+  ): Promise<{ options: TZilErpOption[] }> {
+    return this.get(`/api/zil/erp-options/`, {
+      params: {
+        workspace_slug: workspaceSlug,
+        kind,
+        ...(filter.clientId && { client_id: filter.clientId }),
+        ...(filter.brandId && { brand_id: filter.brandId }),
+      },
+    })
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;
@@ -60,8 +79,13 @@ export class ZilService extends APIService {
       });
   }
 
-  async setIssueErpRef(issueId: string, kind: TZilErpRefKind, erpId: string | null): Promise<TZilIssueErpRefs> {
-    return this.post(`/api/zil/issue-erp-refs/`, { issue_id: issueId, kind, erp_id: erpId })
+  async setIssueErpRef(
+    issueId: string,
+    kind: TZilErpRefKind,
+    erpId: string | null,
+    brandId: string | null = null
+  ): Promise<TZilIssueErpRefs> {
+    return this.post(`/api/zil/issue-erp-refs/`, { issue_id: issueId, kind, erp_id: erpId, brand_id: brandId })
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;
