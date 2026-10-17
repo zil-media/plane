@@ -144,8 +144,11 @@ def append_entry(items, entry, limit=200):
     return [*(items or []), entry][-limit:]
 
 
-def progress_entry(phase, note=""):
-    return {"at": timezone.now().isoformat(), "phase": phase, "note": (note or "")[:500]}
+def progress_entry(phase, note="", for_agent=""):
+    entry = {"at": timezone.now().isoformat(), "phase": phase, "note": (note or "")[:500]}
+    if for_agent:
+        entry["for_agent"] = for_agent[:500]
+    return entry
 
 
 def comment_entry(user, role, text):

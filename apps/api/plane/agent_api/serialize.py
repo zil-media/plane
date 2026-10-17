@@ -95,6 +95,9 @@ def _closed_as(data):
 
 def for_reporter(data):
     shown = {key: value for key, value in data.items() if key not in REPORTER_HIDDEN}
+    if isinstance(shown.get("progress"), list):
+        # A step's note is for the reporter; its for_agent text is for the next agent session.
+        shown["progress"] = [{k: v for k, v in step.items() if k != "for_agent"} for step in shown["progress"]]
     if shown.get("status") == "archived":
         shown["status"] = _closed_as(data)
     return shown

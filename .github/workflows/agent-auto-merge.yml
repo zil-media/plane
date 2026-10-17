@@ -161,8 +161,11 @@ jobs:
           [ -n "$AGENT_API_KEY" ] && [ -n "$API_URL" ] || exit 0
           source "$LANE/lib.sh"
           RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          NOTE="CI rejected this attempt and merged nothing. Read which gate failed before retrying: ${RUN_URL}"
+          # `note` is what the reporter reads in their timeline; `for_agent` (never shown to them) is
+          # what the next session needs: which gate failed, and where to read it.
+          NOTE="El arreglo no pasó las pruebas y lo seguimos ajustando."
+          FOR_AGENT="CI rejected this attempt and merged nothing. Read which gate failed before retrying: ${RUN_URL}"
           for BUG_ID in $(trailer_ids Bug-Id "$GITHUB_SHA"); do
-            PAYLOAD=$(jq -n --arg note "$NOTE" '{phase: "dudas", note: $note}')
+            PAYLOAD=$(jq -n --arg note "$NOTE" --arg for_agent "$FOR_AGENT" '{phase: "dudas", note: $note, for_agent: $for_agent}')
             "$LANE/agent-api.sh" progress "$BUG_ID" "$PAYLOAD" || true
           done

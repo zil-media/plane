@@ -39,6 +39,9 @@ TERMINAL = (BugReport.Status.RESOLVED, BugReport.Status.DISMISSED, BugReport.Sta
 class ProgressSerializer(serializers.Serializer):
     phase = serializers.ChoiceField(choices=BUG_PROGRESS_PHASES)
     note = serializers.CharField(required=False, allow_blank=True, max_length=PROGRESS_NOTE_MAX)
+    # For the next session only (e.g. CI's "which gate failed" with the run link): never shown to the
+    # reporter, whose timeline reads `note`.
+    for_agent = serializers.CharField(required=False, allow_blank=True, max_length=PROGRESS_NOTE_MAX, default="")
 
 
 class CardSerializer(serializers.Serializer):
@@ -182,7 +185,8 @@ class AgentBugActionEndpoint(AgentBugBaseView):
         data = _valid(ProgressSerializer, request)
         if bug.status != BugReport.Status.IN_PROGRESS:
             return _conflict("Progress is only accepted while the bug is in_progress.")
-        bug.progress = bug_ops.append_entry(bug.progress, bug_ops.progress_entry(data["phase"], data.get("note")))
+        entry = bug_ops.progress_entry(data["phase"], data.get("note"), data.get("for_agent", ""))
+        bug.progress = bug_ops.append_entry(bug.progress, entry)
         # A session that keeps reporting is alive: keep its claim from expiring.
         bug.claimed_at = timezone.now()
         bug.save(update_fields=["progress", "claimed_at", "updated_at"])

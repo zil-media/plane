@@ -103,6 +103,8 @@ For each bug:
 2. Progress — the reporter watches it live (only while in_progress; never changes status):
    PUT /api/agent/bugs/<BUG_ID>/progress/  {"phase":"investigando|implementando|probando|dudas","note":"<Spanish, ≤500>"}
    Post `investigando`, `implementando`, `probando`; `dudas` + note whenever you proceed on an assumption.
+   A step CI posted after rejecting a previous attempt carries `for_agent` (which gate failed, with the
+   run link): read it before retrying. It's never shown to the reporter; your `note` is.
 3. Fix and commit (one root cause per commit, only your files — never `git add -A`):
    git commit -m "fix: <what was broken>" -m "Bug-Id: <BUG_ID>"
 4. Write the reporter's answer and the readable card in one call:

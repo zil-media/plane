@@ -945,3 +945,16 @@ class TestRoundTen:
         fired.assert_not_called()
         bug.refresh_from_db()
         assert bug.status == BugReport.Status.FIXED
+
+    @pytest.mark.django_db
+    def test_what_ci_tells_the_next_session_never_reaches_the_reporter(self, session_client, create_user):
+        from plane.utils.agent_pipeline.bugs import progress_entry
+
+        bug = BugReport.objects.create(
+            reported_by=create_user,
+            description="x",
+            status=BugReport.Status.IN_PROGRESS,
+            progress=[progress_entry("dudas", "El arreglo no pasó las pruebas.", "CI rejected: https://ci/run/1")],
+        )
+        step = session_client.get(f"/api/support/bug-reports/{bug.id}/").data["progress"][0]
+        assert step["note"] == "El arreglo no pasó las pruebas." and "for_agent" not in step
