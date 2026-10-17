@@ -27,8 +27,9 @@ export abstract class APIService {
       (response) => response,
       (error) => {
         if (error.response && error.response.status === 401) {
-          const currentPath = window.location.pathname;
-          window.location.replace(`/${currentPath ? `?next_path=${currentPath}` : ``}`);
+          // With its query (an item link is the item), encoded so it stays one parameter.
+          const currentPath = window.location.pathname + window.location.search;
+          window.location.replace(`/${currentPath ? `?next_path=${encodeURIComponent(currentPath)}` : ``}`);
         }
         return Promise.reject(error);
       }

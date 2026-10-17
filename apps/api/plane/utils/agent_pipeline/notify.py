@@ -205,6 +205,23 @@ def admins_feature_needs_decision(feature):
     )
 
 
+def requester_feature_approved(feature, building):
+    """Approved, said as what actually happened: it only starts when the build lane has room."""
+    if building:
+        requester_feature_update(
+            feature,
+            "Tu sugerencia se empieza a construir",
+            "Analizamos tu sugerencia y quedó aprobada. Ya empezamos a construirla; podés seguir el avance.",
+        )
+    else:
+        requester_feature_update(
+            feature,
+            "Tu sugerencia quedó aprobada",
+            "Analizamos tu sugerencia y quedó aprobada. El desarrollo arranca apenas se libere el turno; "
+            "podés seguir el avance.",
+        )
+
+
 def requester_feature_update(feature, heading, message):
     if feature.requested_by is None:
         return

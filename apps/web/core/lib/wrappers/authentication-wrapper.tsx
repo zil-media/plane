@@ -35,6 +35,10 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
   const router = useAppRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next_path");
+  // Where to come back after signing in, with its query: a link to an item (`?feature=`, `?bug=`)
+  // is the item, not the board it lives on. Encoded so its own `?`/`&` don't merge into ours.
+  const currentQuery = searchParams.toString();
+  const currentPath = currentQuery ? `${pathname}?${currentQuery}` : pathname;
   // props
   const { children, pageType = EPageTypes.AUTHENTICATED } = props;
   // hooks
@@ -109,7 +113,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
 
   if (pageType === EPageTypes.ONBOARDING) {
     if (!currentUser?.id) {
-      router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
+      router.push(`/${pathname ? `?next_path=${encodeURIComponent(currentPath)}` : ``}`);
       return <></>;
     } else {
       if (currentUser && currentUserProfile?.id && isUserOnboard) {
@@ -122,7 +126,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
 
   if (pageType === EPageTypes.SET_PASSWORD) {
     if (!currentUser?.id) {
-      router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
+      router.push(`/${pathname ? `?next_path=${encodeURIComponent(currentPath)}` : ``}`);
       return <></>;
     } else {
       if (currentUser && !currentUser?.is_password_autoset && currentUserProfile?.id && isUserOnboard) {
@@ -143,7 +147,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
         return <></>;
       }
     } else {
-      router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
+      router.push(`/${pathname ? `?next_path=${encodeURIComponent(currentPath)}` : ``}`);
       return <></>;
     }
   }

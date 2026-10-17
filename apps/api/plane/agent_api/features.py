@@ -152,19 +152,7 @@ def _start_auto_approved(feature):
     """Requests the build, then tells the requester what actually happened: an approved feature only
     starts building when the lane has room (another build, the weekly cap, the agent switch)."""
     fired, _ = feature_ops.request_build(feature, "aprobada automáticamente")
-    if fired:
-        notify.requester_feature_update(
-            feature,
-            "Tu sugerencia se empieza a construir",
-            "Analizamos tu sugerencia y quedó aprobada. Ya empezamos a construirla; podés seguir el avance.",
-        )
-    else:
-        notify.requester_feature_update(
-            feature,
-            "Tu sugerencia quedó aprobada",
-            "Analizamos tu sugerencia y quedó aprobada. El desarrollo arranca apenas se libere el turno; "
-            "podés seguir el avance.",
-        )
+    notify.requester_feature_approved(feature, fired)
 
 
 class AgentFeatureActionEndpoint(AgentFeatureBaseView):
@@ -234,6 +222,12 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
         if data["state"] == "blocked":
             if feature.status != S.BUILDING:
                 return _conflict("Only a running build can be blocked; merged code has nothing left to block.")
+            # CI reports it on every failing push: the stop is news once, until a person unblocks it.
+            if build.get("blocked_at"):
+                build["last_note"] = data["note"]
+                feature.build = build
+                feature.save(update_fields=["build", "updated_at"])
+                return Response(feature_summary(feature))
             build.update({"blocked_at": timezone.now().isoformat(), "last_note": data["note"]})
             feature.build = build
             feature.save()

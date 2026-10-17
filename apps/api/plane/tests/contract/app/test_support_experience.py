@@ -622,3 +622,30 @@ class TestRoundSix:
         sent = post.call_args.kwargs["json"]
         # The first person it happened to isn't its reporter there either.
         assert (sent["reporterEmail"], sent["source"]) == ("", "auto")
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(("decision", "heading"), [("approve", "quedó aprobada"), ("hold", "Pausamos")])
+    def test_the_requester_hears_an_admins_approval_or_hold(self, admin_client, create_user, decision, heading):
+        feature = own_feature(create_user, status=S.SPEC_READY, flag_key="exportar")
+        with mock.patch("plane.utils.agent_pipeline.notify.requester_feature_update") as told:
+            response = admin_client.post(f"/api/support/feature-requests/{feature.id}/{decision}/", {}, format="json")
+        assert response.status_code == status.HTTP_200_OK, response.data
+        assert heading in told.call_args[0][1]
+
+    @pytest.mark.django_db
+    def test_a_build_that_fails_on_every_push_is_announced_once(self, monkeypatch, create_user, tasks):
+        key = "f" * 64
+        agent = User.objects.create(email="agent@zil.global", username=uuid.uuid4().hex, is_active=True)
+        monkeypatch.setenv("OPS_FEATURE_AGENT_API_KEY", key)
+        monkeypatch.setenv("AGENT_ADMIN_EMAIL", agent.email)
+        feature = own_feature(create_user, status=S.BUILDING, flag_key="exportar", build={"claimed_at": "2026-10-16"})
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {key}")
+        url = f"/api/agent/features/{feature.id}/build-status/"
+        with mock.patch("plane.utils.agent_pipeline.notify.admins_feature_build_blocked") as admins:
+            for note in ("No pasó.", "Tampoco ahora."):
+                response = client.put(url, {"state": "blocked", "note": note}, format="json")
+                assert response.status_code == status.HTTP_200_OK, response.data
+        admins.assert_called_once()
+        feature.refresh_from_db()
+        assert feature.build["last_note"] == "Tampoco ahora."

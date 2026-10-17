@@ -262,12 +262,21 @@ class FeatureRequestDecisionEndpoint(BaseAPIView):
             else:
                 feature.status = S.ON_HOLD
                 feature.save()
+                if feature.requested_by_id != request.user.id:
+                    notify.requester_feature_update(
+                        feature,
+                        "Pausamos tu sugerencia",
+                        data["notes"] or "Por ahora la pausamos. Te avisamos cuando se retome.",
+                    )
         if decision not in ("approve", "rebuild"):
             return Response(feature_summary(feature))
         # After the commit, with the result in the answer: an approved feature only starts building
         # when the lane has room (agent on, no other build in flight, weekly cap), and whoever pressed
         # the button has to know whether it started or why not.
         fired, reason = feature_ops.request_build(feature, f"decisión: {decision}")
+        # Like an automatic approval, the requester hears it (a rebuild is a retry, not news to them).
+        if decision == "approve" and feature.requested_by_id != request.user.id:
+            notify.requester_feature_approved(feature, fired)
         return Response({**feature_summary(feature), "build": {"fired": fired, "reason": reason}})
 
 

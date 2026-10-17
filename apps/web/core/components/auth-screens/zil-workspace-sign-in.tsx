@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@plane/propel/button";
+import { isValidNextPath } from "@plane/utils";
 import { AuthBanner } from "@/components/account/auth-forms/auth-banner";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { authErrorHandler, type EAuthenticationErrorCodes } from "@/helpers/authentication.helper";
@@ -97,11 +98,18 @@ export function ZilWorkspaceSignIn() {
     };
   }, []);
 
+  // The page that sent here (an email's link to an item, say) travels through the SSO bounce:
+  // Workspace's /api/sso/plane?next= hands it back as next_path, which ZilSSOEndpoint validates.
+  const nextPath = searchParams.get("next_path");
+  const next = nextPath && isValidNextPath(nextPath) ? nextPath : "";
   const goContinue = () => {
-    window.location.href = SSO_MINT_URL;
+    window.location.href = next ? `${SSO_MINT_URL}?next=${encodeURIComponent(next)}` : SSO_MINT_URL;
   };
   const goLogin = () => {
-    window.location.href = WORKSPACE_LOGIN_URL;
+    // Logging in there lands on the Ops launcher, which forwards `next` to the same mint.
+    window.location.href = next
+      ? `${ZIL_URL}/login?redirect=${encodeURIComponent(`/dashboard/ops?next=${encodeURIComponent(next)}`)}`
+      : WORKSPACE_LOGIN_URL;
   };
 
   return (
