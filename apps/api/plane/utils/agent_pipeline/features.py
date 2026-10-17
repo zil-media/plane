@@ -6,6 +6,7 @@
 from datetime import timedelta
 
 # Django imports
+from django.db import transaction
 from django.utils import timezone
 
 # Module imports
@@ -18,23 +19,40 @@ S = FeatureRequest.Status
 # One build in flight at a time: two sessions on overlapping files make conflicting branches.
 BUILD_ACTIVE = (S.BUILDING,)
 
+# An analysis only (re)starts before anything was built or decided for good. Not from spec_running
+# (a second run of the same spec), approved/building/in_review/queued (it would pull the item off
+# its build and free the build slot) or merged/rejected (it would undo the decision).
+SPEC_STARTABLE = (S.SUBMITTED, S.NEEDS_INFO, S.SPEC_READY, S.ON_HOLD)
+
 
 def request_spec(feature, reason, force=False):
-    """Queues an impact assessment. Returns (queued, reason)."""
+    """Queues an impact assessment. Returns (queued, reason).
+
+    `force` only lifts the automatic-run cap (a person asked for it); it never skips the status
+    check. The row is re-read under a lock: the caller's copy can be stale (an admin decided, or
+    another request already started a run, between the caller's read and this one).
+    """
     config = AgentPipelineConfig.get()
     if not config.feature_agent_enabled:
         return False, "disabled"
-    if feature.status in (S.SPEC_RUNNING, S.BUILDING, S.MERGED, S.REJECTED) and not force:
-        return False, f"status {feature.status}"
-    if feature.spec_runs >= MAX_SPEC_RUNS and not force:
-        return False, "spec run limit"
 
     from plane.bgtasks.agent_pipeline_task import fire_feature_routine_task
 
-    feature.status = S.SPEC_RUNNING
-    feature.spec_runs += 1
-    feature.spec_requested_at = timezone.now()
-    feature.save(update_fields=["status", "spec_runs", "spec_requested_at", "updated_at"])
+    with transaction.atomic():
+        current = FeatureRequest.objects.select_for_update().get(id=feature.id)
+        if current.status not in SPEC_STARTABLE:
+            return False, f"status {current.status}"
+        if current.spec_runs >= MAX_SPEC_RUNS and not force:
+            return False, "spec run limit"
+        current.status = S.SPEC_RUNNING
+        current.spec_runs += 1
+        current.spec_requested_at = timezone.now()
+        current.save(update_fields=["status", "spec_runs", "spec_requested_at", "updated_at"])
+    feature.status, feature.spec_runs, feature.spec_requested_at = (
+        current.status,
+        current.spec_runs,
+        current.spec_requested_at,
+    )
     fire_feature_routine_task.delay(str(feature.id), "SPEC", reason)
     return True, "queued"
 

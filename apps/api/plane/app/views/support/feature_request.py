@@ -170,10 +170,17 @@ class FeatureRequestCommentEndpoint(BaseAPIView):
 
 
 class FeatureRequestRespecEndpoint(BaseAPIView):
+    # Redoing the analysis resumes a paused request, and pausing is an admin's call.
+    BY_REQUESTER = (S.SUBMITTED, S.SPEC_READY, S.NEEDS_INFO)
+    BY_ADMIN = (*BY_REQUESTER, S.ON_HOLD)
+
     def post(self, request, pk):
         feature = FeatureRequest.objects.get(id=pk)
-        if feature.requested_by_id != request.user.id and not is_instance_admin(request.user):
+        is_admin = is_instance_admin(request.user)
+        if feature.requested_by_id != request.user.id and not is_admin:
             return Response({"error": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+        if feature.status not in (self.BY_ADMIN if is_admin else self.BY_REQUESTER):
+            return Response({"error": f"La sugerencia está en {feature.status}."}, status=status.HTTP_409_CONFLICT)
         queued, reason = feature_ops.request_spec(feature, "se pidió un nuevo análisis", force=True)
         return Response({"queued": queued, "reason": reason, **feature_summary(feature)})
 
@@ -219,7 +226,6 @@ class FeatureRequestDecisionEndpoint(BaseAPIView):
                 feature.build = build
                 feature.status = S.APPROVED
                 feature.save()
-                transaction.on_commit(lambda: feature_ops.request_build(feature, f"decisión: {decision}"))
             elif decision == "reject":
                 feature.rejection = record
                 feature.status = S.REJECTED
@@ -232,7 +238,13 @@ class FeatureRequestDecisionEndpoint(BaseAPIView):
             else:
                 feature.status = S.ON_HOLD
                 feature.save()
-        return Response(feature_summary(feature))
+        if decision not in ("approve", "rebuild"):
+            return Response(feature_summary(feature))
+        # After the commit, with the result in the answer: an approved feature only starts building
+        # when the lane has room (agent on, no other build in flight, weekly cap), and whoever pressed
+        # the button has to know whether it started or why not.
+        fired, reason = feature_ops.request_build(feature, f"decisión: {decision}")
+        return Response({**feature_summary(feature), "build": {"fired": fired, "reason": reason}})
 
 
 class FeatureRequestFlagEndpoint(BaseAPIView):

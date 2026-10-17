@@ -23,6 +23,7 @@ from plane.utils.exception_logger import log_exception
 
 OBJECT_ID_RE = re.compile(r"^[a-f0-9]{24}$")
 ZIL_TIMEOUT_SECONDS = 4
+DRAFT_REVIEW_TIMEOUT_SECONDS = 16
 
 
 class ZilUnavailable(Exception):
@@ -61,7 +62,7 @@ def _get(path, params):
         raise ZilUnavailable() from e
 
 
-def _post(path, payload):
+def _post(path, payload, timeout=ZIL_TIMEOUT_SECONDS * 2):
     base = os.environ.get("ZIL_BASE_URL", "").rstrip("/")
     secret = os.environ.get("ZIL_SERVICE_SECRET", "")
     try:
@@ -69,7 +70,7 @@ def _post(path, payload):
             f"{base}{path}",
             json=payload,
             headers={"X-Zil-Service-Key": secret},
-            timeout=ZIL_TIMEOUT_SECONDS * 2,
+            timeout=timeout,
         )
     except Exception as e:
         log_exception(e)
@@ -184,7 +185,12 @@ def review_draft(kind, title, text, screen):
     the reviewer has inside Workspace).
     """
     try:
-        resp = _post("/api/zil/draft-review", {"kind": kind, "title": title, "text": text, "screen": screen})
+        # Workspace gives the model up to 15s: giving up sooner throws away a review already paid for.
+        resp = _post(
+            "/api/zil/draft-review",
+            {"kind": kind, "title": title, "text": text, "screen": screen},
+            timeout=DRAFT_REVIEW_TIMEOUT_SECONDS,
+        )
     except ZilUnavailable:
         return None
     if resp.status_code != 200:
