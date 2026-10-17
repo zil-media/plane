@@ -94,7 +94,8 @@ def file_auto_bug_report(
                 BugReport.objects.select_for_update()
                 .filter(
                     fingerprint=fingerprint,
-                    status=BugReport.Status.DISMISSED,
+                    # Archiving it (an admin tidying up) doesn't make its recurrences news.
+                    status__in=(BugReport.Status.DISMISSED, BugReport.Status.ARCHIVED),
                     resolved_at__gte=now - HANDED_OFF_QUIET,
                 )
                 .exclude(workspace_bug_id="")

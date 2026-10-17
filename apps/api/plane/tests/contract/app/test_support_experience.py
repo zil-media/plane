@@ -845,6 +845,11 @@ class TestRoundEight:
         assert again.id == first.id and escalate is False
         assert BugReport.objects.filter(fingerprint=first.fingerprint).count() == 1
 
+        # Archived by an admin: still the same report while its fix ships.
+        BugReport.objects.filter(id=first.id).update(status=BugReport.Status.ARCHIVED)
+        archived, escalate = file_auto_bug_report(key="TypeError:x", description="Se cae", user=create_user)
+        assert archived.id == first.id and escalate is False
+
         BugReport.objects.filter(id=first.id).update(resolved_at=timezone.now() - timedelta(days=8))
         later, escalate = file_auto_bug_report(key="TypeError:x", description="Se cae", user=create_user)
         # Still happening a week later: news again.
@@ -874,10 +879,11 @@ class TestRoundEight:
             commit_hash="abc123",
             fixed_at=timezone.now(),
             resolved_at=timezone.now(),
+            resolved_by=create_user,
         )
         with mock.patch("plane.app.views.support.bug_report._fire"):
             session_client.post(
                 f"/api/support/bug-reports/{bug.id}/reopen/", {"comment": "Sigue pasando"}, format="json"
             )
         bug.refresh_from_db()
-        assert bug.status == BugReport.Status.OPEN and bug.commit_hash == ""
+        assert bug.status == BugReport.Status.OPEN and bug.commit_hash == "" and bug.resolved_by is None

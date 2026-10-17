@@ -250,6 +250,7 @@ class BugReportReopenEndpoint(BaseAPIView):
                 # The previous fix didn't hold: its commit says nothing about this round (and made a
                 # later manual resolve say "se está publicando").
                 bug.commit_hash = ""
+                bug.resolved_by = None
             # The reporter sent it back with more to go on: a block left over from before would keep it
             # out of the agent's queue (agent_queue skips blocked) with nobody told.
             bug.blocked_at = None
@@ -311,6 +312,7 @@ class BugReportSendToFixerEndpoint(BaseAPIView):
             bug.resolved_at = None
             bug.fixed_at = None
             bug.commit_hash = ""
+            bug.resolved_by = None
             bug.resolved_message = ""
         bug.blocked_at = None
         bug.blocked_reason = ""
