@@ -316,13 +316,15 @@ class TestTheBuildLane:
 @pytest.mark.contract
 class TestReporterViews:
     @pytest.mark.django_db
-    def test_send_to_fixer_reopens_a_fixed_bug(self, admin_client, create_user):
+    def test_send_to_fixer_waits_for_a_fix_pending_its_publication(self, admin_client, create_user):
         bug = BugReport.objects.create(reported_by=create_user, description="No guarda", status=BugReport.Status.FIXED)
-        with mock.patch("plane.utils.agent_pipeline.routines.fire_bug_routine", return_value={"fired": True}):
+        with mock.patch("plane.utils.agent_pipeline.routines.fire_bug_routine", return_value={"fired": True}) as fired:
             response = admin_client.post(f"/api/support/bug-reports/{bug.id}/send-to-fixer/", format="json")
-        assert response.status_code == status.HTTP_200_OK
+        # A new session would start without the pending fix, write it again and conflict with it.
+        assert response.status_code == status.HTTP_409_CONFLICT and "próxima publicación" in response.data["error"]
+        fired.assert_not_called()
         bug.refresh_from_db()
-        assert bug.status == BugReport.Status.OPEN
+        assert bug.status == BugReport.Status.FIXED
 
     @pytest.mark.django_db
     def test_the_reporter_does_not_get_triage_fields(self, session_client, create_user):
@@ -958,3 +960,44 @@ class TestRoundTen:
         )
         step = session_client.get(f"/api/support/bug-reports/{bug.id}/").data["progress"][0]
         assert step["note"] == "El arreglo no pasó las pruebas." and "for_agent" not in step
+
+
+@pytest.mark.contract
+class TestRoundEleven:
+    def _trigger(self, mode, previous_failure=""):
+        from plane.utils.agent_pipeline import routines
+
+        env = {"ANTHROPIC_OPS_FEATURE_ROUTINE_URL": "http://routine", "ANTHROPIC_OPS_FEATURE_ROUTINE_TOKEN": "t"}
+        with (
+            mock.patch.dict("os.environ", env),
+            mock.patch("plane.utils.agent_pipeline.routines.resolve_agent_key", return_value="k"),
+            mock.patch("plane.utils.agent_pipeline.routines.post_routine", return_value=True) as post,
+        ):
+            routines.fire_feature_routine("f1", mode, title="Exportar", previous_failure=previous_failure)
+        return post.call_args[0][2]
+
+    def test_a_rebuild_continues_on_the_branch_the_last_attempt_pushed(self):
+        text = self._trigger("BUILD", "CI rejected: https://ci/run/9")
+        assert "git checkout -B feat/agent/f1 origin/feat/agent/f1" in text
+        assert "Never force-push" in text and "https://ci/run/9" in text
+        assert "plain Spanish" in text
+        assert "feat/agent/f1 origin" not in self._trigger("SPEC")
+
+    @pytest.mark.django_db
+    def test_what_ci_leaves_for_the_rebuild_survives_it_and_the_requester_never_sees_it(
+        self, session_client, create_user, admin_client, agent_on
+    ):
+        feature = own_feature(
+            create_user,
+            status=S.BUILDING,
+            flag_key="exportar",
+            build={"claimed_at": "2026-10-16", "for_agent": "CI rejected: https://ci/run/9"},
+        )
+        assert "for_agent" not in session_client.get(f"/api/support/feature-requests/{feature.id}/").data["build"]
+        assert admin_client.get(f"/api/support/feature-requests/{feature.id}/").data["build"]["for_agent"]
+
+        feature.status = S.APPROVED
+        feature.save()
+        request_build(feature, "decisión: rebuild")
+        feature.refresh_from_db()
+        assert feature.build["for_agent"] == "CI rejected: https://ci/run/9"

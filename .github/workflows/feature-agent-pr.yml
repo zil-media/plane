@@ -188,9 +188,12 @@ jobs:
           FEATURE_ID: ${{ steps.feature.outputs.feature_id }}
         run: |
           [ -n "$FEATURE_AGENT_API_KEY" ] && [ -n "$API_URL" ] && [ -n "$FEATURE_ID" ] || exit 0
-          # Read by the person who asked for the feature: plain words, no CI jargon.
+          # `note` is read by the person who asked for the feature: plain words, no CI jargon.
+          # `for_agent` is for the rebuild's session only (Ops never shows it to them): where to read why.
           NOTE="La construcción no pasó las verificaciones automáticas. El equipo la revisa antes de seguir."
-          PAYLOAD=$(jq -n --arg note "$NOTE" '{state: "blocked", note: $note}')
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          FOR_AGENT="CI rejected the previous push on this branch. Read which check failed before changing anything: ${RUN_URL}"
+          PAYLOAD=$(jq -n --arg note "$NOTE" --arg for_agent "$FOR_AGENT" '{state: "blocked", note: $note, for_agent: $for_agent}')
           "$LANE/agent-api.sh" build-status "$FEATURE_ID" "$PAYLOAD" || true
 
   # A person merged the PR: the code is on preview (and its push deploys it). Close the loop in Ops.

@@ -188,3 +188,18 @@ class TestZilSupportTracking:
         bug(create_user, workspace_bug_id="0123456789abcdef01234568", status=BugReport.Status.DISMISSED)
         response = service_client.get(URL, {"email": create_user.email})
         assert ids(response.data["bugs"]) == {str(still_open.id)}
+
+
+@pytest.mark.django_db
+def test_the_tracking_never_carries_what_ci_left_for_the_agent(service_client, create_user):
+    from plane.db.models import BugReport
+    from plane.utils.agent_pipeline.bugs import progress_entry
+
+    BugReport.objects.create(
+        reported_by=create_user,
+        description="x",
+        status=BugReport.Status.IN_PROGRESS,
+        progress=[progress_entry("dudas", "El arreglo no pasó las pruebas.", "CI rejected: https://ci/run/1")],
+    )
+    bugs = service_client.get(URL, {"email": create_user.email}).data["bugs"]
+    assert bugs and "for_agent" not in bugs[0]["progress"][0]

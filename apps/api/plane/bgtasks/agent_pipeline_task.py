@@ -45,7 +45,10 @@ def fire_feature_routine_task(feature_id, mode, reason="", previous=None):
     feature = FeatureRequest.objects.filter(id=feature_id).first()
     if feature is None:
         return {"fired": False, "reason": "missing feature"}
-    result = routines.fire_feature_routine(feature_id, mode, title=feature.title, reason=reason)
+    previous_failure = (feature.build or {}).get("for_agent", "") if mode == "BUILD" else ""
+    result = routines.fire_feature_routine(
+        feature_id, mode, title=feature.title, reason=reason, previous_failure=previous_failure
+    )
     if result.get("fired"):
         return result
 

@@ -310,10 +310,18 @@ class BugReportSendToFixerEndpoint(BaseAPIView):
 
     def post(self, request, pk):
         bug = BugReport.objects.get(id=pk)
-        # FIXED too: the fixer only claims open/in-progress bugs, so a 'fixed' one sent back stayed
-        # unclaimable while the button said it went out.
+        # Fixed = its fix waits on agent-batch for the next window. A new session starts from preview
+        # (without that fix), writes it again and conflicts with it, and the window resolves the bug
+        # anyway. After the window it can go back (it's resolved then, and preview has the fix).
+        if bug.status == BugReport.Status.FIXED:
+            return Response(
+                {
+                    "error": "El arreglo ya está hecho y sale en la próxima publicación; "
+                    "después se puede volver a mandar."
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
         if bug.status in (
-            BugReport.Status.FIXED,
             BugReport.Status.RESOLVED,
             BugReport.Status.DISMISSED,
             BugReport.Status.ARCHIVED,

@@ -71,12 +71,19 @@ GET the feature: the approved spec and the human-confirmed flag_key are there. B
 says; if you discover it was wrong, STOP and report (step 6) — the human approved the spec, not
 your improvisation.
 
-1. Branch — this matters more than anything else here:
+1. Branch — this matters more than anything else here. A rebuild finds it already on origin (the
+   previous attempt pushed): continue on top of it, never force-push:
+     git fetch origin feat/agent/<FEATURE_ID> && git checkout -B feat/agent/<FEATURE_ID> origin/feat/agent/<FEATURE_ID>
+   Only when it doesn't exist yet:
      git checkout -b feat/agent/<FEATURE_ID>
+   The trigger says why the previous attempt stopped when CI rejected it: fix that first.
    NEVER work on a claude/** branch: that is the bug lane and it auto-merges to production.
 2. Progress (the requester watches a live timeline):
    PUT /api/agent/features/<ID>/progress/  {"phase":"investigando|implementando|probando|terminando|dudas","note":"<≤500>"}
    "dudas" + note when you proceed on a stated assumption; it does not pause anything.
+   Post at least every 30 minutes: a build silent for 60 is released and fired again.
+   The requester reads every note as it is (and the spec summary): plain Spanish (usted), what
+   changes for them; no code, files, branches, hashes or mentions of agents or automation.
 3. SHIP IT DARK. Every entry point behind the flag:
      backend:  from plane.utils.agent_pipeline.flags import is_feature_enabled
                if not is_feature_enabled("<flag_key>"): return Response(status=404)

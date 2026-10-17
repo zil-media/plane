@@ -75,6 +75,9 @@ class BuildStatusSerializer(serializers.Serializer):
     pr_url = serializers.URLField(required=False, allow_blank=True, default="")
     pr_number = serializers.IntegerField(required=False, allow_null=True, default=None)
     guard_report = serializers.CharField(required=False, allow_blank=True, max_length=20000, default="")
+    # For the next session only (which check failed, the run link): never shown to the requester,
+    # whose board reads `note`. It survives request_build so the rebuild's trigger can carry it.
+    for_agent = serializers.CharField(required=False, allow_blank=True, max_length=2000, default="")
 
 
 class ProgressSerializer(serializers.Serializer):
@@ -224,6 +227,8 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
             if feature.status != S.BUILDING:
                 return _conflict("Only a running build can be blocked; merged code has nothing left to block.")
             # CI reports it on every failing push: the stop is news once, until a person unblocks it.
+            if data["for_agent"]:
+                build["for_agent"] = data["for_agent"]
             if build.get("blocked_at"):
                 build["last_note"] = data["note"]
                 feature.build = build

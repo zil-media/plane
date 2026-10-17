@@ -147,7 +147,7 @@ def fire_bug_routine(reason, bug_id=None, urgency=None):
     return {"fired": True}
 
 
-def fire_feature_routine(feature_id, mode, title="", reason=""):
+def fire_feature_routine(feature_id, mode, title="", reason="", previous_failure=""):
     """SPEC writes an impact assessment and no code; BUILD implements an approved spec.
 
     No cooldown here: the gate is the feature's own state, checked by the caller.
@@ -185,11 +185,32 @@ def fire_feature_routine(feature_id, mode, title="", reason=""):
             "reject, or merge anything: those are human-only actions and the API will not let you.",
             f"Fetch the request via GET {base}/api/agent/features/{feature_id}/",
             "with Authorization: Bearer <AGENT_API_KEY>.",
+            "",
+            "The requester reads your progress notes, blocked notes and the spec summary as they are:",
+            "plain Spanish (usted), what changes for them, no code, files, branches or mentions of agents.",
+            *(_build_rules(feature_id, previous_failure) if mode == "BUILD" else []),
         ]
     )
     if not post_routine(url, token, text, "Feature"):
         return {"fired": False, "reason": "post failed"}
     return {"fired": True}
+
+
+def _build_rules(feature_id, previous_failure):
+    """Live with the deploy (the saved routine prompt only changes when someone pastes it again).
+
+    A rebuild found the branch already on origin from the previous attempt: a fresh `checkout -b`
+    then couldn't push (non-fast-forward), the session ended silent and every re-fire hit the same
+    wall (one build ran 11 sessions for 1 push)."""
+    branch = f"feat/agent/{feature_id}"
+    return [
+        "",
+        "BUILD branch: if origin already has it (a previous attempt pushed), continue on top of it:",
+        f"  git fetch origin {branch} && git checkout -B {branch} origin/{branch}",
+        f"otherwise create it: git checkout -b {branch}. Never force-push.",
+        *(["Why the previous attempt stopped (fix this first): " + previous_failure] if previous_failure else []),
+        "Post progress at least every 30 minutes: a build silent for 60 is released and fired again.",
+    ]
 
 
 def expire_stale_bug_claims():

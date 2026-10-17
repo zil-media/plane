@@ -152,7 +152,11 @@ class FeatureRequestEndpoint(BaseAPIView):
 class FeatureRequestDetailEndpoint(BaseAPIView):
     def get(self, request, pk):
         feature = FeatureRequest.objects.select_related("requested_by", "workspace").get(id=pk)
-        return Response(feature_detail(feature, request))
+        data = feature_detail(feature, request)
+        if not is_instance_admin(request.user):
+            # CI's note for the next session (run link, failing check) isn't the requester's.
+            data["build"] = {k: v for k, v in (data.get("build") or {}).items() if k != "for_agent"}
+        return Response(data)
 
 
 class FeatureRequestCommentEndpoint(BaseAPIView):

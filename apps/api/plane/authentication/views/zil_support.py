@@ -77,10 +77,10 @@ def _feature(feature, url, flag_enabled_at):
 
 def _bug(bug, url):
     return {
-        **for_reporter(bug_summary(bug)),
+        # Progress goes through for_reporter too: a step's for_agent (CI's run link) isn't the person's.
+        **for_reporter({**bug_summary(bug), "progress": bug.progress or []}),
         # bug_summary cuts the text at 500 for the admin lists; the person's own report goes whole.
         "description": bug.description,
-        "progress": bug.progress or [],
         "comments": [_comment(c) for c in bug.comments or []],
         "updated_at": bug.updated_at.isoformat() if bug.updated_at else None,
         "url": url,
