@@ -1,9 +1,18 @@
 (plane_proxy) {
 	# A client folder's brand file (up to Zil's 20 MB) is the one upload allowed past
-	# FILE_SIZE_LIMIT: 21MiB covers the file and its multipart envelope. Same path and cap as
-	# BRAND_FILE_UPLOAD_PATH / BRAND_FILE_REQUEST_MAX_BYTES in plane/middleware/request_body_size.py.
-	@brand_file_upload path_regexp ^/api/workspaces/[^/]+/projects/[^/]+/pages/[^/]+/zil-client/brand-files/$
-	@not_brand_file_upload not path_regexp ^/api/workspaces/[^/]+/projects/[^/]+/pages/[^/]+/zil-client/brand-files/$
+	# FILE_SIZE_LIMIT: 21MiB covers the file and its multipart envelope. Same match and cap as
+	# is_brand_file_upload / BRAND_FILE_REQUEST_MAX_BYTES in plane/middleware/request_body_size.py:
+	# only a multipart POST, since any other body is parsed whole in memory by the API.
+	@brand_file_upload {
+		method POST
+		header Content-Type multipart/form-data*
+		path_regexp ^/api/workspaces/[^/]+/projects/[^/]+/pages/[^/]+/zil-client/brand-files/$
+	}
+	@not_brand_file_upload not {
+		method POST
+		header Content-Type multipart/form-data*
+		path_regexp ^/api/workspaces/[^/]+/projects/[^/]+/pages/[^/]+/zil-client/brand-files/$
+	}
 	request_body @brand_file_upload {
 		max_size 21MiB
 	}

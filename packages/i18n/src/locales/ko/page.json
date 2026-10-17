@@ -158,6 +158,13 @@
         "hint": "Zil Workspace keeps one folder here for each active client of the unit, created and archived automatically.",
         "cannot_link": "The clients folder can't be linked to a client."
       },
+      "auto": {
+        "badge": "Automatic",
+        "hint": "Zil Workspace created this folder for the client and keeps it: it is archived when the client leaves the unit and restored if the client comes back.",
+        "link_locked": "Zil Workspace keeps it linked to its client.",
+        "archive_locked": "Archived automatically when the client leaves the unit.",
+        "restore_locked": "Restored automatically if the client comes back."
+      },
       "profile": {
         "tab_info": "Profile",
         "tab_assets": "Assets",

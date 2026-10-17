@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 # Django imports
+from django.core.exceptions import RequestDataTooBig
 from django.db import IntegrityError, transaction
 from django.http import HttpResponseRedirect
 
@@ -13,7 +14,7 @@ from rest_framework.response import Response
 # Module imports
 from plane.app.permissions import allow_permission, ROLE
 from plane.db.models import Page, PageZilClientLink, ZilClientsRoot
-from plane.middleware.request_body_size import BRAND_FILE_MAX_BYTES
+from plane.middleware.request_body_size import BRAND_FILE_MAX_BYTES, REQUEST_BODY_TOO_LARGE
 from plane.utils.zil_client import (
     ZilUnavailable,
     apply_zil_client_fields,
@@ -34,7 +35,20 @@ def serialize_link(link):
         "lifecycle_status": link.lifecycle_status,
         "business_unit_slug": link.business_unit_slug,
         "synced_at": link.synced_at,
+        "auto_created": link.auto_created,
     }
+
+
+def auto_folder_link_response():
+    """A folder the clients-folder sync made stays linked to its client: unlinked or linked to another
+    one, the next roster finds the client without a folder and makes it a second one."""
+    return Response(
+        {
+            "error": "Ops keeps this folder linked to its client: it made it for that client",
+            "error_message": "ZIL_CLIENT_FOLDER_AUTO",
+        },
+        status=status.HTTP_400_BAD_REQUEST,
+    )
 
 
 class ZilClientSearchEndpoint(BaseAPIView):
@@ -101,6 +115,8 @@ class PageZilClientLinkEndpoint(BaseAPIView):
         page, error_response = self._get_folder(request, slug, project_id, page_id)
         if error_response:
             return error_response
+        if PageZilClientLink.objects.filter(page_id=page.id, auto_created=True).exists():
+            return auto_folder_link_response()
 
         client_id = str(request.data.get("zil_client_id", "")).strip().lower()
         if not is_valid_client_id(client_id):
@@ -162,6 +178,8 @@ class PageZilClientLinkEndpoint(BaseAPIView):
         ).first()
         if page is None or (page.access == Page.PRIVATE_ACCESS and page.owned_by_id != request.user.id):
             return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
+        if PageZilClientLink.objects.filter(page_id=page.id, auto_created=True).exists():
+            return auto_folder_link_response()
 
         PageZilClientLink.all_objects.filter(page_id=page.id).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -297,7 +315,11 @@ class PageZilClientDriveEndpoint(ZilClientRelayBase):
 class PageZilClientBrandFilesEndpoint(ZilClientRelayBase):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def post(self, request, slug, project_id, page_id):
-        upload = request.FILES.get("file")
+        try:
+            upload = request.FILES.get("file")
+        except RequestDataTooBig:
+            # the file streams to disk past DATA_UPLOAD_MAX_MEMORY_SIZE, but the form's other fields do not
+            return Response(REQUEST_BODY_TOO_LARGE, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
         if upload is None:
             return Response({"error": "Missing file"}, status=status.HTTP_400_BAD_REQUEST)
         if upload.size > BRAND_FILE_MAX_BYTES:

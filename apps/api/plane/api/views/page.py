@@ -20,6 +20,7 @@ from plane.api.serializers import PageDetailSerializer, PageSerializer, PageUpda
 from plane.app.permissions import ROLE, ProjectPagePermission
 from plane.app.serializers import PageBinaryUpdateSerializer
 from plane.app.serializers import PageSerializer as AppPageSerializer
+from plane.app.views.page.base import zil_auto_folder_refusal
 from plane.bgtasks.page_transaction_task import page_transaction
 from plane.bgtasks.page_version_task import track_page_version
 from plane.db.models import Page, Project, ProjectMember, UserFavorite
@@ -251,6 +252,10 @@ class PageArchiveUnarchiveAPIEndpoint(PageQuerysetMixin, BaseAPIView):
                 {"error": "Only the owner or admin can archive the page"},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        # a client folder the sync keeps live would be restored by the next roster (same rule as the app)
+        refusal = zil_auto_folder_refusal(slug, page, "archive")
+        if refusal:
+            return refusal
         UserFavorite.objects.filter(
             entity_type="page", entity_identifier=page_id, project_id=project_id, workspace__slug=slug
         ).delete()
@@ -269,6 +274,9 @@ class PageArchiveUnarchiveAPIEndpoint(PageQuerysetMixin, BaseAPIView):
                 {"error": "Only the owner or admin can restore the page"},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        refusal = zil_auto_folder_refusal(slug, page, "restore")
+        if refusal:
+            return refusal
         # restoring under an archived parent would break the tree: move it to the root
         if page.parent_id and page.parent.archived_at:
             page.parent = None

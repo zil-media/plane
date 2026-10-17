@@ -61,7 +61,7 @@ def make_issue(project, user, name, created, completed=None, state_group="backlo
     return Issue.objects.get(pk=issue.pk)
 
 
-def activity(issue, actor, when, old, new, field="state"):
+def activity(issue, actor, when, old, new, field="state", verb=None):
     # like Plane, a state change stores the names and the ids of both states
     states = (
         {s.name: s.id for s in State.all_state_objects.filter(project_id=issue.project_id)} if field == "state" else {}
@@ -71,7 +71,8 @@ def activity(issue, actor, when, old, new, field="state"):
         project_id=issue.project_id,
         workspace_id=issue.workspace_id,
         actor=actor,
-        verb="updated",
+        # Plane's twin of a new comment is a "created" activity on field "comment"
+        verb=verb or ("created" if field == "comment" else "updated"),
         field=field,
         old_value=old,
         new_value=new,
@@ -386,3 +387,135 @@ class TestPersonMetrics:
             },
         )
         assert ok.status_code == status.HTTP_200_OK and len(ok.data["daily"]) == 7
+
+
+def notify(workspace, project, receiver, issue, created, read_at=None):
+    note = Notification.objects.create(
+        workspace=workspace,
+        project_id=project["id"],
+        receiver=receiver,
+        sender="in_app:issue_activities:assigned",
+        entity_name="issue",
+        entity_identifier=issue.id,
+        title="t",
+        read_at=read_at,
+    )
+    Notification.objects.filter(pk=note.pk).update(created_at=created)
+
+
+def assign(issue, user, when=None):
+    a = IssueAssignee.objects.create(
+        issue=issue, assignee=user, project_id=issue.project_id, workspace_id=issue.workspace_id
+    )
+    if when:
+        IssueAssignee.objects.filter(pk=a.pk).update(created_at=when)
+
+
+@pytest.mark.contract
+class TestUnitAndPersonAgree:
+    @pytest.mark.django_db
+    def test_people_row_is_the_person_page(self, workspace, project, create_user):
+        """Managers compare a member's row in the unit's people list with the member's own page: every
+        number both show must be the same, for every member."""
+        # the request that created the project counts as presence today: keep the test independent of the date
+        UsageDay.objects.filter(workspace_slug=workspace.slug).delete()
+        designer = User.objects.create(email="designer@zil.test", username="designer", display_name="Joaquin")
+        agent = User.objects.create(email="ada.agent@zil.test", username="ada", is_bot=True, bot_type="ZIL_AGENT")
+        for member in (designer, agent):
+            WorkspaceMember.objects.create(workspace=workspace, member=member, role=15)
+
+        # done in 2 days and on time; the designer starts it and closes it, and answers a comment 3 h later
+        done = make_issue(project, create_user, "Carrusel", at(5, 10), at(7, 10), "completed", date(2026, 10, 8))
+        assign(done, designer, at(5, 12))
+        activity(done, designer, at(6, 10), "Backlog", "In Progress")
+        activity(done, designer, at(7, 10), "In Progress", "Done")
+        comment(done, create_user, at(5, 11))
+        comment(done, designer, at(5, 14))
+        activity(done, designer, at(5, 14), None, "x", field="comment")  # twin of the comment
+        activity(done, designer, at(8, 9), "x", "y", field="comment", verb="updated")  # edits it: an action
+        # created by the designer, done late, assigned to both
+        late = make_issue(project, designer, "Logo", at(2, 10), at(9, 10), "completed", date(2026, 10, 3))
+        activity(late, designer, at(2, 10), None, None, field=None, verb="created")
+        assign(late, designer)
+        assign(late, create_user)
+        # logged once done: completed, no time to finish
+        logged = make_issue(project, create_user, "Hecho", at(6, 10), at(6, 10) + timedelta(seconds=30), "completed")
+        assign(logged, create_user)
+        # an intake request the designer filed: an action of hers, not work she created
+        triage = State.triage_objects.get(project_id=project["id"])
+        request = Issue.objects.create(name="Pedido de cliente", project_id=project["id"], state=triage)
+        Issue.objects.filter(pk=request.pk).update(created_at=at(4, 10), created_by_id=designer.id)
+        activity(Issue.objects.get(pk=request.pk), designer, at(4, 10), None, None, field=None, verb="created")
+        # what the designer owes: untouched since Oct 1 and overdue; kept alive by a comment edit; fresh
+        owed = make_issue(project, create_user, "Pendiente", at(1, 9), target=date(2026, 10, 10))
+        alive = make_issue(project, create_user, "Viva", at(1, 9))
+        comment(alive, create_user, at(1, 9))
+        activity(alive, create_user, at(1, 9), None, "x", field="comment")
+        activity(alive, create_user, at(12, 9), "x", "y", field="comment", verb="updated")
+        fresh = make_issue(project, create_user, "Nueva", at(12, 10))
+        comment(fresh, agent, at(13, 10))
+        activity(fresh, agent, at(13, 10), None, "x", field="comment")
+        for issue in (owed, alive, fresh):
+            assign(issue, designer)
+
+        # pages: a saved version; a version and the page's own last edit by the same person (one save);
+        # a page edited before versions were recorded (its last edit counts once)
+        brief = Page.objects.create(name="Brief ACME", workspace=workspace, owned_by=designer)
+        PageVersion.objects.create(workspace=workspace, page=brief, owned_by=designer, last_saved_at=at(7, 10))
+        manual = Page.objects.create(name="Manual", workspace=workspace, owned_by=designer)
+        PageVersion.objects.create(workspace=workspace, page=manual, owned_by=designer, last_saved_at=at(10, 9))
+        Page.objects.filter(pk=manual.pk).update(updated_by=designer, updated_at=at(10, 9) + timedelta(minutes=5))
+        policy = Page.objects.create(name="Políticas", workspace=workspace, owned_by=create_user)
+        Page.objects.filter(pk=policy.pk).update(updated_by=create_user, updated_at=at(9, 15))
+
+        # presence without actions: a read on Oct 14, a day of requests on Oct 15
+        notify(workspace, project, designer, done, at(5, 12), read_at=at(5, 16))
+        notify(workspace, project, designer, done, at(6, 9))
+        notify(workspace, project, create_user, late, at(13, 9), read_at=at(14, 9))
+        UsageDay.objects.create(
+            date=date(2026, 10, 15),
+            user=designer,
+            workspace_slug=workspace.slug,
+            surface="work_items",
+            reads=3,
+            writes=1,
+            first_at=at(15, 17),
+            last_at=at(15, 18),
+        )
+
+        since, until = date(2026, 10, 1), date(2026, 10, 17)
+        unit = compute_workspace_metrics(workspace, since, until)
+        assert {p["email"] for p in unit["people"]} == {create_user.email, designer.email}
+        for row in unit["people"]:
+            page = compute_person_metrics(workspace, User.objects.get(id=row["user_id"]), since, until)
+            mine = {**page["totals"], **page["work"], "last_seen": page["person"]["last_seen"]}
+            shared = set(row) - {"user_id", "name", "email"}
+            assert shared <= set(mine), shared - set(mine)
+            assert {k: row[k] for k in shared} == {k: mine[k] for k in shared}, row["email"]
+            # and the page agrees with itself
+            assert sum(d["actions"] for d in page["daily"]) == sum(page["kinds"].values()) == mine["actions"]
+            assert sum(1 for d in page["daily"] if d["first_hour"] is not None) == mine["active_days"]
+
+        joaquin = next(p for p in unit["people"] if p["email"] == designer.email)
+        # filing the intake request, the 'Logo' creation, 2 state changes, comment, comment edit, 2 page saves
+        assert (joaquin["actions"], joaquin["comments"], joaquin["created"]) == (8, 1, 1)
+        # action days Oct 2, 4, 5, 6, 7, 8, 10; present also on Oct 15 (requests only)
+        assert (joaquin["action_days"], joaquin["active_days"], joaquin["requests"]) == (7, 8, 4)
+        assert (joaquin["completed_assigned"], joaquin["lead_time_median_hours"], joaquin["on_time_rate"]) == (
+            2,
+            108.0,
+            0.5,
+        )
+        assert (joaquin["start_after_assignment_median_hours"], joaquin["reply_median_hours"]) == (22.0, 3.0)
+        assert (joaquin["open_assigned"], joaquin["open_stale"], joaquin["open_overdue"]) == (3, 1, 1)
+        assert (joaquin["notifications"], joaquin["notifications_read"]) == (2, 1)
+        person = compute_person_metrics(workspace, designer, since, until)
+        assert person["kinds"]["created"] == 2 and person["kinds"]["edited"] == 1 and person["kinds"]["page"] == 2
+
+        owner = next(p for p in unit["people"] if p["email"] == create_user.email)
+        # 2 comments, the comment edit on 'Viva', the 'Políticas' page; present also on Oct 14 (a read)
+        assert (owner["actions"], owner["action_days"], owner["active_days"]) == (4, 4, 5)
+        assert (owner["completed_assigned"], owner["lead_time_median_hours"]) == (2, 168.0)
+        assert unit["usage"]["bot_actions"] == 1 and unit["usage"]["writers"] == 2
+        # the team's hours: actions of people only (no reads, no bots)
+        assert sum(map(sum, unit["usage"]["heatmap"])) == 12

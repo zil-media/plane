@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
-import { Building2, FilePlus2, FolderOpen, FolderPlus, Users } from "lucide-react";
+import { Building2, FilePlus2, FolderOpen, FolderPlus, RefreshCw, Users } from "lucide-react";
 // plane imports
 import { EPageAccess } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -125,7 +125,16 @@ export const FolderPageView = observer(function FolderPageView(props: Props) {
               </span>
             </Tooltip>
           )}
-          {canEdit && !is_zil_clients_root && (
+          {/* a client's folder made by the sync stays linked to its client: it says so instead of offering a change */}
+          {zil_client?.auto_created && (
+            <Tooltip tooltipContent={t("page_tree.zil_client.auto.hint")}>
+              <span className="inline-flex items-center gap-1 rounded-sm border border-subtle px-1.5 py-0.5 text-11 text-secondary">
+                <RefreshCw className="size-3 flex-shrink-0" />
+                {t("page_tree.zil_client.auto.badge")}
+              </span>
+            </Tooltip>
+          )}
+          {canEdit && !is_zil_clients_root && !zil_client?.auto_created && (
             <Button variant="ghost" size="lg" onClick={() => setZilClientModalPageId(page.id ?? null)}>
               <Building2 className="size-3.5" />
               {zil_client ? t("page_tree.zil_client.change") : t("page_tree.zil_client.link")}

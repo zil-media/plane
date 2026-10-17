@@ -16,7 +16,7 @@ import { ProjectPageService } from "@/services/page";
 const projectPageService = new ProjectPageService();
 // store
 import { BasePage } from "./base-page";
-import type { TPageInstance } from "./base-page";
+import type { TPageInstance, TZilArchiveLock } from "./base-page";
 
 export type TProjectPage = TPageInstance;
 
@@ -68,6 +68,7 @@ export class ProjectPage extends BasePage implements TProjectPage {
       canCurrentUserLockPage: computed,
       canCurrentUserChangeAccess: computed,
       canCurrentUserArchivePage: computed,
+      zilArchiveLock: computed,
       canCurrentUserDeletePage: computed,
       canCurrentUserFavoritePage: computed,
       canCurrentUserMovePage: computed,
@@ -142,11 +143,28 @@ export class ProjectPage extends BasePage implements TProjectPage {
   }
 
   /**
-   * @description returns true if the current logged in user can archive the page
+   * @description the owner or a project admin archives and restores pages
    */
-  get canCurrentUserArchivePage() {
+  private get canCurrentUserArchiveByRole() {
     const highestRole = this.getHighestRoleAcrossProjects();
     return this.isCurrentUserOwner || highestRole === EUserPermissions.ADMIN;
+  }
+
+  /**
+   * @description returns true if the current logged in user can archive (or restore) the page
+   */
+  get canCurrentUserArchivePage() {
+    return this.canCurrentUserArchiveByRole && !this.zilArchiveLock;
+  }
+
+  /**
+   * @description why the archive state of a folder the Zil sync made for a client is Ops's, for someone who
+   * could archive it otherwise: the sync restores it while the client is active and archives it once the
+   * client left, so the API refuses archiving it while the client is active and restoring it once it left
+   */
+  get zilArchiveLock(): TZilArchiveLock | null {
+    if (!this.zil_client?.auto_created || !this.canCurrentUserArchiveByRole) return null;
+    return this.archived_at ? "client_left" : "client_active";
   }
 
   /**

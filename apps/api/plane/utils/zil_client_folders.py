@@ -26,8 +26,10 @@ Ordered: Zil sends from two places (the durable job and the 30-minute cron) that
 serialized, so a roster computed earlier can be delivered after a newer one and, applied, would
 undo it (archive the client just added). Each roster carries `computed_at` (the instant Zil
 started reading, so everything committed before it is in the roster) and a root keeps in
-`synced_at` the `computed_at` of the last roster it applied: an older one is ignored. A roster
-without `computed_at` always applies and stamps the root with Plane's own clock.
+`synced_at` the `computed_at` of the last roster it applied: an older one is ignored, also when
+the folder was replaced in between (a roster does not rebuild a clients folder that a newer one
+already applied to). A roster without `computed_at` always applies and stamps the root with
+Plane's own clock.
 """
 
 # Python imports
@@ -35,6 +37,7 @@ from datetime import datetime
 
 # Django imports
 from django.db import connection, transaction
+from django.db.models import Max
 from django.utils import timezone
 
 # Module imports
@@ -65,6 +68,15 @@ def live_roots(workspace_id):
         project__archived_at__isnull=True,
         project__deleted_at__isnull=True,
     ).select_related("page", "project")
+
+
+def _is_stale(computed_at, synced_at):
+    return computed_at is not None and synced_at is not None and computed_at < synced_at
+
+
+def _last_applied_at(workspace_id):
+    """The newest roster time any clients root of the workspace applied, replaced (deleted) roots included."""
+    return ZilClientsRoot.all_objects.filter(workspace_id=workspace_id).aggregate(last=Max("synced_at"))["last"]
 
 
 def _create(model, **fields):
@@ -295,10 +307,15 @@ def apply_client_folders(workspace_id, clients, authoritative, computed_at=None)
         _lock_workspace(workspace_id)
         # no clients yet: no folder to hold them
         if clients_by_id:
+            # a new clients folder has no stamp of its own: an older roster must not be the one that
+            # replaces the folder a newer roster already applied to, then run on it as if it were first
+            if not live_roots(workspace_id).exists() and _is_stale(computed_at, _last_applied_at(workspace_id)):
+                stats["stale"] += 1
+                return stats
             ensure_clients_root(Workspace.objects.get(pk=workspace_id), owner)
         for root in live_roots(workspace_id):
             # checked under the lock, so it reads what the push before this one stamped
-            if computed_at is not None and root.synced_at is not None and computed_at < root.synced_at:
+            if _is_stale(computed_at, root.synced_at):
                 stats["stale"] += 1
                 continue
             _apply_to_root(root, clients_by_id, authoritative, stats, owner)

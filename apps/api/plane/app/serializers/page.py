@@ -91,6 +91,9 @@ class PageSerializer(BaseSerializer):
             "lifecycle_status": link.lifecycle_status,
             "business_unit_slug": link.business_unit_slug,
             "synced_at": link.synced_at,
+            # made by the clients-folder sync, which keeps its link and its archive state: see
+            # plane.utils.zil_client_folders
+            "auto_created": link.auto_created,
         }
 
     def create(self, validated_data):

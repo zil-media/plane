@@ -18,6 +18,11 @@ export type TPageZilClient = {
   lifecycle_status: string;
   business_unit_slug: string;
   synced_at: string | null;
+  /**
+   * Made by the clients-folder sync (not linked by hand): Ops keeps it linked to its client, archives it when
+   * the client leaves the Business Unit and restores it when the client comes back.
+   */
+  auto_created: boolean;
 };
 
 export type TZilClientAssetKind =

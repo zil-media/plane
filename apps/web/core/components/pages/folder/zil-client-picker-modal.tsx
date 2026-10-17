@@ -55,6 +55,8 @@ export const ZilClientPickerModal = observer(function ZilClientPickerModal(props
   const workspaceSlug = workspaceSlugParam?.toString();
   const projectId = page.project_ids?.[0];
   const linkedClientId = page.zil_client?.id;
+  // a folder the sync made keeps its client: unlinked, the next sync would make the client a second one
+  const isAutoFolder = !!page.zil_client?.auto_created;
 
   useEffect(() => {
     if (!isOpen || !workspaceSlug || !projectId) return;
@@ -119,6 +121,9 @@ export const ZilClientPickerModal = observer(function ZilClientPickerModal(props
         handleClose();
       } else if (data?.error_message === "ZIL_CLIENT_NOT_FOUND") {
         setToast({ type: TOAST_TYPE.ERROR, title: t("page_tree.zil_client.missing") });
+      } else if (data?.error_message === "ZIL_CLIENT_FOLDER_AUTO") {
+        setToast({ type: TOAST_TYPE.ERROR, title: t("page_tree.zil_client.auto.link_locked") });
+        handleClose();
       } else {
         setToast({
           type: TOAST_TYPE.ERROR,
@@ -141,8 +146,15 @@ export const ZilClientPickerModal = observer(function ZilClientPickerModal(props
       page.mutateProperties({ zil_client: null }, false);
       setToast({ type: TOAST_TYPE.SUCCESS, title: t("page_tree.zil_client.unlinked") });
       handleClose();
-    } catch {
-      setToast({ type: TOAST_TYPE.ERROR, title: t("page_tree.zil_client.error") });
+    } catch (error) {
+      const data = error as TLinkError;
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title:
+          data?.error_message === "ZIL_CLIENT_FOLDER_AUTO"
+            ? t("page_tree.zil_client.auto.link_locked")
+            : t("page_tree.zil_client.error"),
+      });
     } finally {
       setSubmittingId(null);
     }
@@ -224,7 +236,7 @@ export const ZilClientPickerModal = observer(function ZilClientPickerModal(props
               );
             })}
         </div>
-        {linkedClientId && (
+        {linkedClientId && !isAutoFolder && (
           <div className="flex justify-end border-t border-subtle pt-3">
             <Button variant="error-outline" size="lg" onClick={handleUnlink} loading={submittingId === "unlink"}>
               {t("page_tree.zil_client.unlink")}

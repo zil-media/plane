@@ -455,6 +455,54 @@ class TestBrandFileUpload:
         relay.assert_not_called()
 
     @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        ("content_type", "format_"), [("application/json", "json"), ("application/x-www-form-urlencoded", None)]
+    )
+    def test_a_body_that_is_not_a_multipart_form_keeps_the_5_mb_body_limit_on_that_path(
+        self, session_client, workspace, project, folder, content_type, format_
+    ):
+        # DRF parses these whole in memory, so they never get the brand file's 21 MB
+        url = zil_url(workspace, project, folder["id"], "brand-files/")
+        if format_:
+            response = session_client.post(url, {"file": "a" * (6 * MB)}, format=format_)
+        else:
+            response = session_client.generic("POST", url, b"file=" + b"a" * (6 * MB), content_type=content_type)
+        assert response.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert response.json()["error"] == "REQUEST_BODY_TOO_LARGE"
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("method", ["put", "patch", "delete"])
+    def test_another_verb_keeps_the_5_mb_body_limit_on_that_path(
+        self, session_client, workspace, project, folder, method
+    ):
+        upload = SimpleUploadedFile("manual.pdf", pdf_of(6 * MB), content_type="application/pdf")
+        response = getattr(session_client, method)(
+            zil_url(workspace, project, folder["id"], "brand-files/"), {"file": upload}, format="multipart"
+        )
+        assert response.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert response.json()["error"] == "REQUEST_BODY_TOO_LARGE"
+
+    @pytest.mark.django_db
+    def test_a_form_field_past_the_5_mb_body_limit_is_a_413_not_a_server_error(
+        self, session_client, workspace, project, folder
+    ):
+        # the file streams to disk, the form's other fields are held in memory and counted
+        upload = SimpleUploadedFile("manual.pdf", pdf_of(1 * MB), content_type="application/pdf")
+        with (
+            mock.patch(RELAY) as relay,
+            mock.patch("plane.app.views.base.capture_server_error") as capture_server_error,
+        ):
+            response = session_client.post(
+                zil_url(workspace, project, folder["id"], "brand-files/"),
+                {"file": upload, "note": "a" * (6 * MB)},
+                format="multipart",
+            )
+        assert response.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert response.json()["error"] == "REQUEST_BODY_TOO_LARGE"
+        capture_server_error.assert_not_called()
+        relay.assert_not_called()
+
+    @pytest.mark.django_db
     def test_the_file_reaches_zil_whole(self, session_client, workspace, project, folder):
         content = bytes(range(256)) * 4096  # 1 MB with every byte value
         upload = SimpleUploadedFile("Logo diseño.png", content, content_type="image/png")

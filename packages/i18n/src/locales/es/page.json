@@ -158,6 +158,13 @@
         "hint": "Zil Workspace mantiene acá una carpeta por cada cliente activo de la unidad: se crean y se archivan solas.",
         "cannot_link": "La carpeta de clientes no se puede vincular a un cliente."
       },
+      "auto": {
+        "badge": "Automática",
+        "hint": "Zil Workspace creó esta carpeta para el cliente y la mantiene: se archiva cuando el cliente deja la unidad y se restaura si vuelve.",
+        "link_locked": "Zil Workspace la mantiene vinculada a su cliente.",
+        "archive_locked": "Se archiva sola cuando el cliente deja la unidad.",
+        "restore_locked": "Se restaura sola si el cliente vuelve a la unidad."
+      },
       "profile": {
         "tab_info": "Ficha",
         "tab_assets": "Activos",

@@ -13,6 +13,7 @@ from rest_framework.test import APIClient
 from plane.authentication.utils.zil_provisioning import get_service_user
 from plane.db.models import Page, PageZilClientLink, ZilClientsRoot
 from plane.utils import zil_client_folders
+from plane.utils.page_tree import set_archived_at_for_page_and_descendants
 from plane.utils.zil_client_folders import apply_client_folders
 
 NIKE = "0123456789abcdef01234567"
@@ -535,3 +536,91 @@ class TestRosterOrdering:
         assert push(api_client, workspace, [], computed_at="2999-01-01T00:00:00Z").status_code == (
             status.HTTP_400_BAD_REQUEST
         )
+
+
+@pytest.mark.contract
+class TestRosterOrderingAcrossARootReplacement:
+    EARLIER = "2026-10-16T12:00:00.000Z"
+    BETWEEN = "2026-10-16T12:00:02.000Z"
+    LATER = "2026-10-16T12:00:05.000Z"
+
+    @pytest.mark.django_db
+    def test_an_older_roster_arriving_after_the_clients_folder_was_replaced_is_still_ignored(
+        self, api_client, workspace, project
+    ):
+        push(api_client, workspace, [client_dto(NIKE, "Nike")], computed_at=self.EARLIER)
+        push(api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")], computed_at=self.LATER)
+        old_root = clients_root(project).page
+        set_archived_at_for_page_and_descendants(old_root.pk, "2026-10-01")
+
+        # the older roster (no Adidas yet) is delivered last: the replacement folder must not take it as the first word
+        older = push(api_client, workspace, [client_dto(NIKE, "Nike")], computed_at=self.BETWEEN)
+        assert older.data["stale"] == 1 and older.data["roots"] == 0
+        assert ZilClientsRoot.objects.filter(page__archived_at__isnull=True).count() == 0
+        assert folder_of(NIKE).archived_at is not None
+
+        # and the next real roster rebuilds the folder in the new root
+        push(api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")], computed_at=self.LATER)
+        new_root = clients_root(project).page
+        assert new_root.pk != old_root.pk
+        assert folder_of(ADIDAS).parent_id == new_root.pk and folder_of(ADIDAS).archived_at is None
+
+    @pytest.mark.django_db
+    def test_an_older_roster_that_cannot_archive_is_ignored_too_so_it_does_not_restore_a_departed_client(
+        self, api_client, workspace, project
+    ):
+        push(api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")], computed_at=self.EARLIER)
+        push(api_client, workspace, [client_dto(NIKE, "Nike")], computed_at=self.LATER)
+        assert folder_of(ADIDAS).archived_at is not None
+
+        older = push(
+            api_client,
+            workspace,
+            [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")],
+            authoritative=False,
+            computed_at=self.BETWEEN,
+        )
+        assert older.data["stale"] == 1 and older.data["restored"] == 0
+        assert folder_of(ADIDAS).archived_at is not None
+
+
+@pytest.mark.contract
+class TestLiftingFromADepartedClientsFolder:
+    @pytest.mark.django_db
+    def test_a_client_folder_deep_inside_a_plain_subfolder_is_lifted_with_its_content(
+        self, session_client, api_client, workspace, project
+    ):
+        push(api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")])
+        root = clients_root(project).page
+        contracts = create_folder(session_client, workspace, project, name="Contratos")
+        move_in_tree(session_client, workspace, project, Page.objects.get(pk=contracts["id"]), folder_of(NIKE))
+        note = create_folder(session_client, workspace, project, name="Nota de Adidas")
+        move_in_tree(session_client, workspace, project, Page.objects.get(pk=note["id"]), folder_of(ADIDAS))
+        move_in_tree(session_client, workspace, project, folder_of(ADIDAS), Page.objects.get(pk=contracts["id"]))
+
+        push(api_client, workspace, [client_dto(ADIDAS, "Adidas")])
+        assert Page.objects.get(pk=contracts["id"]).archived_at is not None
+        adidas = folder_of(ADIDAS)
+        assert adidas.archived_at is None and adidas.parent_id == root.id
+        assert Page.objects.get(pk=note["id"]).archived_at is None
+
+    @pytest.mark.django_db
+    def test_a_private_and_an_archived_hand_linked_folder_inside_a_departed_one_are_lifted_as_they_are(
+        self, session_client, api_client, workspace, project
+    ):
+        push(api_client, workspace, [client_dto(NIKE, "Nike")])
+        root = clients_root(project).page
+        private = Page.objects.get(pk=create_folder(session_client, workspace, project, name="Adidas", access=1)["id"])
+        link_by_hand(session_client, workspace, project, private, ADIDAS, "Adidas")
+        archived = Page.objects.get(pk=create_folder(session_client, workspace, project, name="Leo")["id"])
+        link_by_hand(session_client, workspace, project, archived, LEO, "Leo")
+        move_in_tree(session_client, workspace, project, private, folder_of(NIKE))
+        move_in_tree(session_client, workspace, project, archived, folder_of(NIKE))
+        Page.objects.filter(pk=archived.pk).update(archived_at="2026-10-01")
+
+        response = push(api_client, workspace, [])
+        assert response.status_code == status.HTTP_200_OK and response.data["archived"] == 1
+        private.refresh_from_db()
+        archived.refresh_from_db()
+        assert private.archived_at is None and private.parent_id == root.id and private.access == 1
+        assert str(archived.archived_at) == "2026-10-01" and archived.parent_id == root.id

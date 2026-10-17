@@ -54,6 +54,7 @@ from plane.utils.page_tree import (
     set_archived_at_for_page_and_descendants,
     validate_new_parent,
 )
+from plane.utils.zil_client import ZilUnavailable, get_zil_client, zil_enabled
 
 # Local imports
 from ..base import BaseAPIView, BaseViewSet
@@ -73,6 +74,48 @@ def folder_not_supported_response():
         },
         status=status.HTTP_400_BAD_REQUEST,
     )
+
+
+# the lifecycles Zil gives a client a folder for (FOLDER_LIFECYCLES in Zil's opsClientFolders)
+ZIL_FOLDER_LIFECYCLES = ("active", "paused")
+
+
+def zil_auto_folder_refusal(slug, page, action):
+    """Refuse `action` ("archive", "restore" or "delete") on a folder the clients-folder sync made when
+    the next roster would undo it. None when the action stands, and for every other page.
+
+    The sync keeps such a folder live while its client is on the workspace's roster (archived, it is
+    restored; deleted, the client gets a new one) and archives it once the client left (restored, it
+    is archived again). Zil is asked whether the client is on the roster now: the link's cached status
+    stops being refreshed when the client leaves it.
+    """
+    if not zil_enabled():
+        return None
+    link = PageZilClientLink.objects.filter(page_id=page.id, auto_created=True).first()
+    if link is None:
+        return None
+    try:
+        client = get_zil_client(slug, link.zil_client_id)
+    except ZilUnavailable:
+        return Response({"error": "ZIL_UNAVAILABLE"}, status=status.HTTP_502_BAD_GATEWAY)
+    on_roster = client is not None and client.get("lifecycleStatus") in ZIL_FOLDER_LIFECYCLES
+    if action == "restore" and not on_roster:
+        return Response(
+            {
+                "error": "Its client left: Ops restores this folder by itself if the client comes back",
+                "error_message": "ZIL_CLIENT_FOLDER_CLIENT_LEFT",
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if action != "restore" and on_roster:
+        return Response(
+            {
+                "error": "Its client is active: Ops archives this folder by itself when the client leaves",
+                "error_message": "ZIL_CLIENT_FOLDER_CLIENT_ACTIVE",
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    return None
 
 
 class PageViewSet(BaseViewSet):
@@ -346,6 +389,9 @@ class PageViewSet(BaseViewSet):
                 {"error": "Only the owner or admin can archive the page"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        refusal = zil_auto_folder_refusal(slug, page, "archive")
+        if refusal:
+            return refusal
 
         UserFavorite.objects.filter(
             entity_type="page",
@@ -381,6 +427,9 @@ class PageViewSet(BaseViewSet):
                 {"error": "Only the owner or admin can un archive the page"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        refusal = zil_auto_folder_refusal(slug, page, "restore")
+        if refusal:
+            return refusal
 
         # if parent archived then page will be un archived breaking hierarchy
         if page.parent_id and page.parent.archived_at:
@@ -418,6 +467,9 @@ class PageViewSet(BaseViewSet):
                 {"error": "Only admin or owner can delete the page"},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        refusal = zil_auto_folder_refusal(slug, page, "delete")
+        if refusal:
+            return refusal
 
         # children move up one level instead of being deleted with the page
         _ = Page.objects.filter(

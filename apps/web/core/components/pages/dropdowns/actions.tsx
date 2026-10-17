@@ -90,6 +90,7 @@ export const PageActions = observer(function PageActions(props: Props) {
     archived_at,
     is_locked,
     canCurrentUserArchivePage,
+    zilArchiveLock,
     canCurrentUserChangeAccess,
     canCurrentUserDeletePage,
     canCurrentUserDuplicatePage,
@@ -153,7 +154,15 @@ export const PageActions = observer(function PageActions(props: Props) {
           icon: archived_at ? ArchiveRestoreIcon : ArchiveIcon,
           // archiving the clients folder archives every client folder in it, and the next sync makes a new one
           // (and brings the client folders back into it): the action only multiplies folders
-          shouldRender: canCurrentUserArchivePage && (!!archived_at || !page.is_zil_clients_root),
+          shouldRender: (canCurrentUserArchivePage || !!zilArchiveLock) && (!!archived_at || !page.is_zil_clients_root),
+          // a client's folder made by the sync is archived and restored by it: shown, but explained instead
+          disabled: !!zilArchiveLock,
+          description:
+            zilArchiveLock === "client_active"
+              ? t("page_tree.zil_client.auto.archive_locked")
+              : zilArchiveLock === "client_left"
+                ? t("page_tree.zil_client.auto.restore_locked")
+                : undefined,
         },
         {
           key: "delete",
@@ -191,6 +200,9 @@ export const PageActions = observer(function PageActions(props: Props) {
           title: zil_client ? t("page_tree.zil_client.change") : t("page_tree.zil_client.link"),
           icon: Building2,
           shouldRender: isFolder && canCurrentUserEditPage && !archived_at && !page.is_zil_clients_root,
+          // unlinked or linked to another client, the folder the sync made would get a twin on its next run
+          disabled: !!zil_client?.auto_created,
+          description: zil_client?.auto_created ? t("page_tree.zil_client.auto.link_locked") : undefined,
         },
       ];
       if (extraOptions) {
@@ -207,6 +219,7 @@ export const PageActions = observer(function PageActions(props: Props) {
       archived_at,
       canCurrentUserDuplicatePage,
       canCurrentUserArchivePage,
+      zilArchiveLock,
       canCurrentUserDeletePage,
       canCurrentUserMovePage,
       isMovePageEnabled,
@@ -251,13 +264,22 @@ export const PageActions = observer(function PageActions(props: Props) {
               onClick={() => {
                 item.action?.();
               }}
-              className={cn("flex items-center gap-2", item.className)}
+              className={cn("flex items-center gap-2", { "text-placeholder": item.disabled }, item.className)}
               disabled={item.disabled}
             >
               {item.customContent ?? (
                 <>
-                  {item.icon && <item.icon className="size-3" />}
-                  {item.title}
+                  {item.icon && <item.icon className="size-3 flex-shrink-0" />}
+                  {item.description ? (
+                    <div>
+                      <h5>{item.title}</h5>
+                      <p className={cn("whitespace-pre-line text-tertiary", { "text-placeholder": item.disabled })}>
+                        {item.description}
+                      </p>
+                    </div>
+                  ) : (
+                    item.title
+                  )}
                 </>
               )}
             </CustomMenu.MenuItem>

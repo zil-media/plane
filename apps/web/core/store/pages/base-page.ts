@@ -55,6 +55,12 @@ export type TBasePage = TPage & {
   editor: PageEditorInstance;
 };
 
+/**
+ * Why a page's archive state is Ops's and not the person's who could otherwise change it: a folder the Zil
+ * sync made for a client is live while the client is active and archived once it left.
+ */
+export type TZilArchiveLock = "client_active" | "client_left";
+
 export type TBasePagePermissions = {
   canCurrentUserAccessPage: boolean;
   canCurrentUserEditPage: boolean;
@@ -62,6 +68,7 @@ export type TBasePagePermissions = {
   canCurrentUserLockPage: boolean;
   canCurrentUserChangeAccess: boolean;
   canCurrentUserArchivePage: boolean;
+  zilArchiveLock: TZilArchiveLock | null;
   canCurrentUserDeletePage: boolean;
   canCurrentUserFavoritePage: boolean;
   canCurrentUserMovePage: boolean;
