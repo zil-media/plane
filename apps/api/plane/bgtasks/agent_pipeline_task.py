@@ -20,7 +20,6 @@ from plane.db.models import FeatureRequest, User, Workspace
 from plane.license.utils.instance_value import get_email_configuration
 from plane.utils.agent_pipeline import bugs, features, routines
 from plane.utils.agent_pipeline.constants import FEATURE_RUN_EXPIRY, MAX_SPEC_RUNS
-from plane.utils.email import generate_plain_text_from_html
 from plane.utils.exception_logger import log_exception
 
 logger = logging.getLogger("plane.worker")
@@ -65,7 +64,10 @@ def fire_feature_routine_task(feature_id, mode, reason="", previous=None):
             feature.status = previous if previous in features.SPEC_STARTABLE else _released_spec_status(feature)
             # The failed attempt counts toward the run cap: the sweep retries submitted ones, and with a
             # persistent failure (bad key, outage) uncounted attempts retried forever, one comment each.
-            feature.comments = bugs.append_entry(feature.comments, bugs.comment_entry(None, "agent", note))
+            # Not on an answered question: an agent comment after the answer reads as a new question, so
+            # it went back to the requester instead of to the admin who relaunches it.
+            if feature.status != FeatureRequest.Status.NEEDS_INFO:
+                feature.comments = bugs.append_entry(feature.comments, bugs.comment_entry(None, "agent", note))
             feature.save(update_fields=["status", "comments", "updated_at"])
         elif mode == "BUILD" and feature.status == FeatureRequest.Status.BUILDING:
             build = dict(feature.build or {})
@@ -182,7 +184,13 @@ def send_support_email_task(to, subject, heading, paragraphs, cta_label=None, ct
                 "cta_url": cta_url,
             },
         )
-        text_content = generate_plain_text_from_html(html_content)
+        # Production relays through Zil (ZilEmailBackend → /api/sso/mail), which re-renders the email
+        # from this text: its title is the subject and its button the html's CTA, one line per
+        # paragraph. Derived from the html, a <br> left no separator (the agent's questions ran into
+        # one line) and the heading, the CTA label and the signature came out as extra lines.
+        lines = [heading] if heading and heading != subject else []
+        lines += [line.strip() for p in paragraphs if p for line in str(p).split("\n") if line.strip()]
+        text_content = "\n".join(lines)
         (
             EMAIL_HOST,
             EMAIL_HOST_USER,

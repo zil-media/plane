@@ -516,13 +516,24 @@ class TestRoundSix:
     def test_a_failed_analysis_goes_back_where_it_was_asked_from(self, create_user, agent_on, previous):
         from plane.bgtasks.agent_pipeline_task import fire_feature_routine_task
 
-        feature = own_feature(create_user, status=S.SPEC_RUNNING, spec={"generated_at": "2026-10-01T00:00:00+00:00"})
+        feature = own_feature(
+            create_user,
+            status=S.SPEC_RUNNING,
+            spec={"generated_at": "2026-10-01T00:00:00+00:00"},
+            comments=[
+                {"role": "agent", "text": "¿Qué formato?", "at": "2026-10-01T00:00:00+00:00"},
+                {"role": "user", "text": "CSV", "at": "2026-10-01T01:00:00+00:00"},
+            ],
+        )
         failed = {"fired": False, "reason": "post failed"}
         with mock.patch("plane.utils.agent_pipeline.routines.fire_feature_routine", return_value=failed):
             fire_feature_routine_task(str(feature.id), "SPEC", "respuesta", previous)
         feature.refresh_from_db()
         # Not "ready to decide" with the answer never analysed, and a hold isn't lifted by a failure.
         assert feature.status == previous
+        if previous == S.NEEDS_INFO:
+            # Still answered: it waits for the admin who relaunches it, not for the requester again.
+            assert feature_summary(feature)["answered"] is True
 
     @pytest.mark.django_db
     def test_the_request_records_where_the_analysis_was_asked_from(self, create_user, agent_on, tasks):
@@ -649,3 +660,121 @@ class TestRoundSix:
         admins.assert_called_once()
         feature.refresh_from_db()
         assert feature.build["last_note"] == "Tampoco ahora."
+
+    @pytest.mark.django_db
+    def test_the_requester_hears_a_paused_suggestion_resume(self, admin_client, create_user):
+        feature = own_feature(create_user, status=S.ON_HOLD, flag_key="exportar")
+        with mock.patch("plane.utils.agent_pipeline.notify.requester_feature_update") as told:
+            response = admin_client.post(f"/api/support/feature-requests/{feature.id}/rebuild/", {}, format="json")
+        assert response.status_code == status.HTTP_200_OK, response.data
+        assert "Tu sugerencia" in told.call_args[0][1]
+
+    @pytest.mark.django_db
+    def test_a_plain_rebuild_is_not_news_to_the_requester(self, admin_client, create_user):
+        feature = own_feature(create_user, status=S.BUILDING, flag_key="exportar", build={"blocked_at": "2026-10-16"})
+        with mock.patch("plane.utils.agent_pipeline.notify.requester_feature_update") as told:
+            response = admin_client.post(f"/api/support/feature-requests/{feature.id}/rebuild/", {}, format="json")
+        assert response.status_code == status.HTTP_200_OK, response.data
+        told.assert_not_called()
+
+
+@pytest.mark.contract
+class TestRoundSeven:
+    @pytest.mark.django_db
+    def test_the_relayed_text_keeps_one_line_per_question(self):
+        from django.core import mail
+
+        from plane.bgtasks.agent_pipeline_task import send_support_email_task
+
+        config = ("smtp", "", "", "25", "0", "0", "soporte@zil.global")
+        with mock.patch("plane.bgtasks.agent_pipeline_task.get_email_configuration", return_value=config):
+            send_support_email_task(
+                ["ana@zil.global"],
+                "Necesitamos un dato",
+                "Necesitamos un dato",
+                ["Hola Ana,", "Para avanzar necesitamos que nos cuentes:\n- ¿Qué formato?\n- ¿Para quién?"],
+                "Ver mi seguimiento",
+                "http://ops.test/x",
+            )
+        # The Zil relay renders this text line by line, with the subject as its title.
+        assert mail.outbox[0].body.split("\n") == [
+            "Hola Ana,",
+            "Para avanzar necesitamos que nos cuentes:",
+            "- ¿Qué formato?",
+            "- ¿Para quién?",
+        ]
+
+    @pytest.mark.django_db
+    def test_an_admin_filing_a_suggestion_is_not_told_about_it(self, admin_client, tasks):
+        response = admin_client.post(
+            "/api/support/feature-requests/",
+            {
+                "title": "Exportar a CSV",
+                "problem": "No puedo exportar los work items a una planilla",
+                "priority": "media",
+            },
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+        assert "owner@zil.global" not in [call.args[0][0] for call in tasks["email"].call_args_list]
+
+    @pytest.mark.django_db
+    def test_an_admin_requester_gets_the_admin_email_only_when_the_spec_is_ready(self, admin_client, agent_on):
+        from plane.agent_api.features import AgentFeatureActionEndpoint
+
+        admin = User.objects.get(email="owner@zil.global")
+        feature = own_feature(admin, status=S.SPEC_RUNNING, spec_runs=2)
+        request = mock.Mock(
+            data={"summary": "Exportar", "approach": "x", "blast_radius": "high", "effort": "M", "flag_key": "exportar"}
+        )
+        with (
+            mock.patch("plane.utils.agent_pipeline.notify.admins_feature_needs_decision") as admins,
+            mock.patch("plane.utils.agent_pipeline.notify.requester_feature_update") as told,
+            mock.patch("plane.agent_api.features._valid", side_effect=lambda _s, r: r.data),
+        ):
+            AgentFeatureActionEndpoint().do_spec(request, feature)
+        admins.assert_called_once()
+        told.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_rejecting_your_own_suggestion_sends_you_nothing(self, admin_client):
+        admin = User.objects.get(email="owner@zil.global")
+        feature = own_feature(admin, status=S.SPEC_READY)
+        with mock.patch("plane.utils.agent_pipeline.notify.requester_feature_update") as told:
+            admin_client.post(f"/api/support/feature-requests/{feature.id}/reject/", {"notes": "No."}, format="json")
+        told.assert_not_called()
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(("fixed", "says_deploying"), [(True, True), (False, False)])
+    def test_the_resolved_email_mentions_a_deploy_only_for_a_code_fix(self, create_user, tasks, fixed, says_deploying):
+        from plane.utils.agent_pipeline import notify
+
+        bug = BugReport.objects.create(
+            reported_by=create_user, description="x", fixed_at=timezone.now() if fixed else None
+        )
+        notify.bug_resolved(bug)
+        paragraphs = tasks["email"].call_args[0][3]
+        assert any("se está publicando" in p for p in paragraphs) is says_deploying
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        ("fields", "shown"),
+        [
+            ({"resolved_message": "Se arregló.", "commit_hash": "abc"}, "resolved"),
+            ({"resolved_message": "Se hace desde Ajustes."}, "dismissed"),
+            ({}, "resolved"),
+        ],
+    )
+    def test_an_archived_report_reads_as_it_ended_for_its_reporter(self, session_client, create_user, fields, shown):
+        closed = BugReport.objects.create(
+            reported_by=create_user,
+            description="x",
+            status=BugReport.Status.ARCHIVED,
+            resolved_at=timezone.now(),
+            **fields,
+        )
+        never = BugReport.objects.create(reported_by=create_user, description="y", status=BugReport.Status.ARCHIVED)
+        # What the reporter's email link opens.
+        assert session_client.get(f"/api/support/bug-reports/{closed.id}/").data["status"] == shown
+        # Archived before anyone closed it: that one really didn't advance.
+        assert session_client.get(f"/api/support/bug-reports/{never.id}/").data["status"] == "archived"

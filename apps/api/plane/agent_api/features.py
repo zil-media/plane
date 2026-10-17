@@ -194,11 +194,12 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
         else:
             feature.save()
             notify.admins_feature_needs_decision(feature)
-            notify.requester_feature_update(
-                feature,
-                "Analizamos tu sugerencia",
-                "Ya tenemos el análisis de lo que pediste. Ahora lo revisa el equipo para decidir si se construye.",
-            )
+            if not notify.requester_is_admin(feature):
+                notify.requester_feature_update(
+                    feature,
+                    "Analizamos tu sugerencia",
+                    "Ya tenemos el análisis de lo que pediste. Ahora lo revisa el equipo para decidir si se construye.",
+                )
         return Response(feature_summary(feature))
 
     def do_needs_info(self, request, feature):
@@ -231,7 +232,8 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
             build.update({"blocked_at": timezone.now().isoformat(), "last_note": data["note"]})
             feature.build = build
             feature.save()
-            notify.requester_feature_update(feature, "Tu sugerencia necesita una revisión", data["note"])
+            if not notify.requester_is_admin(feature):
+                notify.requester_feature_update(feature, "Tu sugerencia necesita una revisión", data["note"])
             # Only a person unblocks it: tell them, and free the lane for the next approved feature.
             notify.admins_feature_build_blocked(feature, data["note"])
             # After the commit, like the other branches: the next build's task must read committed rows.

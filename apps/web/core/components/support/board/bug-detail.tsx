@@ -35,6 +35,14 @@ function closeActions(status: TBugStatus): ("resolve" | "dismiss" | "archive")[]
   return ["resolve", "dismiss", "archive"];
 }
 
+/** The routine's reason (routines.fire_bug_routine), said for the admin who pressed the button. */
+function fixerNotStartedKey(reason: string) {
+  if (reason === "disabled") return "helpdesk.admin.fixer_off";
+  // A session is already running, or one just started: the reopened report is in its queue.
+  if (reason === "session in flight" || reason === "cooldown") return "helpdesk.admin.fixer_busy";
+  return "helpdesk.try_again";
+}
+
 export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onOpenFeature }: Props) {
   const { t } = useTranslation();
   // Polled like the suggestion detail: the reporter watches the diagnosis move while the panel is open.
@@ -82,6 +90,8 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
         <div className="flex flex-wrap items-center gap-2">
           <PhaseChip phase={bugPhase(bug)} />
           {bug.category && <Tag>{bug.category}</Tag>}
+          {/* What the reporter ticked: it promises it gets looked at first. */}
+          {bug.severity === "bloqueante" && <Tag>{t("helpdesk.reporter.urgent")}</Tag>}
         </div>
         <h3 className="text-h6-medium break-words whitespace-pre-wrap text-primary">{heading}</h3>
         {bug.plain_summary && <p className="text-body-xs-regular text-secondary">{bug.plain_summary}</p>}
@@ -220,7 +230,7 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
                   setToast({
                     type: result.fired ? TOAST_TYPE.SUCCESS : TOAST_TYPE.WARNING,
                     title: result.fired ? t("helpdesk.admin.fixer_sent") : t("helpdesk.admin.fixer_not_sent"),
-                    message: result.reason,
+                    message: result.fired ? undefined : t(fixerNotStartedKey(result.reason ?? "")),
                   });
                 })
               }

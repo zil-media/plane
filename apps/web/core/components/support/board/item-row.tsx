@@ -61,7 +61,8 @@ export function SupportItemRow({ entry, viewer, selected, onSelect, count = 1 }:
   const isBug = entry.kind === "bug";
   const Icon = isBug ? Bug : Lightbulb;
   const mine = isBug ? entry.item.reported_by?.id === viewer.userId : isMyFeature(entry.item, viewer);
-  const author = isBug ? entry.item.reported_by : entry.item.requested_by;
+  // An automatic crash report has no author: reported_by is only the first person it happened to.
+  const author = isBug ? (entry.item.source === "auto" ? null : entry.item.reported_by) : entry.item.requested_by;
   const summary =
     entry.item.plain_summary ||
     (isBug

@@ -142,6 +142,8 @@ export type TFeatureRequestDetail = TFeatureRequest & {
   problem: string;
   desired_outcome: string;
   source_url: string;
+  /** The images the requester added to the suggestion (a mock-up, the screen it's about). */
+  attachments: { id: string; name: string; type: string; url: string }[];
   spec: TFeatureSpec;
   /** Impact analyses run so far; the agent re-runs it on its own up to 3. */
   spec_runs: number;

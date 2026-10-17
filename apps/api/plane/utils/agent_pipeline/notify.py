@@ -51,9 +51,12 @@ def send(to, subject, heading, paragraphs, cta_label=None, cta_url=None):
     send_support_email_task.delay(recipients, subject, heading, list(paragraphs), cta_label, cta_url)
 
 
-def send_admins(subject, heading, paragraphs, cta_label, workspace, item_id, kind="bug"):
-    """One email per admin, each with a link that opens for them (see door)."""
+def send_admins(subject, heading, paragraphs, cta_label, workspace, item_id, kind="bug", exclude=None):
+    """One email per admin, each with a link that opens for them (see door). `exclude`: the admin who
+    just did it (filed it themselves) doesn't need to hear about it."""
     for admin in admin_users():
+        if exclude is not None and admin.id == exclude.id:
+            continue
         send(admin.email, subject, heading, paragraphs, cta_label, support_url(door(admin, workspace), item_id, kind))
 
 
@@ -79,9 +82,16 @@ def bug_resolved(bug):
         [
             greeting(bug.reported_by),
             bug.resolved_message or "Ya quedó corregido el problema que nos contaste.",
-            # Sent when CI starts the deploy: trying right away would still hit the old version.
-            "El cambio se está publicando y debería verse en unos minutos.",
-            "Si después de eso vuelve a pasar, respondé desde tu seguimiento y lo miramos de nuevo.",
+            *(
+                # A code fix: CI resolves it when the deploy starts, and trying right away would still
+                # hit the old version. A person closing it by hand deploys nothing.
+                [
+                    "El cambio se está publicando y debería verse en unos minutos.",
+                    "Si después de eso vuelve a pasar, respondé desde tu seguimiento y lo miramos de nuevo.",
+                ]
+                if bug.fixed_at or bug.commit_hash
+                else ["Si vuelve a pasar, respondé desde tu seguimiento y lo miramos de nuevo."]
+            ),
         ],
         "Ver mi seguimiento",
         support_url(door(bug.reported_by, bug.workspace), bug.id),
@@ -142,6 +152,7 @@ def admins_new_bug(bug):
         "Abrir la bandeja",
         bug.workspace,
         bug.id,
+        exclude=bug.reported_by,
     )
 
 
@@ -186,6 +197,7 @@ def admins_new_feature(feature):
         feature.workspace,
         feature.id,
         "feature",
+        exclude=feature.requested_by,
     )
 
 
@@ -220,6 +232,14 @@ def requester_feature_approved(feature, building):
             "Analizamos tu sugerencia y quedó aprobada. El desarrollo arranca apenas se libere el turno; "
             "podés seguir el avance.",
         )
+
+
+def requester_is_admin(feature):
+    """The requester is also an admin: the admins' email about the same event already reaches them,
+    with the action in it, so the requester version would be a second email saying less."""
+    from plane.utils.agent_pipeline.permissions import is_instance_admin
+
+    return is_instance_admin(feature.requested_by)
 
 
 def requester_feature_update(feature, heading, message):

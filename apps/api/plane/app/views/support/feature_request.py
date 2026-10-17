@@ -226,6 +226,7 @@ class FeatureRequestDecisionEndpoint(BaseAPIView):
             feature = FeatureRequest.objects.select_for_update().get(id=pk)
             if feature.status not in self.ALLOWED_FROM[decision]:
                 return Response({"error": f"La sugerencia está en {feature.status}."}, status=status.HTTP_409_CONFLICT)
+            resumed = feature.status == S.ON_HOLD
             record = {
                 "by": str(request.user.id),
                 "by_name": request.user.display_name,
@@ -254,11 +255,12 @@ class FeatureRequestDecisionEndpoint(BaseAPIView):
                 feature.rejection = record
                 feature.status = S.REJECTED
                 feature.save()
-                notify.requester_feature_update(
-                    feature,
-                    "Sobre tu sugerencia",
-                    data["notes"] or "Revisamos tu sugerencia y por ahora no la vamos a construir.",
-                )
+                if feature.requested_by_id != request.user.id:
+                    notify.requester_feature_update(
+                        feature,
+                        "Sobre tu sugerencia",
+                        data["notes"] or "Revisamos tu sugerencia y por ahora no la vamos a construir.",
+                    )
             else:
                 feature.status = S.ON_HOLD
                 feature.save()
@@ -274,8 +276,9 @@ class FeatureRequestDecisionEndpoint(BaseAPIView):
         # when the lane has room (agent on, no other build in flight, weekly cap), and whoever pressed
         # the button has to know whether it started or why not.
         fired, reason = feature_ops.request_build(feature, f"decisión: {decision}")
-        # Like an automatic approval, the requester hears it (a rebuild is a retry, not news to them).
-        if decision == "approve" and feature.requested_by_id != request.user.id:
+        # Like an automatic approval, the requester hears it, and a resumed one too (the hold email
+        # promised it). A plain rebuild is a retry, not news to them.
+        if (decision == "approve" or resumed) and feature.requested_by_id != request.user.id:
             notify.requester_feature_approved(feature, fired)
         return Response({**feature_summary(feature), "build": {"fired": fired, "reason": reason}})
 

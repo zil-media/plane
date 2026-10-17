@@ -243,6 +243,11 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
         <div className="flex flex-wrap items-center gap-2">
           <PhaseChip phase={featurePhase(feature)} />
           {feature.category && <Tag>{feature.category}</Tag>}
+          {feature.priority && (
+            <Tag>
+              {t("helpdesk.detail.priority")}: {t(`helpdesk.priority.${feature.priority}`)}
+            </Tag>
+          )}
         </div>
         <h3 className="text-h6-medium text-primary">{feature.display_title || feature.title}</h3>
         {feature.plain_summary && <p className="text-body-xs-regular text-secondary">{feature.plain_summary}</p>}
@@ -387,6 +392,20 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
         {feature.problem}
       </Field>
       {feature.desired_outcome && <Field label={t("helpdesk.suggest.how_label")}>{feature.desired_outcome}</Field>}
+
+      {feature.attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {feature.attachments.map((attachment) => (
+            <a key={attachment.id} href={attachment.url} target="_blank" rel="noopener noreferrer">
+              <img
+                src={attachment.url}
+                alt={attachment.name}
+                className="h-20 rounded-sm border border-subtle object-cover"
+              />
+            </a>
+          ))}
+        </div>
+      )}
 
       {spec.summary && (
         <div className="flex flex-col gap-3 rounded-md border border-subtle p-3">

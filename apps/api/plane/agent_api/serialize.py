@@ -79,8 +79,23 @@ def bug_summary(bug):
 REPORTER_HIDDEN = ("admin_notes", "commit_hash", "blocked_reason")
 
 
+def _closed_as(data):
+    """How an archived report had ended, for whoever reported it. Archiving is an admin tidying the
+    queue, not an outcome: the email they got said resolved or answered, and the answer is kept."""
+    if not data.get("resolved_at"):
+        return "archived"  # archived before anyone closed it: it really didn't advance
+    if data.get("derived_feature_id") or data.get("workspace_bug_id"):
+        return "dismissed"
+    if data.get("resolved_message") and not (data.get("fixed_at") or data.get("commit_hash")):
+        return "dismissed"  # answered: nothing in the platform changed
+    return "resolved"
+
+
 def for_reporter(data):
-    return {key: value for key, value in data.items() if key not in REPORTER_HIDDEN}
+    shown = {key: value for key, value in data.items() if key not in REPORTER_HIDDEN}
+    if shown.get("status") == "archived":
+        shown["status"] = _closed_as(data)
+    return shown
 
 
 def bug_detail(bug, request):
