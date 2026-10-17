@@ -209,6 +209,8 @@
         "to_workspace": "Předáno do Zil Workspace",
         "continues_in_workspace": "Sleduje se v Zil Workspace",
         "derived_banner": "Nešlo o chybu: stal se z toho návrh na Vaše jméno, který se už analyzuje.",
+        "derived_built_banner": "Nešlo o chybu: stal se z toho návrh na Vaše jméno, který je už hotový.",
+        "derived_rejected_banner": "Nešlo o chybu: stal se z toho návrh na Vaše jméno, který byl posouzen a zatím se realizovat nebude.",
         "to_workspace_banner": "Oprava patří do Zil Workspace: předali jsme ji s naší diagnózou a pokračuje se tam.",
         "answered_banner": "Odpověděli jsme Vám: na platformě nebylo třeba nic měnit.",
         "dismissed_banner": "Zkontrolováno a uzavřeno: nebyla nalezena chyba platformy.",

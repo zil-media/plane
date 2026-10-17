@@ -209,6 +209,8 @@
         "to_workspace": "已转交 Zil Workspace",
         "continues_in_workspace": "在 Zil Workspace 中跟进",
         "derived_banner": "这不是缺陷：它已以您的名义转为建议，正在分析中。",
+        "derived_built_banner": "这不是缺陷：它已以您的名义转为建议，且已实现。",
+        "derived_rejected_banner": "这不是缺陷：它已以您的名义转为建议，经评估后暂不实现。",
         "to_workspace_banner": "需要在 Zil Workspace 中修复：我们已附上诊断转交，后续在那里继续处理。",
         "answered_banner": "我们已回复您：无需修改平台。",
         "dismissed_banner": "已审查并关闭：未发现平台缺陷。",

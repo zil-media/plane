@@ -243,10 +243,10 @@ class FeatureRequestDecisionEndpoint(BaseAPIView):
                 if decision == "approve":
                     feature.approval = record
                 build = dict(feature.build or {})
-                # A person decided: the previous stop's note no longer explains anything while it waits.
-                build.update(
-                    {"blocked_at": None, "claimed_at": None, "last_note": "", "manual_retry": decision == "rebuild"}
-                )
+                # A person decided: the previous stop's note no longer explains anything while it waits,
+                # and the run cap of an earlier build doesn't apply (approving a redone spec after a
+                # run-cap hold put it straight back on hold).
+                build.update({"blocked_at": None, "claimed_at": None, "last_note": "", "manual_retry": True})
                 feature.build = build
                 feature.status = S.APPROVED
                 feature.save()

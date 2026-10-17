@@ -209,6 +209,8 @@
         "to_workspace": "Đã chuyển sang Zil Workspace",
         "continues_in_workspace": "Theo dõi trong Zil Workspace",
         "derived_banner": "Đây không phải là lỗi: nó đã trở thành một đề xuất dưới tên bạn và đang được phân tích.",
+        "derived_built_banner": "Đây không phải là lỗi: nó đã trở thành một đề xuất dưới tên bạn và đề xuất đó đã được thực hiện.",
+        "derived_rejected_banner": "Đây không phải là lỗi: nó đã trở thành một đề xuất dưới tên bạn; đề xuất đã được xem xét và hiện chưa được thực hiện.",
         "to_workspace_banner": "Bản sửa thuộc về Zil Workspace: chúng tôi đã chuyển kèm chẩn đoán và việc xử lý tiếp tục ở đó.",
         "answered_banner": "Chúng tôi đã trả lời bạn: không cần thay đổi nền tảng.",
         "dismissed_banner": "Đã xem xét và đóng: không tìm thấy lỗi của nền tảng.",

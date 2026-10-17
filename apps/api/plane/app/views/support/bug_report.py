@@ -176,7 +176,7 @@ class BugReportAutoEndpoint(BaseAPIView):
 class MyBugReportsEndpoint(BaseAPIView):
     def get(self, request):
         queryset = BugReport.objects.filter(reported_by=request.user, source=BugReport.Source.MANUAL).select_related(
-            "reported_by", "workspace"
+            "reported_by", "workspace", "derived_feature"
         )
         return Response(
             [
@@ -250,11 +250,13 @@ class BugReportBulkEndpoint(BaseAPIView):
                 bug.blocked_at = None
                 bug.blocked_reason = ""
                 if action != "unblock":
+                    # A person closed an unfinished report without an answer: a message the agent wrote
+                    # before (e.g. "it's fixed", before CI blocked it) would read as "we answered you".
+                    # A report already closed keeps its answer: archiving is tidying up, not unsaying it.
+                    if action == "dismiss" and bug.status in (BugReport.Status.OPEN, BugReport.Status.IN_PROGRESS):
+                        bug.resolved_message = ""
                     bug.status = BugReport.Status.DISMISSED if action == "dismiss" else BugReport.Status.ARCHIVED
                     bug.claimed_at = None
-                    # A person closed it without an answer: a message the agent wrote before (e.g. "it's
-                    # fixed", before CI blocked it) would read as "we answered you".
-                    bug.resolved_message = ""
                 bug.admin_notes = "\n".join(n for n in (bug.admin_notes, notes) if n)
                 bug.save()
                 changed += 1

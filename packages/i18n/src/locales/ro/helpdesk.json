@@ -209,6 +209,8 @@
         "to_workspace": "Transmis către Zil Workspace",
         "continues_in_workspace": "Urmărit în Zil Workspace",
         "derived_banner": "Nu era un defect: a devenit o sugestie în numele dumneavoastră și este deja analizată.",
+        "derived_built_banner": "Nu era un defect: a devenit o sugestie în numele dumneavoastră, care a fost deja realizată.",
+        "derived_rejected_banner": "Nu era un defect: a devenit o sugestie în numele dumneavoastră, care a fost evaluată și deocamdată nu va fi realizată.",
         "to_workspace_banner": "Remedierea ține de Zil Workspace: am transmis-o cu diagnosticul nostru și continuă acolo.",
         "answered_banner": "V-am răspuns: nu a fost nevoie de nicio modificare a platformei.",
         "dismissed_banner": "Revizuit și închis: nu s-a găsit niciun defect al platformei.",

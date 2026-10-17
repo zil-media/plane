@@ -209,6 +209,8 @@
         "to_workspace": "Zil Workspace に引き継ぎ",
         "continues_in_workspace": "Zil Workspace で対応中",
         "derived_banner": "不具合ではありませんでした。あなたの名前で提案になり、すでに分析中です。",
+        "derived_built_banner": "不具合ではありませんでした。あなたの名前で提案になり、すでに実装されました。",
+        "derived_rejected_banner": "不具合ではありませんでした。あなたの名前で提案になり、検討の結果、現時点では実装されません。",
         "to_workspace_banner": "修正は Zil Workspace 側の対応です。診断内容とともに引き継ぎ、そちらで対応を続けます。",
         "answered_banner": "回答しました。プラットフォームの変更は不要でした。",
         "dismissed_banner": "確認のうえクローズしました。プラットフォームの不具合は見つかりませんでした。",

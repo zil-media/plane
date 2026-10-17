@@ -135,10 +135,14 @@ def comment_entry(user, role, text):
 
 
 def derive_feature(bug, *, title, problem, desired_outcome, message, agent_user):
-    """Turns a bug that is really a feature request into a suggestion filed in the reporter's name."""
+    """Turns a bug that is really a feature request into a suggestion filed in the reporter's name.
+
+    Only a report someone wrote has a reporter: an automatic crash report's reported_by is just the
+    first person it happened to, who would get every requester email for an idea they never had."""
+    reporter = bug.reported_by if bug.source == BugReport.Source.MANUAL else None
     with transaction.atomic():
         feature = FeatureRequest.objects.create(
-            requested_by=bug.reported_by or agent_user,
+            requested_by=reporter or agent_user,
             workspace=bug.workspace,
             title=title[:200],
             problem=problem,

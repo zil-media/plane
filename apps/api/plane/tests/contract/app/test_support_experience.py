@@ -507,3 +507,118 @@ class TestRoundFive:
         )
         mine = session_client.get("/api/support/bug-reports/mine/").data[0]
         assert mine["derived_feature_status"] == "merged"
+
+
+@pytest.mark.contract
+class TestRoundSix:
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("previous", [S.NEEDS_INFO, S.ON_HOLD])
+    def test_a_failed_analysis_goes_back_where_it_was_asked_from(self, create_user, agent_on, previous):
+        from plane.bgtasks.agent_pipeline_task import fire_feature_routine_task
+
+        feature = own_feature(create_user, status=S.SPEC_RUNNING, spec={"generated_at": "2026-10-01T00:00:00+00:00"})
+        failed = {"fired": False, "reason": "post failed"}
+        with mock.patch("plane.utils.agent_pipeline.routines.fire_feature_routine", return_value=failed):
+            fire_feature_routine_task(str(feature.id), "SPEC", "respuesta", previous)
+        feature.refresh_from_db()
+        # Not "ready to decide" with the answer never analysed, and a hold isn't lifted by a failure.
+        assert feature.status == previous
+
+    @pytest.mark.django_db
+    def test_the_request_records_where_the_analysis_was_asked_from(self, create_user, agent_on, tasks):
+        feature = own_feature(create_user, status=S.NEEDS_INFO)
+        assert request_spec(feature, "respuesta") == (True, "queued")
+        assert tasks["fire_feature"].call_args.args[3] == S.NEEDS_INFO
+
+    @pytest.mark.django_db
+    def test_a_reanalysis_that_dies_keeps_the_spec_it_had(self, create_user, agent_on):
+        from plane.bgtasks.agent_pipeline_task import feature_run_sweep
+        from plane.utils.agent_pipeline.constants import FEATURE_RUN_EXPIRY, MAX_SPEC_RUNS
+
+        feature = own_feature(
+            create_user,
+            status=S.SPEC_RUNNING,
+            spec={"generated_at": "2026-10-01T00:00:00+00:00"},
+            spec_runs=MAX_SPEC_RUNS,
+            spec_requested_at=timezone.now() - FEATURE_RUN_EXPIRY * 2,
+        )
+        feature_run_sweep()
+        feature.refresh_from_db()
+        # Past the run cap the sweep never retries a "received" one: it sat there with its spec hidden.
+        assert feature.status == S.SPEC_READY
+
+    @pytest.mark.django_db
+    def test_approving_a_redone_spec_after_the_run_cap_builds_it(
+        self, admin_client, agent_on, tasks, django_capture_on_commit_callbacks
+    ):
+        from plane.utils.agent_pipeline.constants import MAX_BUILD_RUNS
+
+        feature = FeatureRequest.objects.create(
+            title="Algo nuevo",
+            problem="p" * 30,
+            status=S.SPEC_READY,
+            flag_key="algoNuevo",
+            build={"runs": MAX_BUILD_RUNS},
+        )
+        with django_capture_on_commit_callbacks(execute=True):
+            response = admin_client.post(f"/api/support/feature-requests/{feature.id}/approve/", {}, format="json")
+        assert response.status_code == status.HTTP_200_OK, response.data
+        assert response.data["build"]["fired"] is True
+        feature.refresh_from_db()
+        assert feature.status == S.BUILDING
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("action", ["archive", "dismiss"])
+    def test_tidying_up_a_closed_report_keeps_its_answer(self, admin_client, create_user, action):
+        bug = BugReport.objects.create(
+            reported_by=create_user, description="x", status=BugReport.Status.RESOLVED, resolved_message="Se arregló."
+        )
+        admin_client.post("/api/support/bug-reports/bulk/", {"action": action, "ids": [str(bug.id)]}, format="json")
+        bug.refresh_from_db()
+        assert bug.resolved_message == "Se arregló."
+
+    @pytest.mark.django_db
+    def test_an_automatic_report_turned_into_a_suggestion_is_nobodys_and_waits_for_a_person(
+        self, admin_client, create_user
+    ):
+        from plane.agent_api.features import should_auto_approve
+        from plane.utils.agent_pipeline.bugs import derive_feature
+
+        agent = User.objects.get(email="owner@zil.global")  # an instance admin, like the agent's own user
+        crash = BugReport.objects.create(reported_by=create_user, description="x", source=BugReport.Source.AUTO)
+        feature = derive_feature(
+            crash, title="Exportar", problem="p" * 30, desired_outcome="", message="", agent_user=agent
+        )
+        assert feature.requested_by == agent
+
+        feature.spec, feature.spec_runs = {"blast_radius": "medium", "generated_at": "2026-10-01"}, 1
+        # The admin's shortcut is for an admin asking, not for the pipeline filing it.
+        assert should_auto_approve(feature) is False
+
+        # An admin's own report still gets it.
+        own = BugReport.objects.create(reported_by=agent, description="y", source=BugReport.Source.MANUAL)
+        theirs = derive_feature(own, title="Otra", problem="p" * 30, desired_outcome="", message="", agent_user=agent)
+        theirs.spec, theirs.spec_runs = {"blast_radius": "medium", "generated_at": "2026-10-01"}, 1
+        assert should_auto_approve(theirs) is True
+
+    @pytest.mark.django_db
+    def test_an_automatic_report_handed_to_workspace_names_no_reporter(self, monkeypatch, create_user):
+        key = "b" * 64
+        agent = User.objects.create(email="agent@zil.global", username=uuid.uuid4().hex, is_active=True)
+        for name, value in {**ZIL_ENV, "OPS_BUG_AGENT_API_KEY": key, "AGENT_ADMIN_EMAIL": agent.email}.items():
+            monkeypatch.setenv(name, value)
+        crash = BugReport.objects.create(
+            reported_by=create_user, description="Se cae al abrir", source=BugReport.Source.AUTO
+        )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {key}")
+        with zil_answers(body={"id": "a" * 24, "trackingUrl": "http://ws.test/x"}) as post:
+            response = client.put(
+                f"/api/agent/bugs/{crash.id}/to-workspace/",
+                {"diagnosis": "server/controllers/x.js:1 rompe", "message": "Sigue en Workspace."},
+                format="json",
+            )
+        assert response.status_code == status.HTTP_200_OK, response.data
+        sent = post.call_args.kwargs["json"]
+        # The first person it happened to isn't its reporter there either.
+        assert (sent["reporterEmail"], sent["source"]) == ("", "auto")

@@ -33,8 +33,15 @@ def fire_bug_routine_task(reason, bug_id=None, urgency=None):
     return result
 
 
+def _released_spec_status(feature):
+    """Where an analysis that never finished leaves the request: a spec it already had stays ready to
+    decide (dropping it to "received" hid it from the admins and, past the run cap, from the sweep)."""
+    has_spec = bool((feature.spec or {}).get("generated_at"))
+    return FeatureRequest.Status.SPEC_READY if has_spec else FeatureRequest.Status.SUBMITTED
+
+
 @shared_task
-def fire_feature_routine_task(feature_id, mode, reason=""):
+def fire_feature_routine_task(feature_id, mode, reason="", previous=None):
     feature = FeatureRequest.objects.filter(id=feature_id).first()
     if feature is None:
         return {"fired": False, "reason": "missing feature"}
@@ -52,9 +59,10 @@ def fire_feature_routine_task(feature_id, mode, reason=""):
         if feature is None:
             return result
         if mode == "SPEC" and feature.status == FeatureRequest.Status.SPEC_RUNNING:
-            # A re-analysis of a spec that was ready keeps it ready to decide (the sweep retries submitted ones).
-            has_spec = bool((feature.spec or {}).get("generated_at"))
-            feature.status = FeatureRequest.Status.SPEC_READY if has_spec else FeatureRequest.Status.SUBMITTED
+            # Back where it was asked from: a ready spec stays ready to decide, a hold stays held, and an
+            # answered question stays answered (waiting for someone to relaunch it), not "ready" with the
+            # answer never analysed. The sweep retries submitted ones.
+            feature.status = previous if previous in features.SPEC_STARTABLE else _released_spec_status(feature)
             # The failed attempt counts toward the run cap: the sweep retries submitted ones, and with a
             # persistent failure (bad key, outage) uncounted attempts retried forever, one comment each.
             feature.comments = bugs.append_entry(feature.comments, bugs.comment_entry(None, "agent", note))
@@ -102,7 +110,7 @@ def feature_run_sweep():
     for feature in FeatureRequest.objects.filter(status=FeatureRequest.Status.SPEC_RUNNING):
         started = feature.spec_requested_at.isoformat() if feature.spec_requested_at else ""
         if started and started < cutoff:
-            feature.status = FeatureRequest.Status.SUBMITTED
+            feature.status = _released_spec_status(feature)
             feature.save(update_fields=["status", "updated_at"])
             released += 1
 

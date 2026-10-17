@@ -209,6 +209,8 @@
         "to_workspace": "An Zil Workspace übergeben",
         "continues_in_workspace": "Weiter in Zil Workspace",
         "derived_banner": "Es war kein Fehler: Daraus wurde ein Vorschlag in Ihrem Namen, der bereits analysiert wird.",
+        "derived_built_banner": "Es war kein Fehler: Daraus wurde ein Vorschlag in Ihrem Namen, der bereits umgesetzt ist.",
+        "derived_rejected_banner": "Es war kein Fehler: Daraus wurde ein Vorschlag in Ihrem Namen, der geprüft wurde und vorerst nicht umgesetzt wird.",
         "to_workspace_banner": "Die Korrektur gehört zu Zil Workspace: Wir haben es mit unserer Diagnose übergeben, dort geht es weiter.",
         "answered_banner": "Wir haben Ihnen geantwortet: An der Plattform musste nichts geändert werden.",
         "dismissed_banner": "Geprüft und geschlossen: Es wurde kein Fehler der Plattform gefunden.",

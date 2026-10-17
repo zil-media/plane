@@ -20,7 +20,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 # Module imports
-from plane.db.models import AgentFeatureFlag, FeatureRequest
+from plane.db.models import AgentFeatureFlag, BugReport, FeatureRequest
 from plane.utils.agent_pipeline import bugs as bug_ops
 from plane.utils.agent_pipeline import features as feature_ops
 from plane.utils.agent_pipeline import notify
@@ -114,7 +114,13 @@ def should_auto_approve(feature):
     if feature.spec_runs > 1:
         return False
     blast_radius = spec.get("blast_radius")
-    if blast_radius == "low" or is_instance_admin(feature.requested_by):
+    if blast_radius == "low":
+        return True
+    # Filed by the pipeline for someone else (an automatic report, or one with no reporter): the
+    # requester is the agent's own user, and its seniority isn't a person asking for the work.
+    if feature.source_bugs.exclude(source=BugReport.Source.MANUAL, reported_by=feature.requested_by).exists():
+        return False
+    if is_instance_admin(feature.requested_by):
         return True
     return blast_radius == "medium" and is_workspace_director(feature.requested_by, feature.workspace)
 

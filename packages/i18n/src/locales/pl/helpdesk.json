@@ -209,6 +209,8 @@
         "to_workspace": "Przekazano do Zil Workspace",
         "continues_in_workspace": "Śledzone w Zil Workspace",
         "derived_banner": "To nie był błąd: powstała z tego sugestia w Pana/Pani imieniu, która jest już analizowana.",
+        "derived_built_banner": "To nie był błąd: powstała z tego sugestia w Pana/Pani imieniu, która jest już zrealizowana.",
+        "derived_rejected_banner": "To nie był błąd: powstała z tego sugestia w Pana/Pani imieniu, która została rozpatrzona i na razie nie zostanie zrealizowana.",
         "to_workspace_banner": "Poprawka należy do Zil Workspace: przekazaliśmy ją z naszą diagnozą i sprawa toczy się tam.",
         "answered_banner": "Odpowiedzieliśmy: zmiana platformy nie była potrzebna.",
         "dismissed_banner": "Sprawdzono i zamknięto: nie znaleziono błędu platformy.",

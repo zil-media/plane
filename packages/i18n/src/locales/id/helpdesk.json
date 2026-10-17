@@ -209,6 +209,8 @@
         "to_workspace": "Diteruskan ke Zil Workspace",
         "continues_in_workspace": "Dipantau di Zil Workspace",
         "derived_banner": "Ini bukan cacat: ini menjadi saran atas nama Anda dan sudah dianalisis.",
+        "derived_built_banner": "Ini bukan cacat: ini menjadi saran atas nama Anda, yang kini sudah dibuat.",
+        "derived_rejected_banner": "Ini bukan cacat: ini menjadi saran atas nama Anda, yang sudah ditinjau dan untuk saat ini tidak akan dibuat.",
         "to_workspace_banner": "Perbaikannya ada di Zil Workspace: kami meneruskannya beserta diagnosis kami dan prosesnya berlanjut di sana.",
         "answered_banner": "Kami sudah menjawab Anda: platform tidak perlu diubah.",
         "dismissed_banner": "Ditinjau dan ditutup: tidak ditemukan cacat pada platform.",

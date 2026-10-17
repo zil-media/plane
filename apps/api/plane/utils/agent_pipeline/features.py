@@ -44,6 +44,7 @@ def request_spec(feature, reason, force=False):
             return False, f"status {current.status}"
         if current.spec_runs >= MAX_SPEC_RUNS and not force:
             return False, "spec run limit"
+        previous = current.status
         current.status = S.SPEC_RUNNING
         current.spec_runs += 1
         current.spec_requested_at = timezone.now()
@@ -53,7 +54,7 @@ def request_spec(feature, reason, force=False):
         current.spec_runs,
         current.spec_requested_at,
     )
-    fire_feature_routine_task.delay(str(feature.id), "SPEC", reason)
+    fire_feature_routine_task.delay(str(feature.id), "SPEC", reason, previous)
     return True, "queued"
 
 

@@ -265,12 +265,16 @@ class AgentBugActionEndpoint(AgentBugBaseView):
             return _conflict(f"Bug is {bug.status}.")
         if not zil_enabled():
             return _conflict("Zil Workspace is not configured (ZIL_BASE_URL / ZIL_SERVICE_SECRET).")
+        # Only a report someone wrote has a reporter there too: an automatic crash report's reported_by
+        # is just the first person it happened to, who would get "we fixed what you reported".
+        manual = bug.source == BugReport.Source.MANUAL
         try:
             filed = file_workspace_bug(
                 {
                     "opsBugId": str(bug.id),
                     "opsBugUrl": notify.support_url(bug.workspace, bug.id),
-                    "reporterEmail": bug.reported_by.email if bug.reported_by else "",
+                    "reporterEmail": bug.reported_by.email if manual and bug.reported_by else "",
+                    "source": "manual" if manual else "auto",
                     "description": bug.description[:10000],
                     "diagnosis": data["diagnosis"],
                     "url": bug.url,

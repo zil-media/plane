@@ -209,6 +209,8 @@
         "to_workspace": "Handed to Zil Workspace",
         "continues_in_workspace": "Followed up in Zil Workspace",
         "derived_banner": "It wasn't a defect: it became a suggestion in your name and is already being analyzed.",
+        "derived_built_banner": "It wasn't a defect: it became a suggestion in your name, which has now been built.",
+        "derived_rejected_banner": "It wasn't a defect: it became a suggestion in your name, which was reviewed and won't be built for now.",
         "to_workspace_banner": "The fix belongs to Zil Workspace: we handed it over with our diagnosis and it continues there.",
         "answered_banner": "We answered you: no change to the platform was needed.",
         "dismissed_banner": "Reviewed and closed: no platform defect was found.",

@@ -209,6 +209,8 @@
         "to_workspace": "Zil Workspace'e aktarıldı",
         "continues_in_workspace": "Zil Workspace'te takip ediliyor",
         "derived_banner": "Bir hata değildi: adınıza bir öneriye dönüştü ve şu anda analiz ediliyor.",
+        "derived_built_banner": "Bir hata değildi: adınıza bir öneriye dönüştü ve bu öneri artık hayata geçirildi.",
+        "derived_rejected_banner": "Bir hata değildi: adınıza bir öneriye dönüştü; öneri incelendi ve şimdilik hayata geçirilmeyecek.",
         "to_workspace_banner": "Düzeltme Zil Workspace'e ait: teşhisimizle birlikte aktardık, süreç orada devam ediyor.",
         "answered_banner": "Size yanıt verdik: platformda bir değişiklik gerekmiyordu.",
         "dismissed_banner": "İncelendi ve kapatıldı: platformda bir hata bulunmadı.",

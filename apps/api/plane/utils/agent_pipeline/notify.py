@@ -79,7 +79,9 @@ def bug_resolved(bug):
         [
             greeting(bug.reported_by),
             bug.resolved_message or "Ya quedó corregido el problema que nos contaste.",
-            "Si vuelve a pasar, respondé desde tu seguimiento y lo miramos de nuevo.",
+            # Sent when CI starts the deploy: trying right away would still hit the old version.
+            "El cambio se está publicando y debería verse en unos minutos.",
+            "Si después de eso vuelve a pasar, respondé desde tu seguimiento y lo miramos de nuevo.",
         ],
         "Ver mi seguimiento",
         support_url(door(bug.reported_by, bug.workspace), bug.id),

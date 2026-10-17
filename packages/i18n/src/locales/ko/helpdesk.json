@@ -209,6 +209,8 @@
         "to_workspace": "Zil Workspace로 전달됨",
         "continues_in_workspace": "Zil Workspace에서 진행 중",
         "derived_banner": "결함이 아니었습니다. 회원님 이름으로 제안이 되었으며 이미 분석 중입니다.",
+        "derived_built_banner": "결함이 아니었습니다. 회원님 이름으로 제안이 되었으며 이미 구현되었습니다.",
+        "derived_rejected_banner": "결함이 아니었습니다. 회원님 이름으로 제안이 되었으며, 검토 결과 지금은 구현하지 않습니다.",
         "to_workspace_banner": "수정은 Zil Workspace에서 이루어집니다. 진단 내용과 함께 전달했으며 그곳에서 계속 진행됩니다.",
         "answered_banner": "답변을 드렸습니다. 플랫폼을 변경할 필요가 없었습니다.",
         "dismissed_banner": "검토 후 종료되었습니다. 플랫폼 결함이 발견되지 않았습니다.",

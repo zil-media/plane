@@ -209,6 +209,8 @@
         "to_workspace": "Passato a Zil Workspace",
         "continues_in_workspace": "Seguito in Zil Workspace",
         "derived_banner": "Non era un difetto: è diventato un suggerimento a Suo nome ed è già in analisi.",
+        "derived_built_banner": "Non era un difetto: è diventato un suggerimento a Suo nome, che ora è stato realizzato.",
+        "derived_rejected_banner": "Non era un difetto: è diventato un suggerimento a Suo nome, che è stato valutato e per ora non verrà realizzato.",
         "to_workspace_banner": "La correzione spetta a Zil Workspace: l'abbiamo passata con la nostra diagnosi e prosegue lì.",
         "answered_banner": "Le abbiamo risposto: non serviva modificare la piattaforma.",
         "dismissed_banner": "Esaminato e chiuso: non è stato trovato alcun difetto della piattaforma.",

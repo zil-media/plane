@@ -52,15 +52,27 @@ function progressSteps(progress: TProgressEntry[] | undefined, claimedAt?: strin
 }
 
 export function computeBugTrack(bug: TBugReportDetail): TTrack {
-  // A handover, not an ending: the line says so and keeps pulsing.
+  // A handover, not an ending: the line keeps pulsing while the suggestion moves, and ends with it
+  // (the same status that files the report under "Listo" or "Sin avanzar", see bugSection).
   if (bugWasDerived(bug)) {
+    const outcome = bug.derived_feature_status;
+    const decided = outcome === "merged" || outcome === "rejected";
     return {
       phases: [
         { key: "received", label: k("helpdesk.track.bug.received"), state: "done", at: bug.created_at },
         { key: "derived", label: k("helpdesk.track.bug.derived"), state: "done", at: bug.resolved_at },
-        { key: "feature", label: k("helpdesk.track.bug.continues"), state: "active" },
+        { key: "feature", label: k("helpdesk.track.bug.continues"), state: decided ? "done" : "active" },
       ],
-      banner: { tone: "info", label: k("helpdesk.track.bug.derived_banner") },
+      banner: {
+        tone: outcome === "rejected" ? "muted" : "info",
+        label: k(
+          outcome === "merged"
+            ? "helpdesk.track.bug.derived_built_banner"
+            : outcome === "rejected"
+              ? "helpdesk.track.bug.derived_rejected_banner"
+              : "helpdesk.track.bug.derived_banner"
+        ),
+      },
     };
   }
 
