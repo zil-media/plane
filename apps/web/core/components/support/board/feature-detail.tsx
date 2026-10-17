@@ -42,7 +42,11 @@ type TPrimary = { decision: TFeatureDecision; labelKey: string; needsFlag: boole
  */
 function adminOptions(feature: TFeatureRequestDetail) {
   const blocked = feature.build_blocked;
-  const wasApproved = !!feature.approval?.at;
+  // An approval older than the current spec approved a different analysis (approve, pause, redo the
+  // analysis): resuming that one would build what nobody approved. ISO strings of the same zone compare.
+  const approvedAt = feature.approval?.at;
+  const specAt = feature.spec?.generated_at;
+  const wasApproved = !!approvedAt && (!specAt || approvedAt >= specAt);
   let primary: TPrimary = null;
   const secondary: { decision: TFeatureDecision; labelKey: string }[] = [];
   let canReject = false;
@@ -149,8 +153,12 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
   const consult = feature.status === "needs_info" && isRequester;
   // The consult card IS the answer box: a second textarea under it would split the answer.
   const canComment = (isRequester || isAdmin) && !consult && !["merged", "rejected"].includes(feature.status);
+  // Redoing the analysis resumes a paused request, and pausing is an admin's call: the requester
+  // can't undo it from here.
   const canRespec =
-    (isRequester || isAdmin) && ["submitted", "spec_ready", "needs_info", "on_hold"].includes(feature.status);
+    (isAdmin && ["submitted", "spec_ready", "needs_info", "on_hold"].includes(feature.status)) ||
+    (isRequester && ["submitted", "spec_ready", "needs_info"].includes(feature.status));
+  const specRuns = feature.spec_runs ?? 0;
   const { primary, secondary, canReject } = isAdmin
     ? adminOptions(feature)
     : { primary: null, secondary: [], canReject: false };
@@ -187,7 +195,7 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
           : {
               type: TOAST_TYPE.WARNING,
               title: t("helpdesk.detail.respec_not_done"),
-              message: t(result.reason === "disabled" ? "helpdesk.consult.not_relaunched_off" : "helpdesk.try_again"),
+              message: t(result.reason === "disabled" ? "helpdesk.detail.agent_off" : "helpdesk.try_again"),
             }
       );
     });
@@ -275,7 +283,9 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
                 ))}
                 {canRespec && (
                   <Button variant="secondary" size="lg" loading={busy} onClick={() => void respec()}>
-                    {t("helpdesk.detail.respec", { runs: String(feature.spec_runs ?? 0), max: String(AUTO_SPEC_RUNS) })}
+                    {specRuns < AUTO_SPEC_RUNS
+                      ? t("helpdesk.detail.respec", { runs: String(specRuns), max: String(AUTO_SPEC_RUNS) })
+                      : t("helpdesk.detail.respec_again")}
                   </Button>
                 )}
                 {canReject && (

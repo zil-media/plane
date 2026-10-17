@@ -125,7 +125,6 @@
       "impact": "Impact",
       "effort": "Effort",
       "risks": "Risques",
-      "answer_hint": "Répondez aux questions pour poursuivre l'analyse.",
       "comment": "Ajouter un commentaire",
       "send": "Envoyer",
       "what_next": "La suite",
@@ -134,7 +133,9 @@
       "conversation": "Conversation",
       "respec": "Refaire l'analyse ({runs}/{max})",
       "respec_done": "Analyse relancée",
-      "respec_not_done": "L'analyse n'a pas été relancée"
+      "respec_not_done": "L'analyse n'a pas été relancée",
+      "agent_off": "L'agent des suggestions est désactivé.",
+      "respec_again": "Refaire encore l'analyse"
     },
     "impact": {
       "low": "Faible",
@@ -159,9 +160,7 @@
       "dismiss": "Ignorer",
       "archive": "Archiver",
       "technical_detail": "Détail technique",
-      "decision": "Décision",
       "flag_key": "Clé du flag",
-      "notes_placeholder": "Notes pour la personne à l'origine de la demande (facultatif)",
       "approve": "Approuver et construire",
       "rebuild": "Reconstruire",
       "hold": "Mettre en pause",

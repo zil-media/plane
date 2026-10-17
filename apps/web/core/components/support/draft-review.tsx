@@ -27,6 +27,11 @@ type Props = {
   text: string;
   /** Turn the review off without unmounting (e.g. while the form is being sent). */
   enabled?: boolean;
+  /**
+   * Stop asking but keep what's there (questions and answers): for a form step where the draft
+   * can't change and the panel isn't visible, so a late review can't land unseen.
+   */
+  paused?: boolean;
   /** What was answered, ready to append to the request. Empty while nothing is answered. */
   onAnswersChange: (appendix: string) => void;
   className?: string;
@@ -42,7 +47,7 @@ type Props = {
  * (being edited by a third party while typing is unsettling) and the form appends them on send.
  */
 export function DraftReview(props: Props) {
-  const { kind, title = "", text, enabled = true, onAnswersChange, className } = props;
+  const { kind, title = "", text, enabled = true, paused = false, onAnswersChange, className } = props;
   const { t } = useTranslation();
   const [checking, setChecking] = useState(false);
   const [questions, setQuestions] = useState<TDraftQuestion[] | null>(null);
@@ -63,7 +68,7 @@ export function DraftReview(props: Props) {
       setReady(false);
       return;
     }
-    if (lastReviewed.current === draftKey) return;
+    if (paused || lastReviewed.current === draftKey) return;
 
     const controller = new AbortController();
     const review = async () => {
@@ -72,7 +77,8 @@ export function DraftReview(props: Props) {
         kind,
         // The screen travels with the request anyway: given to the reviewer so it doesn't spend a
         // question on "which screen?".
-        { title: title.trim(), text: text.trim(), screen: window.location.pathname },
+        // Capped like the server's serializer: past it the call would just answer 400.
+        { title: title.trim().slice(0, 200), text: text.trim().slice(0, 4000), screen: window.location.pathname },
         controller.signal
       );
       if (controller.signal.aborted) return;
@@ -98,7 +104,7 @@ export function DraftReview(props: Props) {
       controller.abort();
       setChecking(false);
     };
-  }, [kind, title, text, draftKey, longEnough, enabled]);
+  }, [kind, title, text, draftKey, longEnough, enabled, paused]);
 
   // Only what was actually answered is sent, in the order it was asked.
   useEffect(() => {
@@ -120,6 +126,8 @@ export function DraftReview(props: Props) {
 
   if (!enabled || !longEnough) return null;
   const hasQuestions = !!questions && questions.length > 0;
+  // Answered questions stay listed (they get sent), but only unanswered ones are "missing".
+  const missing = (questions ?? []).filter((q) => !(answers[q.question] ?? "").trim()).length;
   if (!checking && !hasQuestions && !ready) return null;
 
   return (
@@ -130,7 +138,7 @@ export function DraftReview(props: Props) {
           {t("helpdesk.review.checking")}
         </span>
       )}
-      {!checking && ready && !hasQuestions && (
+      {!checking && ready && missing === 0 && (
         <span className="flex items-center gap-2 text-caption-sm-regular text-tertiary">
           <Check className="size-3 shrink-0 text-success-primary" />
           {t("helpdesk.review.ready")}
@@ -139,9 +147,11 @@ export function DraftReview(props: Props) {
       {hasQuestions && (
         <div className="flex flex-col gap-2">
           <div className="flex flex-col">
-            <span className="text-body-xs-medium text-primary">
-              {t(questions.length === 1 ? "helpdesk.review.one_missing" : "helpdesk.review.some_missing")}
-            </span>
+            {missing > 0 && (
+              <span className="text-body-xs-medium text-primary">
+                {t(missing === 1 ? "helpdesk.review.one_missing" : "helpdesk.review.some_missing")}
+              </span>
+            )}
             <span className="text-caption-sm-regular text-tertiary">{t("helpdesk.review.hint")}</span>
           </div>
           {questions.map((q) => (

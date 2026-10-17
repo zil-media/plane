@@ -125,7 +125,6 @@
       "impact": "Auswirkung",
       "effort": "Aufwand",
       "risks": "Risiken",
-      "answer_hint": "Die Fragen beantworten, um mit der Analyse fortzufahren.",
       "comment": "Kommentar hinzufügen",
       "send": "Senden",
       "what_next": "Wie es weitergeht",
@@ -134,7 +133,9 @@
       "conversation": "Unterhaltung",
       "respec": "Analyse neu erstellen ({runs}/{max})",
       "respec_done": "Analyse neu gestartet",
-      "respec_not_done": "Die Analyse wurde nicht neu gestartet"
+      "respec_not_done": "Die Analyse wurde nicht neu gestartet",
+      "agent_off": "Der Vorschlags-Agent ist ausgeschaltet.",
+      "respec_again": "Analyse noch einmal neu erstellen"
     },
     "impact": {
       "low": "Gering",
@@ -159,9 +160,7 @@
       "dismiss": "Verwerfen",
       "archive": "Archivieren",
       "technical_detail": "Technisches Detail",
-      "decision": "Entscheidung",
       "flag_key": "Flag-Schlüssel",
-      "notes_placeholder": "Notizen für die anfragende Person (optional)",
       "approve": "Genehmigen und umsetzen",
       "rebuild": "Erneut umsetzen",
       "hold": "Pausieren",

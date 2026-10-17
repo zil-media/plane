@@ -125,7 +125,6 @@
       "impact": "Impact",
       "effort": "Efort",
       "risks": "Riscuri",
-      "answer_hint": "Răspundeți la întrebări pentru a continua analiza.",
       "comment": "Adaugă un comentariu",
       "send": "Trimite",
       "what_next": "Ce urmează",
@@ -134,7 +133,9 @@
       "conversation": "Conversație",
       "respec": "Refă analiza ({runs}/{max})",
       "respec_done": "Analiza a repornit",
-      "respec_not_done": "Analiza nu a repornit"
+      "respec_not_done": "Analiza nu a repornit",
+      "agent_off": "Agentul de sugestii este oprit.",
+      "respec_again": "Refă analiza din nou"
     },
     "impact": {
       "low": "Scăzut",
@@ -159,9 +160,7 @@
       "dismiss": "Respinge",
       "archive": "Arhivează",
       "technical_detail": "Detaliu tehnic",
-      "decision": "Decizie",
       "flag_key": "Cheia flag-ului",
-      "notes_placeholder": "Note pentru persoana care a solicitat (opțional)",
       "approve": "Aprobă și construiește",
       "rebuild": "Construiește din nou",
       "hold": "Pune în pauză",

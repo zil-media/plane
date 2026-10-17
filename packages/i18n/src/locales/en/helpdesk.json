@@ -125,7 +125,6 @@
       "impact": "Impact",
       "effort": "Effort",
       "risks": "Risks",
-      "answer_hint": "Answer the questions to continue the analysis.",
       "comment": "Add a comment",
       "send": "Send",
       "what_next": "What's next",
@@ -134,7 +133,9 @@
       "conversation": "Conversation",
       "respec": "Redo the analysis ({runs}/{max})",
       "respec_done": "Analysis restarted",
-      "respec_not_done": "The analysis didn't restart"
+      "respec_not_done": "The analysis didn't restart",
+      "agent_off": "The suggestions agent is turned off.",
+      "respec_again": "Redo the analysis again"
     },
     "impact": {
       "low": "Low",
@@ -159,9 +160,7 @@
       "dismiss": "Dismiss",
       "archive": "Archive",
       "technical_detail": "Technical detail",
-      "decision": "Decision",
       "flag_key": "Flag key",
-      "notes_placeholder": "Notes for the person who asked (optional)",
       "approve": "Approve and build",
       "rebuild": "Build again",
       "hold": "Pause",

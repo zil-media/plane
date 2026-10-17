@@ -125,7 +125,6 @@
       "impact": "Etki",
       "effort": "Efor",
       "risks": "Riskler",
-      "answer_hint": "Analize devam edebilmemiz için soruları yanıtlayın.",
       "comment": "Yorum ekle",
       "send": "Gönder",
       "what_next": "Sırada ne var",
@@ -134,7 +133,9 @@
       "conversation": "Konuşma",
       "respec": "Analizi yeniden yap ({runs}/{max})",
       "respec_done": "Analiz yeniden başlatıldı",
-      "respec_not_done": "Analiz yeniden başlatılmadı"
+      "respec_not_done": "Analiz yeniden başlatılmadı",
+      "agent_off": "Öneri aracısı kapalı.",
+      "respec_again": "Analizi tekrar yap"
     },
     "impact": {
       "low": "Düşük",
@@ -159,9 +160,7 @@
       "dismiss": "Yoksay",
       "archive": "Arşivle",
       "technical_detail": "Teknik detay",
-      "decision": "Karar",
       "flag_key": "Flag anahtarı",
-      "notes_placeholder": "Talep eden kişi için notlar (isteğe bağlı)",
       "approve": "Onayla ve geliştir",
       "rebuild": "Yeniden geliştir",
       "hold": "Duraklat",

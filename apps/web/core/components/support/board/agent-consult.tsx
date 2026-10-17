@@ -20,17 +20,18 @@ type Props = {
 };
 
 /**
- * The agent's open questions: its last comment (posted as "- question" lines), or the spec's
- * open questions when it asked through the spec.
+ * The agent's open questions. needs_info stores the exact list in spec.open_questions; the last
+ * agent comment ("- question" lines) is the fallback for features asked before that.
  */
 export function agentQuestions(feature: TFeatureRequestDetail): string[] {
+  if (feature.spec?.open_questions?.length) return feature.spec.open_questions;
   let asked: TSupportComment | undefined;
   for (const comment of feature.comments ?? []) if (comment.role === "agent") asked = comment;
   const lines = (asked?.text ?? "")
     .split("\n")
     .map((line) => line.replace(/^\s*[-•]\s*/, "").trim())
     .filter(Boolean);
-  return lines.length > 0 ? lines : (feature.spec?.open_questions ?? []);
+  return lines;
 }
 
 /**
@@ -52,8 +53,12 @@ export function AgentConsult({ feature, onAnswered }: Props) {
     setBusy(true);
     try {
       const response = await supportService.commentFeatureRequest(feature.id, answer.trim());
-      setResult(response.respec ?? { queued: false, reason: "" });
+      const respec = response.respec ?? { queued: false, reason: "" };
+      setResult(respec);
       setAnswer("");
+      // Once relaunched the feature leaves needs_info and this card unmounts on the refetch: the
+      // toast is what's left to say it worked.
+      if (respec.queued) setToast({ type: TOAST_TYPE.SUCCESS, title: t("helpdesk.consult.relaunched") });
       onAnswered();
     } catch {
       setToast({ type: TOAST_TYPE.ERROR, title: t("helpdesk.error_title"), message: t("helpdesk.try_again") });

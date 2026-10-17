@@ -125,7 +125,6 @@
       "impact": "影響",
       "effort": "工数",
       "risks": "リスク",
-      "answer_hint": "分析を続けるため、質問に回答してください。",
       "comment": "コメントを追加",
       "send": "送信",
       "what_next": "次のステップ",
@@ -134,7 +133,9 @@
       "conversation": "会話",
       "respec": "分析をやり直す（{runs}/{max}）",
       "respec_done": "分析を再開しました",
-      "respec_not_done": "分析は再開されませんでした"
+      "respec_not_done": "分析は再開されませんでした",
+      "agent_off": "提案エージェントがオフになっています。",
+      "respec_again": "もう一度分析をやり直す"
     },
     "impact": {
       "low": "低",
@@ -159,9 +160,7 @@
       "dismiss": "見送る",
       "archive": "アーカイブ",
       "technical_detail": "技術的な詳細",
-      "decision": "判断",
       "flag_key": "フラグキー",
-      "notes_placeholder": "依頼者へのメモ(任意)",
       "approve": "承認して実装",
       "rebuild": "再度実装",
       "hold": "一時停止",

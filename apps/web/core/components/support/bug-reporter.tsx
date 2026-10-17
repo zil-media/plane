@@ -183,14 +183,15 @@ export function BugReporter(props: Props) {
     onClose();
   };
 
-  if (!isOpen) return null;
-
+  // Closed without sending, the description stays: so do the review's questions and answers, which
+  // live in DraftReview. Hidden instead of unmounted.
   return (
     <div
       data-support-panel=""
+      aria-hidden={!isOpen}
       role="dialog"
       aria-label={t("helpdesk.reporter.title")}
-      className="fixed right-4 bottom-4 z-40 flex max-h-[calc(100vh-2rem)] w-[380px] max-w-[calc(100vw-2rem)] flex-col gap-3 overflow-y-auto rounded-lg border border-subtle bg-surface-1 p-4 shadow-raised-200"
+      className={`fixed right-4 bottom-4 z-40 ${isOpen ? "flex" : "hidden"} max-h-[calc(100vh-2rem)] w-[380px] max-w-[calc(100vw-2rem)] flex-col gap-3 overflow-y-auto rounded-lg border border-subtle bg-surface-1 p-4 shadow-raised-200`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-body-sm-medium text-primary">

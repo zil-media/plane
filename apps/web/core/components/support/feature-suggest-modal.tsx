@@ -161,6 +161,7 @@ export function FeatureSuggestModal(props: Props) {
           title={title}
           text={problem}
           enabled={step !== "sent"}
+          paused={step !== 1}
           onAnswersChange={setReviewAnswers}
           className={step === 1 ? "" : "hidden"}
         />

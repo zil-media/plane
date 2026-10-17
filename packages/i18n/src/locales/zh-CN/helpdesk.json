@@ -125,7 +125,6 @@
       "impact": "影响",
       "effort": "工作量",
       "risks": "风险",
-      "answer_hint": "请回答这些问题以继续分析。",
       "comment": "添加评论",
       "send": "发送",
       "what_next": "后续进展",
@@ -134,7 +133,9 @@
       "conversation": "对话",
       "respec": "重新分析（{runs}/{max}）",
       "respec_done": "分析已重新开始",
-      "respec_not_done": "分析未重新开始"
+      "respec_not_done": "分析未重新开始",
+      "agent_off": "建议代理已关闭。",
+      "respec_again": "再次重新分析"
     },
     "impact": {
       "low": "低",
@@ -159,9 +160,7 @@
       "dismiss": "忽略",
       "archive": "归档",
       "technical_detail": "技术细节",
-      "decision": "决定",
       "flag_key": "标志键",
-      "notes_placeholder": "给提出请求的人留言（可选）",
       "approve": "批准并开发",
       "rebuild": "重新开发",
       "hold": "暂停",

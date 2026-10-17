@@ -125,7 +125,6 @@
       "impact": "영향",
       "effort": "작업량",
       "risks": "위험 요소",
-      "answer_hint": "분석을 계속하려면 질문에 답변해 주세요.",
       "comment": "댓글 추가",
       "send": "보내기",
       "what_next": "다음 단계",
@@ -134,7 +133,9 @@
       "conversation": "대화",
       "respec": "분석 다시 하기 ({runs}/{max})",
       "respec_done": "분석을 다시 시작했습니다",
-      "respec_not_done": "분석이 다시 시작되지 않았습니다"
+      "respec_not_done": "분석이 다시 시작되지 않았습니다",
+      "agent_off": "제안 에이전트가 꺼져 있습니다.",
+      "respec_again": "분석 한 번 더 하기"
     },
     "impact": {
       "low": "낮음",
@@ -159,9 +160,7 @@
       "dismiss": "보류 처리",
       "archive": "보관",
       "technical_detail": "기술 세부 정보",
-      "decision": "결정",
       "flag_key": "플래그 키",
-      "notes_placeholder": "요청자를 위한 메모 (선택 사항)",
       "approve": "승인하고 구현",
       "rebuild": "다시 구현",
       "hold": "일시 중지",

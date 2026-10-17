@@ -125,7 +125,6 @@
       "impact": "Dopad",
       "effort": "Náročnost",
       "risks": "Rizika",
-      "answer_hint": "Odpovězte na otázky, aby mohla analýza pokračovat.",
       "comment": "Přidat komentář",
       "send": "Odeslat",
       "what_next": "Co bude dál",
@@ -134,7 +133,9 @@
       "conversation": "Konverzace",
       "respec": "Zopakovat analýzu ({runs}/{max})",
       "respec_done": "Analýza znovu spuštěna",
-      "respec_not_done": "Analýza se znovu nespustila"
+      "respec_not_done": "Analýza se znovu nespustila",
+      "agent_off": "Agent pro návrhy je vypnutý.",
+      "respec_again": "Zopakovat analýzu znovu"
     },
     "impact": {
       "low": "Nízký",
@@ -159,9 +160,7 @@
       "dismiss": "Zamítnout",
       "archive": "Archivovat",
       "technical_detail": "Technický detail",
-      "decision": "Rozhodnutí",
       "flag_key": "Klíč příznaku",
-      "notes_placeholder": "Poznámky pro osobu, která o to požádala (nepovinné)",
       "approve": "Schválit a realizovat",
       "rebuild": "Realizovat znovu",
       "hold": "Pozastavit",

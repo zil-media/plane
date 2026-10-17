@@ -125,7 +125,6 @@
       "impact": "Dampak",
       "effort": "Upaya",
       "risks": "Risiko",
-      "answer_hint": "Jawab pertanyaan-pertanyaan ini untuk melanjutkan analisis.",
       "comment": "Tambahkan komentar",
       "send": "Kirim",
       "what_next": "Langkah berikutnya",
@@ -134,7 +133,9 @@
       "conversation": "Percakapan",
       "respec": "Ulangi analisis ({runs}/{max})",
       "respec_done": "Analisis dimulai ulang",
-      "respec_not_done": "Analisis tidak dimulai ulang"
+      "respec_not_done": "Analisis tidak dimulai ulang",
+      "agent_off": "Agen saran sedang dimatikan.",
+      "respec_again": "Ulangi analisis lagi"
     },
     "impact": {
       "low": "Rendah",
@@ -159,9 +160,7 @@
       "dismiss": "Abaikan",
       "archive": "Arsipkan",
       "technical_detail": "Detail teknis",
-      "decision": "Keputusan",
       "flag_key": "Kunci flag",
-      "notes_placeholder": "Catatan untuk orang yang meminta (opsional)",
       "approve": "Setujui dan bangun",
       "rebuild": "Bangun ulang",
       "hold": "Jeda",

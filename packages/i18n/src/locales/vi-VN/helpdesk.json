@@ -125,7 +125,6 @@
       "impact": "Tác động",
       "effort": "Công sức",
       "risks": "Rủi ro",
-      "answer_hint": "Trả lời các câu hỏi để tiếp tục phân tích.",
       "comment": "Thêm bình luận",
       "send": "Gửi",
       "what_next": "Bước tiếp theo",
@@ -134,7 +133,9 @@
       "conversation": "Trao đổi",
       "respec": "Phân tích lại ({runs}/{max})",
       "respec_done": "Đã chạy lại phân tích",
-      "respec_not_done": "Phân tích không được chạy lại"
+      "respec_not_done": "Phân tích không được chạy lại",
+      "agent_off": "Tác nhân đề xuất đang tắt.",
+      "respec_again": "Phân tích lại lần nữa"
     },
     "impact": {
       "low": "Thấp",
@@ -159,9 +160,7 @@
       "dismiss": "Bỏ qua",
       "archive": "Lưu trữ",
       "technical_detail": "Chi tiết kỹ thuật",
-      "decision": "Quyết định",
       "flag_key": "Khóa cờ tính năng",
-      "notes_placeholder": "Ghi chú cho người yêu cầu (không bắt buộc)",
       "approve": "Phê duyệt và xây dựng",
       "rebuild": "Xây dựng lại",
       "hold": "Tạm dừng",

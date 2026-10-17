@@ -125,7 +125,6 @@
       "impact": "影響",
       "effort": "工作量",
       "risks": "風險",
-      "answer_hint": "請回答這些問題以繼續分析。",
       "comment": "新增留言",
       "send": "傳送",
       "what_next": "後續進展",
@@ -134,7 +133,9 @@
       "conversation": "對話",
       "respec": "重新分析（{runs}/{max}）",
       "respec_done": "分析已重新開始",
-      "respec_not_done": "分析未重新開始"
+      "respec_not_done": "分析未重新開始",
+      "agent_off": "建議代理已關閉。",
+      "respec_again": "再次重新分析"
     },
     "impact": {
       "low": "低",
@@ -159,9 +160,7 @@
       "dismiss": "忽略",
       "archive": "封存",
       "technical_detail": "技術細節",
-      "decision": "決定",
       "flag_key": "旗標鍵",
-      "notes_placeholder": "給提出請求者的備註（選填）",
       "approve": "核准並開發",
       "rebuild": "重新開發",
       "hold": "暫停",
