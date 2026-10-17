@@ -133,6 +133,10 @@ def fire_bug_routine(reason, bug_id=None, urgency=None):
             "Follow your saved instructions: fetch the bug(s) via",
             "GET ${API_URL}/api/agent/bugs/?status=open with Authorization: Bearer ${AGENT_API_KEY},",
             "fix, commit with Bug-Id trailers, push to your claude/** branch, then confirm via the API.",
+            # Live with the deploy (the saved prompt changes only when pasted again): only progress keeps
+            # a claim alive, and one silent for 30 minutes went back to the queue (reporter saw
+            # "Recibido" again, a second session could claim it).
+            "Post progress on each claimed bug at least every 20 minutes.",
         ]
     )
     ok = post_routine(url, token, text, "Bug")

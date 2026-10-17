@@ -131,8 +131,12 @@ def file_auto_bug_report(
         bug.last_seen_at = now
         if user_id and user_id not in bug.affected_user_ids:
             bug.affected_user_ids = [*bug.affected_user_ids, user_id]
-        escalate = bug.occurrences % ESCALATE_EVERY == 0 and (
-            bug.last_escalated_at is None or now - bug.last_escalated_at >= ESCALATE_MIN_GAP
+        # Only while nobody has it: claimed (in progress) or with its fix waiting for the window, a
+        # fresh session has nothing to claim and only burns a run.
+        escalate = (
+            bug.status == BugReport.Status.OPEN
+            and bug.occurrences % ESCALATE_EVERY == 0
+            and (bug.last_escalated_at is None or now - bug.last_escalated_at >= ESCALATE_MIN_GAP)
         )
         if escalate:
             bug.last_escalated_at = now

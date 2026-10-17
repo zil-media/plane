@@ -1032,3 +1032,22 @@ class TestRoundEleven:
         assert response.status_code == status.HTTP_200_OK, response.data
         feature.refresh_from_db()
         assert "for_agent" not in feature.build
+
+
+@pytest.mark.contract
+class TestRoundTwelve:
+    @pytest.mark.django_db
+    def test_a_crash_someone_is_fixing_doesnt_start_another_session(self, create_user):
+        from plane.utils.agent_pipeline.bugs import file_auto_bug_report
+        from plane.utils.agent_pipeline.constants import ESCALATE_EVERY
+
+        bug, _ = file_auto_bug_report(key="TypeError:y", description="Se cae", user=create_user)
+        BugReport.objects.filter(id=bug.id).update(
+            status=BugReport.Status.IN_PROGRESS, occurrences=ESCALATE_EVERY - 1, last_escalated_at=None
+        )
+        _, escalate = file_auto_bug_report(key="TypeError:y", description="Se cae", user=create_user)
+        assert escalate is False
+
+        BugReport.objects.filter(id=bug.id).update(status=BugReport.Status.OPEN, occurrences=ESCALATE_EVERY - 1)
+        _, escalate = file_auto_bug_report(key="TypeError:y", description="Se cae", user=create_user)
+        assert escalate is True

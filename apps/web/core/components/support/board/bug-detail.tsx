@@ -199,7 +199,9 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
 
       <SupportTimeline comments={bug.comments} />
 
-      {isOwner && !bug.derived_feature_id && !bugWentToWorkspace(bug) && (
+      {/* Fixed = the fix waits for the next publication (the countdown above says when): resending
+          it then would only get "sale en la próxima publicación" back from the server. */}
+      {isOwner && !bug.derived_feature_id && !bugWentToWorkspace(bug) && bug.status !== "fixed" && (
         <div className="flex flex-col gap-2 border-t border-subtle pt-3">
           <span className="text-caption-sm-medium text-tertiary">{t("helpdesk.detail.resend_hint")}</span>
           <TextArea
@@ -237,23 +239,26 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
             </p>
           )}
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="primary"
-              size="lg"
-              loading={busy}
-              onClick={() =>
-                void run(async () => {
-                  const result = await supportService.sendToFixer(bug.id);
-                  setToast({
-                    type: result.fired ? TOAST_TYPE.SUCCESS : TOAST_TYPE.WARNING,
-                    title: result.fired ? t("helpdesk.admin.fixer_sent") : t("helpdesk.admin.fixer_not_sent"),
-                    message: result.fired ? undefined : t(fixerNotStartedKey(result.reason ?? "")),
-                  });
-                })
-              }
-            >
-              {t("helpdesk.admin.send_to_fixer")}
-            </Button>
+            {/* Not while its fix waits for the publication: a new session would write it again (409). */}
+            {bug.status !== "fixed" && (
+              <Button
+                variant="primary"
+                size="lg"
+                loading={busy}
+                onClick={() =>
+                  void run(async () => {
+                    const result = await supportService.sendToFixer(bug.id);
+                    setToast({
+                      type: result.fired ? TOAST_TYPE.SUCCESS : TOAST_TYPE.WARNING,
+                      title: result.fired ? t("helpdesk.admin.fixer_sent") : t("helpdesk.admin.fixer_not_sent"),
+                      message: result.fired ? undefined : t(fixerNotStartedKey(result.reason ?? "")),
+                    });
+                  })
+                }
+              >
+                {t("helpdesk.admin.send_to_fixer")}
+              </Button>
+            )}
             {bug.blocked_at && (
               <Button
                 variant="secondary"
