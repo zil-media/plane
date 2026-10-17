@@ -16,13 +16,15 @@ from plane.db.models import (
     IssueAssignee,
     IssueComment,
     Notification,
+    Page,
+    PageVersion,
     State,
     UsageDay,
     User,
     WorkspaceMember,
 )
 from plane.middleware.usage import classify
-from plane.utils.zil_metrics import TZ, compute_workspace_metrics
+from plane.utils.zil_metrics import TZ, compute_person_metrics, compute_workspace_metrics
 
 ZIL_ENV = {"ZIL_BASE_URL": "http://zil.test", "ZIL_SERVICE_SECRET": "secret"}
 
@@ -59,14 +61,14 @@ def make_issue(project, user, name, created, completed=None, state_group="backlo
     return Issue.objects.get(pk=issue.pk)
 
 
-def activity(issue, actor, when, old, new):
+def activity(issue, actor, when, old, new, field="state"):
     act = IssueActivity.objects.create(
         issue=issue,
         project_id=issue.project_id,
         workspace_id=issue.workspace_id,
         actor=actor,
         verb="updated",
-        field="state",
+        field=field,
         old_value=old,
         new_value=new,
     )
@@ -120,10 +122,15 @@ class TestWorkspaceMetrics:
         ModuleIssue.objects.create(module=module, issue=done, project_id=project["id"], workspace_id=workspace.id)
         comment(done, create_user, at(5, 11))
         comment(done, designer, at(5, 14))
+        # Plane logs every comment twice (IssueComment + IssueActivity field "comment"): counted once
+        activity(done, designer, at(5, 14), None, "x", field="comment")
         # open, unassigned, untouched since Oct 1: stale at the end of the window
         make_issue(project, create_user, "Pendiente", at(1, 9))
         # outside the window: created later
         make_issue(project, create_user, "Futuro", at(20, 9))
+        # Plane's onboarding demo item: never counted
+        seed_bot = User.objects.create(email="seed@plane.test", username="seed", is_bot=True, bot_type="WORKSPACE_SEED")
+        make_issue(project, seed_bot, "1. Welcome to Plane", at(2, 9))
 
         Notification.objects.create(
             workspace=workspace,
@@ -168,6 +175,8 @@ class TestWorkspaceMetrics:
         # reply pairs and heatmap (Oct 5 2026 is a Monday)
         assert inter["reply_pairs"][0]["replies"] == 1 and inter["reply_pairs"][0]["median_hours"] == 3.0
         assert m["usage"]["heatmap"][0][11] >= 1
+        # 2 state changes + 2 comments, the comment's activity twin not counted
+        assert sum(map(sum, m["usage"]["heatmap"])) == 4
         # per client, from the module the item is in
         acme = next(c for c in m["clients"] if c["name"] == "ACME")
         assert (acme["completed"], acme["comments"], acme["lead_time_median_hours"]) == (1, 2, 48.0)
@@ -192,3 +201,76 @@ class TestWorkspaceMetrics:
         assert ok.status_code == status.HTTP_200_OK
         assert set(ok.data) >= {"usage", "flow", "interactions", "projects", "people"}
         assert (date.fromisoformat(ok.data["until"]) - date.fromisoformat(ok.data["since"])) == timedelta(days=30)
+
+
+@pytest.mark.contract
+class TestPersonMetrics:
+    @pytest.mark.django_db
+    def test_hours_active_time_work_and_debts(self, workspace, project, create_user):
+        designer = User.objects.create(email="designer@zil.test", username="designer", display_name="Joaquin")
+        WorkspaceMember.objects.create(workspace=workspace, member=designer, role=15)
+
+        done = make_issue(project, create_user, "Carrusel", at(5, 10), at(7, 10), "completed", date(2026, 10, 8))
+        assignment = IssueAssignee.objects.create(
+            issue=done, assignee=designer, project_id=project["id"], workspace_id=workspace.id
+        )
+        IssueAssignee.objects.filter(pk=assignment.pk).update(created_at=at(5, 12))
+        comment(done, create_user, at(5, 11))
+        comment(done, designer, at(5, 14))  # Monday 14:00, answers 3 h later
+        activity(done, designer, at(5, 14), None, "x", field="comment")  # twin of the comment: skipped
+        activity(done, designer, at(6, 10), "Backlog", "In Progress")  # starts 22 h after assignment
+        activity(done, designer, at(7, 10), "In Progress", "Done")  # Wednesday 10:00
+        activity(done, designer, datetime(2026, 10, 7, 10, 10, tzinfo=TZ), "Carrusel", "Carrusel v2", field="name")
+        page = Page.objects.create(name="Brief ACME", workspace=workspace, owned_by=designer)
+        PageVersion.objects.create(
+            workspace=workspace, page=page, owned_by=designer, last_saved_at=datetime(2026, 10, 7, 10, 20, tzinfo=TZ)
+        )
+        Notification.objects.create(
+            workspace=workspace,
+            project_id=project["id"],
+            receiver=designer,
+            sender="in_app:issue_activities:assigned",
+            entity_name="issue",
+            entity_identifier=done.id,
+            title="t",
+            read_at=at(5, 16),
+        )
+        Notification.objects.filter(receiver=designer).update(created_at=at(5, 12))
+        owed = make_issue(project, create_user, "Pendiente", at(1, 9))
+        IssueAssignee.objects.create(issue=owed, assignee=designer, project_id=project["id"], workspace_id=workspace.id)
+
+        m = compute_person_metrics(workspace, designer, date(2026, 10, 1), date(2026, 10, 17))
+        totals, rhythm, work = m["totals"], m["rhythm"], m["work"]
+        assert m["person"]["name"] == "Joaquin"
+        assert m["kinds"] == {"comment": 1, "started": 1, "completed": 1, "edited": 1, "page": 1}
+        assert (totals["actions"], totals["action_days"], totals["comments"], totals["page_saves"]) == (5, 3, 1, 1)
+        # Mon: 14:00 comment + 16:00 read = two 5-min sessions; Tue: 10:00 = 5 min; Wed: 10:00-10:20 = 25 min
+        assert (totals["active_minutes"], totals["sessions"], totals["active_minutes_per_day"]) == (40, 4, 10)
+        oct5 = next(d for d in m["daily"] if d["date"] == "2026-10-05")
+        assert (oct5["first"], oct5["last"], oct5["active_minutes"]) == ("14:00", "16:00", 10)
+        assert rhythm["first_hour_median"] == 10.0 and rhythm["completion_hour_median"] == 10.0
+        assert m["heatmap"][0][14] == 1 and m["heatmap"][0][16] == 1  # the read counts as presence
+        assert m["heatmap_completed"][2][10] == 1
+        assert work["completed_assigned"] == 1 and work["lead_time_median_hours"] == 48.0
+        assert work["start_after_assignment_median_hours"] == 22.0 and work["on_time_rate"] == 1.0
+        assert work["reply_median_hours"] == 3.0 and work["notifications_read"] == 1
+        assert (work["open_assigned"], work["open_stale"]) == (1, 1) and m["owed"][0]["name"] == "Pendiente"
+        assert m["timeline"][0]["kind"] == "page" and m["timeline"][-1]["kind"] == "comment"
+        assert m["projects"][0]["actions"] == 4 and len(m["daily"]) == 16
+
+    @pytest.mark.django_db
+    def test_endpoint_only_for_members(self, api_client, workspace, create_user):
+        url = "/api/zil/sync/metrics/person/"
+        api_client.credentials(HTTP_X_ZIL_SERVICE_KEY="secret")
+        missing = api_client.get(url, {"workspace_slug": workspace.slug, "email": "nobody@zil.test"})
+        assert missing.status_code == status.HTTP_404_NOT_FOUND
+        ok = api_client.get(
+            url,
+            {
+                "workspace_slug": workspace.slug,
+                "email": create_user.email.upper(),
+                "since": "2026-10-01",
+                "until": "2026-10-08",
+            },
+        )
+        assert ok.status_code == status.HTTP_200_OK and len(ok.data["daily"]) == 7
