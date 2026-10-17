@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 # Module imports
 from plane.app.permissions import allow_permission, ROLE
-from plane.db.models import Page, PageZilClientLink
+from plane.db.models import Page, PageZilClientLink, ZilClientsRoot
 from plane.utils.zil_client import (
     ZilUnavailable,
     apply_zil_client_fields,
@@ -44,7 +44,8 @@ class ZilClientSearchEndpoint(BaseAPIView):
 
         q = request.GET.get("q", "").strip()[:100]
         try:
-            results = search_zil_clients(slug, q)
+            # Zil narrows the list to the clients this person may pick
+            results = search_zil_clients(slug, q, actor_email=request.user.email)
         except ZilUnavailable:
             return Response(
                 {"enabled": True, "error": "ZIL_UNAVAILABLE"},
@@ -80,6 +81,13 @@ class PageZilClientLinkEndpoint(BaseAPIView):
         if page.archived_at is not None:
             return None, Response(
                 {"error": "Page is archived", "error_message": "PAGE_ARCHIVED"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # the folder that holds the clients' folders is no client's: linked, the sync would take it
+        # for that client's folder and never create the real one
+        if ZilClientsRoot.objects.filter(page_id=page.id).exists():
+            return None, Response(
+                {"error": "The clients folder cannot be linked to a client", "error_message": "PAGE_IS_CLIENTS_ROOT"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return page, None

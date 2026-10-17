@@ -27,6 +27,9 @@ export const ZIL_ASSET_KINDS: TZilClientAssetKind[] = [
   "other",
 ];
 
+// Zil refuses longer values with a bare "invalid data" (opsClientSchema assetFields)
+const ASSET_LIMITS = { label: 200, url: 2000, externalId: 200, notes: 2000 } as const;
+
 type Props = {
   isOpen: boolean;
   onClose: () => void;
@@ -35,6 +38,12 @@ type Props = {
   projectId: string;
   pageId: string;
   onSaved: (asset: TZilClientAsset) => void;
+};
+
+/** What to show for a failed Ops to Zil call: Zil's own sentence, never one of Ops's internal codes. */
+export const getZilErrorMessage = (error: unknown): string | undefined => {
+  const message = (error as { error?: string } | undefined)?.error;
+  return message && !/^[A-Z][A-Z_]+$/.test(message) ? message : undefined;
 };
 
 const emptyForm = (): Required<TZilClientAssetInput> => ({
@@ -63,25 +72,37 @@ export function ZilClientAssetModal(props: Props) {
 
   const set = (key: keyof TZilClientAssetInput) => (value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
-  const canSubmit = isDrive ? !!form.url.trim() : !!form.label.trim();
+  // a new Drive folder is named after the folder itself; every other case needs a name
+  const canSubmit = (isDrive ? !!form.url.trim() : true) && (!!form.label.trim() || (isDrive && !asset));
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setIsSubmitting(true);
     try {
       const { kind, ...fields } = form;
-      const saved = asset
-        ? await projectPageService.updateZilClientAsset(workspaceSlug, projectId, pageId, asset.id, fields)
-        : await projectPageService.createZilClientAsset(workspaceSlug, projectId, pageId, { kind, ...fields });
-      onSaved(saved);
+      if (asset) {
+        // send only what changed: Zil checks a Drive link as the editor whenever it receives one, so
+        // resending the unchanged link would stop anyone without access to the folder from editing its notes
+        const changes = Object.fromEntries(
+          (Object.keys(fields) as (keyof typeof fields)[])
+            .filter((key) => fields[key].trim() !== asset[key])
+            .map((key) => [key, fields[key]])
+        ) as TZilClientAssetInput;
+        if (Object.keys(changes).length === 0) {
+          onClose();
+          return;
+        }
+        onSaved(await projectPageService.updateZilClientAsset(workspaceSlug, projectId, pageId, asset.id, changes));
+      } else {
+        onSaved(await projectPageService.createZilClientAsset(workspaceSlug, projectId, pageId, { kind, ...fields }));
+      }
       setToast({ type: TOAST_TYPE.SUCCESS, title: t("page_tree.zil_client.assets.saved") });
       onClose();
     } catch (error) {
-      const message = (error as { error?: string } | undefined)?.error;
       setToast({
         type: TOAST_TYPE.ERROR,
         title: t("page_tree.zil_client.assets.error"),
-        message: message && message !== "ZIL_UNAVAILABLE" ? message : undefined,
+        message: getZilErrorMessage(error),
       });
     } finally {
       setIsSubmitting(false);
@@ -124,6 +145,7 @@ export function ZilClientAssetModal(props: Props) {
           <span className="text-13 text-secondary">{t("page_tree.zil_client.assets.url")}</span>
           <Input
             value={form.url}
+            maxLength={ASSET_LIMITS.url}
             onChange={(e) => set("url")(e.target.value)}
             placeholder={isDrive ? "https://drive.google.com/drive/folders/…" : "https://"}
             className="w-full"
@@ -137,7 +159,13 @@ export function ZilClientAssetModal(props: Props) {
 
         <div className="flex flex-col gap-1">
           <span className="text-13 text-secondary">{t("page_tree.zil_client.assets.label")}</span>
-          <Input value={form.label} onChange={(e) => set("label")(e.target.value)} className="w-full" inputSize="md" />
+          <Input
+            value={form.label}
+            maxLength={ASSET_LIMITS.label}
+            onChange={(e) => set("label")(e.target.value)}
+            className="w-full"
+            inputSize="md"
+          />
         </div>
 
         {!isDrive && (
@@ -145,6 +173,7 @@ export function ZilClientAssetModal(props: Props) {
             <span className="text-13 text-secondary">{t("page_tree.zil_client.assets.external_id")}</span>
             <Input
               value={form.externalId}
+              maxLength={ASSET_LIMITS.externalId}
               onChange={(e) => set("externalId")(e.target.value)}
               className="w-full"
               inputSize="md"
@@ -156,6 +185,7 @@ export function ZilClientAssetModal(props: Props) {
           <span className="text-13 text-secondary">{t("page_tree.zil_client.assets.notes")}</span>
           <TextArea
             value={form.notes}
+            maxLength={ASSET_LIMITS.notes}
             onChange={(e) => set("notes")(e.target.value)}
             className="min-h-20 w-full text-13"
           />

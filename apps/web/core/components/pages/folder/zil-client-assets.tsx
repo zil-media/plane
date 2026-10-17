@@ -37,7 +37,7 @@ import { renderFormattedDate } from "@plane/utils";
 // services
 import { ProjectPageService } from "@/services/page";
 // local imports
-import { ZIL_ASSET_KINDS, ZilClientAssetModal } from "./zil-client-asset-modal";
+import { getZilErrorMessage, ZIL_ASSET_KINDS, ZilClientAssetModal } from "./zil-client-asset-modal";
 
 const projectPageService = new ProjectPageService();
 
@@ -126,12 +126,17 @@ export function ZilClientAssets(props: Props) {
       setDrive(({ [asset.id]: _open, ...rest }) => rest);
       return;
     }
-    setDrive((current) => ({ ...current, [asset.id]: { status: "loading" } }));
+    const pending: TDriveState = { status: "loading" };
+    setDrive((current) => ({ ...current, [asset.id]: pending }));
+    // the answer only counts while this request is still the one shown: hiding the files or editing the
+    // link meanwhile drops the entry, and a late answer must not bring back a closed or outdated listing
+    const settle = (next: TDriveState) =>
+      setDrive((current) => (current[asset.id] === pending ? { ...current, [asset.id]: next } : current));
     try {
       const listing = await projectPageService.getZilClientDriveListing(workspaceSlug, projectId, pageId, asset.id);
-      setDrive((current) => ({ ...current, [asset.id]: { status: "ready", listing } }));
+      settle({ status: "ready", listing });
     } catch {
-      setDrive((current) => ({ ...current, [asset.id]: { status: "error" } }));
+      settle({ status: "error" });
     }
   };
 
@@ -152,8 +157,12 @@ export function ZilClientAssets(props: Props) {
         setToast({ type: TOAST_TYPE.SUCCESS, title: t("page_tree.zil_client.assets.file_deleted") });
       }
       setPendingDelete(null);
-    } catch {
-      setToast({ type: TOAST_TYPE.ERROR, title: t("page_tree.zil_client.assets.error") });
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("page_tree.zil_client.assets.delete_error"),
+        message: getZilErrorMessage(error),
+      });
     } finally {
       setIsDeleting(false);
     }
@@ -167,11 +176,12 @@ export function ZilClientAssets(props: Props) {
       onChange((current) => ({ ...current, brandFiles: [saved, ...current.brandFiles] }));
       setToast({ type: TOAST_TYPE.SUCCESS, title: t("page_tree.zil_client.assets.uploaded") });
     } catch (error) {
-      const message = (error as { error?: string } | undefined)?.error;
+      // 413 comes from the reverse proxy in front of Ops, which answers without a body
+      const tooLarge = (error as { status?: number } | undefined)?.status === 413;
       setToast({
         type: TOAST_TYPE.ERROR,
         title: t("page_tree.zil_client.assets.upload_error"),
-        message: message && message !== "ZIL_UNAVAILABLE" ? message : undefined,
+        message: tooLarge ? t("page_tree.zil_client.assets.upload_too_large") : getZilErrorMessage(error),
       });
     } finally {
       setIsUploading(false);
@@ -280,6 +290,9 @@ export function ZilClientAssets(props: Props) {
                             href={asset.url}
                             target="_blank"
                             rel="noopener noreferrer"
+                            aria-label={t(
+                              isDrive ? "page_tree.zil_client.assets.drive_open" : "page_tree.zil_client.assets.open"
+                            )}
                             className="grid size-6 place-items-center rounded-sm text-tertiary hover:bg-layer-transparent-hover hover:text-primary"
                           >
                             <ExternalLink className="size-3.5" />
@@ -291,6 +304,7 @@ export function ZilClientAssets(props: Props) {
                           <Tooltip tooltipContent={t("page_tree.zil_client.assets.edit")}>
                             <button
                               type="button"
+                              aria-label={t("page_tree.zil_client.assets.edit")}
                               onClick={() => openModal(asset)}
                               className="grid size-6 place-items-center rounded-sm text-tertiary hover:bg-layer-transparent-hover hover:text-primary"
                             >
@@ -300,6 +314,7 @@ export function ZilClientAssets(props: Props) {
                           <Tooltip tooltipContent={t("page_tree.zil_client.assets.delete")}>
                             <button
                               type="button"
+                              aria-label={t("page_tree.zil_client.assets.delete")}
                               onClick={() => setPendingDelete({ type: "asset", id: asset.id, name: asset.label })}
                               className="grid size-6 place-items-center rounded-sm text-tertiary hover:bg-layer-transparent-hover hover:text-danger-primary"
                             >
@@ -364,6 +379,7 @@ export function ZilClientAssets(props: Props) {
                     <Tooltip tooltipContent={t("page_tree.zil_client.assets.delete")}>
                       <button
                         type="button"
+                        aria-label={t("page_tree.zil_client.assets.delete")}
                         onClick={() => setPendingDelete({ type: "file", id: file.id, name: file.name })}
                         className="grid size-6 flex-shrink-0 place-items-center rounded-sm text-tertiary hover:bg-layer-transparent-hover hover:text-danger-primary"
                       >

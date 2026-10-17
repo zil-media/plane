@@ -62,6 +62,10 @@ def make_issue(project, user, name, created, completed=None, state_group="backlo
 
 
 def activity(issue, actor, when, old, new, field="state"):
+    # like Plane, a state change stores the names and the ids of both states
+    states = (
+        {s.name: s.id for s in State.all_state_objects.filter(project_id=issue.project_id)} if field == "state" else {}
+    )
     act = IssueActivity.objects.create(
         issue=issue,
         project_id=issue.project_id,
@@ -71,6 +75,8 @@ def activity(issue, actor, when, old, new, field="state"):
         field=field,
         old_value=old,
         new_value=new,
+        old_identifier=states.get(old),
+        new_identifier=states.get(new),
     )
     IssueActivity.objects.filter(pk=act.pk).update(created_at=when)
 
@@ -190,6 +196,54 @@ class TestWorkspaceMetrics:
         assert (joaquin["completed_assigned"], joaquin["comments"], joaquin["notifications_read"]) == (1, 1, 1)
 
     @pytest.mark.django_db
+    def test_intake_requests_are_not_work(self, workspace, project, create_user):
+        # a pending or declined intake request stays in the triage state
+        triage = State.triage_objects.get(project_id=project["id"])
+        request = Issue.objects.create(name="Pedido de cliente", project_id=project["id"], state=triage)
+        Issue.objects.filter(pk=request.pk).update(created_at=at(5, 9), created_by_id=create_user.id)
+        make_issue(project, create_user, "Pieza", at(5, 10))
+
+        m = compute_workspace_metrics(workspace, date(2026, 10, 1), date(2026, 10, 17))
+        assert (m["flow"]["created"], m["flow"]["open"], m["flow"]["open_unassigned"]) == (1, 1, 1)
+        assert [x["name"] for x in m["items"]["unassigned"]] == ["Pieza"]
+
+    @pytest.mark.django_db
+    def test_state_history_is_read_by_state_id(self, workspace, project, create_user):
+        done = make_issue(project, create_user, "Carrusel", at(5, 10), at(7, 10), "completed")
+        activity(done, create_user, at(6, 10), "Backlog", "In Progress")
+        activity(done, create_user, at(7, 10), "In Progress", "Done")
+        activity(done, create_user, at(8, 10), "Done", "In Progress")  # reopened
+        activity(done, create_user, at(9, 10), "In Progress", "Done")
+        Issue.objects.filter(pk=done.pk).update(completed_at=at(9, 10))
+        # the team renames its states afterwards: the history still means the same
+        State.objects.filter(project_id=project["id"], name="In Progress").update(name="En curso")
+        State.objects.filter(project_id=project["id"], name="Done").update(name="Listo")
+
+        flow = compute_workspace_metrics(workspace, date(2026, 10, 1), date(2026, 10, 17))["flow"]
+        assert flow["cycle_time_hours"]["median"] == 72.0 and flow["completed_without_start"] == 0
+        assert flow["reopen_events"] == 1
+        person = compute_person_metrics(workspace, create_user, date(2026, 10, 1), date(2026, 10, 17))
+        assert person["kinds"] == {"started": 2, "completed": 2}
+
+    @pytest.mark.django_db
+    def test_item_created_already_done_has_zero_lead_time(self, workspace, project, create_user):
+        # Issue.save stamps completed_at a few ms before the insert sets created_at
+        make_issue(project, create_user, "Hecho", at(5, 10), at(5, 10) - timedelta(milliseconds=3), "completed")
+        flow = compute_workspace_metrics(workspace, date(2026, 10, 1), date(2026, 10, 17))["flow"]
+        assert flow["completed"] == 1 and (flow["lead_time_hours"]["n"], flow["lead_time_hours"]["median"]) == (1, 0.0)
+
+    @pytest.mark.django_db
+    def test_bot_comment_is_one_bot_action(self, workspace, project, create_user):
+        agent = User.objects.create(email="ada.agent@zil.test", username="ada", is_bot=True, bot_type="ZIL_AGENT")
+        WorkspaceMember.objects.create(workspace=workspace, member=agent, role=15)
+        item = make_issue(project, create_user, "Pieza", at(5, 10))
+        comment(item, agent, at(5, 11))
+        activity(item, agent, at(5, 11), None, "x", field="comment")  # Plane's twin of the comment
+
+        m = compute_workspace_metrics(workspace, date(2026, 10, 1), date(2026, 10, 17))
+        assert m["usage"]["bot_actions"] == 1
+
+    @pytest.mark.django_db
     def test_endpoint_needs_the_service_key_and_a_valid_window(self, api_client, workspace):
         url = "/api/zil/sync/metrics/"
         assert api_client.get(url, {"workspace_slug": workspace.slug}).status_code in (401, 403)
@@ -257,6 +311,44 @@ class TestPersonMetrics:
         assert (work["open_assigned"], work["open_stale"]) == (1, 1) and m["owed"][0]["name"] == "Pendiente"
         assert m["timeline"][0]["kind"] == "page" and m["timeline"][-1]["kind"] == "comment"
         assert m["projects"][0]["actions"] == 4 and len(m["daily"]) == 16
+
+    @pytest.mark.django_db
+    def test_mark_all_read_is_one_moment(self, workspace, project, create_user):
+        designer = User.objects.create(email="designer@zil.test", username="designer", display_name="Joaquin")
+        WorkspaceMember.objects.create(workspace=workspace, member=designer, role=15)
+        item = make_issue(project, create_user, "Pieza", at(5, 10))
+        Notification.objects.bulk_create(
+            Notification(
+                workspace=workspace,
+                project_id=project["id"],
+                receiver=designer,
+                sender="in_app:issue_activities:assigned",
+                entity_name="issue",
+                entity_identifier=item.id,
+                title="t",
+                # Plane's "mark all as read" stamps each one in a loop: same second, different microseconds
+                read_at=at(6, 9) + timedelta(microseconds=n * 900),
+            )
+            for n in range(120)
+        )
+        Notification.objects.filter(receiver=designer).update(created_at=at(5, 12))
+
+        m = compute_person_metrics(workspace, designer, date(2026, 10, 1), date(2026, 10, 17))
+        assert sum(map(sum, m["heatmap"])) == 1 and m["heatmap"][1][9] == 1
+        assert (m["totals"]["sessions"], m["work"]["notifications_read"]) == (1, 120)
+
+    @pytest.mark.django_db
+    def test_intake_request_is_not_owed(self, workspace, project, create_user):
+        triage = State.triage_objects.get(project_id=project["id"])
+        request = Issue.objects.create(name="Pedido de cliente", project_id=project["id"], state=triage)
+        owed = make_issue(project, create_user, "Pieza", at(5, 10))
+        for issue in (request, owed):
+            IssueAssignee.objects.create(
+                issue=issue, assignee=create_user, project_id=project["id"], workspace_id=workspace.id
+            )
+
+        m = compute_person_metrics(workspace, create_user, date(2026, 10, 1), date(2026, 10, 17))
+        assert [o["name"] for o in m["owed"]] == ["Pieza"] and m["work"]["open_assigned"] == 1
 
     @pytest.mark.django_db
     def test_endpoint_only_for_members(self, api_client, workspace, create_user):

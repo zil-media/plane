@@ -32,7 +32,15 @@ type TProfileState =
   | { status: "loading" }
   | { status: "ready"; profile: TZilClientProfile }
   | { status: "forbidden" }
+  | { status: "missing" }
   | { status: "unavailable" };
+
+const PROFILE_ERROR_KEYS = {
+  forbidden: "page_tree.zil_client.profile.forbidden",
+  // the client was removed or moved to another unit in Zil: the link stays, flagged "missing"
+  missing: "page_tree.zil_client.missing",
+  unavailable: "page_tree.zil_client.profile.unavailable",
+} as const;
 
 type Props = {
   page: TPageInstance;
@@ -66,7 +74,10 @@ export const ZilClientPanel = observer(function ZilClientPanel(props: Props) {
           return undefined;
         })
         .catch((error: { status?: number } | undefined) => {
-          if (!signal?.cancelled) setState({ status: error?.status === 403 ? "forbidden" : "unavailable" });
+          if (signal?.cancelled) return;
+          if (error?.status === 403) setState({ status: "forbidden" });
+          else if (error?.status === 404) setState({ status: "missing" });
+          else setState({ status: "unavailable" });
         });
     },
     [workspaceSlug, projectId, pageId]
@@ -98,13 +109,7 @@ export const ZilClientPanel = observer(function ZilClientPanel(props: Props) {
     if (state.status !== "ready")
       return (
         <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-subtle py-12 text-center">
-          <p className="text-13 text-secondary">
-            {t(
-              state.status === "forbidden"
-                ? "page_tree.zil_client.profile.forbidden"
-                : "page_tree.zil_client.profile.unavailable"
-            )}
-          </p>
+          <p className="text-13 text-secondary">{t(PROFILE_ERROR_KEYS[state.status])}</p>
           {state.status === "unavailable" && (
             <Button variant="secondary" size="lg" onClick={() => load()}>
               {t("page_tree.zil_client.profile.retry")}

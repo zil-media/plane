@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { Building2, FilePlus2, FolderOpen, FolderPlus, Users } from "lucide-react";
 // plane imports
@@ -46,12 +46,21 @@ const getTabForPage = (page: TPageInstance): TPageNavigationTabs => {
 export const FolderPageView = observer(function FolderPageView(props: Props) {
   const { page, storeType } = props;
   // states
-  const [isZilClientModalOpen, setIsZilClientModalOpen] = useState(false);
+  // the picker belongs to the folder it was opened on: this view is reused when navigating between folders
+  // (e.g. the "Open folder" action of the already-linked toast) and must not stay open, with its unlink
+  // button, over the next one
+  const [zilClientModalPageId, setZilClientModalPageId] = useState<string | null>(null);
   // hooks
   const { t } = useTranslation();
   const { data } = usePageStore(storeType);
   const { canCreateChild, createChild } = usePageTreeOperations({ page, storeType });
+  // a folder opened later must not find the picker still open from the previous one (going back to the
+  // first would reopen it otherwise)
+  useEffect(() => {
+    setZilClientModalPageId(null);
+  }, [page.id]);
   // derived values
+  const isZilClientModalOpen = zilClientModalPageId === page.id;
   const { name, logo_props, zil_client, is_zil_clients_root, canCurrentUserEditPage, archived_at, updateTitle } = page;
   const canEdit = canCurrentUserEditPage && !archived_at;
   // children are shown regardless of their access, each in the tab it belongs to
@@ -117,7 +126,7 @@ export const FolderPageView = observer(function FolderPageView(props: Props) {
             </Tooltip>
           )}
           {canEdit && !is_zil_clients_root && (
-            <Button variant="ghost" size="lg" onClick={() => setIsZilClientModalOpen(true)}>
+            <Button variant="ghost" size="lg" onClick={() => setZilClientModalPageId(page.id ?? null)}>
               <Building2 className="size-3.5" />
               {zil_client ? t("page_tree.zil_client.change") : t("page_tree.zil_client.link")}
             </Button>
@@ -140,12 +149,24 @@ export const FolderPageView = observer(function FolderPageView(props: Props) {
         </div>
 
         {zil_client ? (
-          <ZilClientPanel page={page} pagesCount={orderedChildren.length} pages={childrenIndex} />
+          // one panel per folder and client: this view is reused when navigating between folders, and a
+          // request still in flight for the previous one must not land in the next one's profile
+          <ZilClientPanel
+            key={`${page.id}:${zil_client.id}`}
+            page={page}
+            pagesCount={orderedChildren.length}
+            pages={childrenIndex}
+          />
         ) : (
           childrenIndex
         )}
       </div>
-      <ZilClientPickerModal isOpen={isZilClientModalOpen} onClose={() => setIsZilClientModalOpen(false)} page={page} />
+      <ZilClientPickerModal
+        key={page.id}
+        isOpen={isZilClientModalOpen}
+        onClose={() => setZilClientModalPageId(null)}
+        page={page}
+      />
     </div>
   );
 });

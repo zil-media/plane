@@ -40,6 +40,8 @@ TZ = ZoneInfo("America/Argentina/Buenos_Aires")
 STALE_DAYS = 14
 READY_MIN_DESCRIPTION = 50
 DONE_GROUPS = {"completed", "cancelled"}
+# intake requests (pending or declined) sit in the triage state: they are not work yet
+NOT_OPEN_GROUPS = {"cancelled", "triage"}
 LIST_LIMIT = 30
 SEED_BOT_TYPE = "WORKSPACE_SEED"
 SESSION_GAP = timedelta(minutes=30)
@@ -71,6 +73,24 @@ def _median(values):
 
 def _rate(num, den):
     return round(num / den, 3) if den else None
+
+
+def _lead_hours(issue):
+    """Created → completed. An item created already done has its completed_at stamped a few ms
+    before created_at (Issue.save sets it before the insert): its lead time is 0, not a negative."""
+    return _hours(max(issue["completed_at"], issue["created_at"]) - issue["created_at"])
+
+
+def _state_groups(workspace):
+    """State id → group. State changes are resolved by the ids the activity stores, so renamed
+    or deleted states keep their meaning in the history."""
+    return dict(State.all_state_objects.filter(workspace_id=workspace.id).values_list("id", "group"))
+
+
+def _is_open(issue, end):
+    if issue["state__group"] in NOT_OPEN_GROUPS or (issue["archived_at"] and issue["completed_at"] is None):
+        return False
+    return issue["completed_at"] is None or issue["completed_at"] >= end
 
 
 def _client_key(name):
@@ -125,10 +145,7 @@ def compute_workspace_metrics(workspace, since, until):
     )
     issue_ids = [i["id"] for i in issues]
     issue_by_id = {i["id"]: i for i in issues}
-    state_group = {
-        (s["project_id"], s["name"]): s["group"]
-        for s in State.objects.filter(workspace_id=workspace.id).values("project_id", "name", "group")
-    }
+    state_group = _state_groups(workspace)
     assignees = defaultdict(set)
     assigned_at = {}
     first_assigned = {}
@@ -145,7 +162,9 @@ def compute_workspace_metrics(workspace, since, until):
 
     activities = list(
         IssueActivity.objects.filter(issue_id__in=issue_ids, created_at__lt=end)
-        .values("issue_id", "field", "old_value", "new_value", "actor_id", "created_at")
+        .values(
+            "issue_id", "field", "old_value", "new_value", "old_identifier", "new_identifier", "actor_id", "created_at"
+        )
         .order_by("created_at")
     )
     last_touch = {}
@@ -159,9 +178,8 @@ def compute_workspace_metrics(workspace, since, until):
         last_touch[iid] = act["created_at"]
         if act["field"] != "state":
             continue
-        project_id = issue["project_id"]
-        new_group = state_group.get((project_id, act["new_value"]))
-        old_group = state_group.get((project_id, act["old_value"]))
+        new_group = state_group.get(act["new_identifier"])
+        old_group = state_group.get(act["old_identifier"])
         if new_group == "started" and iid not in first_started:
             first_started[iid] = act["created_at"]
         if in_window(act["created_at"]):
@@ -181,15 +199,9 @@ def compute_workspace_metrics(workspace, since, until):
     for c in comments:
         last_touch[c["issue_id"]] = max(last_touch.get(c["issue_id"], c["created_at"]), c["created_at"])
 
-    created = [i for i in issues if in_window(i["created_at"])]
+    created = [i for i in issues if in_window(i["created_at"]) and i["state__group"] != "triage"]
     completed = [i for i in issues if in_window(i["completed_at"]) and i["state__group"] == "completed"]
-
-    def is_open_at_end(i):
-        if i["state__group"] == "cancelled" or (i["archived_at"] and i["completed_at"] is None):
-            return False
-        return i["completed_at"] is None or i["completed_at"] >= end
-
-    open_items = [i for i in issues if is_open_at_end(i)]
+    open_items = [i for i in issues if _is_open(i, end)]
 
     def touched(i):
         return max(last_touch.get(i["id"], i["created_at"]), i["created_at"])
@@ -239,7 +251,7 @@ def compute_workspace_metrics(workspace, since, until):
         "created": len(created),
         "completed": len(completed),
         "cancelled": sum(1 for i in created if i["state__group"] == "cancelled"),
-        "lead_time_hours": _stats(_hours(i["completed_at"] - i["created_at"]) for i in completed),
+        "lead_time_hours": _stats(_lead_hours(i) for i in completed),
         "cycle_time_hours": _stats(
             _hours(i["completed_at"] - first_started[i["id"]]) for i in completed if i["id"] in first_started
         ),
@@ -389,7 +401,9 @@ def compute_workspace_metrics(workspace, since, until):
         "bots": len(bots),
         "active_users": len({r["user_id"] for r in human_usage}),
         "writers": len([uid for uid, n in activity_by_person.items() if n]),
-        "bot_actions": sum(1 for a in activities if in_window(a["created_at"]) and a["actor_id"] in bots)
+        "bot_actions": sum(
+            1 for a in activities if a["field"] != "comment" and in_window(a["created_at"]) and a["actor_id"] in bots
+        )
         + sum(1 for c in window_comments if c["actor_id"] in bots),
         "api_requests": sum(r["reads"] + r["writes"] for r in usage_rows if r["channel"] == "api"),
         "daily": [
@@ -424,7 +438,7 @@ def compute_workspace_metrics(workspace, since, until):
                 "comments": sum(1 for c in window_comments if c["actor_id"] == uid),
                 "created": sum(1 for i in created if i["created_by_id"] == uid),
                 "completed_assigned": len(my_done),
-                "lead_time_median_hours": _median(_hours(i["completed_at"] - i["created_at"]) for i in my_done),
+                "lead_time_median_hours": _median(_lead_hours(i) for i in my_done),
                 "start_after_assignment_median_hours": _median(
                     _hours(first_started[i["id"]] - assigned_at[(i["id"], uid)])
                     for i in my_done
@@ -473,7 +487,7 @@ def compute_workspace_metrics(workspace, since, until):
     for i in completed:
         for row in client_row(i):
             row["completed"] += 1
-            row["_lead"].append(_hours(i["completed_at"] - i["created_at"]))
+            row["_lead"].append(_lead_hours(i))
             row["reopens"] += reopens.get(i["id"], 0)
     for i in open_items:
         for row in client_row(i):
@@ -548,11 +562,11 @@ def _decimal_hour(ts):
     return ts.hour + ts.minute / 60
 
 
-def _kind(act, state_group, project_id):
+def _kind(act, state_group):
     """What an IssueActivity row means for the person who did it."""
     field = act["field"]
     if field == "state":
-        group = state_group.get((project_id, act["new_value"]))
+        group = state_group.get(act["new_identifier"])
         return "completed" if group == "completed" else "started" if group == "started" else "state"
     if field is None and act["verb"] == "created":
         return "created"
@@ -607,10 +621,7 @@ def compute_person_metrics(workspace, user, since, until):
             "archived_at",
         )
     }
-    state_group = {
-        (s["project_id"], s["name"]): s["group"]
-        for s in State.objects.filter(workspace_id=workspace.id).values("project_id", "name", "group")
-    }
+    state_group = _state_groups(workspace)
     modules_of = defaultdict(list)
     for mi in ModuleIssue.objects.filter(issue_id__in=list(issues)).values("issue_id", "module__name"):
         if mi["module__name"]:
@@ -626,12 +637,12 @@ def compute_person_metrics(workspace, user, since, until):
     events = []  # (ts, kind, issue | None, detail)
     for act in IssueActivity.objects.filter(
         actor_id=uid, issue_id__in=list(issues), created_at__gte=start, created_at__lt=end
-    ).values("issue_id", "field", "verb", "old_value", "new_value", "created_at"):
+    ).values("issue_id", "field", "verb", "new_value", "new_identifier", "created_at"):
         if act["field"] == "comment":
             continue  # counted from IssueComment
         issue = issues[act["issue_id"]]
         detail = act["new_value"] if act["field"] == "state" else (act["field"] or "")
-        events.append((act["created_at"], _kind(act, state_group, issue["project_id"]), issue, detail))
+        events.append((act["created_at"], _kind(act, state_group), issue, detail))
     for c in IssueComment.objects.filter(
         actor_id=uid, issue_id__in=list(issues), created_at__gte=start, created_at__lt=end
     ).values("issue_id", "created_at"):
@@ -648,7 +659,8 @@ def compute_person_metrics(workspace, user, since, until):
             workspace_id=workspace.id, receiver_id=uid, created_at__gte=start, created_at__lt=end
         ).values("created_at", "read_at")
     )
-    reads = [n["read_at"] for n in notes if in_window(n["read_at"])]
+    # "mark all as read" stamps hundreds of notifications within the same second: one moment, not hundreds
+    reads = sorted({n["read_at"].replace(second=0, microsecond=0) for n in notes if in_window(n["read_at"])})
     usage = list(
         UsageDay.objects.filter(workspace_slug=workspace.slug, user_id=uid, date__gte=since, date__lt=until).values(
             "date", "reads", "writes", "last_at"
@@ -731,17 +743,16 @@ def compute_person_metrics(workspace, user, since, until):
     activity_of_mine = list(
         IssueActivity.objects.filter(issue_id__in=list(mine), created_at__lt=end)
         .exclude(field="comment")
-        .values("issue_id", "field", "new_value", "created_at")
+        .values("issue_id", "field", "new_identifier", "created_at")
         .order_by("created_at")
     )
     last_touch, first_started = {}, {}
     for act in activity_of_mine:
         last_touch[act["issue_id"]] = act["created_at"]
-        issue = issues[act["issue_id"]]
         if (
             act["field"] == "state"
             and act["issue_id"] not in first_started
-            and state_group.get((issue["project_id"], act["new_value"])) == "started"
+            and state_group.get(act["new_identifier"]) == "started"
         ):
             first_started[act["issue_id"]] = act["created_at"]
     for c in IssueComment.objects.filter(issue_id__in=list(mine), created_at__lt=end).values("issue_id", "created_at"):
@@ -753,15 +764,10 @@ def compute_person_metrics(workspace, user, since, until):
     dated = [i for i in done if i["target_date"]]
     on_time = sum(1 for i in dated if i["completed_at"].astimezone(TZ).date() <= i["target_date"])
 
-    def is_open(i):
-        if i["state__group"] == "cancelled" or (i["archived_at"] and i["completed_at"] is None):
-            return False
-        return i["completed_at"] is None or i["completed_at"] >= end
-
     owed = []
     for iid in mine:
         i = issues[iid]
-        if not is_open(i):
+        if not _is_open(i, end):
             continue
         touched = max(last_touch.get(iid, i["created_at"]), i["created_at"])
         overdue = bool(i["target_date"]) and i["target_date"] < end_date
@@ -841,7 +847,7 @@ def compute_person_metrics(workspace, user, since, until):
         },
         "work": {
             "completed_assigned": len(done),
-            "lead_time_median_hours": _median(_hours(i["completed_at"] - i["created_at"]) for i in done),
+            "lead_time_median_hours": _median(_lead_hours(i) for i in done),
             "start_after_assignment_median_hours": _median(
                 _hours(first_started[i["id"]] - assigned_at[i["id"]])
                 for i in done

@@ -19,12 +19,17 @@ from django.utils import timezone
 
 from plane.utils.exception_logger import log_exception
 
-WORKSPACE_PATH = re.compile(r"^/api/(?:v1/)?workspaces/(?P<slug>[^/]+)/(?P<rest>.*)$")
+WORKSPACE_PATH = re.compile(r"^/api/(?P<v1>v1/)?workspaces/(?P<slug>[^/]+)/(?P<rest>.*)$")
 # the team works on Argentina time: a day of use is an ART day
 USAGE_TZ = ZoneInfo("America/Argentina/Buenos_Aires")
 WRITE_METHODS = {"POST", "PATCH", "PUT", "DELETE"}
 # unread counters and similar background polls
 IGNORED = re.compile(r"(unread|/notifications/count|/user-favorites/?$|/users/me/)")
+# lists the web app loads on every workspace / project open to fill its pickers and
+# sidebar (project-wrapper, workspace-wrapper, use-workspace-issue-properties): they
+# mean "opened the project", not "used cycles / modules / views / members / intake".
+# The workspace's own views/ list is the Views page itself, so it stays a visit.
+SHELL_LISTS = re.compile(r"^(?P<project>/projects/[^/]+)?/(?P<list>members|cycles|modules|views|intake-state)/$")
 
 # first match wins: the more specific parts of the path go first
 SURFACE_RULES = (
@@ -37,8 +42,10 @@ SURFACE_RULES = (
     ("modules", re.compile(r"/modules")),
     ("views", re.compile(r"/views")),
     ("search", re.compile(r"/search")),
-    ("analytics", re.compile(r"/analytics|/dashboard")),
-    ("work_items", re.compile(r"/issues|/work-items|/sub-issues|/comments")),
+    # analytics, advance-analytics(-stats|-charts), default-analytics, analytic-view, export-analytics
+    ("analytics", re.compile(r"analytic")),
+    # also archived-, deleted-, draft-, user-, bulk-*-issues and the timeline's issue-dates
+    ("work_items", re.compile(r"/issues|-issues/|/issue-dates|/draft-to-issue|/work-items|/comments")),
     ("members", re.compile(r"/members|/invitations")),
     ("projects", re.compile(r"/projects")),
 )
@@ -53,13 +60,17 @@ DO UPDATE SET reads = usage_days.reads + EXCLUDED.reads,
 """
 
 
-def classify(path):
+def classify(path, method="GET"):
     """(workspace_slug, surface) for a workspace-scoped API path, else None."""
     match = WORKSPACE_PATH.match(path)
     if not match or IGNORED.search(path):
         return None
     rest = "/" + match.group("rest")
-    surface = next((name for name, rule in SURFACE_RULES if rule.search(rest)), "other")
+    shell = SHELL_LISTS.match(rest) if method == "GET" and not match.group("v1") else None
+    if shell and (shell.group("project") or shell.group("list") != "views"):
+        surface = "projects" if shell.group("project") else "other"
+    else:
+        surface = next((name for name, rule in SURFACE_RULES if rule.search(rest)), "other")
     return match.group("slug")[:48], surface
 
 
@@ -77,7 +88,7 @@ class UsageTrackingMiddleware:
         user = getattr(request, "user", None)
         if user is None or not getattr(user, "is_authenticated", False):
             return
-        classified = classify(request.path)
+        classified = classify(request.path, request.method)
         if classified is None:
             return
         slug, surface = classified
