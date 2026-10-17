@@ -931,3 +931,17 @@ class TestRoundTen:
 
         retry, _ = self._send(http.ReadTimeout("slow"))
         retry.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_a_fix_waiting_for_its_deploy_is_not_sent_back(self, session_client, create_user):
+        bug = BugReport.objects.create(
+            reported_by=create_user, description="x", status=BugReport.Status.FIXED, fixed_at=timezone.now()
+        )
+        with mock.patch("plane.app.views.support.bug_report._fire") as fired:
+            response = session_client.post(
+                f"/api/support/bug-reports/{bug.id}/reopen/", {"comment": "Sigue pasando"}, format="json"
+            )
+        assert response.status_code == 409 and "próxima publicación" in response.data["error"]
+        fired.assert_not_called()
+        bug.refresh_from_db()
+        assert bug.status == BugReport.Status.FIXED

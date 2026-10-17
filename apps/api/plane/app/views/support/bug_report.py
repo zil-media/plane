@@ -239,6 +239,17 @@ class BugReportReopenEndpoint(BaseAPIView):
                 return Response(
                     {"error": "Esto lo seguimos en Zil Workspace; seguilo desde ahí."}, status=status.HTTP_409_CONFLICT
                 )
+            # Fixed = the fix is done and waits for the next publication: it still fails because it isn't
+            # out yet. Reopening sent it back to the fixer (who wrote it again on top of the pending one)
+            # and the publication then resolved it anyway, telling the person it was fixed.
+            if bug.status == BugReport.Status.FIXED:
+                return Response(
+                    {
+                        "error": "Ya está arreglado y sale en la próxima publicación. "
+                        "Si después sigue pasando, reenvialo."
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
             bug.comments = bug_ops.append_entry(
                 bug.comments, bug_ops.comment_entry(request.user, "user", data["comment"])
             )
