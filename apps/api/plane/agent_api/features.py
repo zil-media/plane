@@ -63,6 +63,10 @@ class SpecSerializer(serializers.Serializer):
     display_title = serializers.CharField(required=False, allow_blank=True, max_length=DISPLAY_TITLE_MAX)
     category = serializers.ChoiceField(required=False, choices=REQUEST_CATEGORIES)
     plain_summary = serializers.CharField(required=False, allow_blank=True, max_length=PLAIN_SUMMARY_MAX)
+    # Ops already does what they ask: the summary says how. Nothing to build, so it never approves
+    # itself (a low spec did: a build session went out for nothing and the requester was told
+    # "ya empezamos a construirla"); a person answers it.
+    already_exists = serializers.BooleanField(required=False, default=False)
 
 
 class QuestionsSerializer(serializers.Serializer):
@@ -112,7 +116,7 @@ def should_auto_approve(feature):
     every BU uses, so it waits for a person however senior the requester is.
     """
     spec = feature.spec or {}
-    if spec.get("open_questions"):
+    if spec.get("open_questions") or spec.get("already_exists"):
         return False
     if feature.spec_runs > 1:
         return False
@@ -251,6 +255,8 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
             return _conflict(f"Feature is {feature.status}.")
         now = timezone.now().isoformat()
         build.update({k: data[k] for k in ("pr_url", "pr_number", "guard_report") if data.get(k)})
+        # CI passed: an earlier failure's note would send a later rebuild to a run that no longer matters.
+        build.pop("for_agent", None)
         build["in_review_at" if data["state"] == "in_review" else "queued_at"] = now
         feature.build = build
         feature.status = S.IN_REVIEW if data["state"] == "in_review" else S.QUEUED

@@ -978,10 +978,10 @@ class TestRoundEleven:
 
     def test_a_rebuild_continues_on_the_branch_the_last_attempt_pushed(self):
         text = self._trigger("BUILD", "CI rejected: https://ci/run/9")
-        assert "git checkout -B feat/agent/f1 origin/feat/agent/f1" in text
+        assert "git checkout -B feat/agent/f1 FETCH_HEAD" in text
         assert "Never force-push" in text and "https://ci/run/9" in text
         assert "plain Spanish" in text
-        assert "feat/agent/f1 origin" not in self._trigger("SPEC")
+        assert "checkout -B" not in self._trigger("SPEC")
 
     @pytest.mark.django_db
     def test_what_ci_leaves_for_the_rebuild_survives_it_and_the_requester_never_sees_it(
@@ -1001,3 +1001,34 @@ class TestRoundEleven:
         request_build(feature, "decisión: rebuild")
         feature.refresh_from_db()
         assert feature.build["for_agent"] == "CI rejected: https://ci/run/9"
+
+    @pytest.mark.django_db
+    def test_something_ops_already_does_waits_for_a_person(self, create_user):
+        from plane.agent_api.features import should_auto_approve
+
+        feature = own_feature(create_user, spec_runs=1)
+        feature.spec = {"blast_radius": "low", "already_exists": True, "generated_at": "2026-10-17"}
+        # Nothing to build: no build session, no "ya empezamos a construirla".
+        assert should_auto_approve(feature) is False
+        feature.spec = {"blast_radius": "low", "generated_at": "2026-10-17"}
+        assert should_auto_approve(feature) is True
+        assert "already_exists" in TestRoundEleven()._trigger("SPEC")
+
+    @pytest.mark.django_db
+    def test_a_green_ci_run_forgets_the_earlier_failure(self, monkeypatch, create_user):
+        key = "f" * 64
+        agent = User.objects.create(email="agent@zil.global", username=uuid.uuid4().hex, is_active=True)
+        monkeypatch.setenv("OPS_FEATURE_AGENT_API_KEY", key)
+        monkeypatch.setenv("AGENT_ADMIN_EMAIL", agent.email)
+        feature = own_feature(
+            create_user,
+            status=S.BUILDING,
+            flag_key="exportar",
+            build={"claimed_at": "2026-10-16", "for_agent": "run A"},
+        )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {key}")
+        response = client.put(f"/api/agent/features/{feature.id}/build-status/", {"state": "in_review"}, format="json")
+        assert response.status_code == status.HTTP_200_OK, response.data
+        feature.refresh_from_db()
+        assert "for_agent" not in feature.build

@@ -188,6 +188,14 @@ def fire_feature_routine(feature_id, mode, title="", reason="", previous_failure
             "",
             "The requester reads your progress notes, blocked notes and the spec summary as they are:",
             "plain Spanish (usted), what changes for them, no code, files, branches or mentions of agents.",
+            *(
+                [
+                    "If Ops already does what they ask, the summary tells them how to do it and the spec sends",
+                    '"already_exists": true: it then waits for a person instead of being built.',
+                ]
+                if mode == "SPEC"
+                else []
+            ),
             *(_build_rules(feature_id, previous_failure) if mode == "BUILD" else []),
         ]
     )
@@ -206,7 +214,8 @@ def _build_rules(feature_id, previous_failure):
     return [
         "",
         "BUILD branch: if origin already has it (a previous attempt pushed), continue on top of it:",
-        f"  git fetch origin {branch} && git checkout -B {branch} origin/{branch}",
+        # FETCH_HEAD, not origin/<branch>: a single-branch clone doesn't create that remote ref.
+        f"  git fetch origin {branch} && git checkout -B {branch} FETCH_HEAD",
         f"otherwise create it: git checkout -b {branch}. Never force-push.",
         *(["Why the previous attempt stopped (fix this first): " + previous_failure] if previous_failure else []),
         "Post progress at least every 30 minutes: a build silent for 60 is released and fired again.",

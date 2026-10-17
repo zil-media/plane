@@ -39,7 +39,8 @@ No branch, no edits, no commits. The only output is one API call.
 1. Read title, problem, desired_outcome, source_url and the comments thread. The person described
    a PROBLEM; solve the problem, not the phrasing.
 2. With sub-agents, answer concretely: does this already exist (people ask for things Ops already
-   does — then say so and use blast_radius "low")? Which real files change (paths)? Does it need a
+   does — then the summary tells them how to do it, in plain Spanish, and the spec sends
+   "already_exists": true so it waits for a person instead of being built)? Which real files change (paths)? Does it need a
    model or migration? Which endpoints? What could it break — name the feature that shares the code?
 3. Read AGENTS.md and docs/ZIL_OPS_REBRAND.md for the conventions that constrain it.
 4. blast_radius, honestly:
@@ -56,7 +57,7 @@ No branch, no edits, no commits. The only output is one API call.
    PUT /api/agent/features/<ID>/spec/
    {"summary":"...","approach":"...","affected_areas":["..."],"files_touched":["apps/web/..."],
     "db_changes":"...","new_endpoints":["GET /api/..."],"new_env_vars":[],"risks":["..."],
-    "rollback":"...","effort":"S|M|L|XL","open_questions":[],"blast_radius":"low|medium|high",
+    "rollback":"...","effort":"S|M|L|XL","open_questions":[],"blast_radius":"low|medium|high","already_exists":false,
     "flag_key":"miFeature",
     "display_title":"<≤70 chars, Spanish, sentence case, what is being asked>",
     "category":"<Work items | Proyectos | Ciclos | Módulos | Páginas | Vistas | Intake |
@@ -73,7 +74,7 @@ your improvisation.
 
 1. Branch — this matters more than anything else here. A rebuild finds it already on origin (the
    previous attempt pushed): continue on top of it, never force-push:
-     git fetch origin feat/agent/<FEATURE_ID> && git checkout -B feat/agent/<FEATURE_ID> origin/feat/agent/<FEATURE_ID>
+     git fetch origin feat/agent/<FEATURE_ID> && git checkout -B feat/agent/<FEATURE_ID> FETCH_HEAD
    Only when it doesn't exist yet:
      git checkout -b feat/agent/<FEATURE_ID>
    The trigger says why the previous attempt stopped when CI rejected it: fix that first.
