@@ -22,7 +22,8 @@
       "sent": "Thanks, we got it. We're already looking into it; you can follow the progress in My requests and we'll email you when it's solved.",
       "view_tracking": "Follow progress",
       "report_another": "Report another",
-      "error_title": "We couldn't send your report"
+      "error_title": "We couldn't send your report",
+      "image_error": "We couldn't use that image. Try a PNG or JPG."
     },
     "suggest": {
       "title": "Suggest an improvement",

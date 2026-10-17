@@ -22,7 +22,8 @@
       "sent": "Děkujeme, hlášení jsme přijali. Už se jím zabýváme; postup můžete sledovat v sekci Moje požadavky a jakmile bude vyřešeno, pošleme e-mail.",
       "view_tracking": "Sledovat postup",
       "report_another": "Nahlásit další problém",
-      "error_title": "Hlášení se nepodařilo odeslat"
+      "error_title": "Hlášení se nepodařilo odeslat",
+      "image_error": "Tento obrázek jsme nemohli použít. Zkuste PNG nebo JPG."
     },
     "suggest": {
       "title": "Navrhnout vylepšení",

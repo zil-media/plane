@@ -22,7 +22,8 @@
       "sent": "Danke, die Meldung ist eingegangen. Sie wird bereits geprüft; der Fortschritt lässt sich unter Meine Anfragen verfolgen, und es gibt eine E-Mail, sobald sie gelöst ist.",
       "view_tracking": "Fortschritt ansehen",
       "report_another": "Weiteres Problem melden",
-      "error_title": "Die Meldung konnte nicht gesendet werden"
+      "error_title": "Die Meldung konnte nicht gesendet werden",
+      "image_error": "Wir konnten dieses Bild nicht verwenden. Versuchen Sie es mit PNG oder JPG."
     },
     "suggest": {
       "title": "Verbesserung vorschlagen",

@@ -37,7 +37,10 @@ function closeActions(status: TBugStatus): ("resolve" | "dismiss" | "archive")[]
 
 export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onOpenFeature }: Props) {
   const { t } = useTranslation();
-  const { data: bug, mutate } = useSWR(`SUPPORT_BUG:${bugId}`, () => supportService.bugReport(bugId));
+  // Polled like the suggestion detail: the reporter watches the diagnosis move while the panel is open.
+  const { data: bug, mutate } = useSWR(`SUPPORT_BUG:${bugId}`, () => supportService.bugReport(bugId), {
+    refreshInterval: 20_000,
+  });
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -92,7 +95,8 @@ export function SupportBugDetail({ bugId, isAdmin, currentUserId, onChanged, onO
       <PhaseTimeline track={computeBugTrack(bug)} />
 
       {/* Derived is NOT "how to do it": it can't be done yet, which is why a suggestion was opened. */}
-      {(bug.resolved_message || handedOver) && (
+      {/* The agent writes its message before the fix ships: "what we did" only once it's closed. */}
+      {((bug.resolved_message && ["fixed", "resolved", "dismissed"].includes(bug.status)) || handedOver) && (
         <div
           className={cn(
             "flex flex-col gap-2 rounded-md border p-3",

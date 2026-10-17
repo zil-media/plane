@@ -251,7 +251,15 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
         </span>
       </div>
 
-      {consult && <AgentConsult feature={feature} onAnswered={() => void mutate().then(onChanged)} />}
+      {consult && (
+        // Keyed on the agent's questions and the server's `answered`: a new question (asked while the
+        // panel stayed open) brings the answer box back instead of the old "already answered" state.
+        <AgentConsult
+          key={`${(feature.comments ?? []).filter((entry) => entry.role === "agent").length}-${feature.answered}`}
+          feature={feature}
+          onAnswered={() => void mutate().then(onChanged)}
+        />
+      )}
 
       {/* ── What's next: who has the ball, and what an admin can do about it right now ── */}
       <div className="flex flex-col gap-3 rounded-md border border-subtle p-3">

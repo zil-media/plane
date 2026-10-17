@@ -22,7 +22,8 @@
       "sent": "Teşekkürler, bildiriminizi aldık. Şimdiden inceliyoruz; ilerlemeyi Taleplerim bölümünden takip edebilir, çözüldüğünde size e-posta gönderiyoruz.",
       "view_tracking": "İlerlemeyi takip et",
       "report_another": "Başka bir sorun bildir",
-      "error_title": "Bildiriminiz gönderilemedi"
+      "error_title": "Bildiriminiz gönderilemedi",
+      "image_error": "Bu görseli kullanamadık. PNG veya JPG deneyin."
     },
     "suggest": {
       "title": "İyileştirme önerin",

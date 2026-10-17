@@ -60,9 +60,14 @@ export function SupportAdminSettings({ me, onChanged }: Props) {
           className="w-20"
           defaultValue={me.max_builds_per_week}
           onBlur={(event) => {
-            const value = Number(event.target.value);
-            if (Number.isInteger(value) && value !== me.max_builds_per_week)
-              void update({ max_builds_per_week: value });
+            const raw = event.target.value.trim();
+            const value = Number(raw);
+            // An emptied or out-of-range field is not a value: saving it as 0 stopped every build.
+            if (raw === "" || !Number.isInteger(value) || value < 0 || value > 50) {
+              event.target.value = String(me.max_builds_per_week);
+              return;
+            }
+            if (value !== me.max_builds_per_week) void update({ max_builds_per_week: value });
           }}
         />
       </div>

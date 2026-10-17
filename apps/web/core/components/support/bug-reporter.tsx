@@ -16,7 +16,7 @@ import { EFileAssetType } from "@plane/types";
 import { TextArea, ToggleSwitch } from "@plane/ui";
 import { getConsoleEntries } from "@/lib/support/console-capture";
 import { getSystemInfo, getViewport } from "@/lib/support/system-info";
-import { supportService } from "@/services/support.service";
+import { supportErrorMessage, supportService } from "@/services/support.service";
 import { MAX_ATTACHMENTS, compressImage, uploadSupportImage } from "./attachments";
 import { DraftReview } from "./draft-review";
 
@@ -34,6 +34,8 @@ type Props = {
 };
 
 const CAPTURE_TIMEOUT_MS = 10_000;
+/** The server's cap on the description. */
+const MAX_DESCRIPTION = 10000;
 
 function isDesktop() {
   return window.innerWidth >= 768 && !window.matchMedia("(pointer: coarse)").matches;
@@ -160,6 +162,10 @@ export function BugReporter(props: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, close]);
 
+  // An image the browser can't decode (HEIC, a broken file): say so. Unhandled, it failed silently
+  // and the rejection was filed as an automatic bug report.
+  const imageFailed = () => setToast({ type: TOAST_TYPE.ERROR, title: t("helpdesk.reporter.image_error") });
+
   const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
     const files = Array.from(event.clipboardData.items)
       .filter((item) => item.type.startsWith("image/"))
@@ -167,13 +173,13 @@ export function BugReporter(props: Props) {
       .filter((file): file is File => file !== null);
     if (files.length === 0) return;
     event.preventDefault();
-    files.forEach((file) => void compressImage(file, file.name).then(addImage));
+    files.forEach((file) => void compressImage(file, file.name).then(addImage).catch(imageFailed));
   };
 
   const handleFiles = (files: FileList | null) => {
     Array.from(files ?? [])
       .filter((file) => file.type.startsWith("image/"))
-      .forEach((file) => void compressImage(file, file.name).then(addImage));
+      .forEach((file) => void compressImage(file, file.name).then(addImage).catch(imageFailed));
   };
 
   const uploading = images.some((image) => image.status === "uploading");
@@ -183,7 +189,8 @@ export function BugReporter(props: Props) {
     setSubmitting(true);
     try {
       await supportService.createBugReport({
-        description: [description.trim(), reviewAnswers.trim()].filter(Boolean).join("\n\n"),
+        // The server caps it at 10000: the review's answers go after the text, within it.
+        description: [description.trim(), reviewAnswers.trim()].filter(Boolean).join("\n\n").slice(0, MAX_DESCRIPTION),
         urgent,
         url: window.location.pathname + window.location.search,
         user_agent: window.navigator.userAgent,
@@ -194,8 +201,12 @@ export function BugReporter(props: Props) {
         workspace_slug: workspaceSlug,
       });
       setSent(true);
-    } catch {
-      setToast({ type: TOAST_TYPE.ERROR, title: t("helpdesk.reporter.error_title"), message: t("helpdesk.try_again") });
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("helpdesk.reporter.error_title"),
+        message: supportErrorMessage(error) ?? t("helpdesk.try_again"),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -250,9 +261,10 @@ export function BugReporter(props: Props) {
             onChange={(event) => setDescription(event.target.value)}
             onPaste={handlePaste}
             placeholder={t("helpdesk.reporter.placeholder")}
+            maxLength={MAX_DESCRIPTION}
             className="min-h-28 w-full text-body-xs-regular"
           />
-          <DraftReview kind="bug" text={description} onAnswersChange={setReviewAnswers} />
+          <DraftReview kind="bug" text={description} paused={!isOpen} onAnswersChange={setReviewAnswers} />
 
           <div className="flex flex-wrap items-center gap-2">
             {images.map((image) => (

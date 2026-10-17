@@ -22,7 +22,8 @@
       "sent": "謝謝，我們已收到。我們已經在處理了；您可以在「我的請求」中查看進度，問題解決後我們會寄送電子郵件通知您。",
       "view_tracking": "查看進度",
       "report_another": "回報另一個問題",
-      "error_title": "未能傳送您的回報"
+      "error_title": "未能傳送您的回報",
+      "image_error": "無法使用該圖片。請嘗試 PNG 或 JPG。"
     },
     "suggest": {
       "title": "提出改善建議",

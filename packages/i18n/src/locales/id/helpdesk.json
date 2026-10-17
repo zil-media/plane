@@ -22,7 +22,8 @@
       "sent": "Terima kasih, laporan Anda sudah kami terima. Kami sedang meninjaunya; Anda dapat memantau perkembangannya di Permintaan Saya dan kami akan mengirim email saat masalahnya selesai.",
       "view_tracking": "Pantau perkembangan",
       "report_another": "Laporkan masalah lain",
-      "error_title": "Laporan Anda tidak dapat dikirim"
+      "error_title": "Laporan Anda tidak dapat dikirim",
+      "image_error": "Kami tidak dapat memakai gambar itu. Coba PNG atau JPG."
     },
     "suggest": {
       "title": "Sarankan peningkatan",

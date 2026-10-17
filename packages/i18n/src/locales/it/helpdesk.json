@@ -22,7 +22,8 @@
       "sent": "Grazie, l'abbiamo ricevuta. La stiamo già esaminando; è possibile seguire l'avanzamento in Le mie richieste e verrà inviata un'email quando sarà risolta.",
       "view_tracking": "Segui l'avanzamento",
       "report_another": "Segnala un altro problema",
-      "error_title": "Non è stato possibile inviare la segnalazione"
+      "error_title": "Non è stato possibile inviare la segnalazione",
+      "image_error": "Non siamo riusciti a usare questa immagine. Provi con un PNG o un JPG."
     },
     "suggest": {
       "title": "Suggerisci un miglioramento",

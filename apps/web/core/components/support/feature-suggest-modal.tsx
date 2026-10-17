@@ -14,9 +14,9 @@ import { EFileAssetType } from "@plane/types";
 import { EModalPosition, EModalWidth, Input, ModalCore, TextArea } from "@plane/ui";
 import { cn } from "@plane/utils";
 import type { TFeaturePriority } from "@/services/support.service";
-import { supportService } from "@/services/support.service";
+import { supportErrorMessage, supportService } from "@/services/support.service";
 import { MAX_ATTACHMENTS, compressImage, uploadSupportImage } from "./attachments";
-import { DraftReview } from "./draft-review";
+import { DraftReviewPanel, useDraftReview } from "./draft-review";
 
 type Props = {
   isOpen: boolean;
@@ -26,6 +26,8 @@ type Props = {
 
 const MIN_TITLE = 6;
 const MIN_PROBLEM = 20;
+/** The server's cap on problem / desired outcome. */
+const MAX_TEXT = 10000;
 const PRIORITIES: TFeaturePriority[] = ["baja", "media", "alta"];
 
 type TAttachment = { key: string; name: string; assetId?: string; failed?: boolean };
@@ -39,6 +41,16 @@ export function FeatureSuggestModal(props: Props) {
   const [problem, setProblem] = useState("");
   // Answers to the draft review, appended to the problem on send (see DraftReview).
   const [reviewAnswers, setReviewAnswers] = useState("");
+  // Here and not inside ModalCore, which unmounts its content on close: an accidental close keeps
+  // the review's questions and answers along with the text.
+  const review = useDraftReview({
+    kind: "feature",
+    title,
+    text: problem,
+    enabled: step !== "sent",
+    paused: step !== 1 || !isOpen,
+    onAnswersChange: setReviewAnswers,
+  });
   const [desiredOutcome, setDesiredOutcome] = useState("");
   const [priority, setPriority] = useState<TFeaturePriority>("media");
   const [attachments, setAttachments] = useState<TAttachment[]>([]);
@@ -53,6 +65,7 @@ export function FeatureSuggestModal(props: Props) {
     setTitle("");
     setProblem("");
     setReviewAnswers("");
+    review.reset();
     setDesiredOutcome("");
     setPriority("media");
     setAttachments([]);
@@ -88,7 +101,8 @@ export function FeatureSuggestModal(props: Props) {
     try {
       await supportService.createFeatureRequest({
         title: title.trim(),
-        problem: [problem.trim(), reviewAnswers.trim()].filter(Boolean).join("\n\n"),
+        // The server caps the field at 10000: the review's answers go after the text, within it.
+        problem: [problem.trim(), reviewAnswers.trim()].filter(Boolean).join("\n\n").slice(0, MAX_TEXT),
         desired_outcome: desiredOutcome.trim(),
         priority,
         source_url: window.location.pathname,
@@ -96,8 +110,12 @@ export function FeatureSuggestModal(props: Props) {
         workspace_slug: workspaceSlug,
       });
       setStep("sent");
-    } catch {
-      setToast({ type: TOAST_TYPE.ERROR, title: t("helpdesk.suggest.error_title"), message: t("helpdesk.try_again") });
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("helpdesk.suggest.error_title"),
+        message: supportErrorMessage(error) ?? t("helpdesk.try_again"),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -148,6 +166,7 @@ export function FeatureSuggestModal(props: Props) {
                 value={problem}
                 onChange={(event) => setProblem(event.target.value)}
                 placeholder={t("helpdesk.suggest.why_placeholder")}
+                maxLength={MAX_TEXT}
                 className="min-h-28"
               />
               <span className={cn("text-caption-sm-regular", problemOk ? "text-success-primary" : "text-tertiary")}>
@@ -157,16 +176,7 @@ export function FeatureSuggestModal(props: Props) {
           </>
         )}
 
-        {/* Mounted through step 2 (hidden): unmounting would drop the answers on the way back. */}
-        <DraftReview
-          kind="feature"
-          title={title}
-          text={problem}
-          enabled={step !== "sent"}
-          paused={step !== 1}
-          onAnswersChange={setReviewAnswers}
-          className={step === 1 ? "" : "hidden"}
-        />
+        {step === 1 && <DraftReviewPanel review={review} />}
 
         {step === 1 && (
           <div className="flex justify-end gap-2">
@@ -187,6 +197,7 @@ export function FeatureSuggestModal(props: Props) {
                 value={desiredOutcome}
                 onChange={(event) => setDesiredOutcome(event.target.value)}
                 placeholder={t("helpdesk.suggest.how_placeholder")}
+                maxLength={MAX_TEXT}
                 className="min-h-24"
               />
             </label>

@@ -22,7 +22,8 @@
       "sent": "Merci, nous l'avons bien reçu. Nous l'examinons déjà ; vous pouvez suivre l'avancement dans Mes demandes et nous vous enverrons un e-mail une fois résolu.",
       "view_tracking": "Suivre l'avancement",
       "report_another": "Signaler un autre problème",
-      "error_title": "Impossible d'envoyer votre signalement"
+      "error_title": "Impossible d'envoyer votre signalement",
+      "image_error": "Nous n'avons pas pu utiliser cette image. Essayez un PNG ou un JPG."
     },
     "suggest": {
       "title": "Suggérer une amélioration",

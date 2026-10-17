@@ -22,7 +22,8 @@
       "sent": "Mulțumim, am primit raportul. Deja îl analizăm; puteți urmări progresul în Solicitările mele și vă vom trimite un e-mail când va fi rezolvat.",
       "view_tracking": "Urmărește progresul",
       "report_another": "Raportează altă problemă",
-      "error_title": "Raportul nu a putut fi trimis"
+      "error_title": "Raportul nu a putut fi trimis",
+      "image_error": "Nu am putut folosi această imagine. Încercați un PNG sau JPG."
     },
     "suggest": {
       "title": "Sugerează o îmbunătățire",

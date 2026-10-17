@@ -20,7 +20,7 @@ const MIN_CHARS = 40;
  */
 const IDLE_MS = 3000;
 
-type Props = {
+type ReviewOptions = {
   kind: TDraftKind;
   /** The request's title, when the form has one apart from the body. */
   title?: string;
@@ -29,12 +29,11 @@ type Props = {
   enabled?: boolean;
   /**
    * Stop asking but keep what's there (questions and answers): for a form step where the draft
-   * can't change and the panel isn't visible, so a late review can't land unseen.
+   * can't change and the panel isn't visible, or a closed form, so a late review can't land unseen.
    */
   paused?: boolean;
   /** What was answered, ready to append to the request. Empty while nothing is answered. */
   onAnswersChange: (appendix: string) => void;
-  className?: string;
 };
 
 /**
@@ -45,10 +44,12 @@ type Props = {
  * It never blocks anything: no disabled submit, no errors, no required question. With no review
  * the panel doesn't show and the form works exactly as before. Answers travel apart from the text
  * (being edited by a third party while typing is unsettling) and the form appends them on send.
+ *
+ * A hook so the state can live outside a modal that unmounts its content on close: the questions
+ * and answers survive closing it by accident, like the text does.
  */
-export function DraftReview(props: Props) {
-  const { kind, title = "", text, enabled = true, paused = false, onAnswersChange, className } = props;
-  const { t } = useTranslation();
+export function useDraftReview(options: ReviewOptions) {
+  const { kind, title = "", text, enabled = true, paused = false, onAnswersChange } = options;
   const [checking, setChecking] = useState(false);
   const [questions, setQuestions] = useState<TDraftQuestion[] | null>(null);
   const [ready, setReady] = useState(false);
@@ -78,8 +79,7 @@ export function DraftReview(props: Props) {
       const result = await supportService.reviewDraft(
         kind,
         // The screen travels with the request anyway: given to the reviewer so it doesn't spend a
-        // question on "which screen?".
-        // Capped like the server's serializer: past it the call would just answer 400.
+        // question on "which screen?". Capped like the server's serializer: past it the call would 400.
         { title: title.trim().slice(0, 200), text: text.trim().slice(0, 4000), screen: window.location.pathname },
         controller.signal
       );
@@ -126,11 +126,28 @@ export function DraftReview(props: Props) {
     });
   }, []);
 
-  if (!enabled || !longEnough) return null;
+  /** A new request: nothing from the previous one carries over. */
+  const reset = useCallback(() => {
+    setQuestions(null);
+    setReady(false);
+    setAnswers({});
+    answersRef.current = {};
+    lastReviewed.current = null;
+  }, []);
+
   const hasQuestions = !!questions && questions.length > 0;
   // Answered questions stay listed (they get sent), but only unanswered ones are "missing".
   const missing = (questions ?? []).filter((q) => !(answers[q.question] ?? "").trim()).length;
-  if (!checking && !hasQuestions && !ready) return null;
+  const visible = enabled && longEnough && (checking || hasQuestions || ready);
+  return { visible, checking, ready, questions: questions ?? [], answers, missing, setAnswer, reset };
+}
+
+export type TDraftReviewState = ReturnType<typeof useDraftReview>;
+
+export function DraftReviewPanel({ review, className }: { review: TDraftReviewState; className?: string }) {
+  const { t } = useTranslation();
+  if (!review.visible) return null;
+  const { checking, ready, questions, answers, missing, setAnswer } = review;
 
   return (
     <div className={cn("flex flex-col gap-2 rounded-md border border-subtle bg-layer-1 px-3 py-2.5", className)}>
@@ -146,7 +163,7 @@ export function DraftReview(props: Props) {
           {t("helpdesk.review.ready")}
         </span>
       )}
-      {hasQuestions && (
+      {questions.length > 0 && (
         <div className="flex flex-col gap-2">
           <div className="flex flex-col">
             {missing > 0 && (
@@ -175,4 +192,10 @@ export function DraftReview(props: Props) {
       )}
     </div>
   );
+}
+
+/** The hook and its panel together, for a form that stays mounted (the bug reporter). */
+export function DraftReview(props: ReviewOptions & { className?: string }) {
+  const review = useDraftReview(props);
+  return <DraftReviewPanel review={review} className={props.className} />;
 }

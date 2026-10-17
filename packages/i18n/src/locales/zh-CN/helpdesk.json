@@ -22,7 +22,8 @@
       "sent": "谢谢，我们已收到。我们已经在处理了；您可以在“我的请求”中查看进展，问题解决后我们会给您发邮件。",
       "view_tracking": "查看进展",
       "report_another": "报告另一个问题",
-      "error_title": "未能发送您的报告"
+      "error_title": "未能发送您的报告",
+      "image_error": "无法使用该图片。请尝试 PNG 或 JPG。"
     },
     "suggest": {
       "title": "提出改进建议",

@@ -68,7 +68,7 @@ export function SupportItemRow({ entry, viewer, selected, onSelect, count = 1 }:
       ? t("helpdesk.board.reported_on", { date: renderFormattedDate(entry.item.created_at) ?? "" })
       : `${author?.display_name ?? ""} · ${renderFormattedDate(entry.item.created_at) ?? ""}`);
   // The agent asks whoever requested it: showing "asks you" to anyone else would be a lie.
-  const asksYou = !isBug && entry.item.status === "needs_info" && mine;
+  const asksYou = !isBug && entry.item.status === "needs_info" && !entry.item.answered && mine;
   const countdown = isBug ? entry.item.status === "fixed" : entry.item.status === "queued";
 
   return (

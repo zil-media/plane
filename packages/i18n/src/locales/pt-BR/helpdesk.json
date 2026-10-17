@@ -22,7 +22,8 @@
       "sent": "Obrigado, recebemos. Já estamos analisando; você pode acompanhar o andamento em Minhas solicitações e vamos avisar por e-mail quando estiver resolvido.",
       "view_tracking": "Acompanhar andamento",
       "report_another": "Reportar outro problema",
-      "error_title": "Não foi possível enviar seu relato"
+      "error_title": "Não foi possível enviar seu relato",
+      "image_error": "Não conseguimos usar essa imagem. Tente um PNG ou JPG."
     },
     "suggest": {
       "title": "Sugerir uma melhoria",

@@ -123,8 +123,9 @@ export function onMyBoard(feature: TFeatureRequest, viewer: TViewer): boolean {
 /** Where a row lands. Anything that is neither history nor waiting on a decision is "in progress": no row can fall off the board. */
 export function bugSection(bug: TBugReport): TSection {
   // The idea keeps moving in the other queue, so it is not archived.
-  if (bugWasDerived(bug)) return "in_progress";
-  if (bug.status === "resolved") return "done";
+  if (bugWasDerived(bug) || bugWentToWorkspace(bug)) return "in_progress";
+  // Answered (how to do it): the person got their answer, like a resolved report.
+  if (bug.status === "resolved" || bugWasAnswered(bug)) return "done";
   if (bug.status === "fixed") return "next_deploy";
   if (bug.status === "dismissed" || bug.status === "archived") return "stalled";
   return "in_progress";

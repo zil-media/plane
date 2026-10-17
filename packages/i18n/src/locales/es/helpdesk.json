@@ -22,7 +22,8 @@
       "sent": "Gracias, lo recibimos. Ya lo estamos mirando; puede seguir el avance en Mi seguimiento y le avisamos por correo cuando esté resuelto.",
       "view_tracking": "Ver el avance",
       "report_another": "Reportar otro",
-      "error_title": "No pudimos enviar su reporte"
+      "error_title": "No pudimos enviar su reporte",
+      "image_error": "No pudimos usar esa imagen. Pruebe con una en PNG o JPG."
     },
     "suggest": {
       "title": "Sugerir una mejora",

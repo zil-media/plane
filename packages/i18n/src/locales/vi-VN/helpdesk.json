@@ -22,7 +22,8 @@
       "sent": "Cảm ơn bạn, chúng tôi đã nhận được báo cáo. Chúng tôi đang xem xét; bạn có thể theo dõi tiến độ trong mục Yêu cầu của tôi và sẽ nhận được email khi vấn đề được giải quyết.",
       "view_tracking": "Theo dõi tiến độ",
       "report_another": "Báo cáo sự cố khác",
-      "error_title": "Không thể gửi báo cáo của bạn"
+      "error_title": "Không thể gửi báo cáo của bạn",
+      "image_error": "Không thể dùng ảnh này. Hãy thử PNG hoặc JPG."
     },
     "suggest": {
       "title": "Đề xuất cải tiến",

@@ -22,7 +22,8 @@
       "sent": "Dziękujemy, zgłoszenie dotarło. Już się nim zajmujemy; postęp można śledzić w sekcji Moje zgłoszenia, a po rozwiązaniu zostanie wysłana wiadomość e-mail.",
       "view_tracking": "Śledź postęp",
       "report_another": "Zgłoś kolejny problem",
-      "error_title": "Nie udało się wysłać zgłoszenia"
+      "error_title": "Nie udało się wysłać zgłoszenia",
+      "image_error": "Nie udało się użyć tego obrazu. Można spróbować PNG lub JPG."
     },
     "suggest": {
       "title": "Zaproponuj usprawnienie",
