@@ -47,6 +47,9 @@ export function ZilClientCalls({ calls }: Props) {
                   <ChevronRight className="size-3.5 flex-shrink-0 text-tertiary" />
                 )}
                 <span className="min-w-0 flex-grow truncate text-13 text-primary">{call.title || "—"}</span>
+                <span className="flex-shrink-0 rounded-sm border border-subtle px-1.5 py-0.5 text-11 text-secondary">
+                  {t(`page_tree.zil_client.calls.purpose.${call.purpose ?? "pending"}`)}
+                </span>
                 <span className="flex-shrink-0 text-11 text-tertiary">{call.ownerName}</span>
                 <span className="flex-shrink-0 text-11 text-tertiary">
                   {t("page_tree.zil_client.calls.minutes", {

@@ -96,6 +96,8 @@ export type TZilClientProfile = {
     durationSeconds: number;
     ownerName: string;
     summary: string;
+    /** What the call was for, as Zil classifies it (kickoff or ongoing work); null = not classified yet. */
+    purpose?: "kickoff" | "operations" | null;
   }[];
 };
 

@@ -247,12 +247,17 @@
         "open": "Abrir"
       },
       "calls": {
-        "hint": "Llamadas grabadas con Tactiq por el equipo y vinculadas a este cliente.",
+        "hint": "Llamadas de trabajo con este cliente (kickoff y operativas) grabadas con Tactiq por el equipo, también las de antes de que fuera cliente. Las de venta no se muestran.",
         "empty": "Todavía no hay llamadas grabadas con este cliente.",
         "minutes": "{count} min",
         "show_summary": "Ver resumen",
         "hide_summary": "Ocultar resumen",
-        "no_summary": "Todavía no hay resumen."
+        "no_summary": "Todavía no hay resumen.",
+        "purpose": {
+          "kickoff": "Kickoff",
+          "operations": "Operativa",
+          "pending": "Sin clasificar"
+        }
       }
     }
   }

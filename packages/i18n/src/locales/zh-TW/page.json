@@ -247,12 +247,17 @@
         "open": "Open"
       },
       "calls": {
-        "hint": "Calls recorded with Tactiq by the team and matched to this client.",
+        "hint": "Work calls with this client (kickoff and operational) recorded with Tactiq by the team, including ones from before it became a client. Sales calls are not shown.",
         "empty": "No recorded calls with this client yet.",
         "minutes": "{count} min",
         "show_summary": "Show summary",
         "hide_summary": "Hide summary",
-        "no_summary": "No summary yet."
+        "no_summary": "No summary yet.",
+        "purpose": {
+          "kickoff": "Kickoff",
+          "operations": "Operational",
+          "pending": "Not classified yet"
+        }
       }
     }
   }

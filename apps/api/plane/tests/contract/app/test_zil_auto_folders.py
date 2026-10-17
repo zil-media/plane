@@ -166,8 +166,9 @@ class TestAutoFolderRestore:
         nike = folder_of(NIKE)
         assert nike.archived_at is not None
 
-        # gone from the workspace's units, or still there but no longer active or paused
-        for answer in (None, client_dto(NIKE, "Nike", "churned"), client_dto(NIKE, "Nike", "onboarding")):
+        # gone from the workspace's units, churned, or an onboarding that is not a sale yet (Zil says so)
+        unsold = {**client_dto(NIKE, "Nike", "onboarding"), "opsFolder": False}
+        for answer in (None, client_dto(NIKE, "Nike", "churned"), unsold):
             with zil_says(answer):
                 response = restore(session_client, workspace, project, nike)
             assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -349,3 +350,40 @@ class TestOtherPagesNeverAskZil:
             assert archive(session_client, workspace, project, notes).status_code == status.HTTP_200_OK
             assert delete(session_client, workspace, project, notes).status_code == status.HTTP_204_NO_CONTENT
         lookup.assert_not_called()
+
+
+@pytest.mark.contract
+class TestZilDecidesWhoKeepsAFolder:
+    """Zil sends `opsFolder` (sold onboarding, paused within the grace period): it wins over the status."""
+
+    @pytest.mark.django_db
+    def test_a_paused_client_past_its_grace_can_be_archived_and_not_restored(self, session_client, workspace, project):
+        push(None, workspace, [client_dto(NIKE, "Nike")])
+        nike = folder_of(NIKE)
+        past_grace = {**client_dto(NIKE, "Nike", "paused"), "opsFolder": False}
+
+        with zil_says(past_grace):
+            assert archive(session_client, workspace, project, nike).status_code == status.HTTP_200_OK
+            refused = restore(session_client, workspace, project, nike)
+        assert refused.data["error_message"] == "ZIL_CLIENT_FOLDER_CLIENT_LEFT"
+
+    @pytest.mark.django_db
+    def test_a_sold_onboarding_client_keeps_its_folder(self, session_client, workspace, project):
+        push(None, workspace, [client_dto(NIKE, "Nike", "onboarding")])
+        nike = folder_of(NIKE)
+
+        with zil_says({**client_dto(NIKE, "Nike", "onboarding"), "opsFolder": True}):
+            refused = archive(session_client, workspace, project, nike)
+        assert refused.data["error_message"] == "ZIL_CLIENT_FOLDER_CLIENT_ACTIVE"
+        assert folder_of(NIKE).archived_at is None
+
+    @pytest.mark.django_db
+    def test_an_older_zil_without_opsfolder_still_counts_onboarding_and_paused(
+        self, session_client, workspace, project
+    ):
+        push(None, workspace, [client_dto(NIKE, "Nike")])
+        nike = folder_of(NIKE)
+        for lifecycle in ("onboarding", "paused"):
+            with zil_says(client_dto(NIKE, "Nike", lifecycle)):
+                refused = archive(session_client, workspace, project, nike)
+            assert refused.data["error_message"] == "ZIL_CLIENT_FOLDER_CLIENT_ACTIVE"

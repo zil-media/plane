@@ -76,8 +76,9 @@ def folder_not_supported_response():
     )
 
 
-# the lifecycles Zil gives a client a folder for (FOLDER_LIFECYCLES in Zil's opsClientFolders)
-ZIL_FOLDER_LIFECYCLES = ("active", "paused")
+# the lifecycles that can have a folder (FOLDER_LIFECYCLES in Zil's opsFolderRule); only used when Zil
+# does not send `opsFolder`, its own answer (sold onboarding, paused within the grace period)
+ZIL_FOLDER_LIFECYCLES = ("onboarding", "active", "paused")
 
 
 def zil_auto_folder_refusal(slug, page, action):
@@ -98,7 +99,12 @@ def zil_auto_folder_refusal(slug, page, action):
         client = get_zil_client(slug, link.zil_client_id)
     except ZilUnavailable:
         return Response({"error": "ZIL_UNAVAILABLE"}, status=status.HTTP_502_BAD_GATEWAY)
-    on_roster = client is not None and client.get("lifecycleStatus") in ZIL_FOLDER_LIFECYCLES
+    if client is None:
+        on_roster = False
+    elif "opsFolder" in client:
+        on_roster = bool(client["opsFolder"])
+    else:
+        on_roster = client.get("lifecycleStatus") in ZIL_FOLDER_LIFECYCLES
     if action == "restore" and not on_roster:
         return Response(
             {
