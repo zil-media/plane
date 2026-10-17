@@ -98,7 +98,8 @@
         "in_review": "În verificare",
         "ready": "Gata",
         "rejected": "Neplanificată",
-        "on_hold": "În pauză"
+        "on_hold": "În pauză",
+        "answered": "Răspuns dat: trebuie reluată"
       }
     },
     "progress": {
@@ -225,7 +226,8 @@
         "published": "Publicată",
         "rejected": "Respinsă: nu va fi construită.",
         "rejected_by": "Respinsă de {name}.",
-        "on_hold": "Pusă pe pauză: nu avansează până nu o reia cineva."
+        "on_hold": "Pusă pe pauză: nu avansează până nu o reia cineva.",
+        "consult_answered": "Răspuns dat: analiza trebuie repornită"
       }
     },
     "review": {
@@ -260,7 +262,9 @@
       "merged_on": "Este publicată și activată.",
       "merged_off": "Este publicată: mai trebuie activată.",
       "on_hold": "Este pe pauză: nu avansează până nu o reia un admin.",
-      "rejected": "Nu va fi construită."
+      "rejected": "Nu va fi construită.",
+      "answered": "A răspuns deja: un admin trebuie să repornească analiza.",
+      "answered_you": "A răspuns deja: reporniți analiza ca să continue."
     }
   }
 }

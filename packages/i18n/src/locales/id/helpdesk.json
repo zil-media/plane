@@ -98,7 +98,8 @@
         "in_review": "Sedang ditinjau",
         "ready": "Siap",
         "rejected": "Tidak direncanakan",
-        "on_hold": "Dijeda"
+        "on_hold": "Dijeda",
+        "answered": "Sudah dijawab: perlu dimulai ulang"
       }
     },
     "progress": {
@@ -225,7 +226,8 @@
         "published": "Dipublikasikan",
         "rejected": "Ditolak: tidak akan dibuat.",
         "rejected_by": "Ditolak oleh {name}.",
-        "on_hold": "Dijeda: tidak akan berjalan sampai seseorang melanjutkannya."
+        "on_hold": "Dijeda: tidak akan berjalan sampai seseorang melanjutkannya.",
+        "consult_answered": "Sudah dijawab: analisis perlu dimulai ulang"
       }
     },
     "review": {
@@ -260,7 +262,9 @@
       "merged_on": "Sudah dipublikasikan dan diaktifkan.",
       "merged_off": "Sudah dipublikasikan: tinggal diaktifkan.",
       "on_hold": "Dijeda: tidak akan berlanjut sampai admin melanjutkannya.",
-      "rejected": "Tidak akan dibangun."
+      "rejected": "Tidak akan dibangun.",
+      "answered": "Sudah dijawab: admin perlu memulai ulang analisis.",
+      "answered_you": "Sudah dijawab: mulai ulang analisis untuk melanjutkan."
     }
   }
 }

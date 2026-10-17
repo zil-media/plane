@@ -80,7 +80,10 @@ export function featurePhase(feature: TFeatureRequest): TPhase {
     case "spec_ready":
       return { labelKey: "helpdesk.phase.feature.awaiting_decision", tone: "waiting" };
     case "needs_info":
-      return { labelKey: "helpdesk.phase.feature.needs_answer", tone: "waiting" };
+      // Answered and nothing relaunched it: it waits on an admin now, not on the requester.
+      return feature.answered
+        ? { labelKey: "helpdesk.phase.feature.answered", tone: "waiting" }
+        : { labelKey: "helpdesk.phase.feature.needs_answer", tone: "waiting" };
     case "approved":
       return { labelKey: "helpdesk.phase.feature.approved", tone: "progress" };
     case "building":
@@ -106,7 +109,8 @@ export const isMyFeature = (feature: TFeatureRequest, viewer: TViewer) =>
   !!viewer.userId && feature.requested_by?.id === viewer.userId;
 
 /** The feature waits for a decision only an admin can take. */
-const waitsForAdmin = (feature: TFeatureRequest) => feature.status === "spec_ready" || isFeatureStuck(feature);
+const waitsForAdmin = (feature: TFeatureRequest) =>
+  feature.status === "spec_ready" || isFeatureStuck(feature) || (feature.status === "needs_info" && feature.answered);
 
 /**
  * Tracking is "mine": my suggestions and my reports. Someone else's suggestion only joins when it
@@ -130,7 +134,7 @@ export function featureSection(feature: TFeatureRequest, viewer: TViewer): TSect
   if (feature.status === "merged") return "done";
   if (feature.status === "queued") return "next_deploy";
   if (feature.status === "rejected" || feature.status === "on_hold") return "stalled";
-  if (feature.status === "needs_info" && isMyFeature(feature, viewer)) return "needs_you";
+  if (feature.status === "needs_info" && !feature.answered && isMyFeature(feature, viewer)) return "needs_you";
   if (viewer.isAdmin && waitsForAdmin(feature)) return "needs_you";
   // My own stuck build that I can't unblock stays visible as alive, not in the folded archive.
   return "in_progress";

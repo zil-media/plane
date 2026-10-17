@@ -98,7 +98,8 @@
         "in_review": "审核中",
         "ready": "已就绪",
         "rejected": "未计划",
-        "on_hold": "已暂停"
+        "on_hold": "已暂停",
+        "answered": "已回答：需重新开始"
       }
     },
     "progress": {
@@ -225,7 +226,8 @@
         "published": "已发布",
         "rejected": "已拒绝：不会实现。",
         "rejected_by": "已被 {name} 拒绝。",
-        "on_hold": "已暂停：在有人恢复之前不会推进。"
+        "on_hold": "已暂停：在有人恢复之前不会推进。",
+        "consult_answered": "已回答：需要重新开始分析"
       }
     },
     "review": {
@@ -260,7 +262,9 @@
       "merged_on": "已发布并启用。",
       "merged_off": "已发布：还需要启用。",
       "on_hold": "已暂停：在管理员恢复之前不会继续。",
-      "rejected": "不会开发。"
+      "rejected": "不会开发。",
+      "answered": "已回答：需要管理员重新开始分析。",
+      "answered_you": "已回答：请重新开始分析以继续。"
     }
   }
 }

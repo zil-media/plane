@@ -130,6 +130,8 @@ export type TFeatureRequest = {
   workspace_slug: string | null;
   pr_url: string | null;
   build_blocked: boolean;
+  /** needs_info already answered by the requester, and nothing relaunched the analysis (agent off). */
+  answered: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -195,6 +197,15 @@ export type TCreateFeatureRequest = {
   attachment_ids: string[];
   workspace_slug: string;
 };
+
+/** The server's message: `{error}` from the support views, or the first field error from DRF validation. */
+export function supportErrorMessage(error: unknown): string | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const body = error as Record<string, unknown>;
+  if (typeof body.error === "string") return body.error;
+  const first = Object.values(body).find((value) => Array.isArray(value) && typeof value[0] === "string");
+  return Array.isArray(first) ? String(first[0]) : undefined;
+}
 
 export class SupportService extends APIService {
   constructor() {

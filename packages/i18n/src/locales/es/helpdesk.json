@@ -98,7 +98,8 @@
         "in_review": "En revisión",
         "ready": "Lista",
         "rejected": "No se va a construir",
-        "on_hold": "En pausa"
+        "on_hold": "En pausa",
+        "answered": "Respondida: falta retomar"
       }
     },
     "progress": {
@@ -225,7 +226,8 @@
         "published": "Publicada",
         "rejected": "Rechazada: no se va a construir.",
         "rejected_by": "Rechazada por {name}.",
-        "on_hold": "En pausa: no avanza hasta que alguien la retome."
+        "on_hold": "En pausa: no avanza hasta que alguien la retome.",
+        "consult_answered": "Respondida: falta relanzar el análisis"
       }
     },
     "review": {
@@ -260,7 +262,9 @@
       "merged_on": "Ya está publicada y activada.",
       "merged_off": "Ya está publicada: falta activarla.",
       "on_hold": "Está pausada: no avanza hasta que un admin la reanude.",
-      "rejected": "No se va a construir."
+      "rejected": "No se va a construir.",
+      "answered": "Ya respondió: falta que un admin relance el análisis.",
+      "answered_you": "Ya respondió: relance el análisis para seguir."
     }
   }
 }

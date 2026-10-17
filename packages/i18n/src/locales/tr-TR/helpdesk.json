@@ -98,7 +98,8 @@
         "in_review": "İncelemede",
         "ready": "Hazır",
         "rejected": "Planlanmadı",
-        "on_hold": "Duraklatıldı"
+        "on_hold": "Duraklatıldı",
+        "answered": "Yanıtlandı: yeniden başlatılmalı"
       }
     },
     "progress": {
@@ -225,7 +226,8 @@
         "published": "Yayınlandı",
         "rejected": "Reddedildi: geliştirilmeyecek.",
         "rejected_by": "{name} tarafından reddedildi.",
-        "on_hold": "Duraklatıldı: biri devam ettirene kadar ilerlemeyecek."
+        "on_hold": "Duraklatıldı: biri devam ettirene kadar ilerlemeyecek.",
+        "consult_answered": "Yanıtlandı: analizin yeniden başlatılması gerekiyor"
       }
     },
     "review": {
@@ -260,7 +262,9 @@
       "merged_on": "Yayınlandı ve etkinleştirildi.",
       "merged_off": "Yayınlandı: etkinleştirilmesi kaldı.",
       "on_hold": "Duraklatıldı: bir yönetici devam ettirene kadar ilerlemez.",
-      "rejected": "Geliştirilmeyecek."
+      "rejected": "Geliştirilmeyecek.",
+      "answered": "Zaten yanıtlandı: bir yöneticinin analizi yeniden başlatması gerekiyor.",
+      "answered_you": "Zaten yanıtlandı: devam etmek için analizi yeniden başlatın."
     }
   }
 }

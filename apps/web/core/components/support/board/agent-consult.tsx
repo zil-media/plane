@@ -12,7 +12,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { TextArea } from "@plane/ui";
 import { cn } from "@plane/utils";
 import type { TFeatureRequestDetail, TRespecResult, TSupportComment } from "@/services/support.service";
-import { supportService } from "@/services/support.service";
+import { supportErrorMessage, supportService } from "@/services/support.service";
 
 type Props = {
   feature: TFeatureRequestDetail;
@@ -73,8 +73,12 @@ export function AgentConsult({ feature, onAnswered }: Props) {
       // toast is what's left to say it worked.
       if (respec.queued) setToast({ type: TOAST_TYPE.SUCCESS, title: t("helpdesk.consult.relaunched") });
       onAnswered();
-    } catch {
-      setToast({ type: TOAST_TYPE.ERROR, title: t("helpdesk.error_title"), message: t("helpdesk.try_again") });
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("helpdesk.error_title"),
+        message: supportErrorMessage(error) ?? t("helpdesk.try_again"),
+      });
     } finally {
       setBusy(false);
     }

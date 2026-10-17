@@ -98,7 +98,8 @@
         "in_review": "審查中",
         "ready": "已就緒",
         "rejected": "未列入計畫",
-        "on_hold": "已暫停"
+        "on_hold": "已暫停",
+        "answered": "已回答：需重新開始"
       }
     },
     "progress": {
@@ -225,7 +226,8 @@
         "published": "已發布",
         "rejected": "已拒絕：不會實作。",
         "rejected_by": "已被 {name} 拒絕。",
-        "on_hold": "已暫停：在有人恢復之前不會推進。"
+        "on_hold": "已暫停：在有人恢復之前不會推進。",
+        "consult_answered": "已回答：需要重新開始分析"
       }
     },
     "review": {
@@ -260,7 +262,9 @@
       "merged_on": "已發布並啟用。",
       "merged_off": "已發布：還需要啟用。",
       "on_hold": "已暫停：在管理員恢復之前不會繼續。",
-      "rejected": "不會開發。"
+      "rejected": "不會開發。",
+      "answered": "已回答：需要管理員重新開始分析。",
+      "answered_you": "已回答：請重新開始分析以繼續。"
     }
   }
 }

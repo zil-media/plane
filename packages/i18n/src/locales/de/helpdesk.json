@@ -98,7 +98,8 @@
         "in_review": "In Überprüfung",
         "ready": "Bereit",
         "rejected": "Nicht geplant",
-        "on_hold": "Pausiert"
+        "on_hold": "Pausiert",
+        "answered": "Beantwortet: Neustart nötig"
       }
     },
     "progress": {
@@ -225,7 +226,8 @@
         "published": "Veröffentlicht",
         "rejected": "Abgelehnt: Wird nicht umgesetzt.",
         "rejected_by": "Abgelehnt von {name}.",
-        "on_hold": "Pausiert: Geht erst weiter, wenn jemand ihn fortsetzt."
+        "on_hold": "Pausiert: Geht erst weiter, wenn jemand ihn fortsetzt.",
+        "consult_answered": "Beantwortet: Die Analyse muss neu gestartet werden"
       }
     },
     "review": {
@@ -260,7 +262,9 @@
       "merged_on": "Ist veröffentlicht und aktiviert.",
       "merged_off": "Ist veröffentlicht: Muss noch aktiviert werden.",
       "on_hold": "Ist pausiert: Es geht erst weiter, wenn ein Admin sie fortsetzt.",
-      "rejected": "Wird nicht umgesetzt."
+      "rejected": "Wird nicht umgesetzt.",
+      "answered": "Bereits beantwortet: Ein Admin muss die Analyse neu starten.",
+      "answered_you": "Bereits beantwortet: Starten Sie die Analyse neu, um fortzufahren."
     }
   }
 }

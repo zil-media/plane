@@ -98,7 +98,8 @@
         "in_review": "V kontrole",
         "ready": "Připraven",
         "rejected": "Neplánováno",
-        "on_hold": "Pozastaveno"
+        "on_hold": "Pozastaveno",
+        "answered": "Zodpovězeno: čeká na nové spuštění"
       }
     },
     "progress": {
@@ -225,7 +226,8 @@
         "published": "Zveřejněno",
         "rejected": "Zamítnuto: nebude realizováno.",
         "rejected_by": "Zamítl(a) {name}.",
-        "on_hold": "Pozastaveno: nepokročí, dokud to někdo neobnoví."
+        "on_hold": "Pozastaveno: nepokročí, dokud to někdo neobnoví.",
+        "consult_answered": "Zodpovězeno: analýzu je třeba znovu spustit"
       }
     },
     "review": {
@@ -260,7 +262,9 @@
       "merged_on": "Je zveřejněno a zapnuto.",
       "merged_off": "Je zveřejněno: zbývá to zapnout.",
       "on_hold": "Je pozastaveno: nepohne se, dokud to admin neobnoví.",
-      "rejected": "Nebude se realizovat."
+      "rejected": "Nebude se realizovat.",
+      "answered": "Už je odpovězeno: admin musí analýzu znovu spustit.",
+      "answered_you": "Už je odpovězeno: spusťte analýzu znovu, ať se pokračuje."
     }
   }
 }

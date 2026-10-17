@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
 import { useTranslation } from "@plane/i18n";
@@ -14,7 +14,7 @@ import { Input, Loader, TextArea, ToggleSwitch } from "@plane/ui";
 import { renderFormattedDate } from "@plane/utils";
 import { SUPPORT_FEATURE_FLAGS_KEY } from "@/hooks/use-feature-flag";
 import type { TFeatureDecision, TFeatureRequestDetail } from "@/services/support.service";
-import { supportService } from "@/services/support.service";
+import { supportErrorMessage, supportService } from "@/services/support.service";
 import { AgentConsult } from "./agent-consult";
 import { PhaseChip, Tag } from "./item-row";
 import { featurePhase } from "./phase";
@@ -42,15 +42,6 @@ function buildNotStartedKey(reason: string) {
   if (reason === "build run limit") return "helpdesk.admin.build_limit";
   if (reason.startsWith("tope semanal")) return "helpdesk.admin.build_cap";
   return "helpdesk.try_again";
-}
-
-/** The server's message: `{error}` from the views, or the first field error from DRF validation. */
-function errorMessage(error: unknown): string | undefined {
-  if (!error || typeof error !== "object") return undefined;
-  const body = error as Record<string, unknown>;
-  if (typeof body.error === "string") return body.error;
-  const first = Object.values(body).find((value) => Array.isArray(value) && typeof value[0] === "string");
-  return Array.isArray(first) ? String(first[0]) : undefined;
 }
 
 /** What the primary action means in each state; `null` when an admin has nothing to decide. */
@@ -96,7 +87,14 @@ function adminOptions(feature: TFeatureRequestDetail) {
       canReject = true;
       break;
     case "in_review":
+      // A PR closed without merging leaves it here: pausing or rejecting is the way out.
       secondary.push({ decision: "rebuild", labelKey: "helpdesk.admin.rebuild" });
+      secondary.push({ decision: "hold", labelKey: "helpdesk.admin.hold" });
+      canReject = true;
+      break;
+    case "queued":
+      // Dropped from the batch, or not wanted after all: rejecting keeps merged code dark.
+      canReject = true;
       break;
     case "on_hold":
       // Paused after it was approved: resuming is building again. Paused with a spec ready but
@@ -116,6 +114,7 @@ function adminOptions(feature: TFeatureRequestDetail) {
 function nextStepKey(feature: TFeatureRequestDetail, isAdmin: boolean, isRequester: boolean, flagOn: boolean) {
   switch (feature.status) {
     case "needs_info":
+      if (feature.answered) return isAdmin ? "helpdesk.next.answered_you" : "helpdesk.next.answered";
       return isRequester ? "helpdesk.next.needs_info_you" : "helpdesk.next.needs_info";
     case "spec_ready":
       return isAdmin ? "helpdesk.next.spec_ready_you" : "helpdesk.next.spec_ready";
@@ -160,6 +159,9 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
   const [flagKey, setFlagKey] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const [busy, setBusy] = useState(false);
+  // The status can move under an open reject form (refresh, another admin): start over.
+  const status = feature?.status;
+  useEffect(() => setRejecting(false), [status]);
 
   if (!feature)
     return (
@@ -197,7 +199,7 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
       setToast({
         type: TOAST_TYPE.ERROR,
         title: t("helpdesk.error_title"),
-        message: errorMessage(error) ?? t("helpdesk.try_again"),
+        message: supportErrorMessage(error) ?? t("helpdesk.try_again"),
       });
       // A 409 usually means someone else moved it first: show where it is now.
       await mutate();
@@ -262,7 +264,7 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
           </label>
         )}
 
-        {rejecting && (
+        {rejecting && canReject && (
           <TextArea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
@@ -273,7 +275,7 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
 
         {hasActions && (
           <div className="flex flex-wrap gap-2">
-            {rejecting ? (
+            {rejecting && canReject ? (
               <>
                 <Button
                   variant="error-fill"
@@ -364,7 +366,8 @@ export function SupportFeatureDetail({ featureId, isAdmin, currentUserId, enable
 
       <PhaseTimeline track={computeFeatureTrack(feature)} />
 
-      {feature.build?.last_note && (
+      {/* The note explains why a build stopped or was paused; once it moves on, it would read as stale. */}
+      {feature.build?.last_note && ["building", "approved", "on_hold"].includes(feature.status) && (
         <div className="rounded-md bg-layer-1 p-3 text-body-xs-regular whitespace-pre-wrap text-primary">
           {feature.build.last_note}
         </div>

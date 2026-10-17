@@ -98,7 +98,8 @@
         "in_review": "Đang xem xét",
         "ready": "Sẵn sàng",
         "rejected": "Không được lên kế hoạch",
-        "on_hold": "Đang tạm dừng"
+        "on_hold": "Đang tạm dừng",
+        "answered": "Đã trả lời: cần chạy lại"
       }
     },
     "progress": {
@@ -225,7 +226,8 @@
         "published": "Đã phát hành",
         "rejected": "Đã từ chối: sẽ không được xây dựng.",
         "rejected_by": "Bị {name} từ chối.",
-        "on_hold": "Tạm dừng: sẽ không tiến triển cho đến khi có người tiếp tục."
+        "on_hold": "Tạm dừng: sẽ không tiến triển cho đến khi có người tiếp tục.",
+        "consult_answered": "Đã trả lời: cần chạy lại phân tích"
       }
     },
     "review": {
@@ -260,7 +262,9 @@
       "merged_on": "Đã phát hành và bật.",
       "merged_off": "Đã phát hành: còn cần bật.",
       "on_hold": "Đang tạm dừng: sẽ không tiếp tục cho đến khi quản trị viên tiếp tục.",
-      "rejected": "Sẽ không được xây dựng."
+      "rejected": "Sẽ không được xây dựng.",
+      "answered": "Đã trả lời: quản trị viên cần chạy lại phân tích.",
+      "answered_you": "Đã trả lời: hãy chạy lại phân tích để tiếp tục."
     }
   }
 }

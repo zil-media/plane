@@ -153,8 +153,10 @@ export function computeFeatureTrack(feature: TFeatureRequestDetail): TTrack {
       key: "consult",
       label: k("helpdesk.track.feature.consult"),
       state: "active",
-      waiting: true,
-      sub: [{ label: k("helpdesk.track.feature.consult_waiting"), waiting: true }],
+      waiting: !feature.answered,
+      sub: feature.answered
+        ? [{ label: k("helpdesk.track.feature.consult_answered") }]
+        : [{ label: k("helpdesk.track.feature.consult_waiting"), waiting: true }],
     });
   }
 

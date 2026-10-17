@@ -98,7 +98,8 @@
         "in_review": "In review",
         "ready": "Ready",
         "rejected": "Not planned",
-        "on_hold": "Paused"
+        "on_hold": "Paused",
+        "answered": "Answered: needs a restart"
       }
     },
     "progress": {
@@ -225,7 +226,8 @@
         "published": "Published",
         "rejected": "Rejected: it won't be built.",
         "rejected_by": "Rejected by {name}.",
-        "on_hold": "Paused: it won't move until someone resumes it."
+        "on_hold": "Paused: it won't move until someone resumes it.",
+        "consult_answered": "Answered: the analysis needs a restart"
       }
     },
     "review": {
@@ -260,7 +262,9 @@
       "merged_on": "It's published and turned on.",
       "merged_off": "It's published: it still needs to be turned on.",
       "on_hold": "It's paused: it won't move until an admin resumes it.",
-      "rejected": "It won't be built."
+      "rejected": "It won't be built.",
+      "answered": "Already answered: an admin has to restart the analysis.",
+      "answered_you": "Already answered: restart the analysis to continue."
     }
   }
 }

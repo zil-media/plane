@@ -25,7 +25,8 @@ function serialize(value: unknown): string {
       text = String(value);
     }
   }
-  return text.length > MAX_ARG_LENGTH ? `${text.slice(0, MAX_ARG_LENGTH)}…` : text;
+  // The ellipsis counts: the server caps each arg at MAX_ARG_LENGTH and one longer arg fails the whole report.
+  return text.length > MAX_ARG_LENGTH ? `${text.slice(0, MAX_ARG_LENGTH - 1)}…` : text;
 }
 
 export function recordConsoleEntry(level: string, args: unknown[]) {

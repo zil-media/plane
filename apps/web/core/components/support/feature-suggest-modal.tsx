@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ImagePlus, Lightbulb, Loader2, X } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@plane/i18n";
@@ -58,11 +58,13 @@ export function FeatureSuggestModal(props: Props) {
     setAttachments([]);
   };
 
-  const handleClose = () => {
-    onClose();
-    // after the close animation, so the form doesn't visibly empty
-    setTimeout(reset, 350);
-  };
+  // Closing by accident (outside click, Escape) keeps the draft, like the bug reporter. Only a sent
+  // suggestion starts over, on the next open (that also covers closing while it was being sent).
+  const handleClose = () => onClose();
+  useEffect(() => {
+    if (isOpen && step === "sent") reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on open: reset after a send
+  }, [isOpen]);
 
   const handleFiles = (files: FileList | null) => {
     const room = MAX_ATTACHMENTS - attachments.length;

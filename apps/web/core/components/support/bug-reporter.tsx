@@ -71,6 +71,9 @@ export function BugReporter(props: Props) {
   // Source of truth for the attachment cap: state updaters run later than this code needs to know.
   const countRef = useRef(0);
   const capturedRef = useRef(false);
+  // The automatic screen capture and the page it shows: reopened on another page without sending,
+  // that screenshot isn't the screen being reported anymore.
+  const autoShotRef = useRef<{ key: string; url: string } | null>(null);
   // Bumped by reset(): "Report another" is a new report, and it gets its own screen capture.
   const [round, setRound] = useState(0);
 
@@ -80,6 +83,7 @@ export function BugReporter(props: Props) {
     setUrgent(false);
     countRef.current = 0;
     capturedRef.current = false;
+    autoShotRef.current = null;
     setRound((value) => value + 1);
     setImages((current) => {
       current.forEach((image) => URL.revokeObjectURL(image.preview));
@@ -89,10 +93,10 @@ export function BugReporter(props: Props) {
   }, []);
 
   const addImage = useCallback(
-    async (file: File) => {
+    async (file: File, presetKey?: string) => {
       if (countRef.current >= MAX_ATTACHMENTS) return;
       countRef.current += 1;
-      const key = `${Date.now()}-${Math.random()}`;
+      const key = presetKey ?? `${Date.now()}-${Math.random()}`;
       const preview = URL.createObjectURL(file);
       setImages((current) => [...current, { key, preview, status: "uploading" }]);
       try {
@@ -105,26 +109,43 @@ export function BugReporter(props: Props) {
     [workspaceSlug]
   );
 
+  const removeImage = useCallback((key: string) => {
+    if (autoShotRef.current?.key === key) autoShotRef.current = null;
+    countRef.current = Math.max(0, countRef.current - 1);
+    setImages((current) => {
+      const image = current.find((i) => i.key === key);
+      if (image) URL.revokeObjectURL(image.preview);
+      return current.filter((i) => i.key !== key);
+    });
+  }, []);
+
   // Desktop: grab the screen the moment the panel opens, while it still shows the problem.
   useEffect(() => {
     if (!isOpen) {
       capturedRef.current = false;
       return;
     }
+    const here = window.location.pathname + window.location.search;
+    if (autoShotRef.current && autoShotRef.current.url !== here) removeImage(autoShotRef.current.key);
     if (capturedRef.current || countRef.current > 0 || !isDesktop()) return;
     capturedRef.current = true;
     let cancelled = false;
     setCapturing(true);
+    const key = `auto-${Date.now()}`;
     withTimeout(capturePage(), CAPTURE_TIMEOUT_MS)
       .then((dataUrl) => compressImage(dataUrl, "pantalla.jpg"))
-      .then((file) => (cancelled ? undefined : addImage(file)))
+      .then((file) => {
+        if (cancelled) return undefined;
+        autoShotRef.current = { key, url: here };
+        return addImage(file, key);
+      })
       .catch(() => undefined)
       // Always: closed mid-capture, the spinner would otherwise stay on for the next open.
       .finally(() => setCapturing(false));
     return () => {
       cancelled = true;
     };
-  }, [isOpen, addImage, round]);
+  }, [isOpen, addImage, removeImage, round]);
 
   // Escape closes the same way the X does: after a send, the next open is a blank form.
   const close = useCallback(() => {
@@ -153,15 +174,6 @@ export function BugReporter(props: Props) {
     Array.from(files ?? [])
       .filter((file) => file.type.startsWith("image/"))
       .forEach((file) => void compressImage(file, file.name).then(addImage));
-  };
-
-  const removeImage = (key: string) => {
-    countRef.current = Math.max(0, countRef.current - 1);
-    setImages((current) => {
-      const image = current.find((i) => i.key === key);
-      if (image) URL.revokeObjectURL(image.preview);
-      return current.filter((i) => i.key !== key);
-    });
   };
 
   const uploading = images.some((image) => image.status === "uploading");
@@ -313,7 +325,8 @@ export function BugReporter(props: Props) {
               size="lg"
               onClick={() => void handleSubmit()}
               loading={submitting}
-              disabled={!description.trim() || uploading}
+              // Not while the screen is still being captured: the report would go out without it.
+              disabled={!description.trim() || uploading || capturing}
             >
               {t("helpdesk.reporter.submit")}
             </Button>
