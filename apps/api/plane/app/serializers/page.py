@@ -66,7 +66,9 @@ class PageSerializer(BaseSerializer):
             "zil_client",
             "is_zil_clients_root",
         ]
-        read_only_fields = ["workspace", "owned_by"]
+        # archived_at only changes through the archive endpoints, which apply it to the subtree and hold who
+        # may archive (the owner or an admin) and what the clients-folder sync would undo (zil_auto_folder_refusal)
+        read_only_fields = ["workspace", "owned_by", "archived_at"]
 
     def get_is_zil_clients_root(self, obj):
         if not obj.is_folder:

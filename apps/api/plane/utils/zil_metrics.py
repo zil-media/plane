@@ -11,9 +11,9 @@ workspace's human members; bots (AI agents, the Zil service user) are counted ap
 A member's row in the unit's people list and the totals/work of their own page come from one function
 (`_person_fields`) over data loaded one way (`_Work`), so the two screens agree by definition:
 - `actions`: changes to work items (without the activity twin Plane logs for each new comment), comments
-  and page saves. `action_days`: days with an action.
-- `active_*` (days, minutes, sessions): presence in Ops, which is an action, reading a notification or a
-  request. A day with only reads counts in `active_days`, never in `action_days`.
+  and page saves (one per editing session of a page, see `_page_saves`). `action_days`: days with an action.
+- `active_*` (days, minutes, sessions): presence in Ops, which is an action, reading a notification, a
+  request or a page autosave. A day with only reads counts in `active_days`, never in `action_days`.
 - `created`: work items they created (intake requests still in triage are not work yet).
 - `completed_assigned`: items assigned to them completed in the window, whoever closed them; the person page
   also shows `completed_marked`, the items this person moved to completed, whoever they were assigned to.
@@ -190,10 +190,16 @@ class _Window:
 
 
 def _page_saves(workspace, win, person_id=None):
-    """Page saves in the window as (person, when, page name). Every saved version counts (Plane folds one
-    person's saves of a page within 10 minutes into one version, and hides all but the last 20 of a page:
-    hidden ones were still saved). A page edited in the window with no version of that person (pages saved
-    before versions were recorded, Oct 2026) counts its last edit once."""
+    """Page edits in the window: (saves, moments). A save is one editing session of a page, (person, when it
+    started, page name); every moment, (person, when), shows the person was there.
+
+    Plane writes a version while someone edits, not when they decide to save: one person's saves of a page
+    within 10 minutes of the version's start go into it, so a 2-hour session leaves 12 versions, and two people
+    editing a page together leave one per autosave (~10 s), as each save goes to whoever typed last. One
+    person's versions of a page less than 30 minutes apart are therefore one save; each version still counts
+    as presence, for active time. Versions Plane hid (it keeps the last 20 of a page) count until the nightly
+    cleanup deletes them. A page edited in the window with no version of that person (a rename, a move, or
+    pages saved before versions were recorded, Oct 2026) counts its last edit once."""
     versions = PageVersion.all_objects.filter(
         workspace_id=workspace.id,
         page__deleted_at__isnull=True,
@@ -204,14 +210,23 @@ def _page_saves(workspace, win, person_id=None):
     if person_id is not None:
         versions = versions.filter(owned_by_id=person_id)
         pages = pages.filter(updated_by_id=person_id)
-    saves, versioned = [], set()
-    for v in versions.values("page_id", "page__name", "owned_by_id", "last_saved_at"):
-        versioned.add((v["page_id"], v["owned_by_id"]))
-        saves.append((v["owned_by_id"], v["last_saved_at"], v["page__name"] or ""))
-    for p in pages.values("id", "name", "updated_by_id", "updated_at"):
-        if p["updated_by_id"] and (p["id"], p["updated_by_id"]) not in versioned:
-            saves.append((p["updated_by_id"], p["updated_at"], p["name"] or ""))
-    return saves
+    edits = [
+        (v["owned_by_id"], v["last_saved_at"], v["page_id"], v["page__name"] or "")
+        for v in versions.values("page_id", "page__name", "owned_by_id", "last_saved_at")
+    ]
+    versioned = {(page_id, who) for who, _, page_id, _ in edits}
+    edits += [
+        (p["updated_by_id"], p["updated_at"], p["id"], p["name"] or "")
+        for p in pages.values("id", "name", "updated_by_id", "updated_at")
+        if p["updated_by_id"] and (p["id"], p["updated_by_id"]) not in versioned
+    ]
+    saves, last = [], {}
+    for who, ts, page_id, name in sorted(edits, key=lambda e: e[1]):
+        prev = last.get((who, page_id))
+        if prev is None or ts - prev > SESSION_GAP:
+            saves.append((who, ts, name))
+        last[(who, page_id)] = ts
+    return saves, [(who, ts) for who, ts, _, _ in edits]
 
 
 class _Work:
@@ -302,7 +317,8 @@ class _Work:
             for c in self.comments
             if win.has(c["created_at"])
         ]
-        actions += [(ts, uid, "page", None, name) for uid, ts, name in _page_saves(workspace, win, person_id)]
+        page_saves, self.page_moments = _page_saves(workspace, win, person_id)
+        actions += [(ts, uid, "page", None, name) for uid, ts, name in page_saves]
         actions.sort(key=lambda e: e[0])
         self.actions = actions
 
@@ -335,13 +351,20 @@ class _Work:
         return bool(issue["target_date"]) and issue["target_date"] < self.win.end_date
 
 
-def _presence(win, notes, usage):
-    """Signs of presence that are not actions: reading a notification and the last request of each
-    (surface, channel) of a day. "Mark all as read" stamps hundreds of notifications within the same
-    second: one moment, not hundreds."""
-    reads = sorted({n["read_at"].replace(second=0, microsecond=0) for n in notes if win.has(n["read_at"])})
-    pings = [r["last_at"] for r in usage if win.has(r["last_at"])]
-    return reads, pings
+def _presence(work, uid):
+    """Signs of presence that are not actions: (reads, other moments). Reading a notification ("mark all as
+    read" stamps hundreds within the same second: one moment, not hundreds); the last request of each
+    (surface, channel) of a day; every autosave of a page they edited."""
+    win = work.win
+    reads = sorted(
+        {
+            n["read_at"].replace(second=0, microsecond=0)
+            for n in work.notes
+            if n["receiver_id"] == uid and win.has(n["read_at"])
+        }
+    )
+    pings = [r["last_at"] for r in work.usage if r["user_id"] == uid and win.has(r["last_at"])]
+    return reads, pings + [ts for who, ts in work.page_moments if who == uid]
 
 
 def _person_fields(work, user):
@@ -351,7 +374,7 @@ def _person_fields(work, user):
     notes = [n for n in work.notes if n["receiver_id"] == uid]
     read_notes = [n for n in notes if n["read_at"]]
     usage = [r for r in work.usage if r["user_id"] == uid]
-    reads, pings = _presence(work.win, notes, usage)
+    reads, pings = _presence(work, uid)
     action_days = {_day(e[0]) for e in actions}
     done = [i for i in work.completed if uid in work.assignees[i["id"]]]
     dated = [i for i in done if i["target_date"]]
@@ -719,7 +742,7 @@ def compute_person_metrics(workspace, user, since, until):
     time from the gaps between their actions), what kind of work and where, and what they owe.
     `totals` and `work` are the member's row of the unit's people list (`_person_fields`).
 
-    Active time: every timestamped thing the person did (changes, comments, page saves, reading a
+    Active time: every timestamped thing the person did (changes, comments, every page autosave, reading a
     notification, the last request of each day) is put on a line; actions less than 30 minutes
     apart are one session, and each session counts its span plus 5 minutes. The heatmap counts
     actions and notification reads.
@@ -748,7 +771,7 @@ def compute_person_metrics(workspace, user, since, until):
 
     # ── what they did, one event per action ─────────────────────────────────
     events = [(ts, kind, issue, detail) for ts, actor, kind, issue, detail in work.actions if actor == uid]
-    reads, pings = _presence(win, [n for n in work.notes if n["receiver_id"] == uid], work.usage)
+    reads, pings = _presence(work, uid)
 
     # ── when ─────────────────────────────────────────────────────────────────
     heatmap = [[0] * 24 for _ in range(7)]

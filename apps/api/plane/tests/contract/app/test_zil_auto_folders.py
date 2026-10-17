@@ -8,6 +8,8 @@ on them is refused, and a folder linked by hand keeps every action."""
 from unittest import mock
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework import status
 
 from plane.db.models import Page, PageZilClientLink
@@ -260,3 +262,60 @@ class TestAutoFolderPublicApi:
         assert refused.status_code == status.HTTP_400_BAD_REQUEST
         assert refused.data["error_message"] == "ZIL_CLIENT_FOLDER_CLIENT_LEFT"
         assert folder_of(NIKE).archived_at is not None
+
+
+@pytest.mark.contract
+class TestArchiveStateOnlyThroughTheArchiveEndpoints:
+    @pytest.mark.django_db
+    def test_a_page_update_neither_archives_nor_restores_an_auto_folder(self, session_client, workspace, project):
+        push(None, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")])
+        nike = folder_of(NIKE)
+
+        with zil_says(client_dto(NIKE, "Nike")) as lookup:
+            response = session_client.patch(
+                pages_url(workspace, project, f"{nike.id}/"), {"archived_at": "2026-10-01"}, format="json"
+            )
+        assert response.status_code == status.HTTP_200_OK
+        assert folder_of(NIKE).archived_at is None
+
+        push(None, workspace, [client_dto(ADIDAS, "Adidas")])
+        with zil_says(None):
+            response = session_client.patch(
+                pages_url(workspace, project, f"{nike.id}/"), {"archived_at": None}, format="json"
+            )
+        assert response.status_code == status.HTTP_200_OK
+        assert folder_of(NIKE).archived_at is not None
+        lookup.assert_not_called()
+
+
+@pytest.mark.contract
+class TestOtherPagesNeverAskZil:
+    @pytest.mark.django_db
+    def test_listing_costs_the_same_queries_with_one_client_folder_or_forty(self, session_client, workspace, project):
+        def list_pages():
+            with zil_says(ZilUnavailable()) as lookup, CaptureQueriesContext(connection) as queries:
+                response = session_client.get(pages_url(workspace, project))
+            assert response.status_code == status.HTTP_200_OK
+            lookup.assert_not_called()
+            return response.data, len(queries.captured_queries)
+
+        push(None, workspace, [client_dto(f"{1:024x}", "Cliente 1")])
+        few, few_queries = list_pages()
+        push(None, workspace, [client_dto(f"{i:024x}", f"Cliente {i}") for i in range(1, 41)])
+        many, many_queries = list_pages()
+
+        assert (len(few), len(many)) == (2, 41)
+        assert all(page["zil_client"]["auto_created"] for page in many if page["zil_client"])
+        assert many_queries == few_queries
+
+    @pytest.mark.django_db
+    def test_zil_down_archives_restores_and_deletes_a_plain_page(self, session_client, workspace, project):
+        push(None, workspace, [client_dto(NIKE, "Nike")])
+        notes = Page.objects.get(pk=create_folder(session_client, workspace, project, name="Notas")["id"])
+
+        with zil_says(ZilUnavailable()) as lookup:
+            assert archive(session_client, workspace, project, notes).status_code == status.HTTP_200_OK
+            assert restore(session_client, workspace, project, notes).status_code == status.HTTP_200_OK
+            assert archive(session_client, workspace, project, notes).status_code == status.HTTP_200_OK
+            assert delete(session_client, workspace, project, notes).status_code == status.HTTP_204_NO_CONTENT
+        lookup.assert_not_called()

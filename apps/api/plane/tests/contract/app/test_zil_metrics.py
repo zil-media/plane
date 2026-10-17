@@ -519,3 +519,51 @@ class TestUnitAndPersonAgree:
         assert unit["usage"]["bot_actions"] == 1 and unit["usage"]["writers"] == 2
         # the team's hours: actions of people only (no reads, no bots)
         assert sum(map(sum, unit["usage"]["heatmap"])) == 12
+
+    @pytest.mark.django_db
+    def test_an_editing_session_is_one_page_save(self, workspace, project, create_user):
+        """Plane writes a page version every 10 minutes while someone types, and one per autosave when two
+        people edit together: a morning of writing is one save, and every version still counts as presence."""
+        UsageDay.objects.filter(workspace_slug=workspace.slug).delete()
+        designer = User.objects.create(email="designer@zil.test", username="designer", display_name="Joaquin")
+        WorkspaceMember.objects.create(workspace=workspace, member=designer, role=15)
+        brief = Page.objects.create(name="Brief ACME", workspace=workspace, owned_by=designer)
+
+        def save(who, hour, minute, day=6):
+            return PageVersion.objects.create(
+                workspace=workspace,
+                page=brief,
+                owned_by=who,
+                last_saved_at=datetime(2026, 10, day, hour, minute, tzinfo=TZ),
+            )
+
+        # Tuesday 09:00-10:50: a version every 10 minutes; the owner joins at 09:05 and 09:15 (her own session)
+        morning = [save(designer, 9 + m // 60, m % 60) for m in range(0, 120, 10)]
+        save(create_user, 9, 5)
+        save(create_user, 9, 15)
+        # Plane hides all but the last 20 versions of a page: hidden, still saved
+        PageVersion.all_objects.filter(pk=morning[0].pk).update(deleted_at=at(6, 11))
+        # back at 14:00, more than 30 minutes later: a second save
+        save(designer, 14, 0)
+
+        since, until = date(2026, 10, 1), date(2026, 10, 17)
+        unit = compute_workspace_metrics(workspace, since, until)
+        joaquin = next(p for p in unit["people"] if p["email"] == designer.email)
+        owner = next(p for p in unit["people"] if p["email"] == create_user.email)
+        assert (joaquin["actions"], joaquin["action_days"], joaquin["active_days"]) == (2, 1, 1)
+        assert owner["actions"] == 1
+        assert sum(map(sum, unit["usage"]["heatmap"])) == 3 and unit["usage"]["heatmap"][1][9] == 2
+
+        page = compute_person_metrics(workspace, designer, since, until)
+        totals = page["totals"]
+        assert page["kinds"] == {"page": 2} and totals["page_saves"] == 2 and totals["actions"] == 2
+        # 09:00-10:50 is one session (110 min + 5) and 14:00 another (5 min)
+        assert (totals["active_minutes"], totals["sessions"]) == (120, 2)
+        assert [e["at"][11:16] for e in page["timeline"]] == ["14:00", "09:00"]
+        assert sum(map(sum, page["heatmap"])) == 2
+        for row in unit["people"]:
+            mine = compute_person_metrics(workspace, User.objects.get(id=row["user_id"]), since, until)
+            mine = {**mine["totals"], **mine["work"], "last_seen": mine["person"]["last_seen"]}
+            assert {k: row[k] for k in set(row) - {"user_id", "name", "email"}} == {
+                k: mine[k] for k in set(row) - {"user_id", "name", "email"}
+            }
