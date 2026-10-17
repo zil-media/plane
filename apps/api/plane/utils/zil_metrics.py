@@ -46,6 +46,8 @@ LIST_LIMIT = 30
 SEED_BOT_TYPE = "WORKSPACE_SEED"
 SESSION_GAP = timedelta(minutes=30)
 SESSION_MIN_MINUTES = 5
+# closed this soon after being created: the work was logged once done, it never waited
+LOGGED_DONE = timedelta(minutes=5)
 TIMELINE_LIMIT = 60
 AGE_BUCKETS = (("0-7 d", 0, 7), ("8-14 d", 8, 14), ("15-30 d", 15, 30), ("31-60 d", 31, 60), ("60+ d", 61, None))
 
@@ -76,9 +78,12 @@ def _rate(num, den):
 
 
 def _lead_hours(issue):
-    """Created → completed. An item created already done has its completed_at stamped a few ms
-    before created_at (Issue.save sets it before the insert): its lead time is 0, not a negative."""
-    return _hours(max(issue["completed_at"], issue["created_at"]) - issue["created_at"])
+    """Created → completed, or None for work logged after it was done: an item created already
+    done (its completed_at is stamped a few ms before created_at) or closed within minutes of
+    being created never waited. It counts as completed, but a 0 h "time to finish" would sink
+    the median of a team that logs its work (Marketwise, Oct 2026: 0.2 h instead of 37 h)."""
+    lead = issue["completed_at"] - issue["created_at"]
+    return None if lead < LOGGED_DONE else _hours(lead)
 
 
 def _state_groups(workspace):

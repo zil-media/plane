@@ -151,7 +151,9 @@ export const PageActions = observer(function PageActions(props: Props) {
           },
           title: archived_at ? "Restore" : "Archive",
           icon: archived_at ? ArchiveRestoreIcon : ArchiveIcon,
-          shouldRender: canCurrentUserArchivePage,
+          // archiving the clients folder archives every client folder in it, and the next sync makes a new one
+          // (and brings the client folders back into it): the action only multiplies folders
+          shouldRender: canCurrentUserArchivePage && (!!archived_at || !page.is_zil_clients_root),
         },
         {
           key: "delete",

@@ -13,6 +13,7 @@ from rest_framework.response import Response
 # Module imports
 from plane.app.permissions import allow_permission, ROLE
 from plane.db.models import Page, PageZilClientLink, ZilClientsRoot
+from plane.middleware.request_body_size import BRAND_FILE_MAX_BYTES
 from plane.utils.zil_client import (
     ZilUnavailable,
     apply_zil_client_fields,
@@ -293,9 +294,6 @@ class PageZilClientDriveEndpoint(ZilClientRelayBase):
         return Response(body.get("drive"), status=status.HTTP_200_OK)
 
 
-BRAND_FILE_MAX_BYTES = 20 * 1024 * 1024
-
-
 class PageZilClientBrandFilesEndpoint(ZilClientRelayBase):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def post(self, request, slug, project_id, page_id):
@@ -303,7 +301,10 @@ class PageZilClientBrandFilesEndpoint(ZilClientRelayBase):
         if upload is None:
             return Response({"error": "Missing file"}, status=status.HTTP_400_BAD_REQUEST)
         if upload.size > BRAND_FILE_MAX_BYTES:
-            return Response({"error": "El archivo no puede pesar más de 20 MB."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "El archivo no puede pesar más de 20 MB."},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
         link, error = self._linked_folder(request, slug, project_id, page_id)
         if error:
             return error

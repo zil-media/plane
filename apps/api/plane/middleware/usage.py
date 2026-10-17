@@ -38,8 +38,9 @@ SURFACE_RULES = (
     ("support", re.compile(r"/support|/bug-reports|/feature-requests")),
     ("notifications", re.compile(r"/notifications")),
     ("pages", re.compile(r"/pages")),
-    ("cycles", re.compile(r"/cycles")),
-    ("modules", re.compile(r"/modules")),
+    # also archived-cycles / archived-modules (their archive pages) and user-favorite-*
+    ("cycles", re.compile(r"/cycles|-cycles/")),
+    ("modules", re.compile(r"/modules|-modules/")),
     ("views", re.compile(r"/views")),
     ("search", re.compile(r"/search")),
     # analytics, advance-analytics(-stats|-charts), default-analytics, analytic-view, export-analytics

@@ -19,6 +19,7 @@ from rest_framework.request import Request
 from plane.utils.ip_address import get_client_ip
 from plane.utils.exception_logger import log_exception
 from plane.bgtasks.logger_task import process_logs
+from plane.middleware.request_body_size import is_brand_file_upload
 
 api_logger = logging.getLogger("plane.api.request")
 
@@ -86,7 +87,8 @@ class APITokenLogMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        request_body = request.body
+        # A brand file upload is streamed by its view; reading it here would load it whole past the body limit
+        request_body = None if is_brand_file_upload(request) else request.body
         response = self.get_response(request)
         self.process_request(request, response, request_body)
         return response

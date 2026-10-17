@@ -134,6 +134,9 @@ export class ProjectPage extends BasePage implements TProjectPage {
    * @description returns true if the current logged in user can change the access of the page
    */
   get canCurrentUserChangeAccess() {
+    // the access endpoint refuses anyone but the owner (an admin gets a 400), and the folders Zil creates
+    // (the clients folder and one per client) are owned by the Zil service user, nobody who signs in
+    if (this.isFolder) return this.isCurrentUserOwner;
     const highestRole = this.getHighestRoleAcrossProjects();
     return this.isCurrentUserOwner || highestRole === EUserPermissions.ADMIN;
   }

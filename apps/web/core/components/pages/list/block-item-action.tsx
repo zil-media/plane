@@ -7,6 +7,7 @@
 import { observer } from "mobx-react";
 import { Earth, Info, Minus } from "lucide-react";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { LockIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
 import { Avatar, FavoriteStar } from "@plane/ui";
@@ -30,6 +31,7 @@ type Props = {
 export const BlockItemAction = observer(function BlockItemAction(props: Props) {
   const { page, parentRef, storeType } = props;
   // store hooks
+  const { t } = useTranslation();
   const { getUserDetails } = useMember();
   // page operations
   const { pageOperations } = usePageOperations({
@@ -38,13 +40,18 @@ export const BlockItemAction = observer(function BlockItemAction(props: Props) {
   // derived values
   const { access, created_at, is_favorite, owned_by, canCurrentUserFavoritePage } = page;
   const ownerDetails = owned_by ? getUserDetails(owned_by) : undefined;
+  // the clients folder and the client folders are owned by the Zil service user, who is no workspace member
+  // and so has no details to show: name it instead of a "?" with an empty tooltip
+  const ownerName =
+    ownerDetails?.display_name ??
+    (page.is_zil_clients_root || page.zil_client ? t("page_tree.zil_client.service_owner") : undefined);
 
   return (
     <>
       {/* page details */}
       <div className="cursor-default">
-        <Tooltip tooltipHeading="Owned by" tooltipContent={ownerDetails?.display_name}>
-          <Avatar src={getFileURL(ownerDetails?.avatar_url ?? "")} name={ownerDetails?.display_name} />
+        <Tooltip tooltipHeading="Owned by" tooltipContent={ownerName}>
+          <Avatar src={getFileURL(ownerDetails?.avatar_url ?? "")} name={ownerName} />
         </Tooltip>
       </div>
       <div className="cursor-default text-tertiary">

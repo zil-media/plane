@@ -181,6 +181,17 @@ class TestUsageSurfaces:
             f"{ws}/user-issues/u/",
         ):
             assert classify(url, "POST")[1] == "work_items", url
+        # the archive pages and the favorite stars of cycles and modules are cycles / modules use
+        for url, surface in (
+            (f"{pr}/archived-cycles/", "cycles"),
+            (f"{pr}/archived-cycles/c/", "cycles"),
+            (f"{pr}/user-favorite-cycles/", "cycles"),
+            (f"{pr}/archived-modules/", "modules"),
+            (f"{pr}/archived-modules/m/", "modules"),
+            (f"{pr}/user-favorite-modules/", "modules"),
+            ("/api/v1/workspaces/zil/projects/p/archived-cycles/", "cycles"),
+        ):
+            assert classify(url)[1] == surface, url
         assert classify(f"{pr}/issue-labels/")[1] == "projects"
         assert classify(f"{pr}/search-issues/")[1] == "search"
         assert classify(f"{pr}/intake-issues/")[1] == "intake"

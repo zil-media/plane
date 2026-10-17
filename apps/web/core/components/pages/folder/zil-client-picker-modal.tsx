@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { Building2, Search } from "lucide-react";
+import { Building2, FolderOpen, Search } from "lucide-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
@@ -33,8 +33,12 @@ type Props = {
 
 type TSearchState =
   | { status: "loading" }
-  | { status: "ready"; results: TZilClientSearchResult[] }
+  // `query` is the one these results answer (the box may already say something else while the next one loads)
+  | { status: "ready"; results: TZilClientSearchResult[]; query: string }
   | { status: "unavailable" };
+
+// what the link call answers when it refuses (the service adds the HTTP status to Ops's body)
+type TLinkError = { status?: number; page_id?: string | null; error_message?: string } | undefined;
 
 export const ZilClientPickerModal = observer(function ZilClientPickerModal(props: Props) {
   const { isOpen, onClose, page } = props;
@@ -61,7 +65,9 @@ export const ZilClientPickerModal = observer(function ZilClientPickerModal(props
       .then((response) => {
         if (cancelled) return undefined;
         return setSearchState(
-          response.enabled ? { status: "ready", results: response.results } : { status: "unavailable" }
+          response.enabled
+            ? { status: "ready", results: response.results, query: debouncedQuery.trim() }
+            : { status: "unavailable" }
         );
       })
       .catch(() => {
@@ -78,6 +84,9 @@ export const ZilClientPickerModal = observer(function ZilClientPickerModal(props
     onClose();
   };
 
+  // the other folder lives in the same project: swap the page id
+  const openFolder = (folderId: string) => router.push(page.getRedirectionLink().replace(/[^/]+$/, folderId));
+
   const handleLink = async (client: TZilClientSearchResult) => {
     if (!workspaceSlug || !projectId || !page.id) return;
     setSubmittingId(client.id);
@@ -87,27 +96,36 @@ export const ZilClientPickerModal = observer(function ZilClientPickerModal(props
       setToast({ type: TOAST_TYPE.SUCCESS, title: t("page_tree.zil_client.linked") });
       handleClose();
     } catch (error) {
-      const data = error as { status?: number; page_id?: string } | undefined;
-      const linkedFolderId = data?.status === 409 ? data.page_id : undefined;
-      if (linkedFolderId) {
+      const data = error as TLinkError;
+      if (data?.status === 409) {
+        const linkedFolderId = data.page_id;
         setToast({
           type: TOAST_TYPE.ERROR,
           title: t("page_tree.zil_client.already_linked"),
-          actionItems: (
+          actionItems: linkedFolderId ? (
             <button
               type="button"
               className="text-link-primary hover:underline"
-              // the other folder lives in the same project: swap the page id
-              onClick={() => router.push(page.getRedirectionLink().replace(/[^/]+$/, linkedFolderId))}
+              onClick={() => openFolder(linkedFolderId)}
             >
               {t("page_tree.zil_client.open_linked_folder")}
             </button>
-          ),
+          ) : undefined,
         });
+      } else if (data?.error_message === "PAGE_IS_CLIENTS_ROOT") {
+        // this page became the clients folder after it was loaded: show it as one
+        page.mutateProperties({ is_zil_clients_root: true }, false);
+        setToast({ type: TOAST_TYPE.ERROR, title: t("page_tree.zil_client.clients_root.cannot_link") });
+        handleClose();
+      } else if (data?.error_message === "ZIL_CLIENT_NOT_FOUND") {
+        setToast({ type: TOAST_TYPE.ERROR, title: t("page_tree.zil_client.missing") });
       } else {
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: data?.status === 502 ? t("page_tree.zil_client.unavailable") : t("page_tree.zil_client.error"),
+          title:
+            data?.status === 502 || data?.status === 503
+              ? t("page_tree.zil_client.unavailable")
+              : t("page_tree.zil_client.error"),
         });
       }
     } finally {
@@ -153,17 +171,30 @@ export const ZilClientPickerModal = observer(function ZilClientPickerModal(props
             <p className="py-6 text-center text-13 text-secondary">{t("page_tree.zil_client.unavailable")}</p>
           )}
           {searchState.status === "ready" && searchState.results.length === 0 && (
-            <p className="py-6 text-center text-13 text-secondary">{t("page_tree.zil_client.no_results")}</p>
+            // Zil narrows the list to what this person may pick: with nothing typed, an empty list is not
+            // "no match" but "nothing to pick"
+            <p className="py-6 text-center text-13 text-secondary">
+              {searchState.query ? t("page_tree.zil_client.no_results") : t("page_tree.zil_client.no_clients")}
+            </p>
           )}
           {searchState.status === "ready" &&
             searchState.results.map((client) => {
               const isCurrent = client.id === linkedClientId;
+              // a client whose folder already exists in this project (the clients folder makes one for each)
+              // cannot be linked again: the row takes you to that folder instead of failing with a 409
+              const existingFolderId =
+                !isCurrent && client.linkedPageId && client.linkedPageId !== page.id ? client.linkedPageId : null;
               return (
                 <button
                   key={client.id}
                   type="button"
                   disabled={!!submittingId || isCurrent}
-                  onClick={() => handleLink(client)}
+                  onClick={() => {
+                    if (existingFolderId) {
+                      handleClose();
+                      openFolder(existingFolderId);
+                    } else void handleLink(client);
+                  }}
                   className={cn(
                     "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-layer-transparent-hover disabled:cursor-default",
                     { "bg-layer-transparent-active": isCurrent }
@@ -181,6 +212,12 @@ export const ZilClientPickerModal = observer(function ZilClientPickerModal(props
                   )}
                   {client.businessUnitSlug && (
                     <span className="flex-shrink-0 text-11 text-tertiary">{client.businessUnitSlug}</span>
+                  )}
+                  {existingFolderId && (
+                    <span className="flex flex-shrink-0 items-center gap-1 text-11 text-link-primary">
+                      <FolderOpen className="size-3" />
+                      {t("page_tree.zil_client.open_linked_folder")}
+                    </span>
                   )}
                   {submittingId === client.id && <Spinner height="14px" width="14px" />}
                 </button>

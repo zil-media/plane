@@ -9,7 +9,6 @@ from unittest import mock
 import pytest
 import requests
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -390,8 +389,71 @@ class TestWhatComesBack:
         assert relay.call_args.kwargs["json"] == {"label": "Nuevo"}
 
 
+@pytest.fixture
+def default_body_limit(settings):
+    """Ops' default FILE_SIZE_LIMIT (5 MB), which every request but a brand file upload keeps."""
+    settings.DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * MB
+
+
+def pdf_of(size):
+    return b"%PDF-1.4\n" + b"a" * (size - 9)
+
+
+def upload_brand_file(client, workspace, project, folder, content):
+    upload = SimpleUploadedFile("manual.pdf", content, content_type="application/pdf")
+    return client.post(zil_url(workspace, project, folder["id"], "brand-files/"), {"file": upload}, format="multipart")
+
+
 @pytest.mark.contract
+@pytest.mark.usefixtures("default_body_limit")
 class TestBrandFileUpload:
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("size", [19 * MB, 20 * MB], ids=["19 MB", "exactly 20 MB"])
+    def test_a_file_up_to_20_mb_reaches_zil_whole_past_the_5_mb_body_limit(
+        self, session_client, workspace, project, folder, size
+    ):
+        content = pdf_of(size)
+        with mock.patch(RELAY, return_value=(201, {"file": {"id": ASSET_ID}})) as relay:
+            response = upload_brand_file(session_client, workspace, project, folder, content)
+        assert response.status_code == status.HTTP_201_CREATED, response.content[:200]
+        assert relay.call_args.kwargs["files"]["file"][1] == content
+
+    @pytest.mark.django_db
+    def test_a_file_just_over_20_mb_is_a_413_that_says_the_limit_and_is_never_sent(
+        self, session_client, workspace, project, folder
+    ):
+        with mock.patch(RELAY) as relay:
+            response = upload_brand_file(session_client, workspace, project, folder, pdf_of(20 * MB + 1))
+        assert response.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert response.json() == {"error": "El archivo no puede pesar más de 20 MB."}
+        relay.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_a_21_mb_file_is_a_413_before_its_body_is_read(self, session_client, workspace, project, folder):
+        with mock.patch(RELAY) as relay:
+            response = upload_brand_file(session_client, workspace, project, folder, pdf_of(21 * MB))
+        assert response.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert response.json()["error"] == "REQUEST_BODY_TOO_LARGE"
+        relay.assert_not_called()
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "suffix",
+        ["zil-client/assets/", f"zil-client/brand-files/{ASSET_ID}/", "zil-client/brand-files/x/", ""],
+        ids=["client asset", "a brand file's own url", "a path under brand-files", "page create"],
+    )
+    def test_every_other_request_keeps_the_5_mb_body_limit(self, session_client, workspace, project, folder, suffix):
+        upload = SimpleUploadedFile("manual.pdf", pdf_of(6 * MB), content_type="application/pdf")
+        with mock.patch(RELAY) as relay:
+            response = session_client.post(
+                pages_url(workspace, project, f"{folder['id']}/{suffix}" if suffix else ""),
+                {"file": upload},
+                format="multipart",
+            )
+        assert response.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert response.json()["error"] == "REQUEST_BODY_TOO_LARGE"
+        relay.assert_not_called()
+
     @pytest.mark.django_db
     def test_the_file_reaches_zil_whole(self, session_client, workspace, project, folder):
         content = bytes(range(256)) * 4096  # 1 MB with every byte value
@@ -404,31 +466,6 @@ class TestBrandFileUpload:
         name, sent, content_type = relay.call_args.kwargs["files"]["file"]
         assert (name, content_type) == ("Logo diseño.png", "image/png")
         assert sent == content
-
-    @pytest.mark.django_db
-    @override_settings(DATA_UPLOAD_MAX_MEMORY_SIZE=22 * MB)
-    def test_a_file_at_zils_20_mb_limit_goes_through_when_the_body_limit_allows_it(
-        self, session_client, workspace, project, folder
-    ):
-        content = b"%PDF-1.4\n" + b"a" * (20 * MB - 9)
-        upload = SimpleUploadedFile("manual.pdf", content, content_type="application/pdf")
-        with mock.patch(RELAY, return_value=(201, {"file": {"id": ASSET_ID}})) as relay:
-            response = session_client.post(
-                zil_url(workspace, project, folder["id"], "brand-files/"), {"file": upload}, format="multipart"
-            )
-        assert response.status_code == status.HTTP_201_CREATED
-        assert relay.call_args.kwargs["files"]["file"][1] == content
-
-    @pytest.mark.django_db
-    @override_settings(DATA_UPLOAD_MAX_MEMORY_SIZE=40 * MB)
-    def test_a_file_over_20_mb_is_refused_here_and_never_sent(self, session_client, workspace, project, folder):
-        upload = SimpleUploadedFile("big.pdf", b"%PDF-1.4\n" + b"a" * (20 * MB), content_type="application/pdf")
-        with mock.patch(RELAY) as relay:
-            response = session_client.post(
-                zil_url(workspace, project, folder["id"], "brand-files/"), {"file": upload}, format="multipart"
-            )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        relay.assert_not_called()
 
     @pytest.mark.django_db
     def test_no_file_is_a_400(self, session_client, workspace, project, folder):

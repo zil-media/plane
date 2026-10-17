@@ -226,11 +226,31 @@ class TestWorkspaceMetrics:
         assert person["kinds"] == {"started": 2, "completed": 2}
 
     @pytest.mark.django_db
-    def test_item_created_already_done_has_zero_lead_time(self, workspace, project, create_user):
-        # Issue.save stamps completed_at a few ms before the insert sets created_at
-        make_issue(project, create_user, "Hecho", at(5, 10), at(5, 10) - timedelta(milliseconds=3), "completed")
-        flow = compute_workspace_metrics(workspace, date(2026, 10, 1), date(2026, 10, 17))["flow"]
-        assert flow["completed"] == 1 and (flow["lead_time_hours"]["n"], flow["lead_time_hours"]["median"]) == (1, 0.0)
+    def test_work_logged_already_done_is_completed_but_has_no_time_to_finish(self, workspace, project, create_user):
+        designer = User.objects.create(email="designer@zil.test", username="designer", display_name="Joaquin")
+        WorkspaceMember.objects.create(workspace=workspace, member=designer, role=15)
+        module = Module.objects.create(name="ACME", project_id=project["id"])
+        # created already done (Issue.save stamps completed_at a few ms before the insert sets created_at),
+        # created and closed 40 s later, and an item that really waited 2 days
+        logged = make_issue(
+            project, create_user, "Hecho", at(5, 10), at(5, 10) - timedelta(milliseconds=3), "completed"
+        )
+        closed = make_issue(project, create_user, "Pausar", at(6, 10), at(6, 10) + timedelta(seconds=40), "completed")
+        real = make_issue(project, create_user, "Carrusel", at(5, 10), at(7, 10), "completed")
+        for issue in (logged, closed, real):
+            IssueAssignee.objects.create(
+                issue=issue, assignee=designer, project_id=project["id"], workspace_id=workspace.id
+            )
+            ModuleIssue.objects.create(module=module, issue=issue, project_id=project["id"], workspace_id=workspace.id)
+
+        m = compute_workspace_metrics(workspace, date(2026, 10, 1), date(2026, 10, 17))
+        assert m["flow"]["completed"] == 3
+        assert (m["flow"]["lead_time_hours"]["n"], m["flow"]["lead_time_hours"]["median"]) == (1, 48.0)
+        joaquin = next(p for p in m["people"] if p["name"] == "Joaquin")
+        assert (joaquin["completed_assigned"], joaquin["lead_time_median_hours"]) == (3, 48.0)
+        assert (m["clients"][0]["completed"], m["clients"][0]["lead_time_median_hours"]) == (3, 48.0)
+        work = compute_person_metrics(workspace, designer, date(2026, 10, 1), date(2026, 10, 17))["work"]
+        assert (work["completed_assigned"], work["lead_time_median_hours"]) == (3, 48.0)
 
     @pytest.mark.django_db
     def test_bot_comment_is_one_bot_action(self, workspace, project, create_user):

@@ -72,11 +72,13 @@ export type TZilClientProfile = {
     operationalContacts: { name: string; email: string; role: string }[];
   };
   projects: { id: string; name: string; service: string; businessUnitSlug: string }[];
+  /** Active contracts. Dates are ISO date strings as Zil stores them; `endDate` is "" when the contract has none. */
   services: { id: string; startDate: string; endDate: string; autoRenewal: boolean; titles: string[] }[];
   assets: TZilClientAsset[];
+  /** Meta rows are every connected Meta asset, not only ad accounts: `assetType` says which (Google is always an ad account). */
   adAccounts: {
     platform: "meta" | "google";
-    assetType: string;
+    assetType: "ad_account" | "page" | "instagram" | "app" | "pixel";
     externalId: string;
     name: string;
     businessUnitSlug: string;

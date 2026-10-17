@@ -144,6 +144,7 @@
       "title": "Propojit klienta ze Zil Workspace",
       "search_placeholder": "Hledat podle značky nebo obchodního názvu firmy",
       "no_results": "Nebyli nalezeni žádní klienti",
+      "no_clients": "No clients to link. Zil Workspace lists the clients of the projects you are assigned to.",
       "unavailable": "Zil Workspace není k dispozici. Zkuste to prosím později.",
       "already_linked": "Tento klient je již propojen s jinou složkou.",
       "open_linked_folder": "Otevřít složku",
@@ -151,9 +152,11 @@
       "unlinked": "Propojení klienta zrušeno.",
       "error": "Propojení klienta se nepodařilo aktualizovat. Zkuste to prosím znovu.",
       "missing": "Klient nebyl v Zil Workspace nalezen",
+      "service_owner": "Zil Workspace",
       "clients_root": {
         "badge": "Clients folder",
-        "hint": "Zil Workspace keeps one folder here for each active client of the unit, created and archived automatically."
+        "hint": "Zil Workspace keeps one folder here for each active client of the unit, created and archived automatically.",
+        "cannot_link": "The clients folder can't be linked to a client."
       },
       "profile": {
         "tab_info": "Profile",
@@ -212,8 +215,15 @@
         "error": "Could not save the asset. Please try again.",
         "delete_error": "Could not delete it. Please try again.",
         "added_by": "Added by {name}",
-        "ad_accounts": "Connected ad accounts",
+        "ad_accounts": "Connected Meta and Google accounts",
         "ad_accounts_hint": "From the Meta and Google Ads integrations in Zil Workspace.",
+        "account_types": {
+          "ad_account": "Ad account",
+          "page": "Page",
+          "instagram": "Instagram account",
+          "app": "App",
+          "pixel": "Pixel"
+        },
         "brand_files": "Brand files",
         "brand_hint": "PDF, JPG or PNG up to 20 MB.",
         "no_brand_files": "No brand files yet.",

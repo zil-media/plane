@@ -16,9 +16,18 @@ applied to it:
 - a folder linked by hand anywhere in the project is respected: it is only refreshed;
 - an auto-created folder is renamed when the client is, unless someone renamed it by hand;
 - with `authoritative=True`, an auto-created folder whose client left the roster is archived
-  (never deleted) and restored if the client comes back.
+  (never deleted) and restored if the client comes back. Archiving a folder archives what is
+  inside it, so any other client's folder someone moved in there is first lifted back under the
+  root: a client's folder only ever goes with its own client.
 
 Idempotent: applying the same roster twice changes nothing.
+
+Ordered: Zil sends from two places (the durable job and the 30-minute cron) that are not
+serialized, so a roster computed earlier can be delivered after a newer one and, applied, would
+undo it (archive the client just added). Each roster carries `computed_at` (the instant Zil
+started reading, so everything committed before it is in the roster) and a root keeps in
+`synced_at` the `computed_at` of the last roster it applied: an older one is ignored. A roster
+without `computed_at` always applies and stamps the root with Plane's own clock.
 """
 
 # Python imports
@@ -31,7 +40,11 @@ from django.utils import timezone
 # Module imports
 from plane.authentication.utils.zil_provisioning import get_service_user
 from plane.db.models import Page, PageZilClientLink, Project, ProjectPage, Workspace, ZilClientsRoot
-from plane.utils.page_tree import next_child_sort_order, set_archived_at_for_page_and_descendants
+from plane.utils.page_tree import (
+    get_descendant_ids,
+    next_child_sort_order,
+    set_archived_at_for_page_and_descendants,
+)
 from plane.utils.zil_client import apply_zil_client_fields, is_valid_client_id
 
 
@@ -226,19 +239,56 @@ def _apply_to_root(root, clients_by_id, authoritative, stats, owner):
         if client_id in clients_by_id or not link.auto_created:
             continue
         if link.page.deleted_at is None and link.page.archived_at is None:
+            _lift_other_clients_folders(root, link, links)
             set_archived_at_for_page_and_descendants(link.page_id, datetime.now())
             stats["archived"] += 1
 
 
-def apply_client_folders(workspace_id, clients, authoritative):
-    """Apply a workspace's client roster to its clients folder (created on the first one). Returns counters."""
+def _lift_other_clients_folders(root, leaving, links):
+    """Move the folders of other clients out of `leaving`'s folder, back under the root.
+
+    Archiving a folder archives its whole subtree, and people do move a client's folder into
+    another's (auto-created ones come back on the next push, but a hand-linked one would stay
+    archived). Only the outermost ones move: a client's folder nested in another client's folder
+    that is itself lifted keeps its place there.
+    """
+    inside = set(get_descendant_ids(leaving.page_id))
+    other_links = [other for other in links.values() if other.page_id in inside]
+    if not other_links:
+        return
+    folder_ids = {other.page_id for other in other_links}
+    parent_of = dict(Page.objects.filter(pk__in=inside).values_list("id", "parent_id"))
+    for other in other_links:
+        ancestor = parent_of.get(other.page_id)
+        nested_in_another_client = False
+        for _ in range(len(parent_of)):
+            if ancestor is None or ancestor == leaving.page_id:
+                break
+            if ancestor in folder_ids:
+                nested_in_another_client = True
+                break
+            ancestor = parent_of.get(ancestor)
+        if nested_in_another_client:
+            continue
+        page = other.page
+        page.parent_id = root.page_id
+        page.sort_order = next_child_sort_order(root.page_id, root.project_id)
+        page.save(update_fields=["parent", "sort_order", "updated_at"])
+
+
+def apply_client_folders(workspace_id, clients, authoritative, computed_at=None):
+    """Apply a workspace's client roster to its clients folder (created on the first one). Returns counters.
+
+    `computed_at` (aware datetime): when Zil started computing the roster. A root that already
+    applied a roster computed after it skips this one (counted in `stale`).
+    """
     clients_by_id = {}
     for client in clients or []:
         client_id = str(client.get("id") or "").strip().lower()
         if is_valid_client_id(client_id):
             clients_by_id[client_id] = {**client, "id": client_id}
 
-    stats = {"roots": 0, "created": 0, "renamed": 0, "archived": 0, "restored": 0}
+    stats = {"roots": 0, "created": 0, "renamed": 0, "archived": 0, "restored": 0, "stale": 0}
     # what the sync makes is the service user's, not whoever made the folder it adopted
     owner = get_service_user() if clients_by_id else None
     with transaction.atomic():
@@ -247,8 +297,12 @@ def apply_client_folders(workspace_id, clients, authoritative):
         if clients_by_id:
             ensure_clients_root(Workspace.objects.get(pk=workspace_id), owner)
         for root in live_roots(workspace_id):
+            # checked under the lock, so it reads what the push before this one stamped
+            if computed_at is not None and root.synced_at is not None and computed_at < root.synced_at:
+                stats["stale"] += 1
+                continue
             _apply_to_root(root, clients_by_id, authoritative, stats, owner)
-            root.synced_at = timezone.now()
+            root.synced_at = computed_at or timezone.now()
             root.save(update_fields=["synced_at", "updated_at"])
             stats["roots"] += 1
     return stats

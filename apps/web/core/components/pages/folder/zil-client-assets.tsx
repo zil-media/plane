@@ -41,6 +41,9 @@ import { getZilErrorMessage, ZIL_ASSET_KINDS, ZilClientAssetModal } from "./zil-
 
 const projectPageService = new ProjectPageService();
 
+// Zil's limit for a brand file, also enforced by the Ops API and its proxy
+const BRAND_FILE_MAX_BYTES = 20 * 1024 * 1024;
+
 const KIND_ICONS: Record<TZilClientAssetKind, LucideIcon> = {
   drive_folder: FolderOpen,
   ad_account: Megaphone,
@@ -50,6 +53,15 @@ const KIND_ICONS: Record<TZilClientAssetKind, LucideIcon> = {
   vault: KeyRound,
   link: Link2,
   other: Package,
+};
+
+// Zil sends every connected Meta asset in `adAccounts`, not only ad accounts: `assetType` says which
+const ACCOUNT_TYPE_ICONS: Record<TZilClientProfile["adAccounts"][number]["assetType"], LucideIcon> = {
+  ad_account: Megaphone,
+  page: Globe,
+  instagram: AtSign,
+  app: Package,
+  pixel: ScanLine,
 };
 
 type Props = {
@@ -170,13 +182,22 @@ export function ZilClientAssets(props: Props) {
 
   const handleUpload = async (file: File | undefined) => {
     if (!file) return;
+    if (file.size > BRAND_FILE_MAX_BYTES) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("page_tree.zil_client.assets.upload_error"),
+        message: t("page_tree.zil_client.assets.upload_too_large"),
+      });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setIsUploading(true);
     try {
       const saved = await projectPageService.uploadZilClientBrandFile(workspaceSlug, projectId, pageId, file);
       onChange((current) => ({ ...current, brandFiles: [saved, ...current.brandFiles] }));
       setToast({ type: TOAST_TYPE.SUCCESS, title: t("page_tree.zil_client.assets.uploaded") });
     } catch (error) {
-      // 413 comes from the reverse proxy in front of Ops, which answers without a body
+      // 413: over 20 MB, said by the Ops API or by its reverse proxy (which answers without a body)
       const tooLarge = (error as { status?: number } | undefined)?.status === 413;
       setToast({
         type: TOAST_TYPE.ERROR,
@@ -400,18 +421,28 @@ export function ZilClientAssets(props: Props) {
           hint={t("page_tree.zil_client.assets.ad_accounts_hint")}
         >
           <ul className="flex flex-col divide-y divide-subtle rounded-md border border-subtle">
-            {profile.adAccounts.map((account) => (
-              <li key={`${account.platform}-${account.externalId}`} className="flex items-center gap-2 px-3 py-2">
-                <Megaphone className="size-3.5 flex-shrink-0 text-tertiary" />
-                <span className="min-w-0 flex-grow truncate text-13 text-primary">{account.name}</span>
-                <span className="flex-shrink-0 text-11 text-tertiary">
-                  {account.platform === "meta" ? "Meta" : "Google Ads"} · {account.externalId}
-                </span>
-                {account.businessUnitSlug && (
-                  <span className="flex-shrink-0 text-11 text-tertiary">{account.businessUnitSlug}</span>
-                )}
-              </li>
-            ))}
+            {profile.adAccounts.map((account) => {
+              const AccountIcon = ACCOUNT_TYPE_ICONS[account.assetType] ?? Megaphone;
+              return (
+                <li
+                  key={`${account.platform}-${account.assetType}-${account.externalId}`}
+                  className="flex items-center gap-2 px-3 py-2"
+                >
+                  <AccountIcon className="size-3.5 flex-shrink-0 text-tertiary" />
+                  <span className="min-w-0 flex-grow truncate text-13 text-primary">{account.name}</span>
+                  <span className="flex-shrink-0 text-11 text-tertiary">
+                    {account.platform === "meta" ? "Meta" : "Google Ads"}
+                    {/* an assetType this build does not know (Zil may add one) is left out, never shown as a raw key */}
+                    {ACCOUNT_TYPE_ICONS[account.assetType] &&
+                      ` · ${t(`page_tree.zil_client.assets.account_types.${account.assetType}`)}`}
+                    {` · ${account.externalId}`}
+                  </span>
+                  {account.businessUnitSlug && (
+                    <span className="flex-shrink-0 text-11 text-tertiary">{account.businessUnitSlug}</span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </Section>
       )}

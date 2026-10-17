@@ -144,6 +144,7 @@
       "title": "Vincular un cliente de Zil Workspace",
       "search_placeholder": "Buscar por marca o razón social",
       "no_results": "No se encontraron clientes",
+      "no_clients": "No hay clientes para vincular. Zil Workspace muestra los clientes de los proyectos que tiene asignados.",
       "unavailable": "Zil Workspace no está disponible. Inténtelo de nuevo más tarde.",
       "already_linked": "Este cliente ya está vinculado a otra carpeta.",
       "open_linked_folder": "Abrir carpeta",
@@ -151,9 +152,11 @@
       "unlinked": "Cliente desvinculado.",
       "error": "No se pudo actualizar la vinculación del cliente. Inténtelo de nuevo.",
       "missing": "Cliente no encontrado en Zil Workspace",
+      "service_owner": "Zil Workspace",
       "clients_root": {
         "badge": "Carpeta de clientes",
-        "hint": "Zil Workspace mantiene acá una carpeta por cada cliente activo de la unidad: se crean y se archivan solas."
+        "hint": "Zil Workspace mantiene acá una carpeta por cada cliente activo de la unidad: se crean y se archivan solas.",
+        "cannot_link": "La carpeta de clientes no se puede vincular a un cliente."
       },
       "profile": {
         "tab_info": "Ficha",
@@ -212,8 +215,15 @@
         "error": "No se pudo guardar el activo. Inténtelo de nuevo.",
         "delete_error": "No se pudo eliminar. Inténtelo de nuevo.",
         "added_by": "Cargado por {name}",
-        "ad_accounts": "Cuentas publicitarias conectadas",
+        "ad_accounts": "Cuentas de Meta y Google conectadas",
         "ad_accounts_hint": "Vienen de las integraciones de Meta y Google Ads de Zil Workspace.",
+        "account_types": {
+          "ad_account": "Cuenta publicitaria",
+          "page": "Página",
+          "instagram": "Cuenta de Instagram",
+          "app": "App",
+          "pixel": "Píxel"
+        },
         "brand_files": "Archivos de marca",
         "brand_hint": "PDF, JPG o PNG de hasta 20 MB.",
         "no_brand_files": "Todavía no hay archivos de marca.",

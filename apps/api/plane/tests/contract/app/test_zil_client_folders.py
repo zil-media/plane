@@ -17,6 +17,7 @@ from plane.utils.zil_client_folders import apply_client_folders
 
 NIKE = "0123456789abcdef01234567"
 ADIDAS = "0123456789abcdef01234568"
+LEO = "0123456789abcdef01234569"
 ZIL_ENV = {"ZIL_BASE_URL": "http://zil.test", "ZIL_SERVICE_SECRET": "secret"}
 
 
@@ -52,15 +53,14 @@ def create_folder(client, workspace, project, **data):
     return response.data
 
 
-def push(api_client, workspace, clients, authoritative=True):
+def push(api_client, workspace, clients, authoritative=True, computed_at=None):
     # Zil calls with the service key and no session: never reuse a client a test logged in
     service_client = APIClient()
     service_client.credentials(HTTP_X_ZIL_SERVICE_KEY="secret")
-    return service_client.post(
-        "/api/zil/sync/client-folders/",
-        {"workspace_slug": workspace.slug, "clients": clients, "authoritative": authoritative},
-        format="json",
-    )
+    body = {"workspace_slug": workspace.slug, "clients": clients, "authoritative": authoritative}
+    if computed_at is not None:
+        body["computed_at"] = computed_at
+    return service_client.post("/api/zil/sync/client-folders/", body, format="json")
 
 
 def client_dto(client_id, alias, status_="active"):
@@ -404,3 +404,134 @@ class TestConcurrentPushes:
         assert ZilClientsRoot.objects.count() == 1
         assert Page.objects.filter(name="Clientes", kind=Page.FOLDER_KIND).count() == 1
         assert PageZilClientLink.objects.count() == 2
+
+
+def move_in_tree(session_client, workspace, project, page, parent):
+    response = session_client.post(
+        pages_url(workspace, project, f"{page.id}/move-in-tree/"), {"parent_id": str(parent.id)}, format="json"
+    )
+    assert response.status_code == status.HTTP_200_OK, response.data
+
+
+def link_by_hand(session_client, workspace, project, page, client_id, alias):
+    with mock.patch("plane.app.views.page.zil_client.get_zil_client", return_value=client_dto(client_id, alias)):
+        response = session_client.post(
+            pages_url(workspace, project, f"{page.id}/zil-client/"), {"zil_client_id": client_id}, format="json"
+        )
+    assert response.status_code == status.HTTP_200_OK, response.data
+
+
+@pytest.mark.contract
+class TestArchivingADepartedClientsFolder:
+    @pytest.mark.django_db
+    def test_an_active_clients_folder_moved_inside_a_departed_ones_is_not_archived_with_it(
+        self, session_client, api_client, workspace, project
+    ):
+        push(api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")])
+        root = clients_root(project).page
+        move_in_tree(session_client, workspace, project, folder_of(ADIDAS), folder_of(NIKE))
+        assert folder_of(ADIDAS).parent_id == folder_of(NIKE).id
+
+        response = push(api_client, workspace, [client_dto(ADIDAS, "Adidas")])
+        assert response.data["archived"] == 1
+        assert folder_of(NIKE).archived_at is not None
+        adidas = folder_of(ADIDAS)
+        assert adidas.archived_at is None and adidas.parent_id == root.id
+        # nothing left to do: the same roster again changes nothing
+        again = push(api_client, workspace, [client_dto(ADIDAS, "Adidas")])
+        assert (again.data["archived"], again.data["created"], again.data["restored"]) == (0, 0, 0)
+        assert folder_of(ADIDAS).parent_id == root.id
+
+    @pytest.mark.django_db
+    def test_a_folder_linked_by_hand_inside_a_departed_ones_is_not_archived_with_it(
+        self, session_client, api_client, workspace, project
+    ):
+        push(api_client, workspace, [client_dto(NIKE, "Nike")])
+        root = clients_root(project).page
+        manual = create_folder(session_client, workspace, project, name="Adidas a mano")
+        link_by_hand(session_client, workspace, project, Page.objects.get(pk=manual["id"]), ADIDAS, "Adidas")
+        move_in_tree(session_client, workspace, project, Page.objects.get(pk=manual["id"]), folder_of(NIKE))
+
+        push(api_client, workspace, [client_dto(ADIDAS, "Adidas")])
+        assert folder_of(NIKE).archived_at is not None
+        adidas = folder_of(ADIDAS)
+        assert str(adidas.pk) == str(manual["id"]) and adidas.archived_at is None and adidas.parent_id == root.id
+        # and it stays out when the departed client comes back and its folder is restored
+        push(api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")])
+        assert folder_of(NIKE).archived_at is None
+        assert folder_of(ADIDAS).parent_id == root.id and folder_of(ADIDAS).archived_at is None
+
+    @pytest.mark.django_db
+    def test_only_the_departed_clients_own_content_goes_with_it(self, session_client, api_client, workspace, project):
+        push(api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas"), client_dto(LEO, "Leo")])
+        root = clients_root(project).page
+        notes = create_folder(session_client, workspace, project, name="Notas de Nike")
+        move_in_tree(session_client, workspace, project, Page.objects.get(pk=notes["id"]), folder_of(NIKE))
+        # Adidas holds Leo; both sit inside Nike
+        move_in_tree(session_client, workspace, project, folder_of(LEO), folder_of(ADIDAS))
+        move_in_tree(session_client, workspace, project, folder_of(ADIDAS), folder_of(NIKE))
+
+        push(api_client, workspace, [client_dto(ADIDAS, "Adidas"), client_dto(LEO, "Leo")])
+        assert Page.objects.get(pk=notes["id"]).archived_at is not None
+        assert folder_of(NIKE).archived_at is not None
+        adidas, leo = folder_of(ADIDAS), folder_of(LEO)
+        assert adidas.archived_at is None and adidas.parent_id == root.id
+        # Leo was inside Adidas, not inside Nike: it keeps that place
+        assert leo.archived_at is None and leo.parent_id == adidas.id
+
+    @pytest.mark.django_db
+    def test_two_departed_clients_nested_are_each_archived_once_and_apart(
+        self, session_client, api_client, workspace, project
+    ):
+        push(api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas"), client_dto(LEO, "Leo")])
+        root = clients_root(project).page
+        move_in_tree(session_client, workspace, project, folder_of(ADIDAS), folder_of(NIKE))
+
+        response = push(api_client, workspace, [client_dto(LEO, "Leo")])
+        assert response.data["archived"] == 2
+        nike, adidas = folder_of(NIKE), folder_of(ADIDAS)
+        assert nike.archived_at is not None and adidas.archived_at is not None
+        assert adidas.parent_id == root.id
+        # coming back one at a time does not drag the other along
+        push(api_client, workspace, [client_dto(LEO, "Leo"), client_dto(NIKE, "Nike")])
+        assert folder_of(NIKE).archived_at is None and folder_of(ADIDAS).archived_at is not None
+
+
+@pytest.mark.contract
+class TestRosterOrdering:
+    EARLIER = "2026-10-16T12:00:00.000Z"
+    LATER = "2026-10-16T12:00:05.000Z"
+
+    @pytest.mark.django_db
+    def test_an_older_roster_arriving_last_does_not_undo_a_newer_one(self, api_client, workspace, project):
+        push(api_client, workspace, [client_dto(NIKE, "Nike")], computed_at=self.EARLIER)
+
+        # the newer roster (a client just added) lands first, the older one (cron) after it
+        newer = push(
+            api_client, workspace, [client_dto(NIKE, "Nike"), client_dto(ADIDAS, "Adidas")], computed_at=self.LATER
+        )
+        assert newer.data["created"] == 1
+        older = push(api_client, workspace, [client_dto(NIKE, "Nike")], computed_at="2026-10-16T12:00:02.000Z")
+        assert older.status_code == status.HTTP_200_OK
+        assert older.data["stale"] == 1 and older.data["archived"] == 0
+        assert folder_of(ADIDAS).archived_at is None
+
+    @pytest.mark.django_db
+    def test_a_newer_roster_and_one_computed_at_the_same_instant_apply(self, api_client, workspace, project):
+        push(api_client, workspace, [client_dto(NIKE, "Nike")], computed_at=self.EARLIER)
+        assert push(api_client, workspace, [], computed_at=self.LATER).data["archived"] == 1
+        assert push(api_client, workspace, [client_dto(NIKE, "Nike")], computed_at=self.LATER).data["restored"] == 1
+        assert folder_of(NIKE).archived_at is None
+
+    @pytest.mark.django_db
+    def test_a_roster_without_a_time_always_applies(self, api_client, workspace, project):
+        push(api_client, workspace, [client_dto(NIKE, "Nike")], computed_at=self.LATER)
+        response = push(api_client, workspace, [], computed_at=None)
+        assert response.data["archived"] == 1 and response.data["stale"] == 0
+
+    @pytest.mark.django_db
+    def test_a_time_that_is_not_a_time_or_is_far_in_the_future_is_refused(self, api_client, workspace, project):
+        assert push(api_client, workspace, [], computed_at="ayer").status_code == status.HTTP_400_BAD_REQUEST
+        assert push(api_client, workspace, [], computed_at="2999-01-01T00:00:00Z").status_code == (
+            status.HTTP_400_BAD_REQUEST
+        )
