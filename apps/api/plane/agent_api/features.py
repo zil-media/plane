@@ -205,7 +205,10 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
                 notify.requester_feature_update(
                     feature,
                     "Analizamos tu sugerencia",
-                    "Ya tenemos el análisis de lo que pediste. Ahora lo revisa el equipo para decidir si se construye.",
+                    "Según el análisis, esto ya se puede hacer hoy. El equipo lo confirma y te explica cómo."
+                    if (feature.spec or {}).get("already_exists")
+                    else "Ya tenemos el análisis de lo que pediste. "
+                    "Ahora lo revisa el equipo para decidir si se construye.",
                 )
         return Response(feature_summary(feature))
 

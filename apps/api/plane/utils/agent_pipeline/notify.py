@@ -206,13 +206,19 @@ def admins_new_feature(feature):
 
 
 def admins_feature_needs_decision(feature):
+    spec = feature.spec or {}
+    # Ops ya lo hace: "listo para aprobar" invitaba a aprobar un build para nada. Lo que toca es
+    # rechazarla explicándole cómo (el motivo le llega a quien pidió).
+    exists = bool(spec.get("already_exists"))
     send_admins(
         "Una sugerencia espera tu decisión",
-        "Hay un análisis listo para aprobar",
+        "Según el análisis, esto ya existe" if exists else "Hay un análisis listo para aprobar",
         [
             feature.display_title or feature.title,
-            (feature.spec or {}).get("summary", "")[:1500],
-            f"Impacto estimado: {IMPACT.get((feature.spec or {}).get('blast_radius'), '—')}",
+            spec.get("summary", "")[:1500],
+            "No hay nada que construir: rechazala explicándole cómo hacerlo."
+            if exists
+            else f"Impacto estimado: {IMPACT.get(spec.get('blast_radius'), '—')}",
         ],
         "Revisar y decidir",
         feature.workspace,

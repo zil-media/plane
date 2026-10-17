@@ -1064,3 +1064,13 @@ class TestRoundTwelve:
         assert response.status_code == status.HTTP_409_CONFLICT
         bug.refresh_from_db()
         assert bug.status == BugReport.Status.RESOLVED and bug.resolved_message == "Listo."
+
+    @pytest.mark.django_db
+    def test_the_admins_hear_it_already_exists(self, create_user, tasks, admin_client):
+        from plane.utils.agent_pipeline import notify
+
+        feature = own_feature(create_user, spec={"summary": "Se hace desde Vistas.", "already_exists": True})
+        notify.admins_feature_needs_decision(feature)
+        heading, paragraphs = tasks["email"].call_args[0][2], tasks["email"].call_args[0][3]
+        assert heading == "Según el análisis, esto ya existe"
+        assert any("rechazala" in p for p in paragraphs)
