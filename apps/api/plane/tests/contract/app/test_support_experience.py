@@ -887,3 +887,47 @@ class TestRoundEight:
             )
         bug.refresh_from_db()
         assert bug.status == BugReport.Status.OPEN and bug.commit_hash == "" and bug.resolved_by is None
+
+
+@pytest.mark.contract
+class TestRoundTen:
+    CONFIG = ("smtp", "", "", "25", "0", "0", "soporte@zil.global")
+
+    def _send(self, error):
+        import requests as http
+
+        from plane.bgtasks.agent_pipeline_task import send_support_email_task
+
+        class Retried(Exception):
+            pass
+
+        def flaky_send(message, *args, **kwargs):
+            if message.to == ["ana@zil.global"]:
+                raise error
+            return 1
+
+        with (
+            mock.patch("plane.bgtasks.agent_pipeline_task.get_email_configuration", return_value=self.CONFIG),
+            mock.patch("django.core.mail.EmailMultiAlternatives.send", autospec=True, side_effect=flaky_send),
+            mock.patch.object(send_support_email_task, "retry", side_effect=Retried) as retry,
+        ):
+            try:
+                send_support_email_task(["ana@zil.global", "beto@zil.global"], "Asunto", "Asunto", ["Hola,"])
+            except Retried:
+                pass
+        return retry, http
+
+    @pytest.mark.django_db
+    def test_a_mail_the_relay_never_got_is_retried_for_who_missed_it(self):
+        import requests as http
+
+        retry, _ = self._send(http.ConnectionError("down"))
+        # Only Ana goes again: Beto already has it.
+        assert retry.call_args.kwargs["args"][0] == ["ana@zil.global"]
+
+    @pytest.mark.django_db
+    def test_a_timeout_is_not_retried_because_it_may_have_gone_out(self):
+        import requests as http
+
+        retry, _ = self._send(http.ReadTimeout("slow"))
+        retry.assert_not_called()

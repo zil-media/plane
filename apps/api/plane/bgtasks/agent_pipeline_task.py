@@ -14,6 +14,7 @@ from django.utils import timezone
 
 # Third party imports
 from celery import shared_task
+import requests
 
 # Module imports
 from plane.db.models import FeatureRequest, User, Workspace
@@ -172,8 +173,25 @@ def file_server_error_task(payload):
         log_exception(e)
 
 
-@shared_task
-def send_support_email_task(to, subject, heading, paragraphs, cta_label=None, cta_url=None):
+# A support email that couldn't reach the relay (Workspace restarting, a deploy, Gmail failing) is
+# tried again a few times, a minute apart, instead of being lost with only a log line.
+SUPPORT_MAIL_RETRIES = 3
+
+
+def _nothing_was_sent(error):
+    """A failure that guarantees the email didn't go out: the connection never happened, or the relay
+    answered 5xx (it answers 502 only when it delivered to nobody). A read timeout is NOT one: the
+    relay may have sent it, and a second try would send it twice."""
+    if isinstance(error, requests.ReadTimeout):
+        return False
+    if isinstance(error, requests.ConnectionError):
+        return True
+    return isinstance(error, RuntimeError) and str(error).startswith("relay HTTP 5")
+
+
+@shared_task(bind=True, max_retries=SUPPORT_MAIL_RETRIES)
+def send_support_email_task(self, to, subject, heading, paragraphs, cta_label=None, cta_url=None):
+    failed = []
     try:
         html_content = render_to_string(
             "emails/support/notice.html",
@@ -213,6 +231,21 @@ def send_support_email_task(to, subject, heading, paragraphs, cta_label=None, ct
                 subject=subject, body=text_content, from_email=EMAIL_FROM, to=[recipient], connection=connection
             )
             msg.attach_alternative(html_content, "text/html")
-            msg.send()
+            try:
+                msg.send()
+            except Exception as e:
+                if not _nothing_was_sent(e):
+                    raise
+                # Only who didn't get it goes again: the rest already has it.
+                failed.append(recipient)
+                logger.warning("support mail to %s not sent (%s), will retry", recipient, e)
     except Exception as e:
         log_exception(e)
+        return
+    if failed:
+        if self.request.retries >= SUPPORT_MAIL_RETRIES:
+            log_exception(RuntimeError(f"support mail '{subject}' not delivered to {len(failed)} after retries"))
+            return
+        raise self.retry(
+            args=(failed, subject, heading, paragraphs, cta_label, cta_url), countdown=60 * (self.request.retries + 1)
+        )
