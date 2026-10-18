@@ -35,6 +35,7 @@ from plane.db.models import (
 )
 from plane.db.models.project import ProjectNetwork
 from plane.utils.host import base_host
+from plane.utils.zil_managed import membership_conflict
 
 
 class ProjectInvitationsViewset(BaseViewSet):
@@ -60,6 +61,11 @@ class ProjectInvitationsViewset(BaseViewSet):
         # Check if email is provided
         if not emails:
             return Response({"error": "Emails are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # nobody is invited to a Zil brand: Zil Workspace decides who works on it
+        conflict = membership_conflict(project_id)
+        if conflict:
+            return conflict
 
         for email in emails:
             workspace_role = WorkspaceMember.objects.filter(

@@ -6,14 +6,15 @@
 
 Bots are hidden from member pickers (`member__is_bot=False`); agents are the
 exception, and they belong to every project of the workspaces Zil grants them
-so people can assign them work.
+so people can assign them work. Brand projects (and "Migración") are the
+exception to that: an agent joins a brand only when someone adds it there.
 """
 
 # Django imports
 from django.db.models import Q
 
 # Module imports
-from plane.db.models import BotTypeEnum, Project, ProjectMember, WorkspaceMember
+from plane.db.models import BotTypeEnum, Project, ProjectMember, WorkspaceMember, ZilBrandProject
 
 AGENT_MAX_PROJECT_ROLE = 15  # Member — an agent is never a project admin
 
@@ -42,14 +43,18 @@ def sync_zil_agent_project_memberships(agent):
     )
     if not agent.is_active:
         return
-    for project_id, workspace_id in Project.objects.filter(workspace_id__in=workspace_roles).values_list(
-        "id", "workspace_id"
+    # a brand keeps the agents someone added to it, and gets none on its own
+    for project_id, workspace_id in (
+        Project.objects.filter(workspace_id__in=workspace_roles, zil_brand__isnull=True)
+        .values_list("id", "workspace_id")
     ):
         _ensure_project_member(project_id, agent.id, min(workspace_roles[workspace_id], AGENT_MAX_PROJECT_ROLE))
 
 
 def add_zil_agents_to_project(project):
-    """Add the workspace's active Zil agents to a newly created project."""
+    """Add the workspace's active Zil agents to a newly created project (not to a Zil brand's)."""
+    if ZilBrandProject.objects.filter(project_id=project.id).exists():
+        return
     agents = WorkspaceMember.objects.filter(
         workspace_id=project.workspace_id,
         is_active=True,

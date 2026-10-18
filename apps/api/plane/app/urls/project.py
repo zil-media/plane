@@ -19,9 +19,17 @@ from plane.app.views import (
     ProjectArchiveUnarchiveEndpoint,
     ProjectMemberPreferenceEndpoint,
 )
+from plane.app.views.project.zil_brand import ZilMyBrandsEndpoint, ZilProjectBrandEndpoint
 
 
 urlpatterns = [
+    # Zil brands: the person's brand projects ("Mis marcas") and a brand's live sheet ("Marca" tab)
+    path("workspaces/<str:slug>/zil-brands/", ZilMyBrandsEndpoint.as_view(), name="zil-my-brands"),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/zil-brand/",
+        ZilProjectBrandEndpoint.as_view(),
+        name="zil-project-brand",
+    ),
     path(
         "workspaces/<str:slug>/projects/",
         ProjectViewSet.as_view({"get": "list", "post": "create"}),

@@ -18,11 +18,12 @@ from plane.app.serializers import (
 
 from plane.app.permissions import WorkspaceUserPermission
 
-from plane.db.models import Project, ProjectMember, ProjectUserProperty, WorkspaceMember
+from plane.db.models import Project, ProjectMember, ProjectUserProperty, WorkspaceMember, ZilBrandMember
 from plane.bgtasks.project_add_user_email_task import project_add_user_email
 from plane.utils.host import base_host
 from plane.utils.zil_agents import human_or_agent_member_q
 from plane.app.permissions.base import allow_permission, ROLE
+from plane.utils.zil_managed import is_zil_project, membership_conflict
 
 
 class ProjectMemberViewSet(BaseViewSet):
@@ -58,6 +59,11 @@ class ProjectMemberViewSet(BaseViewSet):
                 {"error": "At least one member is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # who works on a Zil brand is decided in Zil Workspace; only its agents are added here
+        conflict = membership_conflict(project_id, [member.get("member_id") for member in members])
+        if conflict:
+            return conflict
 
         # Initialize the bulk arrays
         bulk_project_members = []
@@ -207,6 +213,10 @@ class ProjectMemberViewSet(BaseViewSet):
     def partial_update(self, request, slug, project_id, pk):
         project_member = ProjectMember.objects.get(pk=pk, workspace__slug=slug, project_id=project_id, is_active=True)
 
+        conflict = membership_conflict(project_id, [project_member.member_id])
+        if conflict:
+            return conflict
+
         # Fetch the target's workspace role (used to cap the new project role)
         target_workspace_role = WorkspaceMember.objects.get(
             workspace__slug=slug, member=project_member.member, is_active=True
@@ -271,6 +281,18 @@ class ProjectMemberViewSet(BaseViewSet):
 
     @allow_permission([ROLE.ADMIN])
     def destroy(self, request, slug, project_id, pk):
+        if is_zil_project(project_id):
+            # on a Zil brand only an agent someone added can be taken out here
+            project_member = ProjectMember.objects.get(
+                workspace__slug=slug, project_id=project_id, pk=pk, is_active=True
+            )
+            conflict = membership_conflict(project_id, [project_member.member_id])
+            if conflict:
+                return conflict
+            project_member.is_active = False
+            project_member.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
         project_member = ProjectMember.objects.get(
             workspace__slug=slug,
             project_id=project_id,
@@ -310,6 +332,16 @@ class ProjectMemberViewSet(BaseViewSet):
             member=request.user,
             is_active=True,
         )
+
+        if is_zil_project(project_id):
+            # the brand's team stays (Zil would put them back); a director who joined can leave
+            if ZilBrandMember.objects.filter(
+                brand_project__project_id=project_id, email__iexact=request.user.email
+            ).exists():
+                return membership_conflict(project_id)
+            project_member.is_active = False
+            project_member.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         # Check if the leaving user is the only admin of the project
         if (

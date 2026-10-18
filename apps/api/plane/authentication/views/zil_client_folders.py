@@ -16,6 +16,7 @@ from rest_framework.response import Response
 # Module imports
 from plane.authentication.views.zil_sync import ZilServiceView
 from plane.db.models import Workspace
+from plane.utils.zil_brand_projects import has_brand_roster
 from plane.utils.zil_client_folders import apply_client_folders
 
 
@@ -41,6 +42,9 @@ class ZilClientFoldersSyncEndpoint(ZilServiceView):
     authoritative, computed_at}. Only an authoritative roster archives folders of clients that left
     it. `computed_at` (ISO 8601, with zone) orders rosters: one older than what a root already
     applied is ignored (`stale` in the answer).
+
+    A workspace that already got its brands as projects (POST sync/brand-projects/) has no clients
+    folder any more: the push is answered `superseded` and changes nothing.
     """
 
     def post(self, request):
@@ -57,5 +61,7 @@ class ZilClientFoldersSyncEndpoint(ZilServiceView):
         workspace = Workspace.objects.filter(slug=slug).first()
         if workspace is None:
             return Response({"roots": 0, "workspace": "missing"}, status=status.HTTP_200_OK)
+        if has_brand_roster(workspace.id):
+            return Response({"roots": 0, "superseded": True}, status=status.HTTP_200_OK)
         stats = apply_client_folders(workspace.id, clients, request.data.get("authoritative") is True, computed_at)
         return Response(stats, status=status.HTTP_200_OK)

@@ -9,8 +9,6 @@ import pytest
 from rest_framework import status
 
 from plane.db.models import (
-    Module,
-    ModuleIssue,
     Issue,
     IssueActivity,
     IssueAssignee,
@@ -22,9 +20,12 @@ from plane.db.models import (
     UsageDay,
     User,
     WorkspaceMember,
+    ZilBrandProject,
 )
 from plane.middleware.usage import classify
 from plane.utils.zil_metrics import TZ, compute_person_metrics, compute_workspace_metrics
+
+ACME_BRAND = "0123456789abcdef0123ac3e"
 
 ZIL_ENV = {"ZIL_BASE_URL": "http://zil.test", "ZIL_SERVICE_SECRET": "secret"}
 
@@ -125,8 +126,8 @@ class TestWorkspaceMetrics:
         IssueAssignee.objects.create(issue=done, assignee=designer, project_id=project["id"], workspace_id=workspace.id)
         activity(done, designer, at(6, 10), "Backlog", "In Progress")
         activity(done, designer, at(7, 10), "In Progress", "Done")
-        module = Module.objects.create(name="ACME", project_id=project["id"])
-        ModuleIssue.objects.create(module=module, issue=done, project_id=project["id"], workspace_id=workspace.id)
+        # the project is a brand's: its work is the brand's
+        ZilBrandProject.objects.create(workspace=workspace, project_id=project["id"], zil_brand_id=ACME_BRAND)
         comment(done, create_user, at(5, 11))
         comment(done, designer, at(5, 14))
         # Plane logs every comment twice (IssueComment + IssueActivity field "comment"): counted once
@@ -184,9 +185,11 @@ class TestWorkspaceMetrics:
         assert m["usage"]["heatmap"][0][11] >= 1
         # 2 state changes + 2 comments, the comment's activity twin not counted
         assert sum(map(sum, m["usage"]["heatmap"])) == 4
-        # per client, from the module the item is in
-        acme = next(c for c in m["clients"] if c["name"] == "ACME")
+        # per brand, from the brand project the item is in (no more module names)
+        acme = next(c for c in m["brands"] if c["brand_id"] == ACME_BRAND)
         assert (acme["completed"], acme["comments"], acme["lead_time_median_hours"]) == (1, 2, 48.0)
+        assert m["clients"] == m["brands"]
+        assert m["items"]["stale"][0]["brand_id"] == ACME_BRAND
         # items to act on
         assert [x["name"] for x in m["items"]["stale"]] == ["Pendiente"]
         assert [x["name"] for x in m["items"]["unassigned"]] == ["Pendiente"]
@@ -230,7 +233,6 @@ class TestWorkspaceMetrics:
     def test_work_logged_already_done_is_completed_but_has_no_time_to_finish(self, workspace, project, create_user):
         designer = User.objects.create(email="designer@zil.test", username="designer", display_name="Joaquin")
         WorkspaceMember.objects.create(workspace=workspace, member=designer, role=15)
-        module = Module.objects.create(name="ACME", project_id=project["id"])
         # created already done (Issue.save stamps completed_at a few ms before the insert sets created_at),
         # created and closed 40 s later, and an item that really waited 2 days
         logged = make_issue(
@@ -242,14 +244,15 @@ class TestWorkspaceMetrics:
             IssueAssignee.objects.create(
                 issue=issue, assignee=designer, project_id=project["id"], workspace_id=workspace.id
             )
-            ModuleIssue.objects.create(module=module, issue=issue, project_id=project["id"], workspace_id=workspace.id)
 
         m = compute_workspace_metrics(workspace, date(2026, 10, 1), date(2026, 10, 17))
         assert m["flow"]["completed"] == 3
         assert (m["flow"]["lead_time_hours"]["n"], m["flow"]["lead_time_hours"]["median"]) == (1, 48.0)
         joaquin = next(p for p in m["people"] if p["name"] == "Joaquin")
         assert (joaquin["completed_assigned"], joaquin["lead_time_median_hours"]) == (3, 48.0)
-        assert (m["clients"][0]["completed"], m["clients"][0]["lead_time_median_hours"]) == (3, 48.0)
+        # a project that is not a brand's is the "Sin marca" bucket
+        assert (m["brands"][0]["name"], m["brands"][0]["brand_id"]) == ("Sin marca", None)
+        assert (m["brands"][0]["completed"], m["brands"][0]["lead_time_median_hours"]) == (3, 48.0)
         work = compute_person_metrics(workspace, designer, date(2026, 10, 1), date(2026, 10, 17))["work"]
         assert (work["completed_assigned"], work["lead_time_median_hours"]) == (3, 48.0)
 
