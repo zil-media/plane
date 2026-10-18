@@ -64,6 +64,7 @@ from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.bgtasks.copy_s3_object import copy_s3_objects_of_description_and_assets
 from plane.bgtasks.zil_client_link_refresh_task import refresh_zil_client_link
 from plane.app.permissions import ProjectPagePermission
+from plane.utils.zil_page_move import moved_page_project
 
 
 def folder_not_supported_response():
@@ -257,6 +258,14 @@ class PageViewSet(BaseViewSet):
 
     def retrieve(self, request, slug, project_id, page_id=None):
         page = self.get_queryset().filter(pk=page_id).first()
+        if page is None:
+            # a page moved to another project (a client folder that went to its brand): the old link
+            # points there, when the person can open it in its new project
+            moved_to = moved_page_project(slug, page_id, request.user)
+            if moved_to is not None:
+                return Response(
+                    {"error": "Page moved", "moved_to_project": str(moved_to)}, status=status.HTTP_404_NOT_FOUND
+                )
         project = Project.objects.get(pk=project_id)
         track_visit = request.query_params.get("track_visit", "true").lower() == "true"
 

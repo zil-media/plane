@@ -454,5 +454,27 @@
       "unpublish_error": "取消發布專案時發生問題。",
       "link_copied": "已成功複製已發布頁面的連結。"
     }
+  },
+  "zil_brand": {
+    "my_brands": "我的品牌",
+    "my_brands_description": "您在此工作區中負責的品牌。",
+    "no_brands": "您目前尚未加入此工作區中任何品牌的團隊。",
+    "managed_by_zil": "Zil Workspace 決定誰負責每個品牌。",
+    "members_managed": "Zil Workspace 決定誰負責此品牌：無法在此變更其成員。但仍可新增 Zil 智慧代理。",
+    "archived": "已封存",
+    "migration": "遷移",
+    "specs": "規格",
+    "no_specs": "此品牌尚未載入任何規格。",
+    "team": "團隊",
+    "no_team": "尚未有人指派至此品牌。",
+    "assets": "資產",
+    "no_assets": "此品牌沒有資產。",
+    "calls": "通話",
+    "no_calls": "此品牌沒有通話。",
+    "purpose_kickoff": "啟動會議",
+    "purpose_operations": "營運",
+    "other_bus": "其他負責方",
+    "unavailable": "無法連線至 Zil Workspace。請稍後再試。",
+    "no_sheet": "Zil Workspace 未與您分享此品牌的資料表。"
   }
 }

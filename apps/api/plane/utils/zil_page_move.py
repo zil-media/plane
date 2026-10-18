@@ -128,6 +128,21 @@ def move_page_subtree(root, destination, rename_root=None):
     return report
 
 
+def moved_page_project(slug, page_id, user):
+    """The project a moved page now lives in, when `user` can open it there; else None."""
+    page = (
+        Page.objects.filter(pk=page_id, workspace__slug=slug, moved_to_project__isnull=False)
+        .values("moved_to_project", "access", "owned_by_id")
+        .first()
+    )
+    if page is None or (page["access"] == Page.PRIVATE_ACCESS and page["owned_by_id"] != user.id):
+        return None
+    project_id = page["moved_to_project"]
+    in_project = ProjectPage.objects.filter(page_id=page_id, project_id=project_id, deleted_at__isnull=True).exists()
+    is_member = ProjectMember.objects.filter(project_id=project_id, member=user, is_active=True).exists()
+    return project_id if in_project and is_member else None
+
+
 def _destination_for(workspace, client_id, client_brands, brand_projects, migration_project_factory):
     """(project, reason): the brand's project for a single-brand client, "Migración" for one with
     several, None when there is nowhere to go (no brand in the map, or no project for it here)."""

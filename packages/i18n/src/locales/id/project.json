@@ -454,5 +454,27 @@
       "unpublish_error": "Terjadi kesalahan saat membatalkan publikasi proyek.",
       "link_copied": "Tautan halaman yang dipublikasikan berhasil disalin."
     }
+  },
+  "zil_brand": {
+    "my_brands": "Merek saya",
+    "my_brands_description": "Merek yang Anda kerjakan di workspace ini.",
+    "no_brands": "Anda belum tergabung dalam tim merek mana pun di workspace ini.",
+    "managed_by_zil": "Zil Workspace menentukan siapa yang mengerjakan setiap merek.",
+    "members_managed": "Zil Workspace menentukan siapa yang mengerjakan merek ini: anggotanya tidak dapat diubah di sini. Agen Zil tetap dapat ditambahkan.",
+    "archived": "Diarsipkan",
+    "migration": "Migrasi",
+    "specs": "Spesifikasi",
+    "no_specs": "Belum ada spesifikasi yang dimuat untuk merek ini.",
+    "team": "Tim",
+    "no_team": "Belum ada siapa pun yang ditugaskan ke merek ini.",
+    "assets": "Aset",
+    "no_assets": "Merek ini tidak memiliki aset.",
+    "calls": "Panggilan",
+    "no_calls": "Merek ini tidak memiliki panggilan.",
+    "purpose_kickoff": "Kickoff",
+    "purpose_operations": "Operasional",
+    "other_bus": "Juga dikerjakan oleh",
+    "unavailable": "Zil Workspace tidak dapat dihubungi. Coba lagi sebentar lagi.",
+    "no_sheet": "Zil Workspace tidak membagikan lembar data merek ini kepada Anda."
   }
 }

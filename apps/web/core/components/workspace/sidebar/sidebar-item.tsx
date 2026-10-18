@@ -49,6 +49,8 @@ export const SidebarItemBase = observer(function SidebarItemBase({
 
   const staticItems = [
     "home",
+    // Zil: "Mis marcas", the brands the person works on
+    "my_brands",
     "pi_chat",
     "projects",
     "your_work",

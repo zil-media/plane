@@ -152,6 +152,14 @@ function PageDetailsPage({ params }: Route.ComponentProps) {
     }
   }, [page?.deleted_at, page?.id, router, pageRootHandlers]);
 
+  // a page that moved to another project (a client folder that went to its brand): follow it there
+  const movedToProject = (pageDetailsError as { moved_to_project?: string } | undefined)?.moved_to_project;
+  useEffect(() => {
+    if (movedToProject && movedToProject !== projectId) {
+      router.replace(`/${workspaceSlug}/projects/${movedToProject}/pages/${pageId}`);
+    }
+  }, [movedToProject, projectId, pageId, router, workspaceSlug]);
+
   if ((!page || !id) && !pageDetailsError)
     return (
       <div className="grid size-full place-items-center">

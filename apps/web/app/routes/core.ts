@@ -115,6 +115,11 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/stickies", "./(all)/[workspaceSlug]/(projects)/stickies/page.tsx"),
         ]),
 
+        // Zil brands: the brands (Marcas) the person works on
+        layout("./(all)/[workspaceSlug]/(projects)/my-brands/layout.tsx", [
+          route(":workspaceSlug/my-brands", "./(all)/[workspaceSlug]/(projects)/my-brands/page.tsx"),
+        ]),
+
         // Support: bug reports, suggestions and their tracking
         layout("./(all)/[workspaceSlug]/(projects)/support/layout.tsx", [
           route(":workspaceSlug/support", "./(all)/[workspaceSlug]/(projects)/support/page.tsx"),
@@ -222,6 +227,13 @@ export const coreRoutes: RouteConfigEntry[] = [
             route(
               ":workspaceSlug/projects/:projectId/pages",
               "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(list)/page.tsx"
+            ),
+          ]),
+          // Zil brand sheet ("Marca" tab of a brand's project)
+          layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/brand/layout.tsx", [
+            route(
+              ":workspaceSlug/projects/:projectId/brand",
+              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/brand/page.tsx"
             ),
           ]),
           // Intake list

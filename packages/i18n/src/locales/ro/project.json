@@ -454,5 +454,27 @@
       "unpublish_error": "A apărut o eroare la anularea publicării proiectului.",
       "link_copied": "Link-ul paginii publicate a fost copiat cu succes."
     }
+  },
+  "zil_brand": {
+    "my_brands": "Brandurile mele",
+    "my_brands_description": "Brandurile la care lucrați în acest spațiu de lucru.",
+    "no_brands": "Încă nu faceți parte din echipa niciunui brand în acest spațiu de lucru.",
+    "managed_by_zil": "Zil Workspace decide cine lucrează la fiecare brand.",
+    "members_managed": "Zil Workspace decide cine lucrează la acest brand: membrii săi nu pot fi modificați aici. Agenții Zil pot fi adăugați în continuare.",
+    "archived": "Arhivat",
+    "migration": "Migrare",
+    "specs": "Specificații",
+    "no_specs": "Pentru acest brand nu au fost încărcate încă specificații.",
+    "team": "Echipă",
+    "no_team": "Nimeni nu este încă alocat acestui brand.",
+    "assets": "Resurse",
+    "no_assets": "Acest brand nu are resurse.",
+    "calls": "Apeluri",
+    "no_calls": "Acest brand nu are apeluri.",
+    "purpose_kickoff": "Kickoff",
+    "purpose_operations": "Operațiuni",
+    "other_bus": "Lucrează la el și",
+    "unavailable": "Nu s-a putut stabili conexiunea cu Zil Workspace. Încercați din nou în scurt timp.",
+    "no_sheet": "Zil Workspace nu partajează fișa acestui brand."
   }
 }

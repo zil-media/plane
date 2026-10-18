@@ -454,5 +454,27 @@
       "unpublish_error": "Đã xảy ra lỗi khi hủy xuất bản dự án.",
       "link_copied": "Đã sao chép liên kết trang đã xuất bản thành công."
     }
+  },
+  "zil_brand": {
+    "my_brands": "Thương hiệu của tôi",
+    "my_brands_description": "Các thương hiệu bạn đang làm việc trong không gian làm việc này.",
+    "no_brands": "Bạn chưa thuộc nhóm của thương hiệu nào trong không gian làm việc này.",
+    "managed_by_zil": "Zil Workspace quyết định ai làm việc cho từng thương hiệu.",
+    "members_managed": "Zil Workspace quyết định ai làm việc cho thương hiệu này: không thể thay đổi thành viên tại đây. Tác nhân Zil vẫn có thể được thêm vào.",
+    "archived": "Đã lưu trữ",
+    "migration": "Di chuyển",
+    "specs": "Đặc tả",
+    "no_specs": "Thương hiệu này chưa có đặc tả nào được tải lên.",
+    "team": "Nhóm",
+    "no_team": "Chưa có ai được giao cho thương hiệu này.",
+    "assets": "Tài sản",
+    "no_assets": "Thương hiệu này chưa có tài sản nào.",
+    "calls": "Cuộc gọi",
+    "no_calls": "Thương hiệu này chưa có cuộc gọi nào.",
+    "purpose_kickoff": "Họp khởi động",
+    "purpose_operations": "Vận hành",
+    "other_bus": "Cùng thực hiện",
+    "unavailable": "Không thể kết nối với Zil Workspace. Vui lòng thử lại sau giây lát.",
+    "no_sheet": "Zil Workspace không chia sẻ hồ sơ của thương hiệu này với bạn."
   }
 }

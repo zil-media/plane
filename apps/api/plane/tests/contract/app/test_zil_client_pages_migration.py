@@ -187,3 +187,24 @@ class TestClientPagesMigration:
         call_command("zil_migrate_client_pages", "--map", str(path), stdout=out)
         assert "DRY RUN" in out.getvalue()
         assert PageZilClientLink.objects.count() == 3
+
+
+@pytest.mark.contract
+class TestMovedPageLinks:
+    @pytest.mark.django_db
+    def test_an_old_link_to_a_moved_page_points_to_its_new_project(self, session_client, workspace, setup, create_user):
+        from unittest import mock
+
+        migrate_client_pages(CLIENT_BRANDS, apply=True)
+        rimon = setup["rimon"]
+        brief = setup["brief"]
+        old = f"/api/workspaces/{workspace.slug}/projects/{setup['main'].id}/pages/{brief.id}/"
+
+        # not on the brand's team: the old link says nothing about where the page went
+        response = session_client.get(old)
+        assert response.status_code == 404 and "moved_to_project" not in response.data
+
+        ProjectMember.objects.create(project=rimon, member=create_user, role=20)
+        with mock.patch("plane.app.views.page.base.recent_visited_task.delay"):
+            response = session_client.get(old)
+        assert response.status_code == 404 and response.data["moved_to_project"] == str(rimon.id)

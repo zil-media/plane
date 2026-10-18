@@ -454,5 +454,27 @@
       "unpublish_error": "Une erreur s'est produite lors de la dépublication du projet.",
       "link_copied": "Lien de la page publiée copié avec succès."
     }
+  },
+  "zil_brand": {
+    "my_brands": "Mes marques",
+    "my_brands_description": "Les marques sur lesquelles vous travaillez dans cet espace de travail.",
+    "no_brands": "Vous ne faites encore partie de l'équipe d'aucune marque dans cet espace de travail.",
+    "managed_by_zil": "Zil Workspace décide qui travaille sur chaque marque.",
+    "members_managed": "Zil Workspace décide qui travaille sur cette marque : ses membres ne peuvent pas être modifiés ici. Les agents Zil peuvent toujours être ajoutés.",
+    "archived": "Archivée",
+    "migration": "Migration",
+    "specs": "Spécifications",
+    "no_specs": "Aucune spécification n'est encore chargée pour cette marque.",
+    "team": "Équipe",
+    "no_team": "Personne n'est encore affecté à cette marque.",
+    "assets": "Ressources",
+    "no_assets": "Cette marque n'a aucune ressource.",
+    "calls": "Appels",
+    "no_calls": "Cette marque n'a aucun appel.",
+    "purpose_kickoff": "Kickoff",
+    "purpose_operations": "Opérations",
+    "other_bus": "Également suivie par",
+    "unavailable": "Zil Workspace est inaccessible. Réessayez dans un instant.",
+    "no_sheet": "Zil Workspace ne partage pas la fiche de cette marque avec vous."
   }
 }
