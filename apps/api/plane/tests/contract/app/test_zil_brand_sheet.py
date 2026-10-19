@@ -23,7 +23,9 @@ def brands(workspace, create_user):
         authoritative=True,
     )
     kfc = ZilBrandProject.objects.get(zil_brand_id=KFC).project
-    ProjectMember.objects.create(project=kfc, member=create_user, role=20)
+    # the workspace admin of the fixtures is on every brand; here they stay only on KFC
+    wendys = ZilBrandProject.objects.get(zil_brand_id=WENDYS).project
+    ProjectMember.objects.filter(project=wendys, member=create_user).update(is_active=False)
     return kfc
 
 

@@ -167,7 +167,9 @@ class TestClientPagesMigration:
         assert "Algo suelto" in report["workspaces"][0]["roots"][0]["lifted_to_top"]
 
     @pytest.mark.django_db
-    def test_private_pages_whose_owner_is_not_in_the_brand_are_listed(self, workspace, setup):
+    def test_private_pages_whose_owner_is_not_in_the_brand_are_listed(self, workspace, setup, create_user):
+        # the owner of "Notas mías" is not on Rimón (as if no longer a workspace admin)
+        ProjectMember.objects.filter(project=setup["rimon"], member=create_user).update(is_active=False)
         report = migrate_client_pages(CLIENT_BRANDS, apply=True)
         moved = next(m for m in report["workspaces"][0]["moved"] if m["client_id"] == RIMON)
         assert [p["name"] for p in moved["unreachable_private"]] == ["Notas mías"]
@@ -202,11 +204,12 @@ class TestMovedPageLinks:
         brief = setup["brief"]
         old = f"/api/workspaces/{workspace.slug}/projects/{setup['main'].id}/pages/{brief.id}/"
 
-        # not on the brand's team: the old link says nothing about where the page went
+        # not on the brand's project: the old link says nothing about where the page went
+        ProjectMember.objects.filter(project=rimon, member=create_user).update(is_active=False)
         response = session_client.get(old)
         assert response.status_code == 404 and "moved_to_project" not in response.data
 
-        ProjectMember.objects.create(project=rimon, member=create_user, role=20)
+        ProjectMember.objects.filter(project=rimon, member=create_user).update(is_active=True)
         with mock.patch("plane.app.views.page.base.recent_visited_task.delay"):
             response = session_client.get(old)
         assert response.status_code == 404 and response.data["moved_to_project"] == str(rimon.id)

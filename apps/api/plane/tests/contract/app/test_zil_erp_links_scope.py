@@ -23,6 +23,8 @@ def brand_page(workspace, create_user):
         workspace=workspace, name="Brief KFC", owned_by=create_user, external_source="zil", external_id="x"
     )
     ProjectPage.objects.create(workspace=workspace, project=project, page=page)
+    # the workspace admin of the fixtures is on every brand; here they start off it
+    ProjectMember.objects.filter(project=project, member=create_user).update(is_active=False)
     return project, page
 
 
@@ -41,7 +43,7 @@ class TestErpLinksPageScope:
     @pytest.mark.django_db
     def test_a_member_of_the_page_project_gets_its_links(self, session_client, brand_page, create_user):
         project, page = brand_page
-        ProjectMember.objects.create(project=project, member=create_user, role=20)
+        ProjectMember.objects.filter(project=project, member=create_user).update(is_active=True)
         response = links(session_client, page)
         assert response.status_code == status.HTTP_200_OK and response.data == {"links": []}
 
@@ -50,7 +52,7 @@ class TestErpLinksPageScope:
         self, session_client, workspace, brand_page, create_user
     ):
         project, page = brand_page
-        ProjectMember.objects.create(project=project, member=create_user, role=20)
+        ProjectMember.objects.filter(project=project, member=create_user).update(is_active=True)
         ana = User.objects.create(email="ana@zil.global", username="ana")
         WorkspaceMember.objects.create(workspace=workspace, member=ana, role=15)
         ProjectMember.objects.create(project=project, member=ana, role=15)

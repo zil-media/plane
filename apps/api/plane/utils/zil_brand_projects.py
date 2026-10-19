@@ -18,8 +18,9 @@ on each one (POST /api/zil/sync/brand-projects/). Nobody sets anything up in Ops
   (never deletes it); coming back restores it;
 - who works on the brand is decided only in Zil: the members of the project are the list, applied
   as a difference (nobody is re-added or touched when nothing changed). Workspace admins (directors
-  and Zil admins) are never added nor removed: they see everything and join a brand when they need
-  to. People who never signed in to Ops are kept by email and join on their first sign-in.
+  and Zil admins) are Admin members of every brand project of their workspace, team or not, so every
+  brand is in their sidebar; they are never removed while they stay workspace admins. People who
+  never signed in to Ops are kept by email and join on their first sign-in.
 
 Safe against a bad push: an authoritative but empty list archives nothing (it is a truncated
 payload, not "no brands"), and one that would archive more than half of the workspace's brands
@@ -269,9 +270,14 @@ def apply_members(mapping, raw_members, members_authoritative, stats, ws_roles=N
             continue
         user_id, ws_role = found
         if ws_role >= ADMIN_ROLE:
-            # directors and admins see everything: they join a brand when they need to
-            continue
+            continue  # joined below, as Admin
         if _ensure_member(project, user_id, min(role, ws_role)):
+            stats["members_added"] += 1
+            changed = True
+
+    # directors and Zil admins are on every brand of their workspace (owner's call, 19/10)
+    for user_id, ws_role in ws_roles.values():
+        if ws_role >= ADMIN_ROLE and _ensure_member(project, user_id, ADMIN_ROLE):
             stats["members_added"] += 1
             changed = True
 
@@ -286,13 +292,7 @@ def apply_members(mapping, raw_members, members_authoritative, stats, ws_roles=N
             continue
         ws_role = next((r for uid, r in ws_roles.values() if uid == member.id), None)
         if ws_role is not None and ws_role >= ADMIN_ROLE:
-            # a workspace admin who joined by themself (break glass): left alone, on record
-            logger.info(
-                "zil brand project %s: workspace admin %s is a member without being on the brand's team",
-                project.id,
-                member.email,
-            )
-            continue
+            continue  # workspace admins stay on every brand (added above)
         membership.is_active = False
         membership.save(update_fields=["is_active", "updated_at"])
         stats["members_removed"] += 1

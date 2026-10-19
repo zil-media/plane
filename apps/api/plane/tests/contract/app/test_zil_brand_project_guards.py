@@ -30,8 +30,8 @@ def quiet_tasks():
 def brand_project(workspace, create_user):
     apply_brand_roster(workspace.id, [{"brandId": KFC, "name": "KFC", "status": "active"}], authoritative=True)
     project = ZilBrandProject.objects.get(zil_brand_id=KFC).project
-    # the workspace admin of the fixtures joins it, like a director would
-    ProjectMember.objects.create(project=project, member=create_user, role=20)
+    # the workspace admin of the fixtures is on it, like every director: the roster adds them
+    assert ProjectMember.objects.get(project=project, member=create_user, is_active=True).role == 20
     return project
 
 

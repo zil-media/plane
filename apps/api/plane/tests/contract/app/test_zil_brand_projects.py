@@ -116,15 +116,18 @@ class TestBrandProjectCreation:
         assert project_of(SANTO_A).identifier != project_of(SANTO_B).identifier
 
     @pytest.mark.django_db
-    def test_directors_and_agents_are_not_added(self, workspace, create_user):
+    def test_workspace_admins_join_every_brand_as_admin_and_agents_never(self, workspace):
         director = make_user(workspace, "director@zil.global", role=20)
         agent = User.objects.create(email="ada@agents.zil", username="ada", is_bot=True, bot_type=BotTypeEnum.ZIL_AGENT)
         WorkspaceMember.objects.create(workspace=workspace, member=agent, role=15)
 
-        push(workspace, [brand(KFC, "KFC", members=[{"email": "director@zil.global", "role": "member"}])])
+        # on the team or not, a director is on every brand of the workspace
+        team = [{"email": "director@zil.global", "role": "member"}]
+        push(workspace, [brand(KFC, "KFC", members=team), brand(WENDYS, "Wendy's")])
 
-        members = active_member_ids(project_of(KFC))
-        assert director.id not in members and agent.id not in members and create_user.id not in members
+        for brand_id in (KFC, WENDYS):
+            assert ProjectMember.objects.get(project=project_of(brand_id), member=director, is_active=True).role == 20
+            assert agent.id not in active_member_ids(project_of(brand_id))
 
     @pytest.mark.django_db
     def test_an_existing_project_named_like_the_brand_is_adopted(self, workspace):
@@ -296,7 +299,7 @@ class TestBrandArchive:
 @pytest.mark.contract
 class TestBrandMembers:
     @pytest.mark.django_db
-    def test_the_team_becomes_the_members_and_leaving_it_revokes(self, workspace):
+    def test_the_team_becomes_the_members_and_leaving_it_revokes(self, workspace, create_user):
         ana = make_user(workspace, "ana@zil.global")
         beto = make_user(workspace, "beto@zil.global", role=5)
         team = [{"email": "ANA@zil.global", "role": "member"}, {"email": "beto@zil.global", "role": "guest"}]
@@ -308,7 +311,8 @@ class TestBrandMembers:
 
         response = push(workspace, [brand(KFC, "KFC", members=team[:1])])
         assert response["members_removed"] == 1
-        assert active_member_ids(project) == {ana.id}
+        # plus the workspace admin of the fixtures, who is on every brand
+        assert active_member_ids(project) == {ana.id, create_user.id}
 
     @pytest.mark.django_db
     def test_an_operator_never_gets_project_admin(self, workspace):
@@ -321,14 +325,15 @@ class TestBrandMembers:
         assert ProjectMember.objects.get(project=project_of(KFC), member=ana).role == 15
 
     @pytest.mark.django_db
-    def test_a_director_who_joined_is_left_alone(self, workspace):
+    def test_a_director_stays_with_an_empty_team_and_leaves_when_no_longer_admin(self, workspace):
         director = make_user(workspace, "director@zil.global", role=20)
         push(workspace, [brand(KFC, "KFC")])
-        ProjectMember.objects.create(project=project_of(KFC), member=director, role=20)
-
         push(workspace, [brand(KFC, "KFC", members=[])])
-
         assert director.id in active_member_ids(project_of(KFC))
+
+        WorkspaceMember.objects.filter(workspace=workspace, member=director).update(role=15)
+        push(workspace, [brand(KFC, "KFC", members=[])])
+        assert director.id not in active_member_ids(project_of(KFC))
 
     @pytest.mark.django_db
     def test_someone_who_never_signed_in_joins_on_their_first_sign_in(self, workspace):
@@ -370,7 +375,8 @@ class TestBrandRosterDryRun:
         make_user(workspace, "ana@zil.global")
         response = push(workspace, [brand(KFC, "KFC", members=[{"email": "ana@zil.global"}])], dry_run=True)
 
-        assert response["dry_run"] is True and response["created"] == 1 and response["members_added"] == 1
+        # ana and the workspace admin of the fixtures
+        assert response["dry_run"] is True and response["created"] == 1 and response["members_added"] == 2
         assert not ZilBrandProject.objects.exists() and not ZilBrandRoster.objects.exists()
         assert not Project.objects.filter(name="KFC").exists()
 
