@@ -1,1 +1,8 @@
+# Concluding a conflicted merge stages the other branch's whole diff (a Plane release brings ~600
+# upstream files), and lint-staged would hold code nobody here wrote to --deny-warnings. Git already
+# skips this hook for merges without conflicts; conflicted ones get the same treatment. The merged
+# tree still goes through gates.sh and Preview CI, which keep the lint bar.
+if [ -f "$(git rev-parse --git-path MERGE_HEAD)" ]; then
+  exit 0
+fi
 pnpm lint-staged
