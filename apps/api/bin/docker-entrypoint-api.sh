@@ -37,19 +37,8 @@ SIGNATURE=$(echo "$HOSTNAME$MAC_ADDRESS$CPU_INFO$MEMORY_INFO$DISK_INFO" | sha256
 # Export the variables
 export MACHINE_SIGNATURE=$SIGNATURE
 
-# Register instance
-python manage.py register_instance "$MACHINE_SIGNATURE"
-
-# Load the configuration variable
-python manage.py configure_instance
-
-# Create the default bucket
-python manage.py create_bucket
-
-# Clear Cache before starting to remove stale values
-python manage.py clear_cache
-
-# Collect static files
-python manage.py collectstatic --noinput
+# Register instance, load the configuration variables, create the default bucket and clear the
+# cache (stale values), in one Django process. Static files are collected at image build.
+python manage.py boot_instance "$MACHINE_SIGNATURE"
 
 exec gunicorn -w "$GUNICORN_WORKERS" -k uvicorn.workers.UvicornWorker plane.asgi:application --bind 0.0.0.0:"${PORT:-8000}" --max-requests 1200 --max-requests-jitter 1000 --access-logfile -
