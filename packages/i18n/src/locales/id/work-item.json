@@ -18,6 +18,7 @@
       "assignee": "Tambah penugasan",
       "start_date": "Tambah tanggal mulai",
       "due_date": "Tambah tanggal jatuh tempo",
+      "due_time": "Tambah jam",
       "parent": "Tambah item kerja induk",
       "sub_issue": "Tambah sub-item kerja",
       "dependency": "Tambah ketergantungan",

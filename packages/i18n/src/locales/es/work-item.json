@@ -18,6 +18,7 @@
       "assignee": "Agregar asignados",
       "start_date": "Agregar fecha de inicio",
       "due_date": "Agregar fecha de vencimiento",
+      "due_time": "Agregar hora",
       "parent": "Agregar elemento de trabajo padre",
       "sub_issue": "Agregar sub-elemento de trabajo",
       "dependency": "Agregar dependencia",

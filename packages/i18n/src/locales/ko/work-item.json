@@ -18,6 +18,7 @@
       "assignee": "담당자 추가",
       "start_date": "시작 날짜 추가",
       "due_date": "마감일 추가",
+      "due_time": "시간 추가",
       "parent": "상위 작업 항목 추가",
       "sub_issue": "하위 작업 항목 추가",
       "dependency": "종속성 추가",

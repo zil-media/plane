@@ -63,6 +63,7 @@ from plane.db.models import (
     ProjectMember,
     UserRecentVisit,
 )
+from plane.utils.agent_pipeline.flags import is_feature_enabled
 from plane.utils.filters import ComplexFilterBackend, IssueFilterSet
 from plane.utils.global_paginator import paginate
 from plane.utils.grouper import (
@@ -173,6 +174,7 @@ class IssueListEndpoint(BaseAPIView):
                 "priority",
                 "start_date",
                 "target_date",
+                *due_time_fields(),
                 "sequence_id",
                 "project_id",
                 "parent_id",
@@ -194,6 +196,14 @@ class IssueListEndpoint(BaseAPIView):
             datetime_fields = ["created_at", "updated_at"]
             issues = user_timezone_converter(issues, datetime_fields, request.user.user_timezone)
         return Response(issues, status=status.HTTP_200_OK)
+
+
+DUE_TIME_FLAG = "issueDueTime"
+
+
+def due_time_fields():
+    """Extra queryset column for the optional due time; empty while the flag is off."""
+    return ["target_time"] if is_feature_enabled(DUE_TIME_FLAG) else []
 
 
 def dispatch_zil_deliverable_checklist(project_id, issue_id, label_ids):
@@ -454,6 +464,7 @@ class IssueViewSet(BaseViewSet):
                     "priority",
                     "start_date",
                     "target_date",
+                    *due_time_fields(),
                     "sequence_id",
                     "project_id",
                     "parent_id",
@@ -900,6 +911,7 @@ class IssuePaginatedViewSet(BaseViewSet):
             "priority",
             "start_date",
             "target_date",
+            *due_time_fields(),
             "sequence_id",
             "project_id",
             "parent_id",

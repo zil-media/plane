@@ -18,6 +18,7 @@
       "assignee": "Atanan ekle",
       "start_date": "Başlangıç tarihi ekle",
       "due_date": "Son tarih ekle",
+      "due_time": "Saat ekle",
       "parent": "Üst iş öğesi ekle",
       "sub_issue": "Alt iş öğesi ekle",
       "dependency": "Bağımlılık ekle",

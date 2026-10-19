@@ -18,6 +18,7 @@
       "assignee": "Pridať priradených",
       "start_date": "Pridať dátum začiatku",
       "due_date": "Pridať termín",
+      "due_time": "Pridať čas",
       "parent": "Pridať nadradenú pracovnú položku",
       "sub_issue": "Pridať podriadenú pracovnú položku",
       "dependency": "Pridať závislosť",

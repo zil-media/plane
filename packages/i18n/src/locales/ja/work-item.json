@@ -18,6 +18,7 @@
       "assignee": "担当者を追加",
       "start_date": "開始日を追加",
       "due_date": "期限日を追加",
+      "due_time": "時刻を追加",
       "parent": "親作業項目を追加",
       "sub_issue": "サブ作業項目を追加",
       "dependency": "依存関係を追加",

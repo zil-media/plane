@@ -18,6 +18,7 @@
       "assignee": "Ajouter des assignés",
       "start_date": "Ajouter une date de début",
       "due_date": "Ajouter une date d’échéance",
+      "due_time": "Ajouter une heure",
       "parent": "Ajouter un élément de travail parent",
       "sub_issue": "Ajouter un sous-élément de travail",
       "dependency": "Ajouter une dépendance",
