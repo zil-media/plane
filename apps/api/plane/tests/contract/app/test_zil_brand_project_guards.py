@@ -5,12 +5,13 @@
 from unittest import mock
 
 import pytest
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from plane.db.models import BotTypeEnum, Project, ProjectMember, User, WorkspaceMember, ZilBrandProject
 from plane.utils.zil_agents import sync_zil_agent_project_memberships
-from plane.utils.zil_brand_projects import apply_brand_roster
+from plane.utils.zil_brand_projects import apply_brand_roster, ensure_migration_project
 
 KFC = "0123456789abcdef0123c001"
 
@@ -89,6 +90,34 @@ class TestZilProjectSettings:
     def test_a_brand_project_keeps_its_identifier(self, session_client, workspace, brand_project):
         response = session_client.patch(project_url(workspace, brand_project), {"identifier": "OTRO"}, format="json")
         assert response.status_code == status.HTTP_409_CONFLICT
+
+    @pytest.mark.django_db
+    def test_a_brand_project_cannot_be_archived_or_restored_by_hand(self, session_client, workspace, brand_project):
+        # Zil archives it when the brand leaves and restores it when it comes back
+        response = session_client.post(project_url(workspace, brand_project, "archive/"))
+        assert response.status_code == status.HTTP_409_CONFLICT and response.data["code"] == "ZIL_MANAGED"
+        brand_project.refresh_from_db()
+        assert brand_project.archived_at is None
+
+        Project.objects.filter(pk=brand_project.pk).update(archived_at=timezone.now())
+        response = session_client.delete(project_url(workspace, brand_project, "archive/"))
+        assert response.status_code == status.HTTP_409_CONFLICT
+        brand_project.refresh_from_db()
+        assert brand_project.archived_at is not None
+
+    @pytest.mark.django_db
+    def test_the_migration_project_cannot_be_deleted_or_archived(self, session_client, workspace, create_user):
+        migration = ensure_migration_project(workspace)
+        assert ProjectMember.objects.filter(project=migration, member=create_user, is_active=True).exists()
+        assert session_client.delete(project_url(workspace, migration)).status_code == status.HTTP_409_CONFLICT
+        assert session_client.post(project_url(workspace, migration, "archive/")).status_code == 409
+        assert Project.objects.filter(pk=migration.pk, archived_at__isnull=True).exists()
+
+    @pytest.mark.django_db
+    def test_other_projects_still_archive(self, session_client, workspace, create_user):
+        project = Project.objects.create(workspace=workspace, name="Interno", identifier="INT")
+        ProjectMember.objects.create(project=project, member=create_user, role=20)
+        assert session_client.post(project_url(workspace, project, "archive/")).status_code == status.HTTP_200_OK
 
     @pytest.mark.django_db
     def test_a_brand_project_cannot_be_deleted_in_ops(self, session_client, workspace, brand_project):
@@ -177,6 +206,10 @@ class TestZilProjectMembership:
         client.credentials(HTTP_X_API_KEY=token.token)
         base = f"/api/v1/workspaces/{workspace.slug}/projects/{brand_project.id}/"
         assert client.patch(base, {"network": 2}, format="json").status_code == status.HTTP_409_CONFLICT
+        assert client.post(base + "archive/").status_code == status.HTTP_409_CONFLICT
+        assert client.delete(base + "archive/").status_code == status.HTTP_409_CONFLICT
+        brand_project.refresh_from_db()
+        assert brand_project.archived_at is None
         assert (
             client.post(base + "project-members/", {"member": str(operator.id), "role": 15}, format="json").status_code
             == status.HTTP_409_CONFLICT

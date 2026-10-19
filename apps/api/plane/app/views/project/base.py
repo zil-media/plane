@@ -43,7 +43,7 @@ from plane.db.models.intake import IntakeIssueStatus
 from plane.utils.host import base_host
 from plane.utils.order_queryset import PROJECT_ORDER_BY_ALLOWLIST, sanitize_order_by
 from plane.utils.studio_defaults import seed_studio_defaults
-from plane.utils.zil_managed import project_delete_conflict, project_update_conflict
+from plane.utils.zil_managed import project_archive_conflict, project_delete_conflict, project_update_conflict
 from plane.utils.zil_agents import add_zil_agents_to_project
 
 
@@ -455,6 +455,9 @@ class ProjectViewSet(BaseViewSet):
 class ProjectArchiveUnarchiveEndpoint(BaseAPIView):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def post(self, request, slug, project_id):
+        conflict = project_archive_conflict(project_id)
+        if conflict:
+            return conflict
         project = Project.objects.get(pk=project_id, workspace__slug=slug)
         project.archived_at = timezone.now()
         project.save()
@@ -463,6 +466,9 @@ class ProjectArchiveUnarchiveEndpoint(BaseAPIView):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def delete(self, request, slug, project_id):
+        conflict = project_archive_conflict(project_id)
+        if conflict:
+            return conflict
         project = Project.objects.get(pk=project_id, workspace__slug=slug)
         project.archived_at = None
         project.save()
