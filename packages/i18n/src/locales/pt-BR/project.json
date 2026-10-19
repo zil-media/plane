@@ -456,6 +456,7 @@
     }
   },
   "zil_brand": {
+    "clients_group": "Clientes",
     "my_brands": "Minhas marcas",
     "my_brands_description": "As marcas em que você trabalha neste workspace.",
     "no_brands": "Você ainda não está na equipe de nenhuma marca neste workspace.",

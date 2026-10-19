@@ -456,6 +456,7 @@
     }
   },
   "zil_brand": {
+    "clients_group": "Clients",
     "my_brands": "Brandurile mele",
     "my_brands_description": "Brandurile la care lucrați în acest spațiu de lucru.",
     "no_brands": "Încă nu faceți parte din echipa niciunui brand în acest spațiu de lucru.",

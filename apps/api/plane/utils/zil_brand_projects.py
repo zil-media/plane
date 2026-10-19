@@ -145,9 +145,12 @@ def create_zil_project(workspace, name, identifier, owner, color=None, template=
         identifier=identifier,
         network=ProjectNetwork.SECRET.value,
         logo_props=_logo_props(color),
+        # a brand's project starts with its sheet (Marca) and pages only; the rest can be turned on
         page_view=True,
-        module_view=True,
-        cycle_view=True,
+        module_view=False,
+        cycle_view=False,
+        issue_views_view=False,
+        intake_view=False,
     )
     project.save(created_by_id=owner.id)
     ProjectIdentifier.objects.create(name=project.identifier, project=project, workspace_id=workspace.id)

@@ -13,6 +13,8 @@ export interface IThemeStore {
   sidebarPeek: boolean | undefined;
   isExtendedSidebarOpened: boolean | undefined;
   isExtendedProjectSidebarOpened: boolean | undefined;
+  /** What the extended project sidebar lists: the team's projects or the Zil clients' (brands). */
+  extendedProjectSidebarMode: "projects" | "clients";
   profileSidebarCollapsed: boolean | undefined;
   workspaceAnalyticsSidebarCollapsed: boolean | undefined;
   issueDetailSidebarCollapsed: boolean | undefined;
@@ -25,6 +27,7 @@ export interface IThemeStore {
   toggleSidebarPeek: (peek?: boolean) => void;
   toggleExtendedSidebar: (collapsed?: boolean) => void;
   toggleExtendedProjectSidebar: (collapsed?: boolean) => void;
+  setExtendedProjectSidebarMode: (mode: "projects" | "clients") => void;
   toggleProfileSidebar: (collapsed?: boolean) => void;
   toggleWorkspaceAnalyticsSidebar: (collapsed?: boolean) => void;
   toggleIssueDetailSidebar: (collapsed?: boolean) => void;
@@ -40,6 +43,7 @@ export class ThemeStore implements IThemeStore {
   sidebarPeek: boolean | undefined = undefined;
   isExtendedSidebarOpened: boolean | undefined = undefined;
   isExtendedProjectSidebarOpened: boolean | undefined = undefined;
+  extendedProjectSidebarMode: "projects" | "clients" = "projects";
   profileSidebarCollapsed: boolean | undefined = undefined;
   workspaceAnalyticsSidebarCollapsed: boolean | undefined = undefined;
   issueDetailSidebarCollapsed: boolean | undefined = undefined;
@@ -55,6 +59,7 @@ export class ThemeStore implements IThemeStore {
       sidebarPeek: observable.ref,
       isExtendedSidebarOpened: observable.ref,
       isExtendedProjectSidebarOpened: observable.ref,
+      extendedProjectSidebarMode: observable.ref,
       profileSidebarCollapsed: observable.ref,
       workspaceAnalyticsSidebarCollapsed: observable.ref,
       issueDetailSidebarCollapsed: observable.ref,
@@ -67,6 +72,7 @@ export class ThemeStore implements IThemeStore {
       toggleSidebarPeek: action,
       toggleExtendedSidebar: action,
       toggleExtendedProjectSidebar: action,
+      setExtendedProjectSidebarMode: action,
       toggleProfileSidebar: action,
       toggleWorkspaceAnalyticsSidebar: action,
       toggleIssueDetailSidebar: action,
@@ -125,6 +131,10 @@ export class ThemeStore implements IThemeStore {
    * Toggle the extended project sidebar collapsed state
    * @param collapsed
    */
+  setExtendedProjectSidebarMode = (mode: "projects" | "clients") => {
+    this.extendedProjectSidebarMode = mode;
+  };
+
   toggleExtendedProjectSidebar = (collapsed?: boolean) => {
     if (collapsed === undefined) {
       this.isExtendedProjectSidebarOpened = !this.isExtendedProjectSidebarOpened;

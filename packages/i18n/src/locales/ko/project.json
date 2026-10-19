@@ -456,6 +456,7 @@
     }
   },
   "zil_brand": {
+    "clients_group": "Clients",
     "my_brands": "내 브랜드",
     "my_brands_description": "이 작업 공간에서 담당하는 브랜드입니다.",
     "no_brands": "이 작업 공간에서 아직 어떤 브랜드 팀에도 속해 있지 않습니다.",

@@ -81,7 +81,8 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         href: `/${slug}/projects/${id}/issues`,
         icon: WorkItemsIcon,
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
-        shouldRender: true,
+        // a brand's project is its sheet and its pages: the work lives in the team's projects
+        shouldRender: !isBrandProject,
         sortOrder: 1,
       },
       {

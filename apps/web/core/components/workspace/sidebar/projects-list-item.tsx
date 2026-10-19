@@ -43,6 +43,7 @@ import { useNavigationItems } from "@/plane-web/components/navigations";
 import { ProjectNavigationRoot } from "@/plane-web/components/sidebar";
 // local imports
 import { HIGHLIGHT_CLASS, highlightIssueOnDrop } from "../../issues/issue-layouts/utils";
+import { useZilProjectBrandProject } from "@/hooks/use-zil-brands";
 
 type Props = {
   projectId: string;
@@ -95,6 +96,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   const router = useRouter();
   // derived values
   const project = getPartialProjectById(projectId);
+  const isBrandProject = !!useZilProjectBrandProject(workspaceSlug.toString(), projectId);
 
   // Get available navigation items for this project
   const navigationItems = useNavigationItems({
@@ -109,7 +111,9 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   const { tabPreferences } = useTabPreferences(workspaceSlug.toString(), projectId);
   const defaultTabKey = tabPreferences.defaultTab;
   // Validate that the default tab is available
-  const validatedDefaultTabKey = availableTabKeys.includes(defaultTabKey) ? defaultTabKey : DEFAULT_TAB_KEY;
+  const validatedTabKey = availableTabKeys.includes(defaultTabKey) ? defaultTabKey : DEFAULT_TAB_KEY;
+  // a brand's project opens on its pages (it has no work items tab)
+  const validatedDefaultTabKey = isBrandProject && validatedTabKey === "work_items" ? "pages" : validatedTabKey;
   const defaultTabUrl = project ? getTabUrl(workspaceSlug.toString(), project.id, validatedDefaultTabKey) : "";
 
   // toggle project list open
@@ -177,13 +181,13 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
         element,
         canDrop: ({ source }) =>
           !disableDrop && source?.data?.id !== projectId && source?.data?.dragInstanceId === "PROJECTS",
-        getData: ({ input, element }) => {
+        getData: ({ input, element: dropElement }) => {
           const data = { id: projectId };
 
           // attach instruction for last in list
           return attachInstruction(data, {
             input,
-            element,
+            element: dropElement,
             currentLevel: 0,
             indentPerLevel: 0,
             mode: isLastChild ? "last-in-group" : "standard",
@@ -222,7 +226,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
         },
       })
     );
-  }, [projectId, isLastChild, projectListType, handleOnProjectDrop]);
+  }, [projectId, project, isLastChild, projectListType, handleOnProjectDrop, disableDrag, disableDrop]);
 
   useEffect(() => {
     if (isMenuActive) toggleAnySidebarDropdown(true);

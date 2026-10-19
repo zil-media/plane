@@ -456,6 +456,7 @@
     }
   },
   "zil_brand": {
+    "clients_group": "Clients",
     "my_brands": "Moje marki",
     "my_brands_description": "Marki, nad którymi pracuje się w tej przestrzeni roboczej.",
     "no_brands": "Brak przypisania do zespołu jakiejkolwiek marki w tej przestrzeni roboczej.",

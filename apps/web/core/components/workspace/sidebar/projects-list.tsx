@@ -9,7 +9,7 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, Store } from "lucide-react";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, PROJECT_TRACKER_ELEMENTS } from "@plane/constants";
@@ -29,6 +29,7 @@ import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useProjectNavigationPreferences } from "@/hooks/use-navigation-preferences";
+import { useZilMyBrands } from "@/hooks/use-zil-brands";
 // plane web imports
 import type { TProject } from "@plane/types";
 // local imports
@@ -46,7 +47,12 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
   const { toggleCreateProjectModal } = useCommandPalette();
   const { allowPermissions } = useUserPermissions();
   const { preferences: projectPreferences } = useProjectNavigationPreferences();
-  const { isExtendedProjectSidebarOpened, toggleExtendedProjectSidebar } = useAppTheme();
+  const {
+    isExtendedProjectSidebarOpened,
+    toggleExtendedProjectSidebar,
+    extendedProjectSidebarMode,
+    setExtendedProjectSidebarMode,
+  } = useAppTheme();
 
   const { loader, getPartialProjectById, joinedProjectIds: joinedProjects, updateProjectView } = useProject();
   // router params
@@ -59,23 +65,36 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
     EUserPermissionsLevel.WORKSPACE
   );
 
+  // Zil brand projects (and "Migración") are not listed here: "Clientes" opens them in the extended sidebar
+  const { brands: zilProjects } = useZilMyBrands(workspaceSlug?.toString());
+  const zilProjectIds = new Set(zilProjects.map((brand) => brand.project_id));
+  const ownProjects = joinedProjects.filter((projectId) => !zilProjectIds.has(projectId));
+  const clientProjectsCount = joinedProjects.length - ownProjects.length;
+
   // Compute limited projects for main sidebar
   const displayedProjects = projectPreferences.showLimitedProjects
-    ? joinedProjects.slice(0, projectPreferences.limitedProjectsCount)
-    : joinedProjects;
+    ? ownProjects.slice(0, projectPreferences.limitedProjectsCount)
+    : ownProjects;
 
   // Check if there are more projects to show
   const hasMoreProjects =
-    projectPreferences.showLimitedProjects && joinedProjects.length > projectPreferences.limitedProjectsCount;
+    projectPreferences.showLimitedProjects && ownProjects.length > projectPreferences.limitedProjectsCount;
+
+  /** "More" and "Clientes" open the same extended sidebar, each with its own list. */
+  const toggleExtendedList = (mode: "projects" | "clients") => {
+    const isShowingIt = isExtendedProjectSidebarOpened && extendedProjectSidebarMode === mode;
+    setExtendedProjectSidebarMode(mode);
+    toggleExtendedProjectSidebar(!isShowingIt);
+  };
 
   const handleCopyText = (projectId: string) => {
-    copyUrlToClipboard(`${workspaceSlug}/projects/${projectId}/issues`).then(() => {
+    void copyUrlToClipboard(`${workspaceSlug}/projects/${projectId}/issues`).then(() =>
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: t("link_copied"),
         message: t("project_link_copied_to_clipboard"),
-      });
-    });
+      })
+    );
   };
 
   const handleOnProjectDrop = (
@@ -229,8 +248,8 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
             >
               {loader === "init-loader" && (
                 <Loader className="w-full space-y-1.5">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <Loader.Item key={index} height="28px" />
+                  {["a", "b", "c", "d"].map((key) => (
+                    <Loader.Item key={key} height="28px" />
                   ))}
                 </Loader>
               )}
@@ -249,11 +268,25 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
                         handleOnProjectDrop={handleOnProjectDrop}
                       />
                     ))}
+                    {clientProjectsCount > 0 && (
+                      <SidebarNavItem>
+                        <button
+                          type="button"
+                          data-prevent-outside-click
+                          onClick={() => toggleExtendedList("clients")}
+                          className="flex flex-grow items-center gap-1.5 text-13 font-medium text-tertiary"
+                        >
+                          <Store className="size-4 flex-shrink-0" />
+                          <span className="flex-grow text-left">{t("zil_brand.clients_group")}</span>
+                          <span className="text-11 text-placeholder">{clientProjectsCount}</span>
+                        </button>
+                      </SidebarNavItem>
+                    )}
                     {hasMoreProjects && (
                       <SidebarNavItem>
                         <button
                           type="button"
-                          onClick={() => toggleExtendedProjectSidebar()}
+                          onClick={() => toggleExtendedList("projects")}
                           className="flex flex-grow items-center gap-1.5 text-13 font-medium text-tertiary"
                           id="extended-project-sidebar-toggle"
                           aria-label={t(
@@ -263,7 +296,11 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
                           )}
                         >
                           <Ellipsis className="size-4 flex-shrink-0" />
-                          <span>{isExtendedProjectSidebarOpened ? "Hide" : "More"}</span>
+                          <span>
+                            {isExtendedProjectSidebarOpened && extendedProjectSidebarMode === "projects"
+                              ? "Hide"
+                              : "More"}
+                          </span>
                         </button>
                       </SidebarNavItem>
                     )}

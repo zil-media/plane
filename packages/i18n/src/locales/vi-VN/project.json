@@ -456,6 +456,7 @@
     }
   },
   "zil_brand": {
+    "clients_group": "Clients",
     "my_brands": "Thương hiệu của tôi",
     "my_brands_description": "Các thương hiệu bạn đang làm việc trong không gian làm việc này.",
     "no_brands": "Bạn chưa thuộc nhóm của thương hiệu nào trong không gian làm việc này.",

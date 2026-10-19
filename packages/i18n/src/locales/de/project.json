@@ -456,6 +456,7 @@
     }
   },
   "zil_brand": {
+    "clients_group": "Kunden",
     "my_brands": "Meine Marken",
     "my_brands_description": "Die Marken, an denen Sie in diesem Arbeitsbereich arbeiten.",
     "no_brands": "Sie gehören in diesem Arbeitsbereich noch zum Team keiner Marke.",

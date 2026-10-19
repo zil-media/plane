@@ -456,6 +456,7 @@
     }
   },
   "zil_brand": {
+    "clients_group": "Clients",
     "my_brands": "Markalarım",
     "my_brands_description": "Bu çalışma alanında üzerinde çalıştığınız markalar.",
     "no_brands": "Bu çalışma alanında henüz hiçbir markanın ekibinde değilsiniz.",

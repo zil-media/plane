@@ -4,7 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
@@ -22,12 +23,14 @@ import { SidebarProjectsListItem } from "@/components/workspace/sidebar/projects
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
+import { useZilMyBrands } from "@/hooks/use-zil-brands";
 import type { TProject } from "@plane/types";
 import { ExtendedSidebarWrapper } from "./extended-sidebar-wrapper";
 
 export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar() {
   // refs
   const extendedProjectSidebarRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   // states
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -35,9 +38,19 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
   const { workspaceSlug } = useParams();
   // store hooks
   const { t } = useTranslation();
-  const { isExtendedProjectSidebarOpened, toggleExtendedProjectSidebar } = useAppTheme();
+  const { isExtendedProjectSidebarOpened, toggleExtendedProjectSidebar, extendedProjectSidebarMode } = useAppTheme();
   const { getPartialProjectById, joinedProjectIds: joinedProjects, updateProjectView } = useProject();
   const { allowPermissions } = useUserPermissions();
+  // "Clientes" lists the Zil brands' projects (and "Migración"), by name; "More" the team's projects
+  const { brands: zilProjects } = useZilMyBrands(workspaceSlug?.toString());
+  const zilProjectIds = new Set(zilProjects.map((brand) => brand.project_id));
+  const isClientsList = extendedProjectSidebarMode === "clients";
+  const listedProjects = isClientsList
+    ? sortBy(
+        joinedProjects.filter((projectId) => zilProjectIds.has(projectId)),
+        (projectId) => (getPartialProjectById(projectId)?.name ?? "").toLocaleLowerCase("es")
+      )
+    : joinedProjects.filter((projectId) => !zilProjectIds.has(projectId));
 
   const handleOnProjectDrop = (
     sourceId: string | undefined,
@@ -70,7 +83,7 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
   };
 
   // filter projects based on search query
-  const filteredProjects = joinedProjects.filter((projectId) => {
+  const filteredProjects = listedProjects.filter((projectId) => {
     const project = getPartialProjectById(projectId);
     if (!project) return false;
     return project.name.toLowerCase().includes(searchQuery.toLowerCase()) || project.identifier.includes(searchQuery);
@@ -82,16 +95,21 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
     EUserPermissionsLevel.WORKSPACE
   );
 
+  // the search box takes the focus each time the sidebar opens (and when it switches list)
+  useEffect(() => {
+    if (isExtendedProjectSidebarOpened) searchInputRef.current?.focus();
+  }, [isExtendedProjectSidebarOpened, extendedProjectSidebarMode]);
+
   const handleClose = useCallback(() => toggleExtendedProjectSidebar(false), [toggleExtendedProjectSidebar]);
 
   const handleCopyText = (projectId: string) => {
-    copyUrlToClipboard(`${workspaceSlug}/projects/${projectId}/issues`).then(() => {
+    void copyUrlToClipboard(`${workspaceSlug}/projects/${projectId}/issues`).then(() =>
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: t("link_copied"),
         message: t("project_link_copied_to_clipboard"),
-      });
-    });
+      })
+    );
   };
   return (
     <>
@@ -112,8 +130,10 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
       >
         <div className="sticky top-4 flex w-full flex-col gap-1 px-4">
           <div className="flex items-center justify-between">
-            <span className="py-1.5 text-13 font-semibold text-tertiary">Projects</span>
-            {isAuthorizedUser && (
+            <span className="py-1.5 text-13 font-semibold text-tertiary">
+              {isClientsList ? t("zil_brand.clients_group") : t("projects")}
+            </span>
+            {isAuthorizedUser && !isClientsList && (
               <Tooltip tooltipHeading={t("create_project")} tooltipContent="">
                 <button
                   type="button"
@@ -134,7 +154,7 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
               className="w-full max-w-[234px] border-none bg-transparent text-13 outline-none placeholder:text-placeholder"
               placeholder={t("search")}
               value={searchQuery}
-              autoFocus
+              ref={searchInputRef}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
@@ -157,8 +177,8 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
                 projectId={projectId}
                 handleCopyText={() => handleCopyText(projectId)}
                 projectListType={"JOINED"}
-                disableDrag={false}
-                disableDrop={false}
+                disableDrag={isClientsList}
+                disableDrop={isClientsList}
                 isLastChild={index === filteredProjects.length - 1}
                 handleOnProjectDrop={handleOnProjectDrop}
                 renderInExtendedSidebar

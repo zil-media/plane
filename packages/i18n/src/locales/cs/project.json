@@ -456,6 +456,7 @@
     }
   },
   "zil_brand": {
+    "clients_group": "Clients",
     "my_brands": "Moje značky",
     "my_brands_description": "Značky, na kterých v tomto pracovním prostoru pracujete.",
     "no_brands": "V tomto pracovním prostoru zatím nejste v týmu žádné značky.",

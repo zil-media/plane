@@ -456,6 +456,7 @@
     }
   },
   "zil_brand": {
+    "clients_group": "Clients",
     "my_brands": "Merek saya",
     "my_brands_description": "Merek yang Anda kerjakan di workspace ini.",
     "no_brands": "Anda belum tergabung dalam tim merek mana pun di workspace ini.",

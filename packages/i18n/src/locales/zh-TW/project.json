@@ -456,6 +456,7 @@
     }
   },
   "zil_brand": {
+    "clients_group": "Clients",
     "my_brands": "我的品牌",
     "my_brands_description": "您在此工作區中負責的品牌。",
     "no_brands": "您目前尚未加入此工作區中任何品牌的團隊。",
