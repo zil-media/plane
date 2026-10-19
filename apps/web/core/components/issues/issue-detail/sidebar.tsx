@@ -44,6 +44,7 @@ import { TransferHopInfo } from "@/plane-web/components/issues/issue-details/sid
 import { IssueWorklogProperty } from "@/plane-web/components/issues/worklog/property";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 import { IssueCycleSelect } from "./cycle-select";
+import { IssueDueTimeInput } from "./due-time-input";
 import { IssueLabel } from "./label";
 import { IssueModuleSelect } from "./module-select";
 import { IssueZilErpProperties } from "./zil-erp-properties";
@@ -184,6 +185,12 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
                   })}
                   hideIcon
                   clearIconClassName="h-3 w-3 hidden group-hover:inline text-primary"
+                />
+                <IssueDueTimeInput
+                  targetDate={issue.target_date}
+                  targetTime={issue.target_time}
+                  disabled={!isEditable}
+                  onChange={(time) => issueOperations.update(workspaceSlug, projectId, issueId, { target_time: time })}
                 />
                 {issue.target_date && <DateAlert date={issue.target_date} workItem={issue} projectId={projectId} />}
               </div>

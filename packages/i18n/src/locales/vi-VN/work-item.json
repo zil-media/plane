@@ -18,6 +18,7 @@
       "assignee": "Thêm người phụ trách",
       "start_date": "Thêm ngày bắt đầu",
       "due_date": "Thêm ngày hết hạn",
+      "due_time": "Thêm giờ",
       "parent": "Thêm mục công việc cha",
       "sub_issue": "Thêm mục công việc con",
       "dependency": "Thêm phụ thuộc",

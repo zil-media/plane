@@ -18,6 +18,7 @@
       "assignee": "Add assignees",
       "start_date": "Add start date",
       "due_date": "Add due date",
+      "due_time": "Add due time",
       "parent": "Add parent work item",
       "sub_issue": "Add sub-work item",
       "dependency": "Add dependency",

@@ -43,10 +43,14 @@ from plane.db.models import (
     ProjectMember,
     EstimatePoint,
 )
+from plane.utils.agent_pipeline.flags import is_feature_enabled
 from plane.utils.content_validator import (
     validate_html_content,
     validate_binary_data,
 )
+
+
+DUE_TIME_FLAG = "issueDueTime"
 
 
 class IssueFlatSerializer(BaseSerializer):
@@ -115,6 +119,8 @@ class IssueCreateSerializer(BaseSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        if not is_feature_enabled(DUE_TIME_FLAG):
+            data.pop("target_time", None)
         assignee_ids = self.initial_data.get("assignee_ids")
         data["assignee_ids"] = assignee_ids if assignee_ids else []
         label_ids = self.initial_data.get("label_ids")
@@ -122,6 +128,13 @@ class IssueCreateSerializer(BaseSerializer):
         return data
 
     def validate(self, attrs):
+        if not is_feature_enabled(DUE_TIME_FLAG):
+            attrs.pop("target_time", None)
+        elif (
+            attrs.get("target_time") is not None
+            and attrs.get("target_date", self.instance and self.instance.target_date) is None
+        ):
+            raise serializers.ValidationError("A due time requires a due date")
         allow_triage = self.context.get("allow_triage_state", False)
         state_manager = State.triage_objects if allow_triage else State.objects
 
@@ -793,6 +806,7 @@ class IssueSerializer(DynamicBaseSerializer):
             "priority",
             "start_date",
             "target_date",
+            "target_time",
             "sequence_id",
             "project_id",
             "parent_id",
@@ -811,6 +825,12 @@ class IssueSerializer(DynamicBaseSerializer):
             "archived_at",
         ]
         read_only_fields = fields
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not is_feature_enabled(DUE_TIME_FLAG):
+            data.pop("target_time", None)
+        return data
 
     def validate(self, data):
         if (

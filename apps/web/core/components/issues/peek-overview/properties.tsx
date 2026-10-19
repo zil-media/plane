@@ -43,6 +43,7 @@ import { TransferHopInfo } from "@/plane-web/components/issues/issue-details/sid
 import { IssueWorklogProperty } from "@/plane-web/components/issues/worklog/property";
 import type { TIssueOperations } from "../issue-detail";
 import { IssueCycleSelect } from "../issue-detail/cycle-select";
+import { IssueDueTimeInput } from "../issue-detail/due-time-input";
 import { IssueLabel } from "../issue-detail/label";
 import { IssueModuleSelect } from "../issue-detail/module-select";
 import { IssueZilErpProperties } from "../issue-detail/zil-erp-properties";
@@ -185,6 +186,12 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
               })}
               hideIcon
               clearIconClassName="h-3 w-3 hidden group-hover:inline text-primary"
+            />
+            <IssueDueTimeInput
+              targetDate={issue.target_date}
+              targetTime={issue.target_time}
+              disabled={disabled}
+              onChange={(time) => issueOperations.update(workspaceSlug, projectId, issueId, { target_time: time })}
             />
             {issue.target_date && <DateAlert date={issue.target_date} workItem={issue} projectId={projectId} />}
           </div>

@@ -18,6 +18,7 @@
       "assignee": "Adicionar responsáveis",
       "start_date": "Adicionar data de início",
       "due_date": "Adicionar data de vencimento",
+      "due_time": "Adicionar horário",
       "parent": "Adicionar item de trabalho pai",
       "sub_issue": "Adicionar sub-item de trabalho",
       "dependency": "Adicionar dependência",

@@ -146,6 +146,8 @@ class Issue(ChangeTrackerMixin, ProjectBaseModel):
     )
     start_date = models.DateField(null=True, blank=True)
     target_date = models.DateField(null=True, blank=True)
+    # Optional due time (wall clock, no zone of its own) paired with target_date; gated by the issueDueTime flag.
+    target_time = models.TimeField(null=True, blank=True)
     assignees = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         blank=True,

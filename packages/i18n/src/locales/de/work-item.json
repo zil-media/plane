@@ -18,6 +18,7 @@
       "assignee": "Zugewiesene hinzufügen",
       "start_date": "Startdatum hinzufügen",
       "due_date": "Fälligkeitsdatum hinzufügen",
+      "due_time": "Uhrzeit hinzufügen",
       "parent": "Übergeordnetes Arbeitselement hinzufügen",
       "sub_issue": "Untergeordnetes Arbeitselement hinzufügen",
       "dependency": "Abhängigkeit hinzufügen",

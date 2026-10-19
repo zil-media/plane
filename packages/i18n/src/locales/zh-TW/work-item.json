@@ -18,6 +18,7 @@
       "assignee": "新增指派對象",
       "start_date": "新增開始日期",
       "due_date": "新增截止日期",
+      "due_time": "新增時間",
       "parent": "新增父工作事項",
       "sub_issue": "新增子工作事項",
       "dependency": "新增相依性",

@@ -18,6 +18,7 @@
       "assignee": "添加负责人",
       "start_date": "添加开始日期",
       "due_date": "添加截止日期",
+      "due_time": "添加时间",
       "parent": "添加父工作项",
       "sub_issue": "添加子工作项",
       "dependency": "添加依赖",
