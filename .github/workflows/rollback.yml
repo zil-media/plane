@@ -1,0 +1,60 @@
+name: rollback
+
+# Puts an older image back on the `preview` tag; Watchtower deploys it within a minute.
+# Default target `previous` = what was live before the last build of that image (build-and-push
+# keeps it). Any published commit works too: `sha-<7 chars>`. Runbook: docs/ops-deploy.md.
+#
+#   gh workflow run rollback.yml -R zil-media/plane -f image=plane-backend
+#   gh workflow run rollback.yml -R zil-media/plane -f image=plane-web -f to=sha-0f6f6e4
+#
+# The next build of that image deploys forward again.
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Image to roll back
+        type: choice
+        required: true
+        options: [plane-backend, plane-web, plane-space, plane-admin, plane-live, plane-proxy, plane-mcp]
+      to:
+        description: Tag to put back on preview (previous, or sha-<7 chars>)
+        type: string
+        default: previous
+
+concurrency:
+  group: build-and-push-preview
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # the ops-deploy/backend tag
+      packages: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/${{ inputs.image }}
+      TO: ${{ inputs.to }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Put ${{ inputs.to }} back on preview
+        id: retag
+        run: |
+          rev() { docker buildx imagetools inspect "$1" --format '{{ index .Image.Config.Labels "org.opencontainers.image.revision" }}'; }
+          FROM=$(rev "$IMAGE:preview")
+          BACK=$(rev "$IMAGE:$TO")
+          docker buildx imagetools create -t "$IMAGE:preview" "$IMAGE:$TO"
+          echo "rev=$BACK" >> "$GITHUB_OUTPUT"
+          echo "::notice title=rolled back::${{ inputs.image }} preview: $FROM -> $BACK ($TO)"
+      # The API now reports the older commit: point Zil's ops-deploy-check at it, or it would
+      # report the rollback itself as a stuck deploy.
+      - name: Record the published backend
+        if: inputs.image == 'plane-backend'
+        run: git push --force origin "${{ steps.retag.outputs.rev }}:refs/tags/ops-deploy/backend"
