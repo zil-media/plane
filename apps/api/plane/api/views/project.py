@@ -42,7 +42,7 @@ from plane.utils.exception_logger import log_exception
 from .base import BaseAPIView
 from plane.utils.host import base_host
 from plane.utils.zil_agents import add_zil_agents_to_project
-from plane.utils.zil_managed import project_delete_conflict, project_update_conflict
+from plane.utils.zil_managed import project_archive_conflict, project_delete_conflict, project_update_conflict
 from plane.api.serializers import (
     ProjectSerializer,
     ProjectCreateSerializer,
@@ -582,6 +582,9 @@ class ProjectArchiveUnarchiveAPIEndpoint(BaseAPIView):
         Move a project to archived status, hiding it from active project lists.
         Archived projects remain accessible but are excluded from regular workflows.
         """
+        conflict = project_archive_conflict(project_id)
+        if conflict:
+            return conflict
         project = Project.objects.get(pk=project_id, workspace__slug=slug)
         project.archived_at = timezone.now()
         project.save()
@@ -606,6 +609,9 @@ class ProjectArchiveUnarchiveAPIEndpoint(BaseAPIView):
         Restore an archived project to active status, making it available in regular workflows.
         The project will reappear in active project lists and become fully functional.
         """
+        conflict = project_archive_conflict(project_id)
+        if conflict:
+            return conflict
         project = Project.objects.get(pk=project_id, workspace__slug=slug)
         project.archived_at = None
         project.save()

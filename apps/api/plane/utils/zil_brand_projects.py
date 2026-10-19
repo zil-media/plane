@@ -320,7 +320,7 @@ def _clean_adopted(project):
     ).update(is_active=False)
 
 
-def _apply_brand(workspace, brand, mapping, owner, template, stats, ws_roles):
+def _apply_brand(workspace, brand, mapping, owner, template, stats, ws_roles, with_members=True):
     """Create, adopt or update one brand's project. Returns (mapping, status)."""
     brand_id = brand["id"]
     name = brand_project_name(brand.get("name"))
@@ -388,7 +388,12 @@ def _apply_brand(workspace, brand, mapping, owner, template, stats, ws_roles):
     for key, value in brand_fields.items():
         setattr(mapping, key, value)
 
-    members_changed = apply_members(mapping, brand.get("members"), brand["members_authoritative"], stats, ws_roles)
+    # a roster the archive fuse refused changes nobody's access (see _apply_roster)
+    members_changed = (
+        apply_members(mapping, brand.get("members"), brand["members_authoritative"], stats, ws_roles)
+        if with_members
+        else False
+    )
     now = timezone.now()
     mapping.synced_at = now
     mapping.members_synced_at = now
@@ -482,6 +487,33 @@ def _apply_roster(workspace_id, brands_by_id, authoritative, computed_at, force,
             mapping.delete(soft=False)
             del mappings[brand_id]
 
+    # The fuse is decided BEFORE anything is applied: a roster that would archive most of the
+    # workspace's brands is a broken one (truncated, wrong scope), and its member lists are as
+    # broken as its brand list. Deciding it after applying the brands (as it was) let such a roster
+    # revoke everyone's access and then refuse only the archiving, leaving the projects alive and
+    # empty. Refused, it still creates and renames, but changes no membership and archives nothing.
+    to_archive = [
+        brand_id
+        for brand_id, mapping in mappings.items()
+        if mapping.project.archived_at is None
+        and (
+            (authoritative and brand_id not in brands_by_id)
+            or brands_by_id.get(brand_id, {}).get("status") == ZilBrandProject.ARCHIVED
+        )
+    ]
+    live = sum(1 for m in mappings.values() if m.project.archived_at is None)
+    minimum, fraction = archive_fuse()
+    refused = bool(to_archive and not force and len(to_archive) > minimum and len(to_archive) > fraction * live)
+    if refused:
+        stats["refused"] = "archive_fuse"
+        logger.warning(
+            "zil brand roster for workspace %s would archive %s of %s brands: refused without force",
+            workspace_id,
+            len(to_archive),
+            live,
+        )
+        to_archive = []
+
     results = {}
     for brand_id, brand in brands_by_id.items():
         if brand_id not in mappings and brand["status"] == ZilBrandProject.ARCHIVED:
@@ -499,7 +531,7 @@ def _apply_roster(workspace_id, brands_by_id, authoritative, computed_at, force,
         try:
             with transaction.atomic():
                 mapping, status = _apply_brand(
-                    workspace, brand, mappings.get(brand_id), owner, template, stats, ws_roles
+                    workspace, brand, mappings.get(brand_id), owner, template, stats, ws_roles, not refused
                 )
             mappings[brand_id] = mapping
             results[brand_id] = {
@@ -520,27 +552,9 @@ def _apply_roster(workspace_id, brands_by_id, authoritative, computed_at, force,
                 "error": str(e)[:300],
             }
 
-    to_archive = []
-    for brand_id, mapping in mappings.items():
-        if mapping.project.archived_at is not None or results.get(brand_id, {}).get("status") == "error":
-            continue
-        leaving = brand_id not in brands_by_id and authoritative
-        if leaving or brands_by_id.get(brand_id, {}).get("status") == ZilBrandProject.ARCHIVED:
-            to_archive.append(brand_id)
-
-    live = sum(1 for m in mappings.values() if m.project.archived_at is None)
-    minimum, fraction = archive_fuse()
-    if to_archive and not force and len(to_archive) > minimum and len(to_archive) > fraction * live:
-        stats["refused"] = "archive_fuse"
-        logger.warning(
-            "zil brand roster for workspace %s would archive %s of %s brands: refused without force",
-            workspace_id,
-            len(to_archive),
-            live,
-        )
-        to_archive = []
-
     for brand_id in to_archive:
+        if results.get(brand_id, {}).get("status") == "error":
+            continue
         mapping = mappings[brand_id]
         _archive(mapping.project)
         if mapping.status != ZilBrandProject.ARCHIVED:

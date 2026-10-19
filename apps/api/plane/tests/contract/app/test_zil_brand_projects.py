@@ -480,3 +480,35 @@ class TestUserBrandProjectsFastPath:
 
         assert body["status"] == "skipped"
         assert not ZilBrandMember.objects.filter(email="nueva@zil.global").exists()
+
+
+@pytest.mark.contract
+class TestRefusedRosterChangesNoAccess:
+    @pytest.mark.django_db
+    def test_a_roster_the_fuse_refuses_revokes_nobody(self, workspace):
+        # a broken roster: 2 of 10 brands, and the 2 with an empty authoritative team. Applied before
+        # the fuse was decided, it emptied those projects and then refused only the archiving
+        ana = make_user(workspace, "ana@zil.global")
+        team = [{"email": "ana@zil.global", "role": "member"}]
+        everyone = [brand(b, f"Marca {n}", members=team) for n, b in enumerate(EXTRA)]
+        push(workspace, everyone)
+
+        broken = [brand(b, f"Marca {n}", members=[]) for n, b in enumerate(EXTRA[:2])]
+        response = push(workspace, broken)
+
+        assert response["refused"] == "archive_fuse"
+        assert response["members_removed"] == 0 and response["archived"] == 0
+        for brand_id in EXTRA:
+            assert ana.id in active_member_ids(project_of(brand_id))
+            assert ZilBrandMember.objects.filter(brand_project__zil_brand_id=brand_id, email=ana.email).exists()
+
+    @pytest.mark.django_db
+    def test_with_force_the_same_roster_applies_in_full(self, workspace):
+        ana = make_user(workspace, "ana@zil.global")
+        team = [{"email": "ana@zil.global", "role": "member"}]
+        push(workspace, [brand(b, f"Marca {n}", members=team) for n, b in enumerate(EXTRA)])
+
+        response = push(workspace, [brand(b, f"Marca {n}", members=[]) for n, b in enumerate(EXTRA[:2])], force=True)
+
+        assert response["refused"] is None and response["archived"] == 8
+        assert ana.id not in active_member_ids(project_of(EXTRA[0]))

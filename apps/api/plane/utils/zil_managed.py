@@ -6,8 +6,9 @@
 
 Zil Workspace alone decides who works on a brand, and a brand's project is always private: in Ops
 nobody adds or removes its people (Zil agents excepted: they join a brand when someone adds them),
-nobody makes it public, nobody changes its identifier (it is in every work item key) and nobody
-deletes it (the brand is archived in Workspace instead). Renaming it, and every other setting, stays
+nobody makes it public, nobody changes its identifier (it is in every work item key), nobody
+archives or restores it (Zil does, following the brand) and nobody deletes it (the brand is archived
+in Workspace instead; "Migración" holds pages still to sort). Renaming it, and every other setting, stays
 open. The answer is 409 with `code: ZIL_MANAGED`, which the web app shows as such.
 """
 
@@ -59,8 +60,19 @@ def project_update_conflict(project, data):
 
 
 def project_delete_conflict(project_id):
-    if zil_project_kind(project_id) == ZilBrandProject.BRAND_KIND:
+    """409 for every Zil project: a brand's is archived from Workspace, and "Migración" holds the
+    pages of clients with several brands until they are sorted by hand (deleting it loses them)."""
+    if zil_project_kind(project_id):
         return zil_managed_conflict()
+    return None
+
+
+def project_archive_conflict(project_id):
+    """409 when someone archives or restores a Zil project by hand: Zil archives a brand's project
+    when the brand leaves the workspace and restores it when it comes back, and a hand archive would
+    hide a live brand from its team (or one restore bring back a dead one) until the next roster."""
+    if zil_project_kind(project_id):
+        return zil_managed_conflict("Archiving this project")
     return None
 
 
