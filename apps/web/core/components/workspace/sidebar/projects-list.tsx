@@ -56,7 +56,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
 
   const { loader, getPartialProjectById, joinedProjectIds: joinedProjects, updateProjectView } = useProject();
   // router params
-  const { workspaceSlug } = useParams();
+  const { workspaceSlug, projectId: routeProjectId } = useParams();
   const pathname = usePathname();
 
   // auth
@@ -70,6 +70,9 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
   const zilProjectIds = new Set(zilProjects.map((brand) => brand.project_id));
   const ownProjects = joinedProjects.filter((projectId) => !zilProjectIds.has(projectId));
   const clientProjectsCount = joinedProjects.length - ownProjects.length;
+  // the brand open right now stays under "Clientes", with its tabs, for quick access
+  const openClientProjectId =
+    typeof routeProjectId === "string" && zilProjectIds.has(routeProjectId) ? routeProjectId : undefined;
 
   // Compute limited projects for main sidebar
   const displayedProjects = projectPreferences.showLimitedProjects
@@ -281,6 +284,18 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
                           <span className="text-11 text-placeholder">{clientProjectsCount}</span>
                         </button>
                       </SidebarNavItem>
+                    )}
+                    {openClientProjectId && (
+                      <SidebarProjectsListItem
+                        key={openClientProjectId}
+                        projectId={openClientProjectId}
+                        handleCopyText={() => handleCopyText(openClientProjectId)}
+                        projectListType={"JOINED"}
+                        disableDrag
+                        disableDrop
+                        isLastChild
+                        handleOnProjectDrop={handleOnProjectDrop}
+                      />
                     )}
                     {hasMoreProjects && (
                       <SidebarNavItem>
