@@ -58,10 +58,10 @@ class TestBrandSheet:
                 "companyName": "X",
             },
             "specs": {"strip": [{"key": "pauta", "label": "Pauta", "value": "USD 1.200"}], "items": []},
-            "assets": [],
-            "team": [{"name": "Ana", "email": "ana@zil.global", "role": None}],
-            "calls": [],
-            "projects": [],
+            "assets": [{"id": "a1", "type": "drive_folder", "name": "Drive", "url": None, "companyName": "DEGASA SA"}],
+            "team": [{"name": "Ana", "email": "ana@zil.global", "role": None, "taxId": "30-1"}],
+            "calls": [{"id": "c1", "title": "Kickoff", "date": "2026-10-14", "client": {"companyName": "DEGASA SA"}}],
+            "projects": [{"workspaceSlug": "zil-design", "businessUnit": "Zil Design", "clientName": "DEGASA SA"}],
             "client": {"companyName": "DEGASA SA"},
         }
         with (
@@ -76,6 +76,9 @@ class TestBrandSheet:
         sheet = response.data["sheet"]
         assert sheet["specs"]["strip"][0]["value"] == "USD 1.200" and sheet["team"][0]["name"] == "Ana"
         assert "client" not in sheet and "companyName" not in sheet["brand"]
+        # nested rows keep only their own fields: nothing of the client slips through
+        assert "companyName" not in str(response.data) and "DEGASA" not in str(response.data)
+        assert "taxId" not in str(response.data) and sheet["calls"][0]["title"] == "Kickoff"
 
     @pytest.mark.django_db
     def test_zil_down_still_shows_the_brand(self, session_client, workspace, brands):

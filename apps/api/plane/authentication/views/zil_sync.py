@@ -39,12 +39,14 @@ from plane.db.models import (
     IssueLink,
     Project,
     Page,
+    ProjectMember,
     ProjectPage,
     FileAsset,
     Workspace,
     WorkspaceMember,
 )
 from plane.settings.storage import S3Storage
+from plane.utils.zil_brand_projects import apply_user_brand_projects
 from plane.authentication.utils.zil_provisioning import (
     ensure_workspace,
     provision_user_workspaces,
@@ -130,8 +132,11 @@ class ZilUserSyncEndpoint(ZilServiceView):
     """Reconcile an existing Plane user's memberships / deprovision them.
 
     Only acts on users that already exist in Plane (i.e. have logged in at
-    least once). Brand-new users are provisioned from their signed token on
-    first login, so there is nothing to do here for them.
+    least once), except `brand_projects: [{brandId, role, workspace_slug?}]`
+    (with `brand_projects_authoritative` to also revoke), which is kept by email
+    and is the fast path of a brand revocation (plane.utils.zil_brand_projects).
+    Brand-new users are provisioned from their signed token on first login, so
+    there is nothing else to do here for them.
     """
 
     def post(self, request):
@@ -140,8 +145,24 @@ class ZilUserSyncEndpoint(ZilServiceView):
             return Response({"error": "email required"}, status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.filter(email=email, is_bot=False).first()
+
+        # brands the person works on now (the fast path of a revocation): also kept for someone who
+        # never signed in, so their first sign-in gets the right brands
+        brand_projects = request.data.get("brand_projects")
+        brand_stats = None
+        if isinstance(brand_projects, list) and not request.data.get("suspended"):
+            brand_stats = apply_user_brand_projects(
+                email,
+                brand_projects,
+                authoritative=request.data.get("brand_projects_authoritative") is True,
+                user=user,
+            )
+
         if not user:
-            return Response({"status": "skipped", "reason": "user_not_in_plane"}, status=status.HTTP_200_OK)
+            body = {"status": "skipped", "reason": "user_not_in_plane"}
+            if brand_stats is not None:
+                body["brand_projects"] = brand_stats
+            return Response(body, status=status.HTTP_200_OK)
 
         try:
             if request.data.get("suspended"):
@@ -156,12 +177,17 @@ class ZilUserSyncEndpoint(ZilServiceView):
             # request a full per-user reconcile; genuine deprovision also has
             # explicit paths (suspended → deactivate_user, BU off →
             # ZilWorkspaceSyncEndpoint), and the nightly reconcile is authoritative.
-            provision_user_workspaces(
-                user,
-                request.data.get("workspaces") or [],
-                authoritative=request.data.get("authoritative", False),
-            )
-            return Response({"status": "synced", "email": email}, status=status.HTTP_200_OK)
+            # a brands-only call (the revocation fast path) leaves the workspaces alone
+            if request.data.get("workspaces") is not None or brand_stats is None:
+                provision_user_workspaces(
+                    user,
+                    request.data.get("workspaces") or [],
+                    authoritative=request.data.get("authoritative", False),
+                )
+            body = {"status": "synced", "email": email}
+            if brand_stats is not None:
+                body["brand_projects"] = brand_stats
+            return Response(body, status=status.HTTP_200_OK)
         except Exception as e:
             log_exception(e)
             return Response({"error": "sync_failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -651,8 +677,9 @@ class ZilErpLinksEndpoint(APIView):
     """ERP entities linked to a Plane project/page, for the web 'Zil' chip.
 
     Per-user session auth. The entity is resolved through the requester's OWN
-    membership (project members for projects; workspace members for pages, and
-    private pages only for their owner) — 404 otherwise, mirroring the app's
+    membership (project members for projects; for pages, members of a project the
+    page is in — a brand's page stays inside its brand — and private pages only for
+    their owner) — 404 otherwise, mirroring the app's
     no-existence-leak convention. When the entity carries our back-ref
     (external_source='zil'), the ERP resolves the live names/urls via the
     service bridge; results are memoized in-process for ~45s (no persisted
@@ -683,13 +710,17 @@ class ZilErpLinksEndpoint(APIView):
                     project_projectmember__is_active=True,
                 ).first()
             elif entity_type == "page":
+                member_of = ProjectMember.objects.filter(member=request.user, is_active=True).values("project_id")
                 obj = (
                     Page.objects.filter(
                         pk=entity_id,
                         workspace__workspace_member__member=request.user,
                         workspace__workspace_member__is_active=True,
+                        project_pages__deleted_at__isnull=True,
+                        project_pages__project_id__in=member_of,
                     )
                     .filter(Q(access=0) | Q(owned_by=request.user))
+                    .distinct()
                     .first()
                 )
             else:

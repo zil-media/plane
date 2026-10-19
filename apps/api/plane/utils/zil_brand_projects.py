@@ -42,9 +42,11 @@ from django.utils import timezone
 # Module imports
 from plane.authentication.utils.zil_provisioning import get_service_user
 from plane.db.models import (
+    BotTypeEnum,
     Project,
     ProjectIdentifier,
     ProjectMember,
+    ProjectMemberInvite,
     State,
     UserFavorite,
     Workspace,
@@ -309,6 +311,15 @@ def _adoptable_project(workspace, name):
     )
 
 
+def _clean_adopted(project):
+    """An adopted project becomes Zil's: nobody joins it by an old invitation, and the agents Plane
+    put in it when it was made leave (on a brand they are added on request)."""
+    ProjectMemberInvite.objects.filter(project_id=project.id, accepted=False).delete(soft=False)
+    ProjectMember.objects.filter(
+        project_id=project.id, is_active=True, member__is_bot=True, member__bot_type=BotTypeEnum.ZIL_AGENT
+    ).update(is_active=False)
+
+
 def _apply_brand(workspace, brand, mapping, owner, template, stats, ws_roles):
     """Create, adopt or update one brand's project. Returns (mapping, status)."""
     brand_id = brand["id"]
@@ -322,6 +333,7 @@ def _apply_brand(workspace, brand, mapping, owner, template, stats, ws_roles):
             status = "adopted"
             stats["adopted"] += 1
             auto_name = project.name
+            _clean_adopted(project)
         else:
             status = "created"
             stats["created"] += 1
@@ -428,6 +440,7 @@ def apply_brand_roster(
         "renamed": 0,
         "archived": 0,
         "restored": 0,
+        "skipped": 0,
         "members_added": 0,
         "members_removed": 0,
         "members_pending": 0,
@@ -471,6 +484,18 @@ def _apply_roster(workspace_id, brands_by_id, authoritative, computed_at, force,
 
     results = {}
     for brand_id, brand in brands_by_id.items():
+        if brand_id not in mappings and brand["status"] == ZilBrandProject.ARCHIVED:
+            # an archived brand that never had a project here does not get one: it would be born dead
+            # (and a first run with many of them would trip the archive fuse and leave them alive)
+            stats["skipped"] += 1
+            results[brand_id] = {
+                "brandId": brand_id,
+                "projectId": None,
+                "identifier": None,
+                "status": "skipped",
+                "error": None,
+            }
+            continue
         try:
             with transaction.atomic():
                 mapping, status = _apply_brand(
@@ -590,3 +615,78 @@ def ensure_migration_project(workspace):
     ).values_list("member_id", flat=True):
         _ensure_member(project, user_id, ADMIN_ROLE)
     return project
+
+
+def apply_user_brand_projects(email, items, authoritative=False, user=None):
+    """The fast path for one person (POST /sync/user `brand_projects`): Zil says which brands they
+    work on right now, so a revoked assignment does not wait for the next roster.
+
+    `items`: [{brandId, role, workspace_slug?}]; without `workspace_slug` an item covers the brand's
+    project in every workspace. Adds always; with `authoritative`, the person also leaves every brand
+    project not in the list (their wish on record included). Workspace admins are left alone, like in
+    the roster. Returns counters.
+    """
+    email = (email or "").strip().lower()
+    stats = {"added": 0, "removed": 0, "pending": 0}
+    wanted = {}
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        brand_id = str(item.get("brandId") or "").strip().lower()
+        if not is_valid_client_id(brand_id):
+            continue
+        role = BRAND_ROLES.get(str(item.get("role") or "member").strip().lower(), MEMBER_ROLE)
+        slug = str(item.get("workspace_slug") or "").strip().lower() or None
+        wanted[(brand_id, slug)] = max(role, wanted.get((brand_id, slug), 0))
+
+    mappings = ZilBrandProject.objects.filter(
+        kind=ZilBrandProject.BRAND_KIND, project__deleted_at__isnull=True
+    ).select_related("project", "workspace")
+    targets = {}
+    for mapping in mappings.filter(zil_brand_id__in={brand_id for brand_id, _ in wanted}):
+        role = wanted.get((mapping.zil_brand_id, mapping.workspace.slug)) or wanted.get((mapping.zil_brand_id, None))
+        if role:
+            targets[mapping.id] = (mapping, role)
+
+    with transaction.atomic():
+        for mapping, role in targets.values():
+            row = ZilBrandMember.objects.filter(brand_project=mapping, email=email).first()
+            if row is None:
+                ZilBrandMember(brand_project=mapping, email=email, role=role).save(disable_auto_set_user=True)
+            elif row.role != role:
+                row.role = role
+                row.save(update_fields=["role", "updated_at"])
+            ws_role = (
+                WorkspaceMember.objects.filter(workspace_id=mapping.workspace_id, member=user, is_active=True)
+                .values_list("role", flat=True)
+                .first()
+                if user is not None
+                else None
+            )
+            if ws_role is None:
+                stats["pending"] += 1
+            elif ws_role < ADMIN_ROLE and _ensure_member(mapping.project, user.id, min(role, ws_role)):
+                stats["added"] += 1
+
+        if not authoritative:
+            return stats
+        ZilBrandMember.objects.filter(email=email, brand_project__kind=ZilBrandProject.BRAND_KIND).exclude(
+            brand_project_id__in=list(targets)
+        ).delete(soft=False)
+        if user is None:
+            return stats
+        admin_workspaces = set(
+            WorkspaceMember.objects.filter(member=user, is_active=True, role__gte=ADMIN_ROLE).values_list(
+                "workspace_id", flat=True
+            )
+        )
+        keep = {mapping.project_id for mapping, _ in targets.values()}
+        for membership in ProjectMember.objects.filter(
+            member=user, is_active=True, project__zil_brand__kind=ZilBrandProject.BRAND_KIND
+        ):
+            if membership.project_id in keep or membership.workspace_id in admin_workspaces:
+                continue
+            membership.is_active = False
+            membership.save(update_fields=["is_active", "updated_at"])
+            stats["removed"] += 1
+    return stats

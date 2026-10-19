@@ -388,3 +388,95 @@ class TestClientFoldersSuperseded:
             format="json",
         )
         assert response.status_code == status.HTTP_200_OK and response.data["superseded"] is True
+
+
+@pytest.mark.contract
+class TestArchivedBrandsWithoutProject:
+    @pytest.mark.django_db
+    def test_an_archived_brand_never_seen_gets_no_project(self, workspace):
+        response = push(workspace, [brand(KFC, "KFC"), brand(WENDYS, "Wendys", status_="archived")])
+
+        assert response["created"] == 1 and response["skipped"] == 1 and response["refused"] is None
+        assert result_of(response, WENDYS) == {
+            "brandId": WENDYS,
+            "projectId": None,
+            "identifier": None,
+            "status": "skipped",
+            "error": None,
+        }
+        assert not ZilBrandProject.objects.filter(zil_brand_id=WENDYS).exists()
+
+    @pytest.mark.django_db
+    def test_many_archived_brands_on_a_first_run_neither_create_nor_trip_the_fuse(self, workspace):
+        roster = [brand(KFC, "KFC")] + [brand(b, f"Vieja {n}", status_="archived") for n, b in enumerate(EXTRA)]
+        response = push(workspace, roster)
+        assert response["created"] == 1 and response["skipped"] == 10 and response["refused"] is None
+        assert ZilBrandProject.objects.count() == 1
+
+
+@pytest.mark.contract
+class TestAdoptionCleanup:
+    @pytest.mark.django_db
+    def test_adopting_drops_pending_invitations_and_unrequested_agents(self, workspace):
+        from plane.db.models import ProjectMemberInvite
+
+        studio = Project.objects.create(workspace=workspace, name="Rimon Cafe", identifier="RIMON")
+        agent = User.objects.create(email="ada@agents.zil", username="ada", is_bot=True, bot_type=BotTypeEnum.ZIL_AGENT)
+        WorkspaceMember.objects.create(workspace=workspace, member=agent, role=15)
+        ProjectMember.objects.create(project=studio, member=agent, role=15)
+        ProjectMemberInvite.objects.create(project=studio, email="x@zil.global", token="t", role=15)
+
+        push(workspace, [brand(KFC, "Rimon Cafe")])
+
+        assert not ProjectMemberInvite.objects.filter(project=studio).exists()
+        assert agent.id not in active_member_ids(studio)
+
+
+@pytest.mark.contract
+class TestUserBrandProjectsFastPath:
+    def sync_user(self, body):
+        client = APIClient()
+        client.credentials(HTTP_X_ZIL_SERVICE_KEY="secret")
+        response = client.post("/api/zil/sync/user/", body, format="json")
+        assert response.status_code == status.HTTP_200_OK, response.data
+        return response.data
+
+    @pytest.mark.django_db
+    def test_a_revoked_brand_is_left_at_once_and_the_rest_kept(self, workspace):
+        ana = make_user(workspace, "ana@zil.global")
+        team = [{"email": "ana@zil.global"}]
+        push(workspace, [brand(KFC, "KFC", members=team), brand(WENDYS, "Wendys", members=team)])
+
+        body = self.sync_user(
+            {
+                "email": "ana@zil.global",
+                "brand_projects": [{"brandId": KFC, "role": "member", "workspace_slug": workspace.slug}],
+                "brand_projects_authoritative": True,
+            }
+        )
+
+        assert body["brand_projects"] == {"added": 0, "removed": 1, "pending": 0}
+        assert ana.id in active_member_ids(project_of(KFC))
+        assert ana.id not in active_member_ids(project_of(WENDYS))
+        assert not ZilBrandMember.objects.filter(email="ana@zil.global", brand_project__zil_brand_id=WENDYS).exists()
+        # a brands-only call leaves the workspaces alone
+        assert WorkspaceMember.objects.get(workspace=workspace, member=ana).is_active
+
+    @pytest.mark.django_db
+    def test_without_authority_it_only_adds(self, workspace):
+        ana = make_user(workspace, "ana@zil.global")
+        push(workspace, [brand(KFC, "KFC", members=[{"email": "ana@zil.global"}]), brand(WENDYS, "Wendys")])
+
+        body = self.sync_user({"email": "ana@zil.global", "brand_projects": [{"brandId": WENDYS}]})
+
+        assert body["brand_projects"]["added"] == 1
+        assert ana.id in active_member_ids(project_of(KFC)) and ana.id in active_member_ids(project_of(WENDYS))
+
+    @pytest.mark.django_db
+    def test_someone_who_never_signed_in_loses_the_brand_on_record(self, workspace):
+        push(workspace, [brand(KFC, "KFC", members=[{"email": "nueva@zil.global"}])])
+
+        body = self.sync_user({"email": "nueva@zil.global", "brand_projects": [], "brand_projects_authoritative": True})
+
+        assert body["status"] == "skipped"
+        assert not ZilBrandMember.objects.filter(email="nueva@zil.global").exists()

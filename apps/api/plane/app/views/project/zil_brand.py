@@ -14,9 +14,39 @@ from plane.db.models import ZilBrandProject
 from plane.utils.zil_client import ZilUnavailable, get_zil_brand, zil_enabled
 from ..base import BaseAPIView
 
-# what the sheet may carry: anything else Zil sends is dropped, and never the client's legal data
+# what the sheet may carry, field by field: anything else Zil sends is dropped, so the client's
+# legal data never reaches Ops even if Workspace sent it by mistake
 BRAND_FIELDS = ("id", "name", "logoUrl", "color", "status")
-SHEET_KEYS = ("specs", "assets", "team", "calls", "projects")
+SPEC_FIELDS = ("key", "label", "value", "hint")
+LIST_FIELDS = {
+    "assets": ("id", "type", "name", "url"),
+    "team": ("name", "email", "role"),
+    "calls": ("id", "title", "date", "purpose", "summary", "url"),
+    "projects": ("workspaceSlug", "businessUnit"),
+}
+
+
+def _pick(row, fields):
+    return {key: row.get(key) for key in fields} if isinstance(row, dict) else None
+
+
+def _rows(rows, fields):
+    if not isinstance(rows, list):
+        return []
+    return [picked for picked in (_pick(row, fields) for row in rows) if picked]
+
+
+def whitelist_sheet(body):
+    """The brand sheet as Ops shows it, rebuilt from the allowed fields only."""
+    specs = body.get("specs")
+    sheet = {key: _rows(body.get(key), fields) for key, fields in LIST_FIELDS.items()}
+    sheet["specs"] = (
+        {"strip": _rows(specs.get("strip"), SPEC_FIELDS)[:3], "items": _rows(specs.get("items"), SPEC_FIELDS)}
+        if isinstance(specs, dict)
+        else None
+    )
+    sheet["brand"] = _pick(body.get("brand") or {}, BRAND_FIELDS)
+    return sheet
 
 
 def serialize_brand_project(mapping):
@@ -80,8 +110,5 @@ class ZilProjectBrandEndpoint(BaseAPIView):
             data["unavailable"] = True
             return Response(data, status=status.HTTP_200_OK)
         if body is not None:
-            brand = body.get("brand") or {}
-            sheet = {key: body.get(key) for key in SHEET_KEYS}
-            sheet["brand"] = {key: brand.get(key) for key in BRAND_FIELDS}
-            data["sheet"] = sheet
+            data["sheet"] = whitelist_sheet(body)
         return Response(data, status=status.HTTP_200_OK)

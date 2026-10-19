@@ -156,6 +156,8 @@ class TestClientPagesMigration:
 
     @pytest.mark.django_db
     def test_the_clientes_folder_disappears_and_what_else_was_in_it_stays(self, workspace, setup):
+        # every client has somewhere to go (the third one's link is gone: a plain folder now)
+        PageZilClientLink.objects.filter(zil_client_id=NUEVO).delete(soft=False)
         report = migrate_client_pages(CLIENT_BRANDS, apply=True)
 
         assert not ZilClientsRoot.objects.exists()
@@ -208,3 +210,34 @@ class TestMovedPageLinks:
         with mock.patch("plane.app.views.page.base.recent_visited_task.delay"):
             response = session_client.get(old)
         assert response.status_code == 404 and response.data["moved_to_project"] == str(rimon.id)
+
+
+@pytest.mark.contract
+class TestSkippedClientsAndArchivedBrands:
+    @pytest.mark.django_db
+    def test_a_skipped_client_keeps_its_folder_and_the_clientes_folder_stays(self, workspace, setup):
+        report = migrate_client_pages(CLIENT_BRANDS, apply=True)
+
+        ws = report["workspaces"][0]
+        assert [s["client_id"] for s in ws["skipped"]] == [NUEVO]
+        root = ZilClientsRoot.objects.select_related("page").get()
+        assert root.page.deleted_at is None and ws["roots"] == [{"folder": "Clientes", "kept": "skipped_clients"}]
+        nuevo = PageZilClientLink.objects.select_related("page").get(zil_client_id=NUEVO).page
+        # not lifted to the top of the project, where it would be public to everyone
+        assert nuevo.parent_id == root.page_id
+        assert Page.objects.get(pk=setup["stray"].pk).parent_id == root.page_id
+
+    @pytest.mark.django_db
+    def test_a_client_with_an_archived_brand_too_goes_to_migration(self, workspace, setup):
+        brands = {
+            **CLIENT_BRANDS,
+            RIMON: [
+                {"brandId": RIMON_BRAND, "name": "Rimon Cafe", "status": "active"},
+                {"brandId": "0123456789abcdef0000b009", "name": "Rimon Bar", "status": "archived"},
+            ],
+        }
+        report = migrate_client_pages(brands, apply=True)
+
+        moved = next(m for m in report["workspaces"][0]["moved"] if m["client_id"] == RIMON)
+        assert moved["reason"] == "multi_brand" and moved["to_project"] == "Migración"
+        assert live_projects(setup["brief"]) == {ZilBrandProject.objects.get(kind="migration").project_id}

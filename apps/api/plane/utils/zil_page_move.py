@@ -145,16 +145,18 @@ def moved_page_project(slug, page_id, user):
 
 def _destination_for(workspace, client_id, client_brands, brand_projects, migration_project_factory):
     """(project, reason): the brand's project for a single-brand client, "Migración" for one with
-    several, None when there is nowhere to go (no brand in the map, or no project for it here)."""
+    several, None when there is nowhere to go (no brand in the map, or no project for it here).
+
+    A client with several brands goes to "Migración" even when some of them are archived: its
+    folder may hold an archived brand's pages, and code cannot tell them apart."""
     brands = client_brands.get(client_id)
     if brands is None:
         return None, "client_not_in_map"
-    live = [b for b in brands if str(b.get("status") or "active") == "active"] or brands
-    if len(live) > 1:
+    if len(brands) > 1:
         return migration_project_factory(), "multi_brand"
-    if not live:
+    if not brands:
         return None, "client_without_brand"
-    mapping = brand_projects.get(str(live[0].get("brandId") or "").lower())
+    mapping = brand_projects.get(str(brands[0].get("brandId") or "").lower())
     if mapping is None:
         return None, "brand_has_no_project_here"
     return mapping.project, "single_brand"
@@ -213,7 +215,18 @@ def migrate_workspace_client_pages(workspace, client_brands):
         if reason == "multi_brand":
             report["totals"]["to_migration"] += 1
 
-    # the "Clientes" folder goes: what someone else put in it stays, at the top of its project
+    # the "Clientes" folder goes once it holds no client: what someone else put in it stays, at the
+    # top of its project. A skipped client's folder keeps it (and its place): lifted to the top it
+    # would stay public to the whole project, and the next run must find it to move it
+    if report["skipped"]:
+        report["roots"] = [
+            {"folder": root.page.name, "kept": "skipped_clients"}
+            for root in ZilClientsRoot.objects.filter(workspace_id=workspace.id).select_related("page")
+        ]
+        report["totals"] = dict(report["totals"])
+        if "project" in migration:
+            report["migration_project"] = migration["project"].name
+        return report
     for root in ZilClientsRoot.objects.filter(workspace_id=workspace.id).select_related("page"):
         page = root.page
         left = Page.objects.filter(parent_id=page.id, deleted_at__isnull=True)
