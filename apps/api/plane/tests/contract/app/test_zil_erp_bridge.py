@@ -208,13 +208,13 @@ class TestZilMemberships:
 @pytest.mark.contract
 class TestZilIssueErpTargets:
     @pytest.mark.django_db
-    def test_relays_doc_targets(self, session_client, issue, zil_env):
+    def test_relays_doc_targets(self, session_client, issue, create_user, zil_env):
         with mock.patch(
             "plane.authentication.views.zil_sync.get_issue_erp_doc_targets", return_value=TARGETS
         ) as get_targets:
             response = session_client.get("/api/zil/issue-erp-targets/", {"issue_id": str(issue.id)})
         assert response.status_code == status.HTTP_200_OK
-        get_targets.assert_called_once_with(str(issue.id))
+        get_targets.assert_called_once_with(str(issue.id), issue.workspace.slug, create_user.email)
         assert response.data == {"targets": TARGETS}
 
     @pytest.mark.django_db
@@ -240,9 +240,13 @@ class TestZilIssueErpTargets:
         ]
         resp = mock.Mock(status_code=200, json=lambda: {"links": links})
         with mock.patch("plane.utils.zil_client.requests.get", return_value=resp) as get:
-            targets = get_issue_erp_doc_targets("issue-1")
+            targets = get_issue_erp_doc_targets("issue-1", "mw", "ana@zil.global")
         assert get.call_args.args[0] == "http://zil.test/api/zil/entity-meta"
-        assert get.call_args.kwargs["params"] == {"plane_entity_id": "issue-1"}
+        assert get.call_args.kwargs["params"] == {
+            "plane_entity_id": "issue-1",
+            "workspace_slug": "mw",
+            "actor_email": "ana@zil.global",
+        }
         assert targets == [
             {"type": "Lead", "id": LEAD_ID, "name": "Joyas Esmeralda"},
             {"type": "MgmtClient", "id": CLIENT_ID, "name": "Joyas"},

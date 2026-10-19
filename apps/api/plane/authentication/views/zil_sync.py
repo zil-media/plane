@@ -731,7 +731,9 @@ class ZilErpLinksEndpoint(APIView):
             if obj.external_source != "zil":
                 return Response({"links": []}, status=status.HTTP_200_OK)
 
-            cache_key = str(entity_id)
+            # Zil answers as the person looking (a brand's operator never gets the client's name):
+            # the memo is per entity AND per person
+            cache_key = f"{entity_id}|{request.user.email}"
             hit = self._CACHE.get(cache_key)
             if hit and hit[0] > time.monotonic():
                 return Response({"links": hit[1]}, status=status.HTTP_200_OK)
@@ -745,7 +747,11 @@ class ZilErpLinksEndpoint(APIView):
             try:
                 resp = requests.get(
                     f"{base.rstrip('/')}/api/zil/entity-meta",
-                    params={"plane_entity_id": cache_key},
+                    params={
+                        "plane_entity_id": str(entity_id),
+                        "workspace_slug": obj.workspace.slug,
+                        "actor_email": request.user.email,
+                    },
                     headers={"X-Zil-Service-Key": secret},
                     timeout=5,
                 )
@@ -935,7 +941,9 @@ class ZilIssueErpRefsEndpoint(APIView):
         if not zil_enabled():
             return Response({"client": None, "project": None}, status=status.HTTP_200_OK)
         try:
-            return Response(get_issue_erp_refs(issue.workspace.slug, str(issue.id)), status=status.HTTP_200_OK)
+            return Response(
+                get_issue_erp_refs(issue.workspace.slug, str(issue.id), request.user.email), status=status.HTTP_200_OK
+            )
         except ZilUnavailable:
             return Response({"error": "zil_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
 
@@ -989,7 +997,8 @@ class ZilIssueErpTargetsEndpoint(APIView):
         if not zil_enabled():
             return Response({"targets": []}, status=status.HTTP_200_OK)
         try:
-            return Response({"targets": get_issue_erp_doc_targets(str(issue.id))}, status=status.HTTP_200_OK)
+            targets = get_issue_erp_doc_targets(str(issue.id), issue.workspace.slug, request.user.email)
+            return Response({"targets": targets}, status=status.HTTP_200_OK)
         except ZilUnavailable:
             return Response({"error": "zil_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
 

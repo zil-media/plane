@@ -146,9 +146,15 @@ def search_zil_projects(workspace_slug, q="", limit=20, actor_email=None, client
         raise ZilUnavailable() from e
 
 
-def get_issue_erp_refs(workspace_slug, issue_id):
-    """The ERP client/project whose planeLinks[] point at this work item: {client, project}."""
-    resp = _get("/api/zil/issue-refs", {"workspace_slug": workspace_slug, "plane_issue_id": issue_id})
+def get_issue_erp_refs(workspace_slug, issue_id, actor_email):
+    """The ERP client/project whose planeLinks[] point at this work item: {client, project}.
+
+    `actor_email` is who is looking: Zil trims what it answers to what that person may see (a brand's
+    operator gets the brand, never the client's name)."""
+    resp = _get(
+        "/api/zil/issue-refs",
+        {"workspace_slug": workspace_slug, "plane_issue_id": issue_id, "actor_email": actor_email},
+    )
     if resp.status_code != 200:
         raise ZilUnavailable()
     try:
@@ -226,9 +232,13 @@ def review_draft(kind, title, text, screen):
 ZIL_DOC_TARGET_TYPES = ("Lead", "MgmtClient")
 
 
-def get_issue_erp_doc_targets(issue_id):
-    """The ERP records linked to this work item that can hold documents: [{type, id, name}]."""
-    resp = _get("/api/zil/entity-meta", {"plane_entity_id": issue_id})
+def get_issue_erp_doc_targets(issue_id, workspace_slug, actor_email):
+    """The ERP records linked to this work item that can hold documents: [{type, id, name}], as the
+    person asking (`actor_email`) may see them."""
+    resp = _get(
+        "/api/zil/entity-meta",
+        {"plane_entity_id": issue_id, "workspace_slug": workspace_slug, "actor_email": actor_email},
+    )
     if resp.status_code == 404:
         return []
     if resp.status_code != 200:
