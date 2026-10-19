@@ -18,4 +18,4 @@ class TestZilVersion:
             api_client.credentials(HTTP_X_ZIL_SERVICE_KEY="secret")
             response = api_client.get(url)
         assert response.status_code == status.HTTP_200_OK
-        assert response.data == {"sha": "a" * 40}
+        assert response.data == {"sha": "a" * 40, "features": ["brand-projects"]}

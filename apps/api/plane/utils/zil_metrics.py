@@ -24,7 +24,6 @@ so a past window gives a fair picture without replaying every state change.
 
 # Python imports
 import os
-import re
 from collections import Counter, defaultdict
 from datetime import datetime, time, timedelta
 from statistics import median
@@ -37,7 +36,6 @@ from plane.db.models import (
     IssueActivity,
     IssueAssignee,
     IssueComment,
-    ModuleIssue,
     Notification,
     Page,
     PageVersion,
@@ -143,9 +141,24 @@ def _is_open(issue, end):
     return issue["completed_at"] is None or issue["completed_at"] >= end
 
 
-def _client_key(name):
-    """Module names spelled differently across projects ("GEN-IT", "Gen It") are one client."""
-    return re.sub(r"[^a-z0-9]", "", (name or "").casefold())
+NO_BRAND = "Sin marca"
+
+
+def _brand_projects(workspace):
+    """{project_id: (brand_id, brand name)} of the workspace's brand projects: a brand's work is its
+    project's work. Everything else (the BU's own projects, "Migración") is the "Sin marca" bucket."""
+    from plane.db.models import ZilBrandProject
+
+    return {
+        project_id: (brand_id, name)
+        for project_id, brand_id, name in ZilBrandProject.objects.filter(
+            workspace_id=workspace.id, kind=ZilBrandProject.BRAND_KIND
+        ).values_list("project_id", "zil_brand_id", "project__name")
+    }
+
+
+def _brand_of(brand_projects, issue):
+    return brand_projects.get(issue["project_id"], (None, NO_BRAND))
 
 
 def _person_name(user):
@@ -435,10 +448,7 @@ def compute_workspace_metrics(workspace, since, until):
     created, completed, open_items = work.created, work.completed, work.open_items
     touched, is_stale, is_overdue = work.touched, work.is_stale, work.is_overdue
 
-    modules_of = defaultdict(list)
-    for mi in ModuleIssue.objects.filter(issue_id__in=issue_ids).values("issue_id", "module__name"):
-        if mi["module__name"]:
-            modules_of[mi["issue_id"]].append(mi["module__name"])
+    brand_projects = _brand_projects(workspace)
 
     reopens = Counter()
     state_durations = defaultdict(list)
@@ -634,30 +644,26 @@ def compute_workspace_metrics(workspace, since, until):
         "heatmap": heatmap,
     }
 
-    # ── per client (modules are used as the client list) ─────────────────────
-    clients = {}
+    # ── per brand: a brand's work is its project's; the rest is "Sin marca" ───
+    brands = {}
 
     def client_row(issue):
-        rows = []
-        for name in modules_of.get(issue["id"], []):
-            key = _client_key(name)
-            if not key:
-                continue
-            row = clients.setdefault(
-                key,
-                {
-                    "name": name,
-                    "created": 0,
-                    "completed": 0,
-                    "open": 0,
-                    "open_stale": 0,
-                    "comments": 0,
-                    "reopens": 0,
-                    "_lead": [],
-                },
-            )
-            rows.append(row)
-        return rows
+        brand_id, name = _brand_of(brand_projects, issue)
+        row = brands.setdefault(
+            brand_id,
+            {
+                "brand_id": brand_id,
+                "name": name,
+                "created": 0,
+                "completed": 0,
+                "open": 0,
+                "open_stale": 0,
+                "comments": 0,
+                "reopens": 0,
+                "_lead": [],
+            },
+        )
+        return [row]
 
     for i in created:
         for row in client_row(i):
@@ -675,7 +681,7 @@ def compute_workspace_metrics(workspace, since, until):
         for row in client_row(issue_by_id[c["issue_id"]]):
             row["comments"] += 1
     client_list = []
-    for row in clients.values():
+    for row in brands.values():
         lead = row.pop("_lead")
         row["lead_time_median_hours"] = _median(lead)
         if row["created"] or row["completed"] or row["open"]:
@@ -692,7 +698,10 @@ def compute_workspace_metrics(workspace, since, until):
             "project": i["project__name"],
             "state": i["state__name"],
             "assignees": sorted(names.get(a, "") for a in assignees[i["id"]]),
-            "client": (modules_of.get(i["id"]) or [""])[0],
+            "brand_id": _brand_of(brand_projects, i)[0],
+            "brand": _brand_of(brand_projects, i)[1],
+            # the old name of the field, for a Zil Workspace that does not read `brand` yet
+            "client": _brand_of(brand_projects, i)[1],
             "days": days,
             "target_date": i["target_date"],
             "url": url,
@@ -717,6 +726,8 @@ def compute_workspace_metrics(workspace, since, until):
         "flow": flow,
         "interactions": interactions,
         "projects": sorted(projects.values(), key=lambda p: -(p["created"] + p["completed"] + p["open"])),
+        "brands": client_list,
+        # the same rows under the old key, for a Zil Workspace that does not read `brands` yet
         "clients": client_list,
         "people": people,
         "items": {"stale": stale_items, "overdue": overdue_items, "unassigned": unassigned_items},
@@ -761,10 +772,7 @@ def compute_person_metrics(workspace, user, since, until):
     }
     work = _Work(workspace, win, person_id=uid)
     fields = _person_fields(work, user)
-    modules_of = defaultdict(list)
-    for mi in ModuleIssue.objects.filter(issue_id__in=list(work.issues)).values("issue_id", "module__name"):
-        if mi["module__name"]:
-            modules_of[mi["issue_id"]].append(mi["module__name"])
+    brand_projects = _brand_projects(workspace)
 
     def key_of(i):
         return f"{i['project__identifier']}-{i['sequence_id']}"
@@ -827,7 +835,7 @@ def compute_person_metrics(workspace, user, since, until):
     # ── what kind of work, and where ────────────────────────────────────────
     kinds = Counter(e[1] for e in events)
     projects = defaultdict(lambda: {"name": "", "actions": 0, "completed": 0})
-    clients = {}
+    brands = {}
     for _, kind, issue, _ in events:
         if issue is None:
             continue
@@ -835,12 +843,10 @@ def compute_person_metrics(workspace, user, since, until):
         row["name"] = issue["project__name"]
         row["actions"] += 1
         row["completed"] += int(kind == "completed")
-        for name in modules_of.get(issue["id"], []):
-            key = _client_key(name)
-            if key:
-                c = clients.setdefault(key, {"name": name, "actions": 0, "completed": 0})
-                c["actions"] += 1
-                c["completed"] += int(kind == "completed")
+        brand_id, name = _brand_of(brand_projects, issue)
+        c = brands.setdefault(brand_id, {"brand_id": brand_id, "name": name, "actions": 0, "completed": 0})
+        c["actions"] += 1
+        c["completed"] += int(kind == "completed")
 
     # ── what they owe ────────────────────────────────────────────────────────
     owed = []
@@ -855,7 +861,9 @@ def compute_person_metrics(workspace, user, since, until):
                 "name": i["name"],
                 "project": i["project__name"],
                 "state": i["state__name"],
-                "client": (modules_of.get(i["id"]) or [""])[0],
+                "brand_id": _brand_of(brand_projects, i)[0],
+                "brand": _brand_of(brand_projects, i)[1],
+                "client": _brand_of(brand_projects, i)[1],
                 "target_date": i["target_date"],
                 "idle_days": (end - work.touched(i)).days,
                 "stale": work.is_stale(i),
@@ -930,7 +938,8 @@ def compute_person_metrics(workspace, user, since, until):
         "daily": days,
         "kinds": dict(kinds),
         "projects": sorted(projects.values(), key=lambda p: -p["actions"]),
-        "clients": sorted(clients.values(), key=lambda c: -c["actions"]),
+        "brands": sorted(brands.values(), key=lambda c: -c["actions"]),
+        "clients": sorted(brands.values(), key=lambda c: -c["actions"]),
         "timeline": timeline,
         "owed": owed[:LIST_LIMIT],
     }

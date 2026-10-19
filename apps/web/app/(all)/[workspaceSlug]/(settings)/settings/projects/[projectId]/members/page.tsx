@@ -18,6 +18,7 @@ import { SettingsHeading } from "@/components/settings/heading";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
+import { useZilMyBrands } from "@/hooks/use-zil-brands";
 // plane web imports
 import { ProjectTeamspaceList } from "@/plane-web/components/projects/teamspaces/teamspace-list";
 // local imports
@@ -40,6 +41,9 @@ function MembersSettingsPage({ params }: Route.ComponentProps) {
   );
   const isWorkspaceAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
   const canPerformProjectMemberActions = isProjectMemberOrAdmin || isWorkspaceAdmin;
+  // a Zil brand's people are decided in Zil Workspace: here they are read-only
+  const { brands } = useZilMyBrands(workspaceSlug);
+  const isZilProject = brands.some((brand) => brand.project_id === projectId);
 
   if (workspaceUserInfo && !canPerformProjectMemberActions) {
     return <NotAuthorizedView section="settings" isProjectView className="h-auto" />;
@@ -49,6 +53,11 @@ function MembersSettingsPage({ params }: Route.ComponentProps) {
     <SettingsContentWrapper header={<MembersProjectSettingsHeader />} hugging>
       <PageHead title={pageTitle} />
       <SettingsHeading title={t("common.members")} />
+      {isZilProject && (
+        <p className="mb-4 rounded-md border border-subtle bg-layer-1 px-4 py-3 text-13 text-secondary">
+          {t("zil_brand.members_managed")}
+        </p>
+      )}
       <ProjectSettingsMemberDefaults projectId={projectId} workspaceSlug={workspaceSlug} />
       <ProjectTeamspaceList projectId={projectId} workspaceSlug={workspaceSlug} />
       <ProjectMemberList projectId={projectId} workspaceSlug={workspaceSlug} />

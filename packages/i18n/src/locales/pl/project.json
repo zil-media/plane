@@ -454,5 +454,27 @@
       "unpublish_error": "Coś poszło nie tak podczas cofania publikacji projektu.",
       "link_copied": "Link do opublikowanej strony skopiowany pomyślnie."
     }
+  },
+  "zil_brand": {
+    "my_brands": "Moje marki",
+    "my_brands_description": "Marki, nad którymi pracuje się w tej przestrzeni roboczej.",
+    "no_brands": "Brak przypisania do zespołu jakiejkolwiek marki w tej przestrzeni roboczej.",
+    "managed_by_zil": "Zil Workspace decyduje, kto pracuje nad daną marką.",
+    "members_managed": "Zil Workspace decyduje, kto pracuje nad tą marką: jej członków nie można tu zmieniać. Agentów Zil nadal można dodawać.",
+    "archived": "Zarchiwizowana",
+    "migration": "Migracja",
+    "specs": "Specyfikacje",
+    "no_specs": "Dla tej marki nie wczytano jeszcze żadnych specyfikacji.",
+    "team": "Zespół",
+    "no_team": "Do tej marki nikt nie został jeszcze przypisany.",
+    "assets": "Zasoby",
+    "no_assets": "Ta marka nie ma żadnych zasobów.",
+    "calls": "Rozmowy",
+    "no_calls": "Ta marka nie ma żadnych rozmów.",
+    "purpose_kickoff": "Kickoff",
+    "purpose_operations": "Operacje",
+    "other_bus": "Pracują nad nią także",
+    "unavailable": "Nie można połączyć się z Zil Workspace. Ponów próbę za chwilę.",
+    "no_sheet": "Zil Workspace nie udostępnia karty tej marki."
   }
 }

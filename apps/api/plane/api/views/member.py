@@ -16,6 +16,7 @@ from .base import BaseAPIView
 from plane.api.serializers import UserLiteSerializer, ProjectMemberSerializer
 from plane.db.models import User, Workspace, WorkspaceMember, ProjectMember
 from plane.utils.permissions import ProjectMemberPermission, WorkSpaceAdminPermission, ProjectAdminPermission
+from plane.utils.zil_managed import membership_conflict
 from plane.utils.openapi import (
     WORKSPACE_SLUG_PARAMETER,
     PROJECT_ID_PARAMETER,
@@ -150,6 +151,9 @@ class ProjectMemberListCreateAPIEndpoint(BaseAPIView):
         request=OpenApiRequest(request=ProjectMemberSerializer),
     )
     def post(self, request, slug, project_id):
+        conflict = membership_conflict(project_id, [request.data.get("member")])
+        if conflict:
+            return conflict
         serializer = ProjectMemberSerializer(data=request.data, context={"slug": slug})
         serializer.is_valid(raise_exception=True)
         serializer.save(project_id=project_id)
@@ -202,6 +206,9 @@ class ProjectMemberDetailAPIEndpoint(ProjectMemberListCreateAPIEndpoint):
     )
     def patch(self, request, slug, project_id, pk):
         project_member = ProjectMember.objects.get(project_id=project_id, workspace__slug=slug, pk=pk)
+        conflict = membership_conflict(project_id, [project_member.member_id])
+        if conflict:
+            return conflict
         serializer = ProjectMemberSerializer(project_member, data=request.data, partial=True, context={"slug": slug})
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -217,6 +224,9 @@ class ProjectMemberDetailAPIEndpoint(ProjectMemberListCreateAPIEndpoint):
     )
     def delete(self, request, slug, project_id, pk):
         project_member = ProjectMember.objects.get(project_id=project_id, workspace__slug=slug, pk=pk)
+        conflict = membership_conflict(project_id, [project_member.member_id])
+        if conflict:
+            return conflict
         project_member.is_active = False
         project_member.save()
         return Response(status=status.HTTP_204_NO_CONTENT)

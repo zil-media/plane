@@ -454,5 +454,27 @@
       "unpublish_error": "Something went wrong while unpublishing the project.",
       "link_copied": "Published page link copied successfully."
     }
+  },
+  "zil_brand": {
+    "my_brands": "My brands",
+    "my_brands_description": "The brands you work on in this workspace.",
+    "no_brands": "You are not on any brand's team in this workspace yet.",
+    "managed_by_zil": "Zil Workspace decides who works on each brand.",
+    "members_managed": "Zil Workspace decides who works on this brand: its members cannot be changed here. Zil agents can still be added.",
+    "archived": "Archived",
+    "migration": "Migration",
+    "specs": "Specifications",
+    "no_specs": "No specifications loaded for this brand yet.",
+    "team": "Team",
+    "no_team": "Nobody is assigned to this brand yet.",
+    "assets": "Assets",
+    "no_assets": "No assets for this brand.",
+    "calls": "Calls",
+    "no_calls": "No calls for this brand.",
+    "purpose_kickoff": "Kickoff",
+    "purpose_operations": "Operations",
+    "other_bus": "Also worked by",
+    "unavailable": "Zil Workspace could not be reached. Try again in a moment.",
+    "no_sheet": "Zil Workspace does not share this brand's sheet with you."
   }
 }

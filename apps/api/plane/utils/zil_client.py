@@ -110,6 +110,23 @@ def get_zil_client(workspace_slug, client_id):
         raise ZilUnavailable() from e
 
 
+def get_zil_brand(workspace_slug, brand_id, actor_email):
+    """A brand's live sheet (specs strip, assets, team, calls) as `actor_email` may see it, or None
+    when Zil says no (unknown brand, another workspace's, or not on the brand's team). Never carries
+    the client's legal data. Raises ZilUnavailable."""
+    if not is_valid_client_id(brand_id):
+        return None
+    resp = _get(f"/api/sso/brands/{brand_id}", {"workspaceSlug": workspace_slug, "actor": actor_email})
+    if resp.status_code in (403, 404):
+        return None
+    if resp.status_code != 200:
+        raise ZilUnavailable()
+    try:
+        return resp.json()
+    except ValueError as e:
+        raise ZilUnavailable() from e
+
+
 def search_zil_projects(workspace_slug, q="", limit=20, actor_email=None, client_id=None, brand_id=None):
     """Active projects (TimeProject) of the Business Units mapped to this workspace. Raises ZilUnavailable.
 
@@ -129,9 +146,15 @@ def search_zil_projects(workspace_slug, q="", limit=20, actor_email=None, client
         raise ZilUnavailable() from e
 
 
-def get_issue_erp_refs(workspace_slug, issue_id):
-    """The ERP client/project whose planeLinks[] point at this work item: {client, project}."""
-    resp = _get("/api/zil/issue-refs", {"workspace_slug": workspace_slug, "plane_issue_id": issue_id})
+def get_issue_erp_refs(workspace_slug, issue_id, actor_email):
+    """The ERP client/project whose planeLinks[] point at this work item: {client, project}.
+
+    `actor_email` is who is looking: Zil trims what it answers to what that person may see (a brand's
+    operator gets the brand, never the client's name)."""
+    resp = _get(
+        "/api/zil/issue-refs",
+        {"workspace_slug": workspace_slug, "plane_issue_id": issue_id, "actor_email": actor_email},
+    )
     if resp.status_code != 200:
         raise ZilUnavailable()
     try:
@@ -209,9 +232,13 @@ def review_draft(kind, title, text, screen):
 ZIL_DOC_TARGET_TYPES = ("Lead", "MgmtClient")
 
 
-def get_issue_erp_doc_targets(issue_id):
-    """The ERP records linked to this work item that can hold documents: [{type, id, name}]."""
-    resp = _get("/api/zil/entity-meta", {"plane_entity_id": issue_id})
+def get_issue_erp_doc_targets(issue_id, workspace_slug, actor_email):
+    """The ERP records linked to this work item that can hold documents: [{type, id, name}], as the
+    person asking (`actor_email`) may see them."""
+    resp = _get(
+        "/api/zil/entity-meta",
+        {"plane_entity_id": issue_id, "workspace_slug": workspace_slug, "actor_email": actor_email},
+    )
     if resp.status_code == 404:
         return []
     if resp.status_code != 200:

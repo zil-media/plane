@@ -454,5 +454,27 @@
       "unpublish_error": "Při rušení publikování projektu se něco pokazilo.",
       "link_copied": "Odkaz na publikovanou stránku byl úspěšně zkopírován."
     }
+  },
+  "zil_brand": {
+    "my_brands": "Moje značky",
+    "my_brands_description": "Značky, na kterých v tomto pracovním prostoru pracujete.",
+    "no_brands": "V tomto pracovním prostoru zatím nejste v týmu žádné značky.",
+    "managed_by_zil": "Zil Workspace určuje, kdo na které značce pracuje.",
+    "members_managed": "Zil Workspace určuje, kdo na této značce pracuje: její členy zde nelze měnit. Agenty Zil však lze přidávat.",
+    "archived": "Archivováno",
+    "migration": "Migrace",
+    "specs": "Specifikace",
+    "no_specs": "Pro tuto značku zatím nejsou nahrány žádné specifikace.",
+    "team": "Tým",
+    "no_team": "K této značce zatím nikdo není přiřazen.",
+    "assets": "Materiály",
+    "no_assets": "Tato značka nemá žádné materiály.",
+    "calls": "Hovory",
+    "no_calls": "Tato značka nemá žádné hovory.",
+    "purpose_kickoff": "Kickoff",
+    "purpose_operations": "Provoz",
+    "other_bus": "Na značce dále pracují",
+    "unavailable": "Zil Workspace není dostupný. Zkuste to za chvíli znovu.",
+    "no_sheet": "Zil Workspace s vámi nesdílí kartu této značky."
   }
 }

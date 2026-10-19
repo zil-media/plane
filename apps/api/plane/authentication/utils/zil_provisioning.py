@@ -358,6 +358,14 @@ def provision_user_workspaces(user, workspaces, authoritative=False):
     if update_fields:
         profile.save(update_fields=update_fields)
 
+    # the brands Zil put this person on before they ever signed in to Ops
+    try:
+        from plane.utils.zil_brand_projects import apply_pending_brand_memberships
+
+        apply_pending_brand_memberships(user)
+    except Exception as e:
+        log_exception(e)
+
     return primary
 
 

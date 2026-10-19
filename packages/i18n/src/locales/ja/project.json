@@ -454,5 +454,27 @@
       "unpublish_error": "プロジェクトの公開を取り消す際にエラーが発生しました。",
       "link_copied": "公開ページのリンクをコピーしました。"
     }
+  },
+  "zil_brand": {
+    "my_brands": "マイブランド",
+    "my_brands_description": "このワークスペースで担当しているブランドです。",
+    "no_brands": "このワークスペースでは、まだどのブランドのチームにも所属していません。",
+    "managed_by_zil": "Zil Workspaceが各ブランドの担当者を決定します。",
+    "members_managed": "Zil Workspaceがこのブランドの担当者を決定するため、ここではメンバーを変更できません。Zilのエージェントは引き続き追加できます。",
+    "archived": "アーカイブ済み",
+    "migration": "移行",
+    "specs": "仕様",
+    "no_specs": "このブランドにはまだ仕様が読み込まれていません。",
+    "team": "チーム",
+    "no_team": "このブランドにはまだ誰も割り当てられていません。",
+    "assets": "アセット",
+    "no_assets": "このブランドにはアセットがありません。",
+    "calls": "通話",
+    "no_calls": "このブランドには通話がありません。",
+    "purpose_kickoff": "キックオフ",
+    "purpose_operations": "運用",
+    "other_bus": "ほかの担当",
+    "unavailable": "Zil Workspaceに接続できませんでした。しばらくしてからもう一度お試しください。",
+    "no_sheet": "このブランドのシートは、Zil Workspaceから共有されていません。"
   }
 }

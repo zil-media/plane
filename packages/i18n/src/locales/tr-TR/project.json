@@ -454,5 +454,27 @@
       "unpublish_error": "Proje yayından kaldırılırken bir sorun oluştu.",
       "link_copied": "Yayınlanan sayfanın bağlantısı başarıyla kopyalandı."
     }
+  },
+  "zil_brand": {
+    "my_brands": "Markalarım",
+    "my_brands_description": "Bu çalışma alanında üzerinde çalıştığınız markalar.",
+    "no_brands": "Bu çalışma alanında henüz hiçbir markanın ekibinde değilsiniz.",
+    "managed_by_zil": "Zil Workspace, her markada kimin çalışacağını belirler.",
+    "members_managed": "Zil Workspace, bu markada kimin çalışacağını belirler: üyeleri buradan değiştirilemez. Zil ajanları yine de eklenebilir.",
+    "archived": "Arşivlendi",
+    "migration": "Taşıma",
+    "specs": "Spesifikasyonlar",
+    "no_specs": "Bu marka için henüz spesifikasyon yüklenmedi.",
+    "team": "Ekip",
+    "no_team": "Bu markaya henüz kimse atanmadı.",
+    "assets": "Varlıklar",
+    "no_assets": "Bu marka için varlık yok.",
+    "calls": "Görüşmeler",
+    "no_calls": "Bu marka için görüşme yok.",
+    "purpose_kickoff": "Başlangıç toplantısı",
+    "purpose_operations": "Operasyonlar",
+    "other_bus": "Ayrıca çalışanlar",
+    "unavailable": "Zil Workspace'e ulaşılamadı. Lütfen biraz sonra tekrar deneyin.",
+    "no_sheet": "Zil Workspace, bu markanın kartını sizinle paylaşmıyor."
   }
 }

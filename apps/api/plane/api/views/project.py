@@ -42,6 +42,7 @@ from plane.utils.exception_logger import log_exception
 from .base import BaseAPIView
 from plane.utils.host import base_host
 from plane.utils.zil_agents import add_zil_agents_to_project
+from plane.utils.zil_managed import project_delete_conflict, project_update_conflict
 from plane.api.serializers import (
     ProjectSerializer,
     ProjectCreateSerializer,
@@ -458,6 +459,9 @@ class ProjectDetailAPIEndpoint(BaseAPIView):
         try:
             workspace = Workspace.objects.get(slug=slug)
             project = Project.objects.get(pk=pk)
+            conflict = project_update_conflict(project, request.data)
+            if conflict:
+                return conflict
             current_instance = json.dumps(ProjectSerializer(project).data, cls=DjangoJSONEncoder)
 
             intake_view = request.data.get("intake_view", project.intake_view)
@@ -532,6 +536,9 @@ class ProjectDetailAPIEndpoint(BaseAPIView):
         Permanently remove a project and all its associated data from the workspace.
         Only admins can delete projects and the action cannot be undone.
         """
+        conflict = project_delete_conflict(pk)
+        if conflict:
+            return conflict
         project = Project.objects.get(pk=pk, workspace__slug=slug)
         # Delete the user favorite cycle
         UserFavorite.objects.filter(entity_type="project", entity_identifier=pk, project_id=pk).delete()

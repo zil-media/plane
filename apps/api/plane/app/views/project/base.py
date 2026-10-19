@@ -43,6 +43,7 @@ from plane.db.models.intake import IntakeIssueStatus
 from plane.utils.host import base_host
 from plane.utils.order_queryset import PROJECT_ORDER_BY_ALLOWLIST, sanitize_order_by
 from plane.utils.studio_defaults import seed_studio_defaults
+from plane.utils.zil_managed import project_delete_conflict, project_update_conflict
 from plane.utils.zil_agents import add_zil_agents_to_project
 
 
@@ -326,6 +327,11 @@ class ProjectViewSet(BaseViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def update(self, request, slug, pk=None):
+        # PUT goes through the same checks as PATCH (DRF's own update would skip them, and
+        # with them the Zil brand lock: a brand's project stays private)
+        return self.partial_update(request, slug, pk)
+
     def partial_update(self, request, slug, pk=None):
         # try:
         is_workspace_admin = WorkspaceMember.objects.filter(
@@ -353,6 +359,10 @@ class ProjectViewSet(BaseViewSet):
         workspace = Workspace.objects.get(slug=slug)
 
         project = Project.objects.get(pk=pk, workspace__slug=slug)
+        # a Zil brand's project stays private and keeps its identifier
+        conflict = project_update_conflict(project, request.data)
+        if conflict:
+            return conflict
         intake_view = request.data.get("inbox_view", project.intake_view)
         current_instance = json.dumps(ProjectSerializer(project).data, cls=DjangoJSONEncoder)
         if project.archived_at:
@@ -410,6 +420,9 @@ class ProjectViewSet(BaseViewSet):
                 is_active=True,
             ).exists()
         ):
+            conflict = project_delete_conflict(pk)
+            if conflict:
+                return conflict
             project = Project.objects.get(pk=pk, workspace__slug=slug)
             project.delete()
             webhook_activity.delay(
