@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
+import { useParams } from "next/navigation";
 import { Building2, FilePlus2, FolderOpen, FolderPlus, RefreshCw, Users } from "lucide-react";
 // plane imports
 import { EPageAccess } from "@plane/constants";
@@ -22,6 +23,7 @@ import { PageTreeNode } from "@/components/pages/list/tree-node";
 import type { EPageStoreType } from "@/hooks/store";
 import { usePageStore } from "@/hooks/store";
 import { usePageTreeOperations } from "@/hooks/use-page-tree-operations";
+import { useZilProjectBrandProject } from "@/hooks/use-zil-brands";
 // store
 import type { TPageInstance } from "@/store/pages/base-page";
 // local imports
@@ -53,6 +55,9 @@ export const FolderPageView = observer(function FolderPageView(props: Props) {
   // hooks
   const { t } = useTranslation();
   const { data } = usePageStore(storeType);
+  const { workspaceSlug, projectId } = useParams();
+  // a brand's project already is its client: its folders are not linked to one
+  const isBrandProject = !!useZilProjectBrandProject(workspaceSlug?.toString(), projectId?.toString());
   const { canCreateChild, createChild } = usePageTreeOperations({ page, storeType });
   // a folder opened later must not find the picker still open from the previous one (going back to the
   // first would reopen it otherwise)
@@ -134,7 +139,7 @@ export const FolderPageView = observer(function FolderPageView(props: Props) {
               </span>
             </Tooltip>
           )}
-          {canEdit && !is_zil_clients_root && !zil_client?.auto_created && (
+          {canEdit && !isBrandProject && !is_zil_clients_root && !zil_client?.auto_created && (
             <Button variant="ghost" size="lg" onClick={() => setZilClientModalPageId(page.id ?? null)}>
               <Building2 className="size-3.5" />
               {zil_client ? t("page_tree.zil_client.change") : t("page_tree.zil_client.link")}
