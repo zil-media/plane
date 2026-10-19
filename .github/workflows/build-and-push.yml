@@ -1,97 +1,113 @@
 name: build-and-push
 
+# Publishes the images Watchtower deploys on the NAS (tag `preview`). Rollback: rollback.yml,
+# runbook in docs/ops-deploy.md.
+#
+# A push to preview deploys only once Preview CI is green on that same commit (workflow_run).
+# The agent lanes merge with GITHUB_TOKEN, which starts no workflow (Preview CI included), after
+# running the same bar themselves (.github/ci/agent-lane/gates.sh), so they start this one with
+# workflow_dispatch (.github/ci/agent-lane/trigger-deploy.sh). A manual run does the same; with
+# `all` it rebuilds every image.
 on:
-  push:
+  workflow_run:
+    workflows: ["Preview CI"]
+    types: [completed]
     branches: [preview]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      all:
+        description: Rebuild every image, not only the changed ones
+        type: boolean
+        default: false
 
+# Runs queue instead of cancelling each other. GitHub keeps only the newest pending run, which is
+# fine: every run diffs from the last commit that was published completely (ops-deploy/built),
+# so the replaced run's changes are built by the one that replaced it.
 concurrency:
-  group: build-${{ github.ref }}
-  cancel-in-progress: true
+  group: build-and-push-preview
+  cancel-in-progress: false
 
 jobs:
-  # Only the images whose code changed in the push are built: a push that touches the API does not
-  # rebuild the six frontends. The backend is always built (its layers come from cache, only the
-  # GIT_SHA one changes) because it is what tells Zil's ops-deploy-check which commit is live.
-  # A manual run, a new branch or a change to this workflow builds everything.
   changes:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.pick.outputs.matrix }}
+      sha: ${{ steps.pick.outputs.sha }}
+      deploy: ${{ steps.pick.outputs.deploy }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
       - id: pick
         name: Pick the images to build
         env:
-          EVENT: ${{ github.event_name }}
-          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ALL: ${{ github.event_name == 'workflow_dispatch' && inputs.all }}
         run: |
-          ALL='[
-            {"image":"plane-backend","context":"./apps/api","file":"./apps/api/Dockerfile.api","paths":"^apps/api/"},
-            {"image":"plane-web","context":".","file":"./apps/web/Dockerfile.web","paths":"^apps/web/"},
-            {"image":"plane-space","context":".","file":"./apps/space/Dockerfile.space","paths":"^apps/space/"},
-            {"image":"plane-admin","context":".","file":"./apps/admin/Dockerfile.admin","paths":"^apps/admin/"},
-            {"image":"plane-live","context":".","file":"./apps/live/Dockerfile.live","paths":"^apps/live/"},
-            {"image":"plane-proxy","context":"./apps/proxy","file":"./apps/proxy/Dockerfile.ce","paths":"^apps/proxy/"},
-            {"image":"plane-mcp","context":"./apps/mcp","file":"./apps/mcp/Dockerfile","paths":"^apps/mcp/"}
-          ]'
-          # what every frontend is built from besides its own folder
-          SHARED='^(packages/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|turbo\.json$|\.npmrc$)'
-          FRONTENDS='plane-web plane-space plane-admin plane-live'
-
-          if [ "$EVENT" != "push" ] || [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
-            || ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
-            echo "matrix=$(echo "$ALL" | jq -c '[.[] | del(.paths)]')" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          CHANGED=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
-          echo "Changed files:"; echo "$CHANGED"
-          if echo "$CHANGED" | grep -qx '.github/workflows/build-and-push.yml'; then
-            echo "matrix=$(echo "$ALL" | jq -c '[.[] | del(.paths)]')" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          PICKED="plane-backend"
-          for row in $(echo "$ALL" | jq -c '.[] | {image, paths}'); do
-            image=$(echo "$row" | jq -r .image)
-            paths=$(echo "$row" | jq -r .paths)
-            [ "$image" = plane-backend ] && continue
-            if echo "$CHANGED" | grep -qE "$paths"; then PICKED="$PICKED $image"; continue; fi
-            case " $FRONTENDS " in
-              *" $image "*) echo "$CHANGED" | grep -qE "$SHARED" && PICKED="$PICKED $image" ;;
-            esac
-          done
-          echo "Building: $PICKED"
-          echo "matrix=$(echo "$ALL" | jq -c --arg picked "$PICKED" '[.[] | select(.image as $i | ($picked | split(" ") | index($i))) | del(.paths)]')" >> "$GITHUB_OUTPUT"
+          BASE=$(git rev-parse -q --verify 'refs/tags/ops-deploy/built^{commit}' || true)
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          set +e
+          MATRIX=$(BASE="$BASE" bash .github/ci/build-matrix.sh)
+          code=$?
+          set -e
+          if [ "$code" = 3 ]; then echo "deploy=false" >> "$GITHUB_OUTPUT"; echo "matrix=[]" >> "$GITHUB_OUTPUT"; exit 0; fi
+          [ "$code" = 0 ] || exit "$code"
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
 
   build:
     needs: changes
+    if: needs.changes.outputs.deploy == 'true' && needs.changes.outputs.matrix != '[]'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write   # the ops-deploy/backend tag
       packages: write
     strategy:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.changes.outputs.matrix) }}
+    env:
+      SHA: ${{ needs.changes.outputs.sha }}
+      IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # `previous` = what is live before this build, so rollback.yml can put it back in one step.
+      # A re-run of the commit already live keeps the older `previous`.
+      - name: Keep the live image as previous
+        run: |
+          if LIVE=$(docker buildx imagetools inspect "$IMAGE:preview" --format '{{ index .Image.Config.Labels "org.opencontainers.image.revision" }}' 2>/dev/null); then
+            if [ "$LIVE" != "$SHA" ]; then
+              docker buildx imagetools create -t "$IMAGE:previous" "$IMAGE:preview"
+              echo "previous = $LIVE"
+            else
+              echo "preview already is $SHA: previous left as is"
+            fi
+          else
+            echo "no preview image yet"
+          fi
+      - id: short
+        run: echo "sha=${SHA:0:7}" >> "$GITHUB_OUTPUT"
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          images: ${{ env.IMAGE }}
           tags: |
             type=raw,value=preview
-            type=sha,prefix=sha-
+            type=raw,value=sha-${{ steps.short.outputs.sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ needs.changes.outputs.sha }}
       - uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
@@ -99,8 +115,28 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # the backend reports it at /api/zil/sync/version/ (Zil's ops-deploy-check compares it with preview)
+          # the backend reports it at /api/zil/sync/version/; only built when apps/api changes
           build-args: |
-            GIT_SHA=${{ github.sha }}
+            GIT_SHA=${{ needs.changes.outputs.sha }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+      # Zil's ops-deploy-check compares this tag with the sha the running API reports.
+      - name: Record the published backend
+        if: matrix.image == 'plane-backend'
+        run: git push --force origin "$SHA:refs/tags/ops-deploy/backend"
+
+  # Advanced only when every picked image was published: the next run diffs from here.
+  record:
+    needs: [changes, build]
+    if: >-
+      always() && needs.changes.result == 'success' && needs.changes.outputs.deploy == 'true' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
+      - name: Record the published commit
+        run: git push --force origin "${{ needs.changes.outputs.sha }}:refs/tags/ops-deploy/built"

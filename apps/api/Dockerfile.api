@@ -50,6 +50,10 @@ COPY ./bin ./bin/
 
 RUN mkdir -p /code/plane/logs
 RUN chmod +x ./bin/*
+# Static files at build, not on every boot (the API is down while it boots). Settings only need a
+# parseable REDIS_URL and a SECRET_KEY to load; nothing is contacted.
+RUN REDIS_URL=redis://build:6379/ SECRET_KEY=collectstatic python manage.py collectstatic --noinput
+
 RUN chmod -R 777 /code
 
 # The commit this image was built from (GET /api/zil/sync/version/): last, so it never busts the cache

@@ -1,3 +1,12 @@
+# Deploys recreate one container at a time (Watchtower rolling restart): while it boots, a dial
+# to it is refused or its name does not resolve. Instead of a 502 the request waits for it, up to
+# 60 s (an API boot takes ~10-25 s). Only failed dials are retried, and a failed dial means the
+# upstream got nothing, so this is safe for POST too; the body is already buffered (request_body).
+(upstream_wait) {
+	lb_try_duration 60s
+	lb_try_interval 250ms
+}
+
 (plane_proxy) {
 	# A client folder's brand file (up to Zil's 20 MB) is the one upload allowed past
 	# FILE_SIZE_LIMIT: 21MiB covers the file and its multipart envelope. Same match and cap as
@@ -21,30 +30,54 @@
 	}
 
   redir /spaces /spaces/ permanent
-	reverse_proxy /spaces/* space:3000
+	reverse_proxy /spaces/* space:3000 {
+		import upstream_wait
+	}
 
   redir /god-mode /god-mode/ permanent
-	reverse_proxy /god-mode/* admin:3000
+	reverse_proxy /god-mode/* admin:3000 {
+		import upstream_wait
+	}
 	
-	reverse_proxy /live/* live:3000
+	reverse_proxy /live/* live:3000 {
+		import upstream_wait
+	}
 
 	# Ops MCP server (OAuth-protected; Ops itself is the authorization server)
-	reverse_proxy /mcp mcp:8211
-	reverse_proxy /mcp/* mcp:8211
-	reverse_proxy /.well-known/oauth-protected-resource* mcp:8211
-	reverse_proxy /.well-known/oauth-authorization-server* api:8000
-	reverse_proxy /.well-known/openid-configuration* api:8000
+	reverse_proxy /mcp mcp:8211 {
+		import upstream_wait
+	}
+	reverse_proxy /mcp/* mcp:8211 {
+		import upstream_wait
+	}
+	reverse_proxy /.well-known/oauth-protected-resource* mcp:8211 {
+		import upstream_wait
+	}
+	reverse_proxy /.well-known/oauth-authorization-server* api:8000 {
+		import upstream_wait
+	}
+	reverse_proxy /.well-known/openid-configuration* api:8000 {
+		import upstream_wait
+	}
 
-	reverse_proxy /api/* api:8000
+	reverse_proxy /api/* api:8000 {
+		import upstream_wait
+	}
 
-	reverse_proxy /auth/* api:8000
+	reverse_proxy /auth/* api:8000 {
+		import upstream_wait
+	}
 
-	reverse_proxy /static/* api:8000
+	reverse_proxy /static/* api:8000 {
+		import upstream_wait
+	}
 
 	reverse_proxy /{$BUCKET_NAME}/* plane-minio:9000
 	reverse_proxy /{$BUCKET_NAME} plane-minio:9000
 
-	reverse_proxy /* web:3000
+	reverse_proxy /* web:3000 {
+		import upstream_wait
+	}
 }
 
 {
