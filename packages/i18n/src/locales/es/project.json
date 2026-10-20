@@ -470,6 +470,8 @@
     "no_team": "Todavía no hay nadie asignado a esta marca.",
     "assets": "Activos",
     "no_assets": "Esta marca no tiene activos.",
+    "files": "Archivos de marca",
+    "no_files": "Esta marca no tiene archivos de identidad.",
     "calls": "Llamadas",
     "no_calls": "Esta marca no tiene llamadas.",
     "purpose_kickoff": "Kickoff",

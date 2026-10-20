@@ -6,7 +6,7 @@
 
 import type { ReactNode } from "react";
 import { observer } from "mobx-react";
-import { ExternalLink, Phone, UserRound } from "lucide-react";
+import { ExternalLink, FileText, Phone, UserRound } from "lucide-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Loader } from "@plane/ui";
@@ -149,6 +149,34 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
               )}
             </Section>
           </div>
+
+          <Section title={t("zil_brand.files")}>
+            {!sheet.files?.length ? (
+              <Empty>{t("zil_brand.no_files")}</Empty>
+            ) : (
+              <ul className="flex flex-col divide-y divide-subtle rounded-md border border-subtle">
+                {sheet.files.map((file) => (
+                  <li key={file.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <FileText className="size-3.5 flex-shrink-0 text-tertiary" />
+                      <span className="truncate text-13 text-primary">{file.name}</span>
+                    </div>
+                    {file.url && (
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 text-tertiary hover:text-primary"
+                        aria-label={file.name}
+                      >
+                        <ExternalLink className="size-4" />
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
 
           <Section title={t("zil_brand.calls")}>
             {!sheet.calls?.length ? (

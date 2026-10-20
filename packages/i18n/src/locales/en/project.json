@@ -470,6 +470,8 @@
     "no_team": "Nobody is assigned to this brand yet.",
     "assets": "Assets",
     "no_assets": "No assets for this brand.",
+    "files": "Brand files",
+    "no_files": "No brand files for this brand.",
     "calls": "Calls",
     "no_calls": "No calls for this brand.",
     "purpose_kickoff": "Kickoff",

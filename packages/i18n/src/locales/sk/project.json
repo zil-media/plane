@@ -470,6 +470,8 @@
     "no_team": "K tejto značke zatiaľ nie je nikto priradený.",
     "assets": "Materiály",
     "no_assets": "Táto značka nemá žiadne materiály.",
+    "files": "Súbory značky",
+    "no_files": "Táto značka nemá žiadne súbory identity.",
     "calls": "Hovory",
     "no_calls": "Táto značka nemá žiadne hovory.",
     "purpose_kickoff": "Kickoff",

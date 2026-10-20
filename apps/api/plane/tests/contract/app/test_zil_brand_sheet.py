@@ -61,6 +61,7 @@ class TestBrandSheet:
             },
             "specs": {"strip": [{"key": "pauta", "label": "Pauta", "value": "USD 1.200"}], "items": []},
             "assets": [{"id": "a1", "type": "drive_folder", "name": "Drive", "url": None, "companyName": "DEGASA SA"}],
+            "files": [{"id": "f1", "name": "Logo", "type": "image/png", "url": "https://r2.test/logo", "key": "DEGASA/logo"}],
             "team": [{"name": "Ana", "email": "ana@zil.global", "role": None, "taxId": "30-1"}],
             "calls": [{"id": "c1", "title": "Kickoff", "date": "2026-10-14", "client": {"companyName": "DEGASA SA"}}],
             "projects": [{"workspaceSlug": "zil-design", "businessUnit": "Zil Design", "clientName": "DEGASA SA"}],
@@ -81,6 +82,7 @@ class TestBrandSheet:
         # nested rows keep only their own fields: nothing of the client slips through
         assert "companyName" not in str(response.data) and "DEGASA" not in str(response.data)
         assert "taxId" not in str(response.data) and sheet["calls"][0]["title"] == "Kickoff"
+        assert sheet["files"] == [{"id": "f1", "name": "Logo", "type": "image/png", "url": "https://r2.test/logo"}]
 
     @pytest.mark.django_db
     def test_zil_down_still_shows_the_brand(self, session_client, workspace, brands):

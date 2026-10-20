@@ -27,6 +27,8 @@ export type TZilBrandSheet = {
   brand: { id: string; name: string; logoUrl: string | null; color: string | null; status: string };
   specs: { strip: TZilBrandSpecItem[]; items: TZilBrandSpecItem[] } | null;
   assets: { id: string; type: string; name: string; url: string | null }[] | null;
+  /** brand identity files (logo, manual), each with a short-lived signed link */
+  files: { id: string; name: string; type: string; url: string | null }[] | null;
   team: { name: string; email: string; role: string | null }[] | null;
   calls:
     | {

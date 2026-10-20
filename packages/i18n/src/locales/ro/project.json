@@ -470,6 +470,8 @@
     "no_team": "Nimeni nu este încă alocat acestui brand.",
     "assets": "Resurse",
     "no_assets": "Acest brand nu are resurse.",
+    "files": "Fișiere de brand",
+    "no_files": "Acest brand nu are fișiere de identitate.",
     "calls": "Apeluri",
     "no_calls": "Acest brand nu are apeluri.",
     "purpose_kickoff": "Kickoff",

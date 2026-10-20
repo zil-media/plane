@@ -20,6 +20,7 @@ BRAND_FIELDS = ("id", "name", "logoUrl", "color", "status")
 SPEC_FIELDS = ("key", "label", "value", "hint")
 LIST_FIELDS = {
     "assets": ("id", "type", "name", "url"),
+    "files": ("id", "name", "type", "url"),
     "team": ("name", "email", "role"),
     "calls": ("id", "title", "date", "purpose", "summary", "url"),
     "projects": ("workspaceSlug", "businessUnit"),

@@ -470,6 +470,8 @@
     "no_team": "Do tej marki nikt nie został jeszcze przypisany.",
     "assets": "Zasoby",
     "no_assets": "Ta marka nie ma żadnych zasobów.",
+    "files": "Pliki marki",
+    "no_files": "Ta marka nie ma plików identyfikacji.",
     "calls": "Rozmowy",
     "no_calls": "Ta marka nie ma żadnych rozmów.",
     "purpose_kickoff": "Kickoff",

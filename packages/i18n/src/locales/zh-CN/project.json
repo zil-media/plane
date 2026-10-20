@@ -470,6 +470,8 @@
     "no_team": "尚未有人分配到此品牌。",
     "assets": "资产",
     "no_assets": "此品牌没有资产。",
+    "files": "品牌文件",
+    "no_files": "此品牌没有品牌文件。",
     "calls": "通话",
     "no_calls": "此品牌没有通话。",
     "purpose_kickoff": "启动会",

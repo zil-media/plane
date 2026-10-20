@@ -470,6 +470,8 @@
     "no_team": "尚未有人指派至此品牌。",
     "assets": "資產",
     "no_assets": "此品牌沒有資產。",
+    "files": "品牌檔案",
+    "no_files": "此品牌沒有品牌檔案。",
     "calls": "通話",
     "no_calls": "此品牌沒有通話。",
     "purpose_kickoff": "啟動會議",

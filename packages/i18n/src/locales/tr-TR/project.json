@@ -470,6 +470,8 @@
     "no_team": "Bu markaya henüz kimse atanmadı.",
     "assets": "Varlıklar",
     "no_assets": "Bu marka için varlık yok.",
+    "files": "Marka dosyaları",
+    "no_files": "Bu marka için kimlik dosyası yok.",
     "calls": "Görüşmeler",
     "no_calls": "Bu marka için görüşme yok.",
     "purpose_kickoff": "Başlangıç toplantısı",

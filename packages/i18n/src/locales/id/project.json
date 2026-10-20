@@ -470,6 +470,8 @@
     "no_team": "Belum ada siapa pun yang ditugaskan ke merek ini.",
     "assets": "Aset",
     "no_assets": "Merek ini tidak memiliki aset.",
+    "files": "File merek",
+    "no_files": "Merek ini tidak memiliki file identitas.",
     "calls": "Panggilan",
     "no_calls": "Merek ini tidak memiliki panggilan.",
     "purpose_kickoff": "Kickoff",

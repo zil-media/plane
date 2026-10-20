@@ -470,6 +470,8 @@
     "no_team": "Chưa có ai được giao cho thương hiệu này.",
     "assets": "Tài sản",
     "no_assets": "Thương hiệu này chưa có tài sản nào.",
+    "files": "Tệp thương hiệu",
+    "no_files": "Thương hiệu này chưa có tệp nhận diện nào.",
     "calls": "Cuộc gọi",
     "no_calls": "Thương hiệu này chưa có cuộc gọi nào.",
     "purpose_kickoff": "Họp khởi động",

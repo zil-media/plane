@@ -470,6 +470,8 @@
     "no_team": "Personne n'est encore affecté à cette marque.",
     "assets": "Ressources",
     "no_assets": "Cette marque n'a aucune ressource.",
+    "files": "Fichiers de marque",
+    "no_files": "Cette marque n'a aucun fichier d'identité.",
     "calls": "Appels",
     "no_calls": "Cette marque n'a aucun appel.",
     "purpose_kickoff": "Kickoff",
