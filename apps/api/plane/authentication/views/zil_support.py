@@ -163,7 +163,12 @@ class ZilSupportTrackingEndpoint(ZilServiceView):
                         _feature(
                             f,
                             support_url(door(f), f.id, "feature"),
-                            enabled[f.flag_key].isoformat() if enabled.get(f.flag_key) else None,
+                            enabled[f.flag_key].isoformat()
+                            if enabled.get(f.flag_key)
+                            # Closed because Ops already did it: nothing to switch on, it's usable now.
+                            else (f.build or {}).get("merged_at")
+                            if (f.build or {}).get("already_existed")
+                            else None,
                         )
                         for f in features
                     ],

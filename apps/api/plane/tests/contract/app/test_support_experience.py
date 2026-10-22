@@ -1084,14 +1084,17 @@ class TestRoundTwelve:
             spec={"summary": "Se hace desde Configuración > Estados.", "already_exists": True},
         )
         with mock.patch("plane.utils.agent_pipeline.notify.requester_feature_update") as told:
-            response = admin_client.post(f"/api/support/feature-requests/{feature.id}/approve/", {}, format="json")
+            response = admin_client.post(
+                f"/api/support/feature-requests/{feature.id}/approve/", {"notes": "Dale."}, format="json"
+            )
         assert response.status_code == status.HTTP_200_OK, response.data
         feature.refresh_from_db()
         assert feature.status == S.MERGED and feature.build["already_existed"] is True
         assert feature.approval["by_name"] is not None
         tasks["fire_feature"].assert_not_called()
-        assert told.call_args[0][2] == "Se hace desde Configuración > Estados."
-        assert AgentFeatureFlag.objects.get(key="yaExiste").enabled is True
+        assert told.call_args[0][2] == "Se hace desde Configuración > Estados.\n\nDale."
+        # Nothing was built behind the flag: it isn't created (its key could name one off on purpose).
+        assert not AgentFeatureFlag.objects.filter(key="yaExiste").exists()
 
     @pytest.mark.django_db
     def test_a_build_with_nothing_to_build_closes_instead_of_blocking(self, monkeypatch, create_user, tasks):
@@ -1114,3 +1117,19 @@ class TestRoundTwelve:
         assert feature.status == S.MERGED and not feature.build.get("blocked_at")
         assert feature.build["last_note"] == "Dale rol Administrador."
         assert client.put(url, {"state": "already_done", "note": "x"}, format="json").status_code == 409
+
+
+@pytest.mark.contract
+class TestMergedIsOn:
+    @pytest.mark.django_db
+    def test_an_admins_explicit_off_before_the_merge_wins(self, create_user):
+        from plane.utils.agent_pipeline.features import enable_flag
+
+        feature = own_feature(create_user, status=S.QUEUED, flag_key="apagada")
+        AgentFeatureFlag.objects.create(key="apagada", feature=feature, enabled=False)
+        enable_flag(feature)
+        assert AgentFeatureFlag.objects.get(key="apagada").enabled is False
+
+        other = own_feature(create_user, status=S.QUEUED, flag_key="nueva")
+        enable_flag(other)
+        assert AgentFeatureFlag.objects.get(key="nueva").enabled is True

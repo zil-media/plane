@@ -151,14 +151,15 @@ def enable_flag(feature, by=None):
     a second time. An admin can still turn it off from Support → Suggestions."""
     if not feature.flag_key:
         return
-    flag, _ = AgentFeatureFlag.objects.get_or_create(key=feature.flag_key, defaults={"feature": feature})
-    if flag.enabled:
-        return
-    flag.enabled, flag.enabled_by, flag.enabled_at = True, by, timezone.now()
-    flag.save(update_fields=["enabled", "enabled_by", "enabled_at", "updated_at"])
+    # Only a flag born here: a row that already exists was set by an admin before the merge (an
+    # explicit off wins).
+    AgentFeatureFlag.objects.get_or_create(
+        key=feature.flag_key,
+        defaults={"feature": feature, "enabled": True, "enabled_by": by, "enabled_at": timezone.now()},
+    )
 
 
-def close_already_existing(feature, note, by=None):
+def close_already_existing(feature, how_to, by=None):
     """Ops already does what they asked: there is nothing to build, so it closes as available with the
     how-to instead of sending a build session out for nothing (it came back "blocked" and waited on a
     person). The caller holds the row lock."""
@@ -171,15 +172,15 @@ def close_already_existing(feature, note, by=None):
             "already_existed": True,
             "blocked_at": None,
             "claimed_at": None,
-            "last_note": note,
+            "last_note": how_to,
         }
     )
     feature.build = build
     feature.status = S.MERGED
+    # No flag: nothing was built behind it, and its key could name a flag that is off on purpose.
     feature.save()
-    enable_flag(feature, by)
     if by is not None and feature.requested_by_id == by.id:
         return
     notify.requester_feature_update(
-        feature, "Lo que pediste ya se puede hacer", note or "Lo que pediste ya está disponible en Zil Ops."
+        feature, "Lo que pediste ya se puede hacer", how_to or "Lo que pediste ya está disponible en Zil Ops."
     )

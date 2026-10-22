@@ -93,7 +93,7 @@ function adminOptions(feature: TFeatureRequestDetail) {
       canReject = true;
       break;
     case "queued":
-      // Dropped from the batch, or not wanted after all: rejecting keeps merged code dark.
+      // Dropped from the batch, or not wanted after all: rejecting it before it merges keeps it out.
       canReject = true;
       break;
     case "on_hold":

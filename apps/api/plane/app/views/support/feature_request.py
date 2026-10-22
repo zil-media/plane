@@ -241,9 +241,9 @@ class FeatureRequestDecisionEndpoint(BaseAPIView):
                 # Nothing to build: approving it is agreeing with the analysis, so it closes with the
                 # how-to instead of sending a build session out to say the same thing and stop.
                 feature.approval = record
-                feature_ops.close_already_existing(
-                    feature, data["notes"] or (feature.spec or {}).get("summary", ""), by=request.user
-                )
+                # The how-to is the analysis; the approver's note goes after it, it doesn't replace it.
+                how_to = "\n\n".join(p for p in ((feature.spec or {}).get("summary", ""), data["notes"]) if p)
+                feature_ops.close_already_existing(feature, how_to, by=request.user)
                 return Response(feature_summary(feature))
             if decision in ("approve", "rebuild"):
                 if data.get("flag_key"):
