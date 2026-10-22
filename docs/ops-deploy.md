@@ -68,6 +68,11 @@ Nightly on the NAS (`/etc/cron.d/plane-pg-backup`, 03:15 ART):
    and uploads both to R2, bucket `workspace`, prefixes `plane-backups/pg/` and
    `plane-backups/minio/`, kept 30 days.
 
+The cron line runs as `Brian`, not `root`: on TOS uid 0 is named `Brian` and `root` is an
+unprivileged user (uid 9999) with no access to the Docker socket. With `root` every night failed
+with "permission denied ... docker.sock" from 2026-10-19 to 2026-10-22. Any other `/etc/cron.d`
+entry that needs privileges (`ip-guard`, `atop`) uses `Brian` for the same reason.
+
 Both log to syslog with tag `plane-backup` (`grep plane-backup /var/log/messages`). Zil's
 `ops-backup-check` (daily, 16:00 UTC) fails and opens a BugReport if the newest object under
 either prefix is older than 26 h or smaller than 1 MB. A backup that did not run is caught as well
