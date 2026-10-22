@@ -195,7 +195,7 @@ def fire_feature_routine(feature_id, mode, title="", reason="", previous_failure
             *(
                 [
                     "If Ops already does what they ask, the summary tells them how to do it and the spec sends",
-                    '"already_exists": true: it then waits for a person instead of being built.',
+                    '"already_exists": true: a person confirms it and it closes with that summary, no build.',
                 ]
                 if mode == "SPEC"
                 else []
@@ -223,6 +223,9 @@ def _build_rules(feature_id, previous_failure):
         f"otherwise create it: git checkout -b {branch}. Never force-push.",
         *(["Why the previous attempt stopped (fix this first): " + previous_failure] if previous_failure else []),
         "Post progress at least every 30 minutes: a build silent for 60 is released and fired again.",
+        "Nothing to build (Ops already does it, or a role or setting change solves it): report",
+        f'build-status {{"state": "already_done", "note": "<how they do it, plain Spanish>"}} for {feature_id}.',
+        "It closes the request with that note. Never report blocked for that: blocked waits on a person.",
     ]
 
 

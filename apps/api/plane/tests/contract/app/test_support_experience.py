@@ -11,7 +11,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from plane.db.models import AgentPipelineConfig, BugReport, FeatureRequest, User
+from plane.db.models import AgentFeatureFlag, AgentPipelineConfig, BugReport, FeatureRequest, User
 from plane.license.models import Instance, InstanceAdmin
 from plane.agent_api.serialize import feature_summary
 from plane.utils.agent_pipeline.features import lane_busy, request_build, request_spec
@@ -1073,4 +1073,44 @@ class TestRoundTwelve:
         notify.admins_feature_needs_decision(feature)
         heading, paragraphs = tasks["email"].call_args[0][2], tasks["email"].call_args[0][3]
         assert heading == "Según el análisis, esto ya existe"
-        assert any("rechazala" in p for p in paragraphs)
+        assert any("aprobala y se cierra" in p for p in paragraphs)
+
+    @pytest.mark.django_db
+    def test_approving_what_already_exists_closes_it_without_a_build(self, create_user, tasks, admin_client):
+        feature = own_feature(
+            create_user,
+            status=S.SPEC_READY,
+            flag_key="yaExiste",
+            spec={"summary": "Se hace desde Configuración > Estados.", "already_exists": True},
+        )
+        with mock.patch("plane.utils.agent_pipeline.notify.requester_feature_update") as told:
+            response = admin_client.post(f"/api/support/feature-requests/{feature.id}/approve/", {}, format="json")
+        assert response.status_code == status.HTTP_200_OK, response.data
+        feature.refresh_from_db()
+        assert feature.status == S.MERGED and feature.build["already_existed"] is True
+        assert feature.approval["by_name"] is not None
+        tasks["fire_feature"].assert_not_called()
+        assert told.call_args[0][2] == "Se hace desde Configuración > Estados."
+        assert AgentFeatureFlag.objects.get(key="yaExiste").enabled is True
+
+    @pytest.mark.django_db
+    def test_a_build_with_nothing_to_build_closes_instead_of_blocking(self, monkeypatch, create_user, tasks):
+        key = "f" * 64
+        agent = User.objects.create(email="agent@zil.global", username=uuid.uuid4().hex, is_active=True)
+        monkeypatch.setenv("OPS_FEATURE_AGENT_API_KEY", key)
+        monkeypatch.setenv("AGENT_ADMIN_EMAIL", agent.email)
+        feature = own_feature(
+            create_user, status=S.BUILDING, flag_key="rolProyecto", build={"claimed_at": "2026-10-22"}
+        )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {key}")
+        url = f"/api/agent/features/{feature.id}/build-status/"
+        assert client.put(url, {"state": "already_done"}, format="json").status_code == status.HTTP_409_CONFLICT
+        with mock.patch("plane.utils.agent_pipeline.notify.admins_feature_build_blocked") as admins:
+            response = client.put(url, {"state": "already_done", "note": "Dale rol Administrador."}, format="json")
+        assert response.status_code == status.HTTP_200_OK, response.data
+        admins.assert_not_called()
+        feature.refresh_from_db()
+        assert feature.status == S.MERGED and not feature.build.get("blocked_at")
+        assert feature.build["last_note"] == "Dale rol Administrador."
+        assert client.put(url, {"state": "already_done", "note": "x"}, format="json").status_code == 409

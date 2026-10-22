@@ -356,11 +356,12 @@ class TestFeaturePipeline:
         assert feature_agent.put(f"{base}/build-status/", {"state": "queued"}, format="json").data["status"] == "queued"
         assert feature_agent.put(f"{base}/merged/", {"commit_hash": "abc"}, format="json").data["status"] == "merged"
 
+        # Merged is on: approving it already decided it ships. An admin can still turn it off.
         flag = AgentFeatureFlag.objects.get(key="exportCsv")
-        assert flag.enabled is False
-        assert session_client.get("/api/support/feature-flags/").data["enabled"] == []
-        admin_client.post(f"/api/support/feature-requests/{feature_id}/flag/", {"enabled": True}, format="json")
+        assert flag.enabled is True and flag.enabled_at is not None
         assert session_client.get("/api/support/feature-flags/").data["enabled"] == ["exportCsv"]
+        admin_client.post(f"/api/support/feature-requests/{feature_id}/flag/", {"enabled": False}, format="json")
+        assert session_client.get("/api/support/feature-flags/").data["enabled"] == []
 
     @pytest.mark.django_db
     def test_low_impact_first_spec_approves_itself(

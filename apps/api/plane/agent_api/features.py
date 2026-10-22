@@ -20,7 +20,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 # Module imports
-from plane.db.models import AgentFeatureFlag, BugReport, FeatureRequest
+from plane.db.models import BugReport, FeatureRequest
 from plane.utils.agent_pipeline import bugs as bug_ops
 from plane.utils.agent_pipeline import features as feature_ops
 from plane.utils.agent_pipeline import notify
@@ -74,7 +74,7 @@ class QuestionsSerializer(serializers.Serializer):
 
 
 class BuildStatusSerializer(serializers.Serializer):
-    state = serializers.ChoiceField(choices=("in_review", "queued", "blocked"))
+    state = serializers.ChoiceField(choices=("in_review", "queued", "blocked", "already_done"))
     note = serializers.CharField(required=False, allow_blank=True, max_length=2000, default="")
     pr_url = serializers.URLField(required=False, allow_blank=True, default="")
     pr_number = serializers.IntegerField(required=False, allow_null=True, default=None)
@@ -230,6 +230,16 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
     def do_build_status(self, request, feature):
         data = _valid(BuildStatusSerializer, request)
         build = dict(feature.build or {})
+        if data["state"] == "already_done":
+            # Nothing to build after all (Ops already does it): it closes with the how-to, it doesn't
+            # wait as "blocked" on a person who would only read the same explanation.
+            if feature.status != S.BUILDING:
+                return _conflict("Only a running build can close as already done.")
+            if not data["note"].strip():
+                return _conflict("Say how they do it today in the note: it is what the requester reads.")
+            feature_ops.close_already_existing(feature, data["note"])
+            transaction.on_commit(feature_ops.drain_feature_queue)
+            return Response(feature_summary(feature))
         if data["state"] == "blocked":
             if feature.status != S.BUILDING:
                 return _conflict("Only a running build can be blocked; merged code has nothing left to block.")
@@ -292,12 +302,11 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
         feature.build = build
         feature.status = S.MERGED
         feature.save()
-        if feature.flag_key:
-            AgentFeatureFlag.objects.get_or_create(key=feature.flag_key, defaults={"feature": feature})
+        feature_ops.enable_flag(feature)
         notify.requester_feature_update(
             feature,
-            "Tu sugerencia ya está construida",
-            "Lo que pediste ya está en Zil Ops. Va a aparecer apenas el equipo lo active.",
+            "Tu sugerencia ya está disponible",
+            "Lo que pediste ya está en Zil Ops y activado. Si todavía no lo ves, recargá la página.",
         )
         transaction.on_commit(feature_ops.drain_feature_queue)
         return Response(feature_summary(feature))

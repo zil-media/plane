@@ -237,6 +237,14 @@ class FeatureRequestDecisionEndpoint(BaseAPIView):
                 "at": timezone.now().isoformat(),
                 "notes": data["notes"],
             }
+            if decision == "approve" and (feature.spec or {}).get("already_exists"):
+                # Nothing to build: approving it is agreeing with the analysis, so it closes with the
+                # how-to instead of sending a build session out to say the same thing and stop.
+                feature.approval = record
+                feature_ops.close_already_existing(
+                    feature, data["notes"] or (feature.spec or {}).get("summary", ""), by=request.user
+                )
+                return Response(feature_summary(feature))
             if decision in ("approve", "rebuild"):
                 if data.get("flag_key"):
                     feature.flag_key = data["flag_key"]
