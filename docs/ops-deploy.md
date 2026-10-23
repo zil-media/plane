@@ -73,6 +73,12 @@ unprivileged user (uid 9999) with no access to the Docker socket. With `root` ev
 with "permission denied ... docker.sock" from 2026-10-19 to 2026-10-22. Any other `/etc/cron.d`
 entry that needs privileges (`ip-guard`, `atop`) uses `Brian` for the same reason.
 
+TOS wipes `/var/log` on every boot and its own atop never starts (its `LOGPATH` is rewritten
+with a leading space), so `/etc/cron.d/nas-sampler` writes load, memory and the top containers
+every minute to `/Volume1/homes/Brian/atop-log/sampler-<day>.log` (14 days). That is the evidence
+after a freeze: on 2026-10-23 the NAS hung under Airbyte syncs and nothing from before the reboot
+survived.
+
 Both log to syslog with tag `plane-backup` (`grep plane-backup /var/log/messages`). Zil's
 `ops-backup-check` (daily, 16:00 UTC) fails and opens a BugReport if the newest object under
 either prefix is older than 26 h or smaller than 1 MB. A backup that did not run is caught as well
