@@ -20,12 +20,10 @@ import { ZilLinkChip } from "@/components/common/zil-link-chip";
 import { SwitcherIcon, SwitcherLabel } from "@/components/common/switcher-label";
 import { PageHeaderActions } from "@/components/pages/header/actions";
 import { PageSyncingBadge } from "@/components/pages/header/syncing-badge";
+import { CommonProjectBreadcrumbs } from "@/components/breadcrumbs/common";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useAppRouter } from "@/hooks/use-app-router";
-// plane web imports
-import { CommonProjectBreadcrumbs } from "@/plane-web/components/breadcrumbs/common";
-import { PageDetailsHeaderExtraActions } from "@/plane-web/components/pages";
 import { EPageStoreType, usePage, usePageStore } from "@/hooks/store";
 
 export interface IPagesHeaderProps {
@@ -141,7 +139,6 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
       <Header.RightItem>
         <ZilLinkChip entityType="page" entityId={page.id} />
         {!page.isFolder && <PageSyncingBadge syncStatus={page.isSyncingWithServer} />}
-        <PageDetailsHeaderExtraActions page={page} storeType={storeType} />
         <PageHeaderActions page={page} storeType={storeType} />
       </Header.RightItem>
     </Header>

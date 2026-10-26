@@ -15,11 +15,10 @@ import { CustomMenu } from "@plane/ui";
 import { ATTENTION_KEYS, AttentionDot, AttentionText, useAttention } from "@/components/common/attention-highlight";
 import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 import { openBugReporter, openFeatureSuggest } from "@/components/support/events";
+import { PlaneVersionNumber } from "@/components/global/version-number";
 // hooks
 import { useAppRouter } from "@/hooks/use-app-router";
 import { usePowerK } from "@/hooks/store/use-power-k";
-// plane web components
-import { PlaneVersionNumber } from "@/plane-web/components/global";
 
 export const HelpMenuRoot = observer(function HelpMenuRoot() {
   // store hooks

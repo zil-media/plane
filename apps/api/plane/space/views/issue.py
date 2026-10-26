@@ -26,7 +26,7 @@ from django.db.models import (
     CharField,
     Subquery,
 )
-from django.db.models.functions import Concat
+from django.db.models.functions import Cast, Concat
 
 # Third Party imports
 from rest_framework.response import Response
@@ -664,7 +664,7 @@ class IssueRetrievePublicEndpoint(BaseAPIView):
                                             votes__actor__avatar_asset__isnull=False,
                                             then=Concat(
                                                 Value("/api/assets/v2/static/"),
-                                                F("votes__actor__avatar_asset"),
+                                                Cast("votes__actor__avatar_asset", CharField()),
                                                 Value("/"),
                                             ),
                                         ),
@@ -710,7 +710,7 @@ class IssueRetrievePublicEndpoint(BaseAPIView):
                                             votes__actor__avatar_asset__isnull=False,
                                             then=Concat(
                                                 Value("/api/assets/v2/static/"),
-                                                F("votes__actor__avatar_asset"),
+                                                Cast("votes__actor__avatar_asset", CharField()),
                                                 Value("/"),
                                             ),
                                         ),

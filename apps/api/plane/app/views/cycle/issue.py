@@ -236,6 +236,9 @@ class CycleIssueViewSet(BaseViewSet):
             )
 
         # Get all CycleIssues already created
+        # Scope to workspace+project to prevent cross-tenant IDOR: without this
+        # scope, foreign-tenant CycleIssue rows matched by issue_id would be
+        # reassigned to the caller's cycle (GHSA-4w5x-wc9w-f47x).
         cycle_issues = list(
             CycleIssue.objects.filter(
                 ~Q(cycle_id=cycle_id),

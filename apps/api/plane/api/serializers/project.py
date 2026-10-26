@@ -319,5 +319,6 @@ class ProjectLiteSerializer(BaseSerializer):
             "emoji",
             "description",
             "cover_image_url",
+            "archived_at",
         ]
         read_only_fields = fields
