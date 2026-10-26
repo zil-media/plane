@@ -90,6 +90,9 @@ function extractMessage(thrown: unknown): string {
 
 export function reportClientError(thrown: unknown, componentStack = "") {
   if (typeof window === "undefined" || isLocalhost()) return;
+  // A blank string (`Promise.reject("")`, an ErrorEvent with no message and no error) carries
+  // nothing to act on, and its only stack frame would be this reporter's own.
+  if (typeof thrown === "string" && !thrown.trim()) return;
   const err = thrown instanceof Error ? thrown : new Error(extractMessage(thrown));
   const message = err.message || String(thrown);
   const stack = err.stack ?? "";
