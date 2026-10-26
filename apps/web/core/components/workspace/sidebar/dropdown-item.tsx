@@ -115,9 +115,7 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
               <span className="flex-shrink-0 p-1">
                 <CheckIcon className="h-5 w-5 text-primary" />
               </span>
-            ) : (
-              null
-            )}
+            ) : null}
           </div>
         </div>
         {workspace.id === activeWorkspace?.id && (

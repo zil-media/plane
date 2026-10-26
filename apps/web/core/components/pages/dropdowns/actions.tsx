@@ -28,6 +28,7 @@ import { ContextMenu, CustomMenu } from "@plane/ui";
 import { cn } from "@plane/utils";
 import { ZilClientPickerModal } from "@/components/pages/folder/zil-client-picker-modal";
 import { DeletePageModal } from "@/components/pages/modals/delete-page-modal";
+import { MovePageModal } from "@/components/pages/modals/move-page-modal";
 import { usePageTreeOperations } from "@/hooks/use-page-tree-operations";
 // hooks
 import { usePageOperations } from "@/hooks/use-page-operations";

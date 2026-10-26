@@ -139,7 +139,6 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
       <Header.RightItem>
         <ZilLinkChip entityType="page" entityId={page.id} />
         {!page.isFolder && <PageSyncingBadge syncStatus={page.isSyncingWithServer} />}
-        <PageDetailsHeaderExtraActions page={page} storeType={storeType} />
         <PageHeaderActions page={page} storeType={storeType} />
       </Header.RightItem>
     </Header>
