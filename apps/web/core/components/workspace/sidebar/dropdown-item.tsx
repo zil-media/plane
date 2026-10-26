@@ -17,8 +17,6 @@ import type { IWorkspace } from "@plane/types";
 import { cn, getFileURL, getUserRole } from "@plane/utils";
 // hooks
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
-// plane web imports
-import { SubscriptionPill } from "@/plane-web/components/common/subscription/subscription-pill";
 
 type TProps = {
   workspace: IWorkspace;
@@ -118,7 +116,7 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
                 <CheckIcon className="h-5 w-5 text-primary" />
               </span>
             ) : (
-              <SubscriptionPill workspace={workspace} />
+              null
             )}
           </div>
         </div>

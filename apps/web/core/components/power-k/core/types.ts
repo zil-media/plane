@@ -5,14 +5,8 @@
  */
 
 import type { useRouter } from "next/navigation";
-// plane web imports
-import type {
-  TPowerKContextTypeExtended,
-  TPowerKPageTypeExtended,
-  TPowerKSearchResultsKeysExtended,
-} from "@/plane-web/components/command-palette/power-k/types";
 
-export type TPowerKContextType = "work-item" | "page" | "cycle" | "module" | TPowerKContextTypeExtended;
+export type TPowerKContextType = "work-item" | "page" | "cycle" | "module";
 
 export type TPowerKContext = {
   // Route information
@@ -55,8 +49,8 @@ export type TPowerKPageType =
   // preferences
   | "update-theme"
   | "update-timezone"
-  | "update-language"
-  | TPowerKPageTypeExtended;
+  | "update-start-of-week"
+  | "update-language";
 
 export type TPowerKCommandGroup =
   | "contextual"
@@ -132,12 +126,4 @@ export type TSelectionPageProps<T = any> = {
   onClose: () => void;
 };
 
-export type TPowerKSearchResultsKeys =
-  | "workspace"
-  | "project"
-  | "issue"
-  | "cycle"
-  | "module"
-  | "issue_view"
-  | "page"
-  | TPowerKSearchResultsKeysExtended;
+export type TPowerKSearchResultsKeys = "workspace" | "project" | "issue" | "cycle" | "module" | "issue_view" | "page";

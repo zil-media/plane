@@ -31,8 +31,6 @@ import { DeletePageModal } from "@/components/pages/modals/delete-page-modal";
 import { usePageTreeOperations } from "@/hooks/use-page-tree-operations";
 // hooks
 import { usePageOperations } from "@/hooks/use-page-operations";
-// plane web components
-import { MovePageModal } from "@/plane-web/components/pages";
 // plane web hooks
 import type { EPageStoreType } from "@/hooks/store";
 import { usePageFlag } from "@/hooks/use-page-flag";

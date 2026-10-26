@@ -10,12 +10,10 @@ import { EEstimateSystem, ESTIMATE_SYSTEMS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TEstimateSystemKeys } from "@plane/types";
-// components
+// helpers
+import { isEstimateSystemEnabled } from "./helper";
 import { convertMinutesToHoursMinutesString } from "@plane/utils";
-// plane web imports
-import { isEstimateSystemEnabled } from "@/plane-web/components/estimates/helper";
 import { RadioInput } from "../radio-select";
-// local imports
 
 type TEstimateCreateStageOne = {
   estimateSystem: TEstimateSystemKeys;
