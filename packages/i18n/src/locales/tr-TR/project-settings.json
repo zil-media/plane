@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "Çöp kutusu",
+      "title": "Çöp kutusu",
+      "description": "Silinen öğeler kalıcı olarak kaldırılana kadar buradan geri yüklenebilir.",
+      "empty": "Çöp kutusu boş.",
+      "tab_issue": "İş öğeleri",
+      "tab_page": "Sayfalar",
+      "tab_cycle": "Döngüler",
+      "tab_module": "Modüller",
+      "tab_project": "Projeler",
+      "restore": "Geri yükle",
+      "restored": "Öğe geri yüklendi",
+      "restore_failed": "Öğe geri yüklenemedi",
+      "deleted_by": "Silen: {name}",
+      "days_left": "Kalan gün: {count}"
     }
   }
 }

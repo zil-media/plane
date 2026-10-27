@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "回收站",
+      "title": "回收站",
+      "description": "已删除的项目在被永久移除之前可在此恢复。",
+      "empty": "回收站为空。",
+      "tab_issue": "工作项",
+      "tab_page": "页面",
+      "tab_cycle": "周期",
+      "tab_module": "模块",
+      "tab_project": "项目",
+      "restore": "恢复",
+      "restored": "项目已恢复",
+      "restore_failed": "无法恢复该项目",
+      "deleted_by": "删除者：{name}",
+      "days_left": "剩余天数：{count}"
     }
   }
 }

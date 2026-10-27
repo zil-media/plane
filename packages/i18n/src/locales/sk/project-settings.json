@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "Kôš",
+      "title": "Kôš",
+      "description": "Odstránené položky tu môžete obnoviť, kým nie sú natrvalo odstránené.",
+      "empty": "Kôš je prázdny.",
+      "tab_issue": "Pracovné položky",
+      "tab_page": "Stránky",
+      "tab_cycle": "Cykly",
+      "tab_module": "Moduly",
+      "tab_project": "Projekty",
+      "restore": "Obnoviť",
+      "restored": "Položka obnovená",
+      "restore_failed": "Položku sa nepodarilo obnoviť",
+      "deleted_by": "Odstránil(a) {name}",
+      "days_left": "Zostávajúce dni: {count}"
     }
   }
 }

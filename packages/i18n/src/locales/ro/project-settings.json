@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "Coș de gunoi",
+      "title": "Coș de gunoi",
+      "description": "Elementele șterse pot fi restaurate aici până când sunt eliminate definitiv.",
+      "empty": "Coșul de gunoi este gol.",
+      "tab_issue": "Elemente de lucru",
+      "tab_page": "Pagini",
+      "tab_cycle": "Cicluri",
+      "tab_module": "Module",
+      "tab_project": "Proiecte",
+      "restore": "Restaurează",
+      "restored": "Element restaurat",
+      "restore_failed": "Elementul nu a putut fi restaurat",
+      "deleted_by": "Șters de {name}",
+      "days_left": "Zile rămase: {count}"
     }
   }
 }

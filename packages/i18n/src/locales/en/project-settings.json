@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "Trash",
+      "title": "Trash",
+      "description": "Deleted items can be restored here until they are permanently removed.",
+      "empty": "The trash is empty.",
+      "tab_issue": "Work items",
+      "tab_page": "Pages",
+      "tab_cycle": "Cycles",
+      "tab_module": "Modules",
+      "tab_project": "Projects",
+      "restore": "Restore",
+      "restored": "Item restored",
+      "restore_failed": "Could not restore the item",
+      "deleted_by": "Deleted by {name}",
+      "days_left": "Days left: {count}"
     }
   }
 }

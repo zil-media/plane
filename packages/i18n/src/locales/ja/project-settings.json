@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "ゴミ箱",
+      "title": "ゴミ箱",
+      "description": "削除された項目は、完全に削除されるまでここで復元できます。",
+      "empty": "ゴミ箱は空です。",
+      "tab_issue": "作業項目",
+      "tab_page": "ページ",
+      "tab_cycle": "サイクル",
+      "tab_module": "モジュール",
+      "tab_project": "プロジェクト",
+      "restore": "復元",
+      "restored": "項目を復元しました",
+      "restore_failed": "項目を復元できませんでした",
+      "deleted_by": "削除者: {name}",
+      "days_left": "残り日数: {count}"
     }
   }
 }

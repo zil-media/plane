@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "Thùng rác",
+      "title": "Thùng rác",
+      "description": "Các mục đã xóa có thể được khôi phục tại đây cho đến khi bị xóa vĩnh viễn.",
+      "empty": "Thùng rác trống.",
+      "tab_issue": "Mục công việc",
+      "tab_page": "Trang",
+      "tab_cycle": "Chu kỳ",
+      "tab_module": "Mô-đun",
+      "tab_project": "Dự án",
+      "restore": "Khôi phục",
+      "restored": "Đã khôi phục mục",
+      "restore_failed": "Không thể khôi phục mục",
+      "deleted_by": "Bị xóa bởi {name}",
+      "days_left": "Số ngày còn lại: {count}"
     }
   }
 }

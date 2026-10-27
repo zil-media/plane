@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "資源回收筒",
+      "title": "資源回收筒",
+      "description": "已刪除的項目在被永久移除之前可在此還原。",
+      "empty": "資源回收筒是空的。",
+      "tab_issue": "工作項目",
+      "tab_page": "頁面",
+      "tab_cycle": "週期",
+      "tab_module": "模組",
+      "tab_project": "專案",
+      "restore": "還原",
+      "restored": "項目已還原",
+      "restore_failed": "無法還原該項目",
+      "deleted_by": "刪除者：{name}",
+      "days_left": "剩餘天數：{count}"
     }
   }
 }

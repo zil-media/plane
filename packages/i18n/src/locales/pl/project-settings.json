@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "Kosz",
+      "title": "Kosz",
+      "description": "Usunięte elementy można tutaj przywrócić do czasu ich trwałego usunięcia.",
+      "empty": "Kosz jest pusty.",
+      "tab_issue": "Elementy pracy",
+      "tab_page": "Strony",
+      "tab_cycle": "Cykle",
+      "tab_module": "Moduły",
+      "tab_project": "Projekty",
+      "restore": "Przywróć",
+      "restored": "Element przywrócony",
+      "restore_failed": "Nie udało się przywrócić elementu",
+      "deleted_by": "Usunięte przez {name}",
+      "days_left": "Pozostało dni: {count}"
     }
   }
 }
