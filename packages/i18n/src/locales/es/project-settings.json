@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "Papelera",
+      "title": "Papelera",
+      "description": "Los elementos eliminados se pueden restaurar aquí hasta que se eliminen de forma definitiva.",
+      "empty": "La papelera está vacía.",
+      "tab_issue": "Elementos de trabajo",
+      "tab_page": "Páginas",
+      "tab_cycle": "Ciclos",
+      "tab_module": "Módulos",
+      "tab_project": "Proyectos",
+      "restore": "Restaurar",
+      "restored": "Elemento restaurado",
+      "restore_failed": "No se pudo restaurar el elemento",
+      "deleted_by": "Eliminado por {name}",
+      "days_left": "Días restantes: {count}"
     }
   }
 }

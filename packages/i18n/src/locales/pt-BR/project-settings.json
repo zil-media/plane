@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "Lixeira",
+      "title": "Lixeira",
+      "description": "Os itens excluídos podem ser restaurados aqui até serem removidos definitivamente.",
+      "empty": "A lixeira está vazia.",
+      "tab_issue": "Itens de trabalho",
+      "tab_page": "Páginas",
+      "tab_cycle": "Ciclos",
+      "tab_module": "Módulos",
+      "tab_project": "Projetos",
+      "restore": "Restaurar",
+      "restored": "Item restaurado",
+      "restore_failed": "Não foi possível restaurar o item",
+      "deleted_by": "Excluído por {name}",
+      "days_left": "Dias restantes: {count}"
     }
   }
 }

@@ -355,6 +355,11 @@ export const coreRoutes: RouteConfigEntry[] = [
               ":workspaceSlug/settings/projects/:projectId/states",
               "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/states/page.tsx"
             ),
+            // Project Trash
+            route(
+              ":workspaceSlug/settings/projects/:projectId/trash",
+              "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/trash/page.tsx"
+            ),
             // Project Labels
             route(
               ":workspaceSlug/settings/projects/:projectId/labels",

@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "휴지통",
+      "title": "휴지통",
+      "description": "삭제된 항목은 영구적으로 제거되기 전까지 여기에서 복원할 수 있습니다.",
+      "empty": "휴지통이 비어 있습니다.",
+      "tab_issue": "작업 항목",
+      "tab_page": "페이지",
+      "tab_cycle": "사이클",
+      "tab_module": "모듈",
+      "tab_project": "프로젝트",
+      "restore": "복원",
+      "restored": "항목을 복원했습니다",
+      "restore_failed": "항목을 복원할 수 없습니다",
+      "deleted_by": "삭제한 사람: {name}",
+      "days_left": "남은 일수: {count}"
     }
   }
 }

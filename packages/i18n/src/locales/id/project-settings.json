@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "Tempat sampah",
+      "title": "Tempat sampah",
+      "description": "Item yang dihapus dapat dipulihkan di sini sampai dihapus secara permanen.",
+      "empty": "Tempat sampah kosong.",
+      "tab_issue": "Item kerja",
+      "tab_page": "Halaman",
+      "tab_cycle": "Siklus",
+      "tab_module": "Modul",
+      "tab_project": "Proyek",
+      "restore": "Pulihkan",
+      "restored": "Item dipulihkan",
+      "restore_failed": "Item tidak dapat dipulihkan",
+      "deleted_by": "Dihapus oleh {name}",
+      "days_left": "Sisa hari: {count}"
     }
   }
 }

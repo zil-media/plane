@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "Corbeille",
+      "title": "Corbeille",
+      "description": "Les éléments supprimés peuvent être restaurés ici jusqu'à leur suppression définitive.",
+      "empty": "La corbeille est vide.",
+      "tab_issue": "Éléments de travail",
+      "tab_page": "Pages",
+      "tab_cycle": "Cycles",
+      "tab_module": "Modules",
+      "tab_project": "Projets",
+      "restore": "Restaurer",
+      "restored": "Élément restauré",
+      "restore_failed": "Impossible de restaurer l'élément",
+      "deleted_by": "Supprimé par {name}",
+      "days_left": "Jours restants : {count}"
     }
   }
 }

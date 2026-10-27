@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "Koš",
+      "title": "Koš",
+      "description": "Odstraněné položky lze zde obnovit, dokud nejsou trvale odstraněny.",
+      "empty": "Koš je prázdný.",
+      "tab_issue": "Pracovní položky",
+      "tab_page": "Stránky",
+      "tab_cycle": "Cykly",
+      "tab_module": "Moduly",
+      "tab_project": "Projekty",
+      "restore": "Obnovit",
+      "restored": "Položka obnovena",
+      "restore_failed": "Položku se nepodařilo obnovit",
+      "deleted_by": "Odstranil(a) {name}",
+      "days_left": "Zbývající dny: {count}"
     }
   }
 }

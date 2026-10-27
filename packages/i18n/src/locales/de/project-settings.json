@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "Papierkorb",
+      "title": "Papierkorb",
+      "description": "Gelöschte Elemente können hier wiederhergestellt werden, bis sie endgültig entfernt werden.",
+      "empty": "Der Papierkorb ist leer.",
+      "tab_issue": "Arbeitselemente",
+      "tab_page": "Seiten",
+      "tab_cycle": "Zyklen",
+      "tab_module": "Module",
+      "tab_project": "Projekte",
+      "restore": "Wiederherstellen",
+      "restored": "Element wiederhergestellt",
+      "restore_failed": "Element konnte nicht wiederhergestellt werden",
+      "deleted_by": "Gelöscht von {name}",
+      "days_left": "Verbleibende Tage: {count}"
     }
   }
 }

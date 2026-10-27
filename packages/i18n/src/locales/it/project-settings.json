@@ -521,6 +521,22 @@
           }
         }
       }
+    },
+    "trash": {
+      "label": "Cestino",
+      "title": "Cestino",
+      "description": "Gli elementi eliminati possono essere ripristinati qui finché non vengono rimossi definitivamente.",
+      "empty": "Il cestino è vuoto.",
+      "tab_issue": "Elementi di lavoro",
+      "tab_page": "Pagine",
+      "tab_cycle": "Cicli",
+      "tab_module": "Moduli",
+      "tab_project": "Progetti",
+      "restore": "Ripristina",
+      "restored": "Elemento ripristinato",
+      "restore_failed": "Impossibile ripristinare l'elemento",
+      "deleted_by": "Eliminato da {name}",
+      "days_left": "Giorni rimanenti: {count}"
     }
   }
 }
