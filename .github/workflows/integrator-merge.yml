@@ -12,6 +12,10 @@ name: Integrator Merge
 # Backend gates need Docker. If the routine's machine had none, it says so with the trailer
 # `Integrator-Backend: pending`, and ONLY then this job runs the backend gates before merging.
 #
+# A feature agent PR the PR manager integrates is merged by THIS push, made with GITHUB_TOKEN: GitHub
+# marks the PR merged but fires no `pull_request: closed`, so feature-agent-pr.yml's mark-merged never
+# runs. This job closes the loop in Ops itself for every Feature-Id that reached preview.
+#
 # GitHub limit: GITHUB_TOKEN cannot push changes under .github/workflows/**. The PR manager merges
 # those PRs through the PR API instead of this lane.
 
@@ -34,6 +38,8 @@ jobs:
     timeout-minutes: 60
     env:
       GH_TOKEN: ${{ github.token }}
+      FEATURE_AGENT_API_KEY: ${{ secrets.FEATURE_AGENT_API_KEY }}
+      API_URL: ${{ secrets.AGENT_API_URL }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -71,3 +77,21 @@ jobs:
       - name: Deploy
         if: steps.merge.outputs.merged == 'true'
         run: '"$LANE/trigger-deploy.sh"'
+      - name: Mark the integrated features merged
+        if: always() && steps.merge.outputs.merged == 'true'
+        env:
+          PRE: ${{ steps.merge.outputs.pre }}
+        run: |
+          [ -n "$FEATURE_AGENT_API_KEY" ] && [ -n "$API_URL" ] || { echo "::warning::Feature secrets missing."; exit 0; }
+          export LANE_BASE="$PRE"
+          source "$LANE/lib.sh"
+          SHA=$(git rev-parse HEAD)
+          FAILED=""
+          for FID in $(trailer_ids Feature-Id HEAD); do
+            PAYLOAD=$(jq -n --arg c "$SHA" '{commit_hash: $c}')
+            "$LANE/agent-api.sh" merged "$FID" "$PAYLOAD" || FAILED="${FAILED} ${FID}"
+          done
+          if [ -n "$FAILED" ]; then
+            echo "::error::These features are on preview but not marked merged:${FAILED}. A 409 is a real state mismatch: look at it."
+            exit 1
+          fi

@@ -5,8 +5,9 @@ claude.ai/code/routines (repository: `zil-media/plane`). This file is the repo m
 config: **every change here has to be re-pasted by hand**.
 
 This is a different routine from the bug fixer, with its own key and its own API. It never merges:
-CI routes its builds (high impact or any guard warning → a PR a person merges; low/medium with a
-silent guard → the daily batch window). It ships **disabled** (`AgentPipelineConfig.feature_agent_enabled`).
+CI routes its builds (flag gate present and a strict-clean guard → the daily batch window, which
+ships it and turns its flag on; no flag gate, migrations or deleted files → a PR the PR manager
+integrates). It ships **disabled** (`AgentPipelineConfig.feature_agent_enabled`).
 
 ---
 
@@ -84,13 +85,14 @@ your improvisation.
    "dudas" + note when you proceed on a stated assumption; it does not pause anything.
    Post at least every 30 minutes: a build silent for 60 is released and fired again.
    The requester reads every note as it is (and the spec summary): plain Spanish (usted), what
-   changes for them; no code, files, branches, hashes or mentions of agents or automation.
+   changes for them; no code, files, branches, hashes, tests, environments or mentions of agents
+   or automation.
 3. SHIP IT DARK. Every entry point behind the flag:
      backend:  from plane.utils.agent_pipeline.flags import is_feature_enabled
                if not is_feature_enabled("<flag_key>"): return Response(status=404)
      frontend: import { useFeatureFlag } from "@/hooks/use-feature-flag";
                const enabled = useFeatureFlag("<flag_key>");  // hide the route/nav/button when false
-   If neither appears in your diff, CI warns and your build goes to a human-reviewed PR.
+   If neither appears in your diff, CI warns and your build goes to a PR instead of shipping.
 4. BLOCKED FILES — CI hard-fails on them, don't try (full list in .github/ci/check-agent-diff.mjs):
    .github/**, docs/agents/**, apps/api/plane/agent_api/**, apps/api/plane/utils/agent_pipeline/**,
    apps/api/plane/app/views/support/**, apps/api/plane/authentication/**, apps/api/plane/license/**,
@@ -106,7 +108,13 @@ your improvisation.
    .claude/skills/translate/SKILL.md; user-facing name "Zil Ops"; tests for anything touching
    state transitions, permissions or data (apps/api/plane/tests, markers unit/contract). No new
    packages, no console.log, no `any`, no emojis in UI, no empty catch.
-6. Commit and push:
+6. Test, then commit and push. The session start hook boots Postgres + Redis and the test
+   requirements (its message says so). Backend touched → every test you wrote or touched, then the
+   whole suite, must pass here before you push:
+     cd apps/api && pytest -p no:cacheprovider -q <your test files> && pytest -p no:cacheprovider -q
+   A failing or unrunnable test means you are not done: fix it, or if the hook said the test
+   environment failed, report it as blocked (below) — never push untested backend code and never
+   ship it as an assumption ("dudas").
      ruff check apps/api   and   pnpm install --frozen-lockfile && pnpm check:types
      git add <your files>        # never git add -A
      git commit -m "feat: <short description>" -m "Feature-Id: <FEATURE_ID>"

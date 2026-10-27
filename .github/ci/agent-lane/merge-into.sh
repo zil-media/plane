@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Merges the pushed commit into `preview` or `agent-batch` and pushes, retrying when the target
-# moved underneath (another lane wrote it meanwhile). Outputs: merged=true | conflict=true.
+# moved underneath (another lane wrote it meanwhile). Outputs: merged=true + pre=<target tip before
+# the merge> | conflict=true.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
@@ -27,6 +28,7 @@ for attempt in 1 2 3; do
     else
         git checkout -B preview origin/preview
     fi
+    PRE=$(git rev-parse HEAD)
 
     if ! git merge --no-edit "$HEAD_SHA"; then
         git merge --abort 2>/dev/null || true
@@ -37,6 +39,7 @@ for attempt in 1 2 3; do
 
     if git push origin "$TARGET"; then
         emit "merged=true"
+        emit "pre=${PRE}"
         echo "Merged into ${TARGET}: $(git rev-parse --short HEAD)"
         exit 0
     fi

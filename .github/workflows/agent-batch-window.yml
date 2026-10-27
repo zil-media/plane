@@ -202,3 +202,33 @@ jobs:
             echo "::error::These features are in production but not marked merged:${FAILED}. A 409 is a real state mismatch: look at it."
             exit 1
           fi
+
+      # Safety net: a feature still in review (or queued) whose commits already reached preview got
+      # there by a merge that told Ops nothing (a GITHUB_TOKEN push fires no `pull_request: closed`).
+      - name: Mark deployed features left in review
+        if: always()
+        run: |
+          [ -n "$FEATURE_AGENT_API_KEY" ] && [ -n "$API_URL" ] || exit 0
+          git fetch origin preview --quiet || true
+          : > /tmp/stranded-features
+          for STATUS in in_review queued; do
+            if ! curl -sSf --max-time 30 -o /tmp/features.json -H "Authorization: Bearer ${FEATURE_AGENT_API_KEY}" \
+                "${API_URL}/api/agent/features/?status=${STATUS}"; then
+              echo "::warning::Could not list features in '${STATUS}'; skipping."
+              exit 0
+            fi
+            jq -r '.[]?.id // empty' /tmp/features.json >> /tmp/stranded-features
+          done
+          STRANDED=$(sort -u /tmp/stranded-features)
+          [ -n "$STRANDED" ] || { echo "No features in review or queued."; exit 0; }
+          source "$LANE/lib.sh"
+          DEPLOYED=$(for SHA in $(git rev-list --no-merges --since="90 days ago" origin/preview); do
+            trailer_values Feature-Id "$SHA"
+          done | tr 'A-F' 'a-f' | grep -oE "^${UUID_RE}$" | sort -u || true)
+          RECOVER=$(comm -12 <(printf '%s\n' "$STRANDED") <(printf '%s\n' "$DEPLOYED"))
+          [ -n "$RECOVER" ] || { echo "Features in review are not on preview yet."; exit 0; }
+          SHA=$(git rev-parse origin/preview)
+          for FID in $RECOVER; do
+            PAYLOAD=$(jq -n --arg c "$SHA" '{commit_hash: $c}')
+            "$LANE/agent-api.sh" merged "$FID" "$PAYLOAD" || echo "::warning::could not reconcile ${FID}"
+          done

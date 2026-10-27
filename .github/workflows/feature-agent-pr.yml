@@ -2,12 +2,14 @@ name: Feature Agent PR
 
 # The feature agent's lane (feat/agent/<feature uuid>). Runs the full preview bar, then routes:
 #
-#   - high impact, unreadable API, or ANY guard ⚠  -> PR against preview; a person reviews and merges.
-#   - low/medium with a silent guard (incl. the flag gate present) -> merged into `agent-batch`;
-#     agent-batch-window.yml re-gates the combined batch and ships it to preview.
+#   - flag gate present and the window's strict guard clean -> merged into `agent-batch`;
+#     agent-batch-window.yml re-gates the combined batch, ships it to preview and Ops turns the
+#     flag on (owner's call: an approved spec that passes CI ships by itself, whatever its impact).
+#   - no flag gate, or something only a person merges (migrations, deleted files) -> PR against
+#     preview, which the PR manager routine integrates.
 #
-# The blast radius is the AGENT's own declaration, so it never auto-merges on its own: the guard,
-# derived from the code, has to be silent too. And everything ships dark behind its flag.
+# A person already decided when they approved the spec; the declared blast radius only informs that
+# decision. What the code must prove on its own is the flag gate and a strict-clean guard.
 
 on:
   push:
@@ -90,25 +92,20 @@ jobs:
         env:
           FEATURE_ID: ${{ steps.feature.outputs.feature_id }}
         run: |
-          RADIUS=high
+          RADIUS=unknown
           if [ -n "$FEATURE_AGENT_API_KEY" ] && [ -n "$API_URL" ] && \
              curl -sf -H "Authorization: Bearer ${FEATURE_AGENT_API_KEY}" \
                -o /tmp/feature.json "${API_URL}/api/agent/features/${FEATURE_ID}/"; then
-            RADIUS=$(jq -r '.spec.blast_radius // "high"' /tmp/feature.json)
-          else
-            echo "::warning::Could not read feature ${FEATURE_ID}: assuming high impact (PR lane)"
+            RADIUS=$(jq -r '.spec.blast_radius // "unknown"' /tmp/feature.json)
           fi
-          LANE_NAME=pr
+          LANE_NAME=batch
           FALLBACK=""
-          if [ "$RADIUS" = "low" ] || [ "$RADIUS" = "medium" ]; then
-            LANE_NAME=batch
-            if grep -q '### ⚠ No flag' /tmp/guard-report.md 2>/dev/null; then
-              LANE_NAME=pr
-              FALLBACK="The diff shows no flag gate (is_feature_enabled / useFeatureFlag): required for auto-merge."
-            elif grep -q '⚠' /tmp/guard-report.md 2>/dev/null; then
-              LANE_NAME=pr
-              FALLBACK="The guard raised ⚠ (sensitive files or size): only silent diffs auto-merge."
-            fi
+          if grep -q '### ⚠ No flag' /tmp/guard-report.md 2>/dev/null; then
+            LANE_NAME=pr
+            FALLBACK="The diff shows no flag gate (is_feature_enabled / useFeatureFlag): required for auto-merge."
+          elif ! node /tmp/check-agent-diff.preview.mjs --base origin/preview --strict --report /tmp/guard-strict.md >/dev/null 2>&1; then
+            LANE_NAME=pr
+            FALLBACK="The batch window's strict guard would cut it (migrations or deleted files): a person merges those."
           fi
           echo "Declared blast radius: ${RADIUS}. Lane: ${LANE_NAME}. ${FALLBACK}"
           echo "lane=${LANE_NAME}" >> "$GITHUB_OUTPUT"

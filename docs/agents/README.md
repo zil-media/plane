@@ -31,6 +31,11 @@ environment must allow `ops.zil.global` in its network access. The session must 
 branches but **not** workflow files (no `workflows` permission): that is what stops an agent branch
 from rewriting the lanes that gate it.
 
+The sessions have no Docker. `.claude/settings.json` runs `.claude/hooks/cloud-backend-tests.sh` at
+session start (cloud only): it starts the image's Postgres and Redis, installs
+`apps/api/requirements/test.txt` and exports the test env, so `pytest` runs from `apps/api` before
+the push. The environment's network access must allow PyPI.
+
 ## 2. Ops environment (api + worker + beat)
 
 | Variable                                       | Value                                               |
