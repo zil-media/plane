@@ -25,8 +25,8 @@ class ZilBrandProject(BaseModel):
     changes, since it is part of every work item key (`KFC-123`). `auto_name` is the last name the
     sync gave the project: a project renamed by hand keeps its name.
 
-    `community_manager`, `leader`, `materials_url` and `finals_url` are Ops' own: loaded from the
-    "Marca" tab, never touched by the sync.
+    `community_managers`, `leaders`, `materials_links` and `finals_links` are Ops' own: loaded from
+    the "Marca" tab, never touched by the sync.
     """
 
     BRAND_KIND = "brand"
@@ -47,14 +47,11 @@ class ZilBrandProject(BaseModel):
     status = models.CharField(max_length=16, default=ACTIVE)
     synced_at = models.DateTimeField(null=True, blank=True)
     members_synced_at = models.DateTimeField(null=True, blank=True)
-    community_manager = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="zil_brands_as_cm"
-    )
-    leader = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="zil_brands_as_leader"
-    )
-    materials_url = models.URLField(max_length=2048, blank=True, default="")
-    finals_url = models.URLField(max_length=2048, blank=True, default="")
+    community_managers = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name="zil_brands_as_cm")
+    leaders = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name="zil_brands_as_leader")
+    # [{"name": "Fotos", "url": "https://drive.google.com/…"}], in the order people loaded them
+    materials_links = models.JSONField(default=list, blank=True)
+    finals_links = models.JSONField(default=list, blank=True)
 
     class Meta:
         verbose_name = "Zil Brand Project"

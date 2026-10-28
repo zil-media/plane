@@ -485,11 +485,13 @@
     "materials": "Materyaller",
     "finals": "Final dosyaları",
     "unassigned": "Atanmadı",
-    "open_drive": "Drive'da aç",
-    "no_link": "Henüz bağlantı yok",
     "edit_link": "Bağlantıyı düzenle",
     "save_link": "Bağlantıyı kaydet",
     "cancel_link": "İptal",
-    "ops_save_error": "Kaydedilemedi. Bağlantılar http(s) ile başlamalı ve kişiler bu markanın üyesi olmalı."
+    "ops_save_error": "Kaydedilemedi. Bağlantılar http(s) ile başlamalı ve kişiler bu markanın üyesi olmalı.",
+    "no_links": "Henüz bağlantı yok",
+    "add_link": "Bağlantı ekle",
+    "link_name_placeholder": "Ad (isteğe bağlı)",
+    "remove_link": "Bağlantıyı kaldır"
   }
 }

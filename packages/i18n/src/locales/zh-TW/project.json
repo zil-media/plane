@@ -485,11 +485,13 @@
     "materials": "素材",
     "finals": "成品",
     "unassigned": "未指派",
-    "open_drive": "在 Drive 中開啟",
-    "no_link": "尚無連結",
     "edit_link": "編輯連結",
     "save_link": "儲存連結",
     "cancel_link": "取消",
-    "ops_save_error": "無法儲存。連結必須以 http(s) 開頭，且人員必須是此品牌的成員。"
+    "ops_save_error": "無法儲存。連結必須以 http(s) 開頭，且人員必須是此品牌的成員。",
+    "no_links": "尚無連結",
+    "add_link": "新增連結",
+    "link_name_placeholder": "名稱（選填）",
+    "remove_link": "移除連結"
   }
 }

@@ -1,4 +1,3 @@
-import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
 
@@ -11,34 +10,22 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="zilbrandproject",
-            name="community_manager",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="zil_brands_as_cm",
-                to=settings.AUTH_USER_MODEL,
-            ),
+            name="community_managers",
+            field=models.ManyToManyField(blank=True, related_name="zil_brands_as_cm", to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name="zilbrandproject",
-            name="leader",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="zil_brands_as_leader",
-                to=settings.AUTH_USER_MODEL,
-            ),
+            name="leaders",
+            field=models.ManyToManyField(blank=True, related_name="zil_brands_as_leader", to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name="zilbrandproject",
-            name="materials_url",
-            field=models.URLField(blank=True, default="", max_length=2048),
+            name="materials_links",
+            field=models.JSONField(blank=True, default=list),
         ),
         migrations.AddField(
             model_name="zilbrandproject",
-            name="finals_url",
-            field=models.URLField(blank=True, default="", max_length=2048),
+            name="finals_links",
+            field=models.JSONField(blank=True, default=list),
         ),
     ]

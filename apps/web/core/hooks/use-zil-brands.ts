@@ -33,11 +33,20 @@ export function useZilProjectBrand(workspaceSlug: string | undefined, projectId:
     workspaceSlug && projectId ? () => zilBrandService.getProjectBrand(workspaceSlug, projectId) : null,
     { revalidateOnFocus: false, shouldRetryOnError: false }
   );
-  /** Saves what Ops keeps on the brand and shows it at once, without asking Zil again. */
+  /** Saves what Ops keeps on the brand, shown at once and without asking Zil again; undone if it fails. */
   const updateOps = async (changes: Partial<TZilBrandOps>) => {
-    if (!workspaceSlug || !projectId) return;
-    const { ops } = await zilBrandService.updateProjectBrandOps(workspaceSlug, projectId, changes);
-    await mutate((current) => (current ? { ...current, ops } : current), { revalidate: false });
+    if (!workspaceSlug || !projectId || !data) return;
+    const previous = data.ops;
+    await mutate((current) => (current ? { ...current, ops: { ...current.ops, ...changes } } : current), {
+      revalidate: false,
+    });
+    try {
+      const { ops } = await zilBrandService.updateProjectBrandOps(workspaceSlug, projectId, changes);
+      await mutate((current) => (current ? { ...current, ops } : current), { revalidate: false });
+    } catch (failure) {
+      await mutate((current) => (current ? { ...current, ops: previous } : current), { revalidate: false });
+      throw failure;
+    }
   };
   return { data, isLoading, error, updateOps };
 }

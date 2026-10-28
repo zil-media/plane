@@ -485,11 +485,13 @@
     "materials": "Materiały",
     "finals": "Pliki finalne",
     "unassigned": "Nieprzypisane",
-    "open_drive": "Otwórz w Drive",
-    "no_link": "Brak linku",
     "edit_link": "Edytuj link",
     "save_link": "Zapisz link",
     "cancel_link": "Anuluj",
-    "ops_save_error": "Nie udało się zapisać. Linki muszą zaczynać się od http(s), a osoby muszą być członkami tej marki."
+    "ops_save_error": "Nie udało się zapisać. Linki muszą zaczynać się od http(s), a osoby muszą być członkami tej marki.",
+    "no_links": "Brak linków",
+    "add_link": "Dodaj link",
+    "link_name_placeholder": "Nazwa (opcjonalnie)",
+    "remove_link": "Usuń link"
   }
 }

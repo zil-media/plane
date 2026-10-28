@@ -485,11 +485,13 @@
     "materials": "자료",
     "finals": "최종본",
     "unassigned": "미지정",
-    "open_drive": "Drive에서 열기",
-    "no_link": "아직 링크 없음",
     "edit_link": "링크 편집",
     "save_link": "링크 저장",
     "cancel_link": "취소",
-    "ops_save_error": "저장하지 못했습니다. 링크는 http(s)로 시작해야 하며 사람은 이 브랜드의 멤버여야 합니다."
+    "ops_save_error": "저장하지 못했습니다. 링크는 http(s)로 시작해야 하며 사람은 이 브랜드의 멤버여야 합니다.",
+    "no_links": "아직 링크 없음",
+    "add_link": "링크 추가",
+    "link_name_placeholder": "이름 (선택)",
+    "remove_link": "링크 삭제"
   }
 }

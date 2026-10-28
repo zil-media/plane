@@ -485,11 +485,13 @@
     "materials": "Materials",
     "finals": "Finals",
     "unassigned": "Unassigned",
-    "open_drive": "Open in Drive",
-    "no_link": "No link yet",
     "edit_link": "Edit link",
     "save_link": "Save link",
     "cancel_link": "Cancel",
-    "ops_save_error": "Could not save. Links must start with http(s) and people must be members of this brand."
+    "ops_save_error": "Could not save. Links must start with http(s) and people must be members of this brand.",
+    "no_links": "No links yet",
+    "add_link": "Add link",
+    "link_name_placeholder": "Name (optional)",
+    "remove_link": "Remove link"
   }
 }

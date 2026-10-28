@@ -485,11 +485,13 @@
     "materials": "素材",
     "finals": "完成品",
     "unassigned": "未割り当て",
-    "open_drive": "Driveで開く",
-    "no_link": "リンクはまだありません",
     "edit_link": "リンクを編集",
     "save_link": "リンクを保存",
     "cancel_link": "キャンセル",
-    "ops_save_error": "保存できませんでした。リンクは http(s) で始まり、メンバーはこのブランドに参加している必要があります。"
+    "ops_save_error": "保存できませんでした。リンクは http(s) で始まり、メンバーはこのブランドに参加している必要があります。",
+    "no_links": "リンクはまだありません",
+    "add_link": "リンクを追加",
+    "link_name_placeholder": "名前（任意）",
+    "remove_link": "リンクを削除"
   }
 }

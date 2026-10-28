@@ -485,11 +485,13 @@
     "materials": "Materiale",
     "finals": "Finale",
     "unassigned": "Neatribuit",
-    "open_drive": "Deschide în Drive",
-    "no_link": "Încă fără link",
     "edit_link": "Editează linkul",
     "save_link": "Salvează linkul",
     "cancel_link": "Anulează",
-    "ops_save_error": "Nu s-a putut salva. Linkurile trebuie să înceapă cu http(s), iar persoanele trebuie să fie membri ai acestui brand."
+    "ops_save_error": "Nu s-a putut salva. Linkurile trebuie să înceapă cu http(s), iar persoanele trebuie să fie membri ai acestui brand.",
+    "no_links": "Încă fără linkuri",
+    "add_link": "Adaugă link",
+    "link_name_placeholder": "Nume (opțional)",
+    "remove_link": "Elimină linkul"
   }
 }

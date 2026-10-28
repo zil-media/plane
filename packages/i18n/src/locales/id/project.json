@@ -485,11 +485,13 @@
     "materials": "Materi",
     "finals": "File final",
     "unassigned": "Belum ditugaskan",
-    "open_drive": "Buka di Drive",
-    "no_link": "Belum ada tautan",
     "edit_link": "Edit tautan",
     "save_link": "Simpan tautan",
     "cancel_link": "Batal",
-    "ops_save_error": "Gagal menyimpan. Tautan harus diawali http(s) dan orangnya harus anggota merek ini."
+    "ops_save_error": "Gagal menyimpan. Tautan harus diawali http(s) dan orangnya harus anggota merek ini.",
+    "no_links": "Belum ada tautan",
+    "add_link": "Tambah tautan",
+    "link_name_placeholder": "Nama (opsional)",
+    "remove_link": "Hapus tautan"
   }
 }

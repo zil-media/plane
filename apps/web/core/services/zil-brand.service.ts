@@ -43,12 +43,15 @@ export type TZilBrandSheet = {
   projects: { workspaceSlug: string; businessUnit: string }[] | null;
 };
 
-/** What Ops itself keeps on a brand, loaded from the "Marca" tab. */
+/** A Drive link of a brand; `name` may be empty. */
+export type TZilBrandLink = { name: string; url: string };
+
+/** What Ops itself keeps on a brand, loaded from the "Marca" tab. Each field is saved whole. */
 export type TZilBrandOps = {
-  community_manager_id: string | null;
-  leader_id: string | null;
-  materials_url: string;
-  finals_url: string;
+  community_manager_ids: string[];
+  leader_ids: string[];
+  materials_links: TZilBrandLink[];
+  finals_links: TZilBrandLink[];
 };
 
 export type TZilProjectBrand = {

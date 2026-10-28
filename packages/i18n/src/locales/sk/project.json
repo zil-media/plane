@@ -485,11 +485,13 @@
     "materials": "Materiály",
     "finals": "Finálne súbory",
     "unassigned": "Nepriradené",
-    "open_drive": "Otvoriť na Disku",
-    "no_link": "Zatiaľ bez odkazu",
     "edit_link": "Upraviť odkaz",
     "save_link": "Uložiť odkaz",
     "cancel_link": "Zrušiť",
-    "ops_save_error": "Uloženie zlyhalo. Odkazy musia začínať http(s) a osoby musia byť členmi tejto značky."
+    "ops_save_error": "Uloženie zlyhalo. Odkazy musia začínať http(s) a osoby musia byť členmi tejto značky.",
+    "no_links": "Zatiaľ žiadne odkazy",
+    "add_link": "Pridať odkaz",
+    "link_name_placeholder": "Názov (nepovinné)",
+    "remove_link": "Odstrániť odkaz"
   }
 }

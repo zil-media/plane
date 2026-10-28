@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 from rest_framework import status
 
-from plane.db.models import Project, ProjectMember, User, ZilBrandProject
+from plane.db.models import Project, ProjectMember, User, WorkspaceMember, ZilBrandProject
 from plane.utils.zil_brand_projects import apply_brand_roster
 
 KFC = "0123456789abcdef0123d001"
@@ -119,58 +119,103 @@ class TestBrandSheet:
         assert response.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND)
 
 
+@pytest.fixture
+def teammate(workspace, brands):
+    user = User.objects.create(email="cm@zil.global", username="cm", display_name="Carla")
+    WorkspaceMember.objects.create(workspace=workspace, member=user, role=15)
+    ProjectMember.objects.create(project=brands, member=user, role=15, workspace=workspace)
+    return user
+
+
 @pytest.mark.contract
 class TestBrandOpsFields:
     def url(self, workspace, project):
         return f"/api/workspaces/{workspace.slug}/projects/{project.id}/zil-brand/"
 
+    def get_ops(self, client, workspace, project):
+        with mock.patch.dict("os.environ", {"ZIL_BASE_URL": "", "ZIL_SERVICE_SECRET": ""}):
+            return client.get(self.url(workspace, project)).data["ops"]
+
     @pytest.mark.django_db
-    def test_cm_leader_and_drive_links_are_loaded_from_ops_and_shown(
-        self, session_client, workspace, brands, create_user
+    def test_several_cms_leaders_and_drive_links_are_loaded_from_ops_and_shown(
+        self, session_client, workspace, brands, create_user, teammate
     ):
         body = {
-            "community_manager_id": str(create_user.id),
-            "leader_id": str(create_user.id),
-            "materials_url": " https://drive.google.com/drive/folders/materiales ",
-            "finals_url": "https://drive.google.com/drive/folders/finales",
+            "community_manager_ids": [str(create_user.id), str(teammate.id)],
+            "leader_ids": [str(teammate.id)],
+            "materials_links": [
+                {"name": " Fotos ", "url": " https://drive.google.com/drive/folders/fotos "},
+                {"url": "https://drive.google.com/drive/folders/logos"},
+            ],
+            "finals_links": [{"name": "Octubre", "url": "https://drive.google.com/drive/folders/octubre"}],
         }
         response = session_client.patch(self.url(workspace, brands), body, format="json")
         assert response.status_code == status.HTTP_200_OK, response.data
-        assert response.data["ops"]["materials_url"] == "https://drive.google.com/drive/folders/materiales"
 
-        with mock.patch.dict("os.environ", {"ZIL_BASE_URL": "", "ZIL_SERVICE_SECRET": ""}):
-            ops = session_client.get(self.url(workspace, brands)).data["ops"]
-        assert ops == {**body, "materials_url": "https://drive.google.com/drive/folders/materiales"}
+        ops = self.get_ops(session_client, workspace, brands)
+        assert set(ops["community_manager_ids"]) == {str(create_user.id), str(teammate.id)}
+        assert ops["leader_ids"] == [str(teammate.id)]
+        assert ops["materials_links"] == [
+            {"name": "Fotos", "url": "https://drive.google.com/drive/folders/fotos"},
+            {"name": "", "url": "https://drive.google.com/drive/folders/logos"},
+        ]
+        assert ops["finals_links"] == [{"name": "Octubre", "url": "https://drive.google.com/drive/folders/octubre"}]
 
+        # each field sent replaces its whole list; the rest stay as they were
         cleared = session_client.patch(
-            self.url(workspace, brands), {"leader_id": None, "finals_url": ""}, format="json"
+            self.url(workspace, brands), {"leader_ids": [], "finals_links": []}, format="json"
         )
-        assert cleared.data["ops"]["leader_id"] is None and cleared.data["ops"]["finals_url"] == ""
-        assert cleared.data["ops"]["community_manager_id"] == str(create_user.id)
+        assert cleared.data["ops"]["leader_ids"] == [] and cleared.data["ops"]["finals_links"] == []
+        assert (
+            len(cleared.data["ops"]["community_manager_ids"]) == 2 and len(cleared.data["ops"]["materials_links"]) == 2
+        )
 
     @pytest.mark.django_db
-    def test_only_project_members_and_http_links_are_accepted(self, session_client, workspace, brands):
+    def test_only_project_members_and_http_links_are_accepted(self, session_client, workspace, brands, create_user):
         outsider = User.objects.create(email="out@zil.global", username="out")
         response = session_client.patch(
             self.url(workspace, brands),
             {
-                "community_manager_id": str(outsider.id),
-                "leader_id": "not-a-uuid",
-                "materials_url": "javascript:alert(1)",
+                "community_manager_ids": [str(create_user.id), str(outsider.id)],
+                "leader_ids": ["not-a-uuid"],
+                "materials_links": [
+                    {"name": "ok", "url": "https://drive.google.com/a"},
+                    {"url": "javascript:alert(1)"},
+                ],
+                "finals_links": "https://drive.google.com/b",
             },
             format="json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert set(response.data) == {"community_manager_id", "leader_id", "materials_url"}
+        assert set(response.data) == {"community_manager_ids", "leader_ids", "materials_links", "finals_links"}
         mapping = ZilBrandProject.objects.get(zil_brand_id=KFC)
-        assert mapping.community_manager_id is None and mapping.materials_url == ""
+        assert not mapping.community_managers.exists() and mapping.materials_links == []
+
+    @pytest.mark.django_db
+    def test_someone_off_the_brand_team_stops_showing_and_shows_again_on_return(
+        self, session_client, workspace, brands, teammate
+    ):
+        session_client.patch(self.url(workspace, brands), {"community_manager_ids": [str(teammate.id)]}, format="json")
+        ProjectMember.objects.filter(project=brands, member=teammate).update(is_active=False)
+        assert self.get_ops(session_client, workspace, brands)["community_manager_ids"] == []
+        ProjectMember.objects.filter(project=brands, member=teammate).update(is_active=True)
+        assert self.get_ops(session_client, workspace, brands)["community_manager_ids"] == [str(teammate.id)]
+
+    @pytest.mark.django_db
+    def test_a_guest_reads_but_cannot_edit(self, session_client, workspace, brands, create_user):
+        # a workspace admin edits every project they are on, whatever their project role
+        WorkspaceMember.objects.filter(workspace=workspace, member=create_user).update(role=5)
+        ProjectMember.objects.filter(project=brands, member=create_user).update(role=5)
+        with mock.patch.dict("os.environ", {"ZIL_BASE_URL": "", "ZIL_SERVICE_SECRET": ""}):
+            assert session_client.get(self.url(workspace, brands)).status_code == status.HTTP_200_OK
+        response = session_client.patch(self.url(workspace, brands), {"finals_links": []}, format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
     def test_the_roster_sync_keeps_what_ops_loaded(self, session_client, workspace, brands, create_user):
+        link = [{"name": "", "url": "https://drive.google.com/f"}]
         session_client.patch(
-            self.url(workspace, brands),
-            {"leader_id": str(create_user.id), "finals_url": "https://drive.google.com/f"},
-            format="json",
+            self.url(workspace, brands), {"leader_ids": [str(create_user.id)], "finals_links": link}, format="json"
         )
         apply_brand_roster(
             workspace.id,
@@ -178,4 +223,4 @@ class TestBrandOpsFields:
             authoritative=True,
         )
         mapping = ZilBrandProject.objects.get(zil_brand_id=KFC)
-        assert mapping.leader_id == create_user.id and mapping.finals_url == "https://drive.google.com/f"
+        assert list(mapping.leaders.all()) == [create_user] and mapping.finals_links == link

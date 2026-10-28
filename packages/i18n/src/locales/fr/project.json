@@ -485,11 +485,13 @@
     "materials": "Matériaux",
     "finals": "Finaux",
     "unassigned": "Non assigné",
-    "open_drive": "Ouvrir dans Drive",
-    "no_link": "Pas encore de lien",
     "edit_link": "Modifier le lien",
     "save_link": "Enregistrer le lien",
     "cancel_link": "Annuler",
-    "ops_save_error": "Enregistrement impossible. Les liens doivent commencer par http(s) et les personnes doivent être membres de cette marque."
+    "ops_save_error": "Enregistrement impossible. Les liens doivent commencer par http(s) et les personnes doivent être membres de cette marque.",
+    "no_links": "Pas encore de liens",
+    "add_link": "Ajouter un lien",
+    "link_name_placeholder": "Nom (facultatif)",
+    "remove_link": "Retirer le lien"
   }
 }

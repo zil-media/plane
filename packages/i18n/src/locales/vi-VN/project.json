@@ -485,11 +485,13 @@
     "materials": "Tài liệu",
     "finals": "Bản hoàn thiện",
     "unassigned": "Chưa giao",
-    "open_drive": "Mở trong Drive",
-    "no_link": "Chưa có liên kết",
     "edit_link": "Sửa liên kết",
     "save_link": "Lưu liên kết",
     "cancel_link": "Hủy",
-    "ops_save_error": "Không thể lưu. Liên kết phải bắt đầu bằng http(s) và người được chọn phải là thành viên của thương hiệu này."
+    "ops_save_error": "Không thể lưu. Liên kết phải bắt đầu bằng http(s) và người được chọn phải là thành viên của thương hiệu này.",
+    "no_links": "Chưa có liên kết",
+    "add_link": "Thêm liên kết",
+    "link_name_placeholder": "Tên (không bắt buộc)",
+    "remove_link": "Xóa liên kết"
   }
 }

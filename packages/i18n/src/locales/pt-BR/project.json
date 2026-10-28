@@ -485,11 +485,13 @@
     "materials": "Materiais",
     "finals": "Finais",
     "unassigned": "Sem responsável",
-    "open_drive": "Abrir no Drive",
-    "no_link": "Sem link ainda",
     "edit_link": "Editar link",
     "save_link": "Salvar link",
     "cancel_link": "Cancelar",
-    "ops_save_error": "Não foi possível salvar. Os links devem começar com http(s) e as pessoas devem ser membros desta marca."
+    "ops_save_error": "Não foi possível salvar. Os links devem começar com http(s) e as pessoas devem ser membros desta marca.",
+    "no_links": "Sem links ainda",
+    "add_link": "Adicionar link",
+    "link_name_placeholder": "Nome (opcional)",
+    "remove_link": "Remover link"
   }
 }

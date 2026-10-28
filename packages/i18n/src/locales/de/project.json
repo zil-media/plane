@@ -485,11 +485,13 @@
     "materials": "Materialien",
     "finals": "Finale Dateien",
     "unassigned": "Nicht zugewiesen",
-    "open_drive": "In Drive öffnen",
-    "no_link": "Noch kein Link",
     "edit_link": "Link bearbeiten",
     "save_link": "Link speichern",
     "cancel_link": "Abbrechen",
-    "ops_save_error": "Speichern fehlgeschlagen. Links müssen mit http(s) beginnen und Personen müssen Mitglieder dieser Marke sein."
+    "ops_save_error": "Speichern fehlgeschlagen. Links müssen mit http(s) beginnen und Personen müssen Mitglieder dieser Marke sein.",
+    "no_links": "Noch keine Links",
+    "add_link": "Link hinzufügen",
+    "link_name_placeholder": "Name (optional)",
+    "remove_link": "Link entfernen"
   }
 }
