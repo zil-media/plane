@@ -10,10 +10,11 @@ report ─► BugReport ─► fire_bug_routine ─► routine "Bug fixer Zil Op
        ─► push claude/** ─► agent-auto-merge.yml ─► urgent: preview + deploy │ batch: agent-batch
        ─► agent-batch-window.yml (15/21/02 UTC) ─► preview + deploy ─► resolved + email
 
-suggestion ─► FeatureRequest ─► SPEC ─► spec ─► admin approves (low impact, an admin's own
-              request, or a BU director's up to medium impact, approve themselves)
-           ─► BUILD ─► feat/agent/<id> ─► feature-agent-pr.yml ─► PR │ agent-batch ─► merged (dark)
-           ─► admin turns the flag on in Soporte
+suggestion ─► FeatureRequest ─► SPEC ─► spec approves itself (open questions → requester,
+              already exists → closed with the how-to)
+           ─► BUILD ─► feat/agent/<id> ─► feature-agent-pr.yml ─► PR (PR manager) │ agent-batch
+           ─► merged + flag on, no person in the loop. A red CI run rebuilds by itself up to
+              MAX_BUILD_RUNS; only then it goes on hold and the admins hear about it
 ```
 
 ## 1. Routines (claude.ai/code/routines)

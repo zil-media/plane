@@ -195,7 +195,7 @@ def fire_feature_routine(feature_id, mode, title="", reason="", previous_failure
             *(
                 [
                     "If Ops already does what they ask, the summary tells them how to do it and the spec sends",
-                    '"already_exists": true: a person confirms it and it closes with that summary, no build.',
+                    '"already_exists": true: it closes with that summary, no build.',
                 ]
                 if mode == "SPEC"
                 else []

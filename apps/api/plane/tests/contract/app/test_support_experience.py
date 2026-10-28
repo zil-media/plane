@@ -244,30 +244,40 @@ class TestTheBuildLane:
         assert lane_busy() is True
 
     @pytest.mark.django_db
-    def test_a_blocked_build_tells_admins_and_frees_the_lane(
+    def test_a_blocked_build_rebuilds_itself_without_a_person(
         self, create_user, agent_on, tasks, monkeypatch, django_capture_on_commit_callbacks
     ):
         key = "f" * 64
         monkeypatch.setenv("OPS_FEATURE_AGENT_API_KEY", key)
         agent = User.objects.create(email="agent@zil.global", username=uuid.uuid4().hex, is_active=True)
         monkeypatch.setenv("AGENT_ADMIN_EMAIL", agent.email)
-        building = own_feature(create_user, status=S.BUILDING, build={"claimed_at": "2026-10-16T00:00:00+00:00"})
-        waiting = own_feature(create_user, status=S.APPROVED, flag_key="next")
+        building = own_feature(
+            create_user,
+            status=S.BUILDING,
+            flag_key="exportar",
+            approval={"at": "2026-10-01T00:00:00+00:00"},
+            build={"claimed_at": "2026-10-16T00:00:00+00:00", "runs": 1},
+        )
         client = APIClient()
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {key}")
         with (
             mock.patch("plane.utils.agent_pipeline.notify.admins_feature_build_blocked") as admins,
+            mock.patch("plane.utils.agent_pipeline.notify.requester_feature_update") as told,
             django_capture_on_commit_callbacks(execute=True),
         ):
             response = client.post(
                 f"/api/agent/features/{building.id}/build-status/",
-                {"state": "blocked", "note": "Toca un archivo de la lista protegida"},
+                {"state": "blocked", "note": "No pasó.", "for_agent": "CI rejected: https://ci/run/1"},
                 format="json",
             )
         assert response.status_code == status.HTTP_200_OK, response.data
-        admins.assert_called_once()
-        waiting.refresh_from_db()
-        assert waiting.status == S.BUILDING
+        admins.assert_not_called()
+        told.assert_not_called()
+        building.refresh_from_db()
+        # Straight into the next run, which reads why the last one failed.
+        assert building.status == S.BUILDING and building.build["runs"] == 2
+        assert building.build["for_agent"] == "CI rejected: https://ci/run/1"
+        assert not building.build.get("blocked_at")
 
     @pytest.mark.django_db
     def test_a_new_run_starts_without_the_previous_runs_note_and_progress(self, create_user, agent_on, tasks):
@@ -591,7 +601,7 @@ class TestRoundSix:
         assert bug.resolved_message == "Se arregló."
 
     @pytest.mark.django_db
-    def test_an_automatic_report_turned_into_a_suggestion_is_nobodys_and_waits_for_a_person(
+    def test_an_automatic_report_turned_into_a_suggestion_is_nobodys_and_approves_itself(
         self, admin_client, create_user
     ):
         from plane.agent_api.features import should_auto_approve
@@ -605,8 +615,7 @@ class TestRoundSix:
         assert feature.requested_by == agent
 
         feature.spec, feature.spec_runs = {"blast_radius": "medium", "generated_at": "2026-10-01"}, 1
-        # The admin's shortcut is for an admin asking, not for the pipeline filing it.
-        assert should_auto_approve(feature) is False
+        assert should_auto_approve(feature) is True
 
         # An admin's own report still gets it.
         own = BugReport.objects.create(reported_by=agent, description="y", source=BugReport.Source.MANUAL)
@@ -646,7 +655,7 @@ class TestRoundSix:
         assert heading in told.call_args[0][1]
 
     @pytest.mark.django_db
-    def test_a_build_that_fails_on_every_push_is_announced_once(self, monkeypatch, create_user, tasks):
+    def test_a_failing_build_goes_back_to_the_queue_without_telling_anyone(self, monkeypatch, create_user, tasks):
         key = "f" * 64
         agent = User.objects.create(email="agent@zil.global", username=uuid.uuid4().hex, is_active=True)
         monkeypatch.setenv("OPS_FEATURE_AGENT_API_KEY", key)
@@ -656,12 +665,13 @@ class TestRoundSix:
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {key}")
         url = f"/api/agent/features/{feature.id}/build-status/"
         with mock.patch("plane.utils.agent_pipeline.notify.admins_feature_build_blocked") as admins:
-            for note in ("No pasó.", "Tampoco ahora."):
-                response = client.put(url, {"state": "blocked", "note": note}, format="json")
-                assert response.status_code == status.HTTP_200_OK, response.data
-        admins.assert_called_once()
+            response = client.put(url, {"state": "blocked", "note": "No pasó."}, format="json")
+            assert response.status_code == status.HTTP_200_OK, response.data
+            # Already back in the queue: a late report from the same push changes nothing.
+            assert client.put(url, {"state": "blocked", "note": "Tampoco."}, format="json").status_code == 409
+        admins.assert_not_called()
         feature.refresh_from_db()
-        assert feature.build["last_note"] == "Tampoco ahora."
+        assert feature.status == S.APPROVED and feature.build["last_note"] == "No pasó."
 
     @pytest.mark.django_db
     def test_the_requester_hears_a_paused_suggestion_resume(self, admin_client, create_user):
@@ -721,7 +731,7 @@ class TestRoundSeven:
         assert "owner@zil.global" not in [call.args[0][0] for call in tasks["email"].call_args_list]
 
     @pytest.mark.django_db
-    def test_an_admin_requester_gets_the_admin_email_only_when_the_spec_is_ready(self, admin_client, agent_on):
+    def test_a_re_spec_with_high_impact_approves_itself_without_asking_an_admin(self, admin_client, agent_on):
         from plane.agent_api.features import AgentFeatureActionEndpoint
 
         admin = User.objects.get(email="owner@zil.global")
@@ -733,10 +743,12 @@ class TestRoundSeven:
             mock.patch("plane.utils.agent_pipeline.notify.admins_feature_needs_decision") as admins,
             mock.patch("plane.utils.agent_pipeline.notify.requester_feature_update") as told,
             mock.patch("plane.agent_api.features._valid", side_effect=lambda _s, r: r.data),
+            mock.patch("plane.agent_api.features.transaction.on_commit"),
         ):
             AgentFeatureActionEndpoint().do_spec(request, feature)
-        admins.assert_called_once()
+        admins.assert_not_called()
         told.assert_not_called()
+        assert feature.status == S.APPROVED
 
     @pytest.mark.django_db
     def test_rejecting_your_own_suggestion_sends_you_nothing(self, admin_client):
