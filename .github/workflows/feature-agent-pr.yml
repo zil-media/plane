@@ -184,7 +184,9 @@ jobs:
           NOTE="La construcción no pasó las verificaciones automáticas. El equipo la revisa antes de seguir."
           RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           FOR_AGENT="CI rejected the previous push on this branch. Read which check failed before changing anything: ${RUN_URL}"
-          PAYLOAD=$(jq -n --arg note "$NOTE" --arg for_agent "$FOR_AGENT" '{state: "blocked", note: $note, for_agent: $for_agent}')
+          PUSHED_AT=$(git log -1 --format=%cI "$GITHUB_SHA")
+          PAYLOAD=$(jq -n --arg note "$NOTE" --arg for_agent "$FOR_AGENT" --arg pushed_at "$PUSHED_AT" \
+            '{state: "blocked", note: $note, for_agent: $for_agent, pushed_at: $pushed_at}')
           "$LANE/agent-api.sh" build-status "$FEATURE_ID" "$PAYLOAD" || true
 
   # A person merged the PR: the code is on preview (and its push deploys it). Close the loop in Ops.

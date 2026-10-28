@@ -8,6 +8,9 @@ There is deliberately no approve, reject or flag route: with this key the agent 
 authorize its own build or turn its own work on.
 """
 
+# Python imports
+from datetime import datetime
+
 # Django imports
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -20,7 +23,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 # Module imports
-from plane.db.models import FeatureRequest
+from plane.db.models import BugReport, FeatureRequest
 from plane.utils.agent_pipeline import bugs as bug_ops
 from plane.utils.agent_pipeline import features as feature_ops
 from plane.utils.agent_pipeline import notify
@@ -81,6 +84,9 @@ class BuildStatusSerializer(serializers.Serializer):
     # For the next session only (which check failed, the run link): never shown to the requester,
     # whose board reads `note`. It survives request_build so the rebuild's trigger can carry it.
     for_agent = serializers.CharField(required=False, allow_blank=True, max_length=2000, default="")
+    # When the failing commit was made: a report about a push older than the current run's claim
+    # belongs to the previous run and must not cut the rebuild that is already fixing it.
+    pushed_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
 
 
 class ProgressSerializer(serializers.Serializer):
@@ -106,12 +112,45 @@ def _conflict(message):
     return Response({"error": message}, status=status.HTTP_409_CONFLICT)
 
 
+def _asks_a_person(feature):
+    """Filed by the pipeline for someone else (an automatic report, or one with no reporter): the
+    requester is the agent's own user, and nobody would ever answer its questions."""
+    return not feature.source_bugs.exclude(source=BugReport.Source.MANUAL, reported_by=feature.requested_by).exists()
+
+
 def should_auto_approve(feature):
     """Owner's call: nobody approves by hand. A spec approves itself unless there is nothing to build
-    (Ops already does it) or the requester still has to answer something; whatever its impact, the
+    (Ops already does it) or its open questions have someone to answer them; whatever its impact, the
     code still has to pass CI, the flag gate and the strict guard to ship."""
     spec = feature.spec or {}
-    return not (spec.get("open_questions") or spec.get("already_exists"))
+    if spec.get("already_exists"):
+        return False
+    return not (spec.get("open_questions") and _asks_a_person(feature))
+
+
+def decide_spec(feature):
+    """What a finished spec does, with nobody deciding it. The caller holds the row lock."""
+    spec = feature.spec or {}
+    if should_auto_approve(feature):
+        feature.status = S.APPROVED
+        feature.approval = {"by": "auto", "at": timezone.now().isoformat(), "notes": "Aprobada automáticamente."}
+        feature.save()
+        transaction.on_commit(lambda: _start_auto_approved(feature))
+    elif spec.get("already_exists"):
+        # Nothing to build: it closes with the how-to. No flag either, or the board would say
+        # "falta activarla" for something that was never built.
+        feature.flag_key = ""
+        feature_ops.close_already_existing(feature, spec.get("summary", ""))
+        transaction.on_commit(feature_ops.drain_feature_queue)
+    else:
+        # Open questions go to the requester, who is the one who can answer them.
+        feature.status = S.NEEDS_INFO
+        text = "\n".join(f"- {q}" for q in spec["open_questions"])
+        feature.comments = bug_ops.append_entry(feature.comments, bug_ops.comment_entry(None, "agent", text))
+        feature.save()
+        notify.requester_feature_update(
+            feature, "Necesitamos un dato sobre tu sugerencia", f"Para avanzar necesitamos que nos cuentes:\n{text}"
+        )
 
 
 class AgentFeatureBaseView(APIView):
@@ -171,29 +210,7 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
         feature.flag_key = data["flag_key"]
         feature.status = S.SPEC_READY
 
-        spec = feature.spec
-        if should_auto_approve(feature):
-            feature.status = S.APPROVED
-            feature.approval = {
-                "by": "auto",
-                "at": timezone.now().isoformat(),
-                "notes": "Aprobada automáticamente.",
-            }
-            feature.save()
-            transaction.on_commit(lambda: _start_auto_approved(feature))
-        elif spec.get("already_exists"):
-            # Nothing to build: it closes with the how-to, nobody confirms it first.
-            feature_ops.close_already_existing(feature, spec.get("summary", ""))
-            transaction.on_commit(feature_ops.drain_feature_queue)
-        else:
-            # Open questions go to the requester, who is the one who can answer them.
-            feature.status = S.NEEDS_INFO
-            text = "\n".join(f"- {q}" for q in spec["open_questions"])
-            feature.comments = bug_ops.append_entry(feature.comments, bug_ops.comment_entry(None, "agent", text))
-            feature.save()
-            notify.requester_feature_update(
-                feature, "Necesitamos un dato sobre tu sugerencia", f"Para avanzar necesitamos que nos cuentes:\n{text}"
-            )
+        decide_spec(feature)
         return Response(feature_summary(feature))
 
     def do_needs_info(self, request, feature):
@@ -230,9 +247,13 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
             # Nobody unblocks it by hand: it goes back to the queue and the next run reads `for_agent` to
             # fix what failed. request_build's MAX_BUILD_RUNS cap puts it on hold (and tells the admins)
             # when the rebuilds run out.
+            claimed = build.get("claimed_at")
+            if data["pushed_at"] and claimed and data["pushed_at"] < datetime.fromisoformat(claimed):
+                return Response(feature_summary(feature))
             if data["for_agent"]:
                 build["for_agent"] = data["for_agent"]
-            build.update({"blocked_at": None, "claimed_at": None, "last_note": data["note"]})
+            # claimed_at stays: builds_this_week counts it, so a red run still counts against the cap.
+            build.update({"blocked_at": None, "last_note": data["note"]})
             feature.build = build
             feature.status = S.APPROVED
             feature.save()

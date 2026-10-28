@@ -123,7 +123,7 @@ def feature_run_sweep():
     for feature in FeatureRequest.objects.filter(status=FeatureRequest.Status.BUILDING):
         build = feature.build or {}
         started = build.get("claimed_at") or ""
-        # A blocked build waits for a person; re-dispatching it would hit the same wall.
+        # blocked_at only on rows from before builds retried themselves: those waited for a person.
         if started and not build.get("blocked_at") and _last_activity(feature, started) < cutoff:
             build = dict(feature.build or {})
             build["claimed_at"] = None
@@ -132,6 +132,21 @@ def feature_run_sweep():
             feature.status = FeatureRequest.Status.APPROVED
             feature.save(update_fields=["build", "status", "updated_at"])
             released += 1
+
+    # A ready spec has nobody to decide it (a re-spec that died leaves one): decide it here.
+    from plane.agent_api.features import decide_spec
+
+    for feature_id in FeatureRequest.objects.filter(status=FeatureRequest.Status.SPEC_READY).values_list(
+        "id", flat=True
+    ):
+        with transaction.atomic():
+            feature = (
+                FeatureRequest.objects.select_for_update()
+                .filter(id=feature_id, status=FeatureRequest.Status.SPEC_READY)
+                .first()
+            )
+            if feature is not None:
+                decide_spec(feature)
 
     # Specs released above, or that never started (agent off at the time, or the fire failed), go back
     # on their own: nothing else re-requests a submitted feature. A few per tick, oldest first, within

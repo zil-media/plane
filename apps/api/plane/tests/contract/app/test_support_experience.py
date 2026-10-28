@@ -554,7 +554,7 @@ class TestRoundSix:
         assert tasks["fire_feature"].call_args.args[3] == S.NEEDS_INFO
 
     @pytest.mark.django_db
-    def test_a_reanalysis_that_dies_keeps_the_spec_it_had(self, create_user, agent_on):
+    def test_a_reanalysis_that_dies_keeps_the_spec_it_had(self, create_user, agent_on, tasks):
         from plane.bgtasks.agent_pipeline_task import feature_run_sweep
         from plane.utils.agent_pipeline.constants import FEATURE_RUN_EXPIRY, MAX_SPEC_RUNS
 
@@ -567,8 +567,10 @@ class TestRoundSix:
         )
         feature_run_sweep()
         feature.refresh_from_db()
-        # Past the run cap the sweep never retries a "received" one: it sat there with its spec hidden.
-        assert feature.status == S.SPEC_READY
+        # Past the run cap the sweep never retries a "received" one: it keeps its spec, and with nobody
+        # to decide it the sweep approves it and the build starts.
+        assert feature.spec["generated_at"] == "2026-10-01T00:00:00+00:00"
+        assert feature.status == S.BUILDING
 
     @pytest.mark.django_db
     def test_approving_a_redone_spec_after_the_run_cap_builds_it(
@@ -672,6 +674,63 @@ class TestRoundSix:
         admins.assert_not_called()
         feature.refresh_from_db()
         assert feature.status == S.APPROVED and feature.build["last_note"] == "No pasó."
+
+    @pytest.mark.django_db
+    def test_a_late_failure_from_the_previous_run_does_not_cut_the_rebuild(self, monkeypatch, create_user, tasks):
+        key = "f" * 64
+        agent = User.objects.create(email="agent@zil.global", username=uuid.uuid4().hex, is_active=True)
+        monkeypatch.setenv("OPS_FEATURE_AGENT_API_KEY", key)
+        monkeypatch.setenv("AGENT_ADMIN_EMAIL", agent.email)
+        feature = own_feature(
+            create_user, status=S.BUILDING, flag_key="exportar", build={"claimed_at": "2026-10-16T12:00:00+00:00"}
+        )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {key}")
+        url = f"/api/agent/features/{feature.id}/build-status/"
+        old = {"state": "blocked", "note": "Viejo.", "pushed_at": "2026-10-16T08:59:00-03:00"}
+        assert client.put(url, old, format="json").status_code == status.HTTP_200_OK
+        feature.refresh_from_db()
+        assert feature.status == S.BUILDING
+        new = {"state": "blocked", "note": "Nuevo.", "pushed_at": "2026-10-16T09:30:00-03:00"}
+        assert client.put(url, new, format="json").status_code == status.HTTP_200_OK
+        feature.refresh_from_db()
+        # Still counted this week: the cap sees every run, red or not.
+        assert feature.status == S.APPROVED and feature.build["claimed_at"] == "2026-10-16T12:00:00+00:00"
+
+    @pytest.mark.django_db
+    def test_the_sweep_decides_a_ready_spec_nobody_will_decide(self, create_user, agent_on, tasks):
+        from plane.bgtasks.agent_pipeline_task import feature_run_sweep
+
+        ready = own_feature(
+            create_user,
+            status=S.SPEC_READY,
+            flag_key="exportar",
+            spec={"blast_radius": "high", "generated_at": "2026-10-01T00:00:00+00:00"},
+        )
+        exists = own_feature(
+            create_user,
+            status=S.SPEC_READY,
+            flag_key="yaesta",
+            spec={"already_exists": True, "summary": "Ajustes → X", "generated_at": "2026-10-01T00:00:00+00:00"},
+        )
+        feature_run_sweep()
+        ready.refresh_from_db()
+        exists.refresh_from_db()
+        assert ready.status in (S.APPROVED, S.BUILDING) and ready.approval["by"] == "auto"
+        assert exists.status == S.MERGED and exists.flag_key == "" and exists.build["last_note"] == "Ajustes → X"
+
+    @pytest.mark.django_db
+    def test_questions_on_a_report_nobody_filed_do_not_wait_for_an_answer(self, admin_client, create_user):
+        from plane.agent_api.features import should_auto_approve
+        from plane.utils.agent_pipeline.bugs import derive_feature
+
+        agent = User.objects.get(email="owner@zil.global")
+        crash = BugReport.objects.create(reported_by=create_user, description="x", source=BugReport.Source.AUTO)
+        feature = derive_feature(
+            crash, title="Exportar", problem="p" * 30, desired_outcome="", message="", agent_user=agent
+        )
+        feature.spec = {"blast_radius": "low", "open_questions": ["¿Quién?"], "generated_at": "2026-10-01"}
+        assert should_auto_approve(feature) is True
 
     @pytest.mark.django_db
     def test_the_requester_hears_a_paused_suggestion_resume(self, admin_client, create_user):
