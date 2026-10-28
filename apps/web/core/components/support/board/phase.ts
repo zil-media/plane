@@ -47,9 +47,6 @@ export const bugWentToWorkspace = (bug: TBugReport) => bug.status === "dismissed
 export const bugWasAnswered = (bug: TBugReport) =>
   bug.status === "dismissed" && !!bug.resolved_message?.trim() && !bugWasDerived(bug) && !bugWentToWorkspace(bug);
 
-/** The build stopped and nobody picks it up alone: it waits for an admin to relaunch or reject. */
-export const isFeatureStuck = (feature: TFeatureRequest) => feature.status === "building" && feature.build_blocked;
-
 export function bugPhase(bug: TBugReport): TPhase {
   if (bugWasDerived(bug)) return { labelKey: "helpdesk.phase.bug.became_suggestion", tone: "info" };
   if (bugWentToWorkspace(bug)) return { labelKey: "helpdesk.phase.bug.in_workspace", tone: "info" };
@@ -87,9 +84,7 @@ export function featurePhase(feature: TFeatureRequest): TPhase {
     case "approved":
       return { labelKey: "helpdesk.phase.feature.approved", tone: "progress" };
     case "building":
-      return feature.build_blocked
-        ? { labelKey: "helpdesk.phase.feature.needs_review", tone: "waiting" }
-        : { labelKey: "helpdesk.phase.feature.building", tone: "progress" };
+      return { labelKey: "helpdesk.phase.feature.building", tone: "progress" };
     case "in_review":
       return { labelKey: "helpdesk.phase.feature.in_review", tone: "progress" };
     case "queued":
@@ -110,7 +105,7 @@ export const isMyFeature = (feature: TFeatureRequest, viewer: TViewer) =>
 
 /** The feature waits for a decision only an admin can take. */
 const waitsForAdmin = (feature: TFeatureRequest) =>
-  feature.status === "spec_ready" || isFeatureStuck(feature) || (feature.status === "needs_info" && feature.answered);
+  feature.status === "spec_ready" || (feature.status === "needs_info" && feature.answered);
 
 /**
  * Tracking is "mine": my suggestions and my reports. Someone else's suggestion only joins when it

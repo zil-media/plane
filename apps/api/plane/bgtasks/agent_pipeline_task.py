@@ -123,8 +123,7 @@ def feature_run_sweep():
     for feature in FeatureRequest.objects.filter(status=FeatureRequest.Status.BUILDING):
         build = feature.build or {}
         started = build.get("claimed_at") or ""
-        # blocked_at only on rows from before builds retried themselves: those waited for a person.
-        if started and not build.get("blocked_at") and _last_activity(feature, started) < cutoff:
+        if started and _last_activity(feature, started) < cutoff:
             build = dict(feature.build or {})
             build["claimed_at"] = None
             build["last_note"] = "La construcción se quedó sin señales de vida y volvió a la cola."

@@ -14,7 +14,7 @@ from rest_framework.test import APIClient
 from plane.db.models import AgentFeatureFlag, AgentPipelineConfig, BugReport, FeatureRequest, User
 from plane.license.models import Instance, InstanceAdmin
 from plane.agent_api.serialize import feature_summary
-from plane.utils.agent_pipeline.features import lane_busy, request_build, request_spec
+from plane.utils.agent_pipeline.features import request_build, request_spec
 
 ZIL_ENV = {"ZIL_BASE_URL": "http://zil.test", "ZIL_SERVICE_SECRET": "secret"}
 DRAFT = "No me deja mover el work item al ciclo nuevo y pierdo lo que cargué"
@@ -236,14 +236,6 @@ class TestRedoingTheAnalysis:
 @pytest.mark.contract
 class TestTheBuildLane:
     @pytest.mark.django_db
-    def test_a_blocked_build_does_not_hold_the_lane(self, create_user, agent_on, tasks):
-        own_feature(create_user, status=S.BUILDING, build={"blocked_at": "2026-10-16T00:00:00+00:00"})
-        assert lane_busy() is False
-        waiting = own_feature(create_user, status=S.APPROVED, flag_key="next")
-        assert request_build(waiting) == (True, "queued")
-        assert lane_busy() is True
-
-    @pytest.mark.django_db
     def test_a_blocked_build_rebuilds_itself_without_a_person(
         self, create_user, agent_on, tasks, monkeypatch, django_capture_on_commit_callbacks
     ):
@@ -277,7 +269,6 @@ class TestTheBuildLane:
         # Straight into the next run, which reads why the last one failed.
         assert building.status == S.BUILDING and building.build["runs"] == 2
         assert building.build["for_agent"] == "CI rejected: https://ci/run/1"
-        assert not building.build.get("blocked_at")
 
     @pytest.mark.django_db
     def test_a_new_run_starts_without_the_previous_runs_note_and_progress(self, create_user, agent_on, tasks):
@@ -742,7 +733,7 @@ class TestRoundSix:
 
     @pytest.mark.django_db
     def test_a_plain_rebuild_is_not_news_to_the_requester(self, admin_client, create_user):
-        feature = own_feature(create_user, status=S.BUILDING, flag_key="exportar", build={"blocked_at": "2026-10-16"})
+        feature = own_feature(create_user, status=S.BUILDING, flag_key="exportar")
         with mock.patch("plane.utils.agent_pipeline.notify.requester_feature_update") as told:
             response = admin_client.post(f"/api/support/feature-requests/{feature.id}/rebuild/", {}, format="json")
         assert response.status_code == status.HTTP_200_OK, response.data
@@ -1185,7 +1176,7 @@ class TestRoundTwelve:
         assert response.status_code == status.HTTP_200_OK, response.data
         admins.assert_not_called()
         feature.refresh_from_db()
-        assert feature.status == S.MERGED and not feature.build.get("blocked_at")
+        assert feature.status == S.MERGED
         assert feature.build["last_note"] == "Dale rol Administrador."
         assert client.put(url, {"state": "already_done", "note": "x"}, format="json").status_code == 409
 

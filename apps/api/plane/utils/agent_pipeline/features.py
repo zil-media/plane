@@ -70,10 +70,8 @@ def builds_this_week():
 
 
 def lane_busy(exclude_id=None):
-    """A build session is actually running. A blocked build (build.blocked_at) ended its session and
-    waits for a person: it doesn't hold the lane, or one stuck item would starve every approved one."""
-    running = FeatureRequest.objects.filter(status__in=BUILD_ACTIVE).exclude(id=exclude_id)
-    return any(not (f.build or {}).get("blocked_at") for f in running.only("id", "build"))
+    """A build session is actually running."""
+    return FeatureRequest.objects.filter(status__in=BUILD_ACTIVE).exclude(id=exclude_id).exists()
 
 
 def request_build(feature, reason="aprobada"):
@@ -115,7 +113,6 @@ def request_build(feature, reason="aprobada"):
                     "claimed_at": timezone.now().isoformat(),
                     "runs": runs + 1,
                     "branch": f"feat/agent/{current.id}",
-                    "blocked_at": None,
                     # A new run: the previous run's note and progress would read as this one's.
                     "last_note": "",
                     "progress": [],
@@ -170,7 +167,6 @@ def close_already_existing(feature, how_to, by=None):
         {
             "merged_at": timezone.now().isoformat(),
             "already_existed": True,
-            "blocked_at": None,
             "claimed_at": None,
             "last_note": how_to,
         }

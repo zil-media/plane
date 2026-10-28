@@ -253,7 +253,7 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
             if data["for_agent"]:
                 build["for_agent"] = data["for_agent"]
             # claimed_at stays: builds_this_week counts it, so a red run still counts against the cap.
-            build.update({"blocked_at": None, "last_note": data["note"]})
+            build["last_note"] = data["note"]
             feature.build = build
             feature.status = S.APPROVED
             feature.save()
@@ -276,7 +276,7 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
     def do_progress(self, request, feature):
         data = _valid(ProgressSerializer, request)
         build = dict(feature.build or {})
-        if feature.status != S.BUILDING or build.get("blocked_at"):
+        if feature.status != S.BUILDING:
             return _conflict("Progress is only accepted while the build is running.")
         build["progress"] = bug_ops.append_entry(
             build.get("progress"), bug_ops.progress_entry(data["phase"], data["note"])

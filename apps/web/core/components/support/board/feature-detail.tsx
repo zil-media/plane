@@ -52,7 +52,6 @@ type TPrimary = { decision: TFeatureDecision; labelKey: string; needsFlag: boole
  * (FeatureRequestDecisionEndpoint.ALLOWED_FROM): offering the rest just ends in a 409.
  */
 function adminOptions(feature: TFeatureRequestDetail) {
-  const blocked = feature.build_blocked;
   // An approval older than the current spec approved a different analysis (approve, pause, redo the
   // analysis): resuming that one would build what nobody approved. ISO strings of the same zone compare.
   const approvedAt = feature.approval?.at;
@@ -79,10 +78,7 @@ function adminOptions(feature: TFeatureRequestDetail) {
       canReject = true;
       break;
     case "building":
-      // A stuck build stays in "building" with build.blocked_at set (agent build-status "blocked"):
-      // it waits for a person, so retrying is THE action. A live build can still be restarted.
-      if (blocked) primary = { decision: "rebuild", labelKey: "helpdesk.admin.retry_build", needsFlag: false };
-      else secondary.push({ decision: "rebuild", labelKey: "helpdesk.admin.rebuild" });
+      secondary.push({ decision: "rebuild", labelKey: "helpdesk.admin.rebuild" });
       secondary.push({ decision: "hold", labelKey: "helpdesk.admin.hold" });
       canReject = true;
       break;
@@ -121,8 +117,7 @@ function nextStepKey(feature: TFeatureRequestDetail, isAdmin: boolean, isRequest
     case "approved":
       return "helpdesk.next.approved";
     case "building":
-      if (!feature.build_blocked) return "helpdesk.next.building";
-      return isAdmin ? "helpdesk.next.stuck_you" : "helpdesk.next.stuck";
+      return "helpdesk.next.building";
     case "in_review":
       return "helpdesk.next.in_review";
     case "queued":

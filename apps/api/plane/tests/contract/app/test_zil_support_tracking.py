@@ -122,8 +122,7 @@ class TestZilSupportTracking:
     def test_admin_also_sees_what_waits_on_an_admin(self, service_client, create_user, other_user, instance):
         InstanceAdmin.objects.create(instance=instance, user=create_user, role=20)
         ready = feature(other_user, status=S.SPEC_READY, spec={"blast_radius": "low", "generated_at": "2026-10-02"})
-        stuck = feature(other_user, status=S.BUILDING, build={"blocked_at": "2026-10-03T00:00:00+00:00"})
-        feature(other_user, status=S.BUILDING, build={"blocked_at": None})
+        feature(other_user, status=S.BUILDING)
         feature(other_user, status=S.APPROVED)
         shipped = feature(
             create_user,
@@ -137,10 +136,9 @@ class TestZilSupportTracking:
         response = service_client.get(URL, {"email": create_user.email})
 
         assert response.data["is_admin"] is True
-        assert ids(response.data["features"]) == {str(ready.id), str(stuck.id), str(shipped.id)}
+        assert ids(response.data["features"]) == {str(ready.id), str(shipped.id)}
         by_id = {f["id"]: f for f in response.data["features"]}
         assert by_id[str(ready.id)]["spec"]["blast_radius"] == "low"
-        assert by_id[str(stuck.id)]["build"]["blocked_at"] == "2026-10-03T00:00:00+00:00"
         assert by_id[str(shipped.id)]["approval"]["auto"] is True
         assert by_id[str(shipped.id)]["flag_enabled_at"] == enabled_at.isoformat()
 

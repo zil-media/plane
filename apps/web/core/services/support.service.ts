@@ -131,7 +131,6 @@ export type TFeatureRequest = {
   requested_by: TSupportPerson | null;
   workspace_slug: string | null;
   pr_url: string | null;
-  build_blocked: boolean;
   /** needs_info already answered by the requester, and nothing relaunched the analysis (agent off). */
   answered: boolean;
   created_at: string;

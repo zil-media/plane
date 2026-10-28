@@ -150,7 +150,6 @@ def feature_summary(feature):
         "requested_by": _person(feature.requested_by),
         "workspace_slug": feature.workspace.slug if feature.workspace_id else None,
         "pr_url": build.get("pr_url"),
-        "build_blocked": bool(build.get("blocked_at")),
         "answered": _answered(feature),
         "created_at": _iso(feature.created_at),
         "updated_at": _iso(feature.updated_at),
