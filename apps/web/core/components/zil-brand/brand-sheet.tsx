@@ -4,14 +4,21 @@
  * See the LICENSE file for details.
  */
 
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { observer } from "mobx-react";
-import { ExternalLink, FileText, Phone, UserRound } from "lucide-react";
+import { Check, ExternalLink, FileText, FolderOpen, Pencil, Phone, UserRound, X } from "lucide-react";
 // plane imports
+import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { Loader } from "@plane/ui";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { Input, Loader } from "@plane/ui";
+// components
+import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 // hooks
+import { useUserPermissions } from "@/hooks/store/user";
 import { useZilProjectBrand } from "@/hooks/use-zil-brands";
+import type { TZilBrandOps } from "@/services/zil-brand.service";
 // local imports
 import { ZilBrandLogo } from "./brand-logo";
 
@@ -37,15 +44,136 @@ function Notice({ children }: { children: ReactNode }) {
   return <p className="rounded-md border border-subtle bg-layer-1 px-4 py-3 text-13 text-secondary">{children}</p>;
 }
 
+function OpsField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5 rounded-md border border-subtle p-4">
+      <span className="text-11 font-medium tracking-wide text-tertiary uppercase">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+type TLinkFieldProps = {
+  value: string;
+  isEditable: boolean;
+  onSave: (value: string) => Promise<boolean>;
+};
+
+/** A Drive folder link: opens in a new tab, and members can paste or change it in place. */
+function DriveLinkField({ value, isEditable, onSave }: TLinkFieldProps) {
+  const { t } = useTranslation();
+  const [draft, setDraft] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const save = async () => {
+    if (draft === null) return;
+    if (draft.trim() === value) return setDraft(null);
+    setIsSaving(true);
+    const saved = await onSave(draft.trim());
+    setIsSaving(false);
+    if (saved) setDraft(null);
+  };
+
+  if (draft !== null) {
+    return (
+      <form
+        className="flex items-center gap-1.5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void save();
+        }}
+      >
+        <Input
+          type="url"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => event.key === "Escape" && setDraft(null)}
+          placeholder="https://drive.google.com/…"
+          className="w-full text-13"
+          disabled={isSaving}
+          autoFocus
+        />
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="flex-shrink-0 rounded-sm p-1 text-tertiary hover:bg-layer-1 hover:text-primary"
+          aria-label={t("zil_brand.save_link")}
+        >
+          <Check className="size-4" />
+        </button>
+        <button
+          type="button"
+          disabled={isSaving}
+          onClick={() => setDraft(null)}
+          className="flex-shrink-0 rounded-sm p-1 text-tertiary hover:bg-layer-1 hover:text-primary"
+          aria-label={t("zil_brand.cancel_link")}
+        >
+          <X className="size-4" />
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {value ? (
+        <a
+          href={value}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex min-w-0 items-center gap-1.5 text-13 font-medium text-accent-primary hover:underline"
+          title={value}
+        >
+          <FolderOpen className="size-4 flex-shrink-0" />
+          <span className="truncate">{t("zil_brand.open_drive")}</span>
+          <ExternalLink className="size-3.5 flex-shrink-0" />
+        </a>
+      ) : (
+        <span className="text-13 text-placeholder">{t("zil_brand.no_link")}</span>
+      )}
+      {isEditable && (
+        <button
+          type="button"
+          onClick={() => setDraft(value)}
+          className="ml-auto flex-shrink-0 rounded-sm p-1 text-tertiary hover:bg-layer-1 hover:text-primary"
+          aria-label={t("zil_brand.edit_link")}
+        >
+          <Pencil className="size-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 function formatDate(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
 }
 
-/** The "Marca" tab: the brand's specifications strip, assets, team and calls, read live from Zil. */
+/**
+ * The "Marca" tab: who runs the brand and its Drive folders (kept in Ops), then its specifications
+ * strip, assets, team and calls, read live from Zil.
+ */
 export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, projectId }: Props) {
   const { t } = useTranslation();
-  const { data, isLoading } = useZilProjectBrand(workspaceSlug, projectId);
+  const { data, isLoading, updateOps } = useZilProjectBrand(workspaceSlug, projectId);
+  const { allowPermissions } = useUserPermissions();
+  const isEditable = allowPermissions(
+    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+    EUserPermissionsLevel.PROJECT,
+    workspaceSlug,
+    projectId
+  );
+
+  const saveOps = async (changes: Partial<TZilBrandOps>) => {
+    try {
+      await updateOps(changes);
+      return true;
+    } catch {
+      setToast({ type: TOAST_TYPE.ERROR, title: t("toast.error"), message: t("zil_brand.ops_save_error") });
+      return false;
+    }
+  };
 
   if (isLoading || !data) {
     return (
@@ -57,7 +185,7 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
     );
   }
 
-  const { brand, sheet, unavailable } = data;
+  const { brand, ops, sheet, unavailable } = data;
   const strip = sheet?.specs?.strip?.slice(0, 3) ?? [];
   const otherProjects = sheet?.projects ?? [];
   const purposeLabel = (purpose: string) =>
@@ -80,6 +208,53 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
           </span>
         </div>
       </div>
+
+      <Section title={t("zil_brand.ops_section")}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <OpsField label={t("zil_brand.community_manager")}>
+            <MemberDropdown
+              value={ops.community_manager_id}
+              onChange={(memberId) => void saveOps({ community_manager_id: memberId })}
+              projectId={projectId}
+              multiple={false}
+              disabled={!isEditable}
+              buttonVariant="transparent-with-text"
+              buttonContainerClassName="w-full text-left"
+              buttonClassName="w-full justify-start px-0 text-13 hover:bg-transparent"
+              placeholder={t("zil_brand.unassigned")}
+              showUserDetails
+            />
+          </OpsField>
+          <OpsField label={t("zil_brand.leader")}>
+            <MemberDropdown
+              value={ops.leader_id}
+              onChange={(memberId) => void saveOps({ leader_id: memberId })}
+              projectId={projectId}
+              multiple={false}
+              disabled={!isEditable}
+              buttonVariant="transparent-with-text"
+              buttonContainerClassName="w-full text-left"
+              buttonClassName="w-full justify-start px-0 text-13 hover:bg-transparent"
+              placeholder={t("zil_brand.unassigned")}
+              showUserDetails
+            />
+          </OpsField>
+          <OpsField label={t("zil_brand.materials")}>
+            <DriveLinkField
+              value={ops.materials_url}
+              isEditable={isEditable}
+              onSave={(link) => saveOps({ materials_url: link })}
+            />
+          </OpsField>
+          <OpsField label={t("zil_brand.finals")}>
+            <DriveLinkField
+              value={ops.finals_url}
+              isEditable={isEditable}
+              onSave={(link) => saveOps({ finals_url: link })}
+            />
+          </OpsField>
+        </div>
+      </Section>
 
       {unavailable && <Notice>{t("zil_brand.unavailable")}</Notice>}
       {!unavailable && !sheet && <Notice>{t("zil_brand.no_sheet")}</Notice>}

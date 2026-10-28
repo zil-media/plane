@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 from rest_framework import status
 
-from plane.db.models import Project, ProjectMember, ZilBrandProject
+from plane.db.models import Project, ProjectMember, User, ZilBrandProject
 from plane.utils.zil_brand_projects import apply_brand_roster
 
 KFC = "0123456789abcdef0123d001"
@@ -61,7 +61,9 @@ class TestBrandSheet:
             },
             "specs": {"strip": [{"key": "pauta", "label": "Pauta", "value": "USD 1.200"}], "items": []},
             "assets": [{"id": "a1", "type": "drive_folder", "name": "Drive", "url": None, "companyName": "DEGASA SA"}],
-            "files": [{"id": "f1", "name": "Logo", "type": "image/png", "url": "https://r2.test/logo", "key": "DEGASA/logo"}],
+            "files": [
+                {"id": "f1", "name": "Logo", "type": "image/png", "url": "https://r2.test/logo", "key": "DEGASA/logo"}
+            ],
             "team": [{"name": "Ana", "email": "ana@zil.global", "role": None, "taxId": "30-1"}],
             "calls": [{"id": "c1", "title": "Kickoff", "date": "2026-10-14", "client": {"companyName": "DEGASA SA"}}],
             "projects": [{"workspaceSlug": "zil-design", "businessUnit": "Zil Design", "clientName": "DEGASA SA"}],
@@ -115,3 +117,65 @@ class TestBrandSheet:
         wendys = ZilBrandProject.objects.get(zil_brand_id=WENDYS).project
         response = session_client.get(f"/api/workspaces/{workspace.slug}/projects/{wendys.id}/zil-brand/")
         assert response.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND)
+
+
+@pytest.mark.contract
+class TestBrandOpsFields:
+    def url(self, workspace, project):
+        return f"/api/workspaces/{workspace.slug}/projects/{project.id}/zil-brand/"
+
+    @pytest.mark.django_db
+    def test_cm_leader_and_drive_links_are_loaded_from_ops_and_shown(
+        self, session_client, workspace, brands, create_user
+    ):
+        body = {
+            "community_manager_id": str(create_user.id),
+            "leader_id": str(create_user.id),
+            "materials_url": " https://drive.google.com/drive/folders/materiales ",
+            "finals_url": "https://drive.google.com/drive/folders/finales",
+        }
+        response = session_client.patch(self.url(workspace, brands), body, format="json")
+        assert response.status_code == status.HTTP_200_OK, response.data
+        assert response.data["ops"]["materials_url"] == "https://drive.google.com/drive/folders/materiales"
+
+        with mock.patch.dict("os.environ", {"ZIL_BASE_URL": "", "ZIL_SERVICE_SECRET": ""}):
+            ops = session_client.get(self.url(workspace, brands)).data["ops"]
+        assert ops == {**body, "materials_url": "https://drive.google.com/drive/folders/materiales"}
+
+        cleared = session_client.patch(
+            self.url(workspace, brands), {"leader_id": None, "finals_url": ""}, format="json"
+        )
+        assert cleared.data["ops"]["leader_id"] is None and cleared.data["ops"]["finals_url"] == ""
+        assert cleared.data["ops"]["community_manager_id"] == str(create_user.id)
+
+    @pytest.mark.django_db
+    def test_only_project_members_and_http_links_are_accepted(self, session_client, workspace, brands):
+        outsider = User.objects.create(email="out@zil.global", username="out")
+        response = session_client.patch(
+            self.url(workspace, brands),
+            {
+                "community_manager_id": str(outsider.id),
+                "leader_id": "not-a-uuid",
+                "materials_url": "javascript:alert(1)",
+            },
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert set(response.data) == {"community_manager_id", "leader_id", "materials_url"}
+        mapping = ZilBrandProject.objects.get(zil_brand_id=KFC)
+        assert mapping.community_manager_id is None and mapping.materials_url == ""
+
+    @pytest.mark.django_db
+    def test_the_roster_sync_keeps_what_ops_loaded(self, session_client, workspace, brands, create_user):
+        session_client.patch(
+            self.url(workspace, brands),
+            {"leader_id": str(create_user.id), "finals_url": "https://drive.google.com/f"},
+            format="json",
+        )
+        apply_brand_roster(
+            workspace.id,
+            [{"brandId": KFC, "name": "KFC Argentina"}, {"brandId": WENDYS, "name": "Wendy's"}],
+            authoritative=True,
+        )
+        mapping = ZilBrandProject.objects.get(zil_brand_id=KFC)
+        assert mapping.leader_id == create_user.id and mapping.finals_url == "https://drive.google.com/f"

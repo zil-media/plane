@@ -478,6 +478,18 @@
     "purpose_operations": "Prevádzka",
     "other_bus": "Na značke ďalej pracujú",
     "unavailable": "Zil Workspace nie je dostupný. Skúste to o chvíľu znova.",
-    "no_sheet": "Zil Workspace s vami nezdieľa kartu tejto značky."
+    "no_sheet": "Zil Workspace s vami nezdieľa kartu tejto značky.",
+    "ops_section": "Tím a priečinky",
+    "community_manager": "Zodpovedný CM",
+    "leader": "Vedúci",
+    "materials": "Materiály",
+    "finals": "Finálne súbory",
+    "unassigned": "Nepriradené",
+    "open_drive": "Otvoriť na Disku",
+    "no_link": "Zatiaľ bez odkazu",
+    "edit_link": "Upraviť odkaz",
+    "save_link": "Uložiť odkaz",
+    "cancel_link": "Zrušiť",
+    "ops_save_error": "Uloženie zlyhalo. Odkazy musia začínať http(s) a osoby musia byť členmi tejto značky."
   }
 }

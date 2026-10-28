@@ -4,13 +4,17 @@
 
 """The brands (Marcas) a person works on, and a brand's live sheet from Zil Workspace."""
 
+# Django imports
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
+
 # Third party imports
 from rest_framework import status
 from rest_framework.response import Response
 
 # Module imports
 from plane.app.permissions import ROLE, allow_permission
-from plane.db.models import ZilBrandProject
+from plane.db.models import ProjectMember, ZilBrandProject
 from plane.utils.zil_client import ZilUnavailable, get_zil_brand, zil_enabled
 from ..base import BaseAPIView
 
@@ -65,6 +69,36 @@ def serialize_brand_project(mapping):
     }
 
 
+OPS_PEOPLE = ("community_manager", "leader")
+OPS_LINKS = ("materials_url", "finals_url")
+validate_link = URLValidator(schemes=["http", "https"])
+
+
+def serialize_brand_ops(mapping):
+    """What Ops itself keeps on the brand: who runs it and where its Drive folders are."""
+    return {
+        "community_manager_id": str(mapping.community_manager_id) if mapping.community_manager_id else None,
+        "leader_id": str(mapping.leader_id) if mapping.leader_id else None,
+        "materials_url": mapping.materials_url,
+        "finals_url": mapping.finals_url,
+    }
+
+
+def is_active_member(project_id, member_id):
+    try:
+        return ProjectMember.objects.filter(project_id=project_id, member_id=member_id, is_active=True).exists()
+    except (ValidationError, ValueError):
+        return False
+
+
+def brand_mapping(slug, project_id):
+    return (
+        ZilBrandProject.objects.filter(workspace__slug=slug, project_id=project_id, kind=ZilBrandProject.BRAND_KIND)
+        .select_related("project")
+        .first()
+    )
+
+
 class ZilMyBrandsEndpoint(BaseAPIView):
     """GET → the Zil projects of the workspace the person is an active member of ("Mis marcas")."""
 
@@ -86,7 +120,8 @@ class ZilMyBrandsEndpoint(BaseAPIView):
 
 
 class ZilProjectBrandEndpoint(BaseAPIView):
-    """GET → the project's brand and its live sheet from Zil Workspace (the "Marca" tab).
+    """GET → the project's brand, what Ops keeps on it and its live sheet from Zil Workspace (the "Marca" tab).
+    PATCH → change what Ops keeps on it: CM a cargo, líder (active project members) and the Drive links.
 
     404 when the project is not a brand's. When Zil is off or down the brand comes back with
     `sheet: null` and `unavailable: true`, so the tab still shows the brand.
@@ -94,14 +129,15 @@ class ZilProjectBrandEndpoint(BaseAPIView):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def get(self, request, slug, project_id):
-        mapping = (
-            ZilBrandProject.objects.filter(workspace__slug=slug, project_id=project_id, kind=ZilBrandProject.BRAND_KIND)
-            .select_related("project")
-            .first()
-        )
+        mapping = brand_mapping(slug, project_id)
         if mapping is None:
             return Response({"error": "Not a brand project"}, status=status.HTTP_404_NOT_FOUND)
-        data = {"brand": serialize_brand_project(mapping), "sheet": None, "unavailable": False}
+        data = {
+            "brand": serialize_brand_project(mapping),
+            "ops": serialize_brand_ops(mapping),
+            "sheet": None,
+            "unavailable": False,
+        }
         if not zil_enabled():
             data["unavailable"] = True
             return Response(data, status=status.HTTP_200_OK)
@@ -113,3 +149,38 @@ class ZilProjectBrandEndpoint(BaseAPIView):
         if body is not None:
             data["sheet"] = whitelist_sheet(body)
         return Response(data, status=status.HTTP_200_OK)
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def patch(self, request, slug, project_id):
+        mapping = brand_mapping(slug, project_id)
+        if mapping is None:
+            return Response({"error": "Not a brand project"}, status=status.HTTP_404_NOT_FOUND)
+        errors = {}
+        changed = []
+        for field in OPS_PEOPLE:
+            key = f"{field}_id"
+            if key not in request.data:
+                continue
+            member_id = request.data.get(key) or None
+            if member_id is not None and not is_active_member(project_id, member_id):
+                errors[key] = "Must be an active member of this project"
+                continue
+            setattr(mapping, key, member_id)
+            changed.append(field)
+        for field in OPS_LINKS:
+            if field not in request.data:
+                continue
+            link = (request.data.get(field) or "").strip()
+            if link:
+                try:
+                    validate_link(link)
+                except ValidationError:
+                    errors[field] = "Must be an http(s) link"
+                    continue
+            setattr(mapping, field, link)
+            changed.append(field)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        if changed:
+            mapping.save(update_fields=[*changed, "updated_at", "updated_by"])
+        return Response({"ops": serialize_brand_ops(mapping)}, status=status.HTTP_200_OK)

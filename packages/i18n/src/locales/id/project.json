@@ -478,6 +478,18 @@
     "purpose_operations": "Operasional",
     "other_bus": "Juga dikerjakan oleh",
     "unavailable": "Zil Workspace tidak dapat dihubungi. Coba lagi sebentar lagi.",
-    "no_sheet": "Zil Workspace tidak membagikan lembar data merek ini kepada Anda."
+    "no_sheet": "Zil Workspace tidak membagikan lembar data merek ini kepada Anda.",
+    "ops_section": "Tim dan folder",
+    "community_manager": "CM penanggung jawab",
+    "leader": "Pemimpin",
+    "materials": "Materi",
+    "finals": "File final",
+    "unassigned": "Belum ditugaskan",
+    "open_drive": "Buka di Drive",
+    "no_link": "Belum ada tautan",
+    "edit_link": "Edit tautan",
+    "save_link": "Simpan tautan",
+    "cancel_link": "Batal",
+    "ops_save_error": "Gagal menyimpan. Tautan harus diawali http(s) dan orangnya harus anggota merek ini."
   }
 }

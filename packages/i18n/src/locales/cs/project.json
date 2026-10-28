@@ -478,6 +478,18 @@
     "purpose_operations": "Provoz",
     "other_bus": "Na značce dále pracují",
     "unavailable": "Zil Workspace není dostupný. Zkuste to za chvíli znovu.",
-    "no_sheet": "Zil Workspace s vámi nesdílí kartu této značky."
+    "no_sheet": "Zil Workspace s vámi nesdílí kartu této značky.",
+    "ops_section": "Tým a složky",
+    "community_manager": "Odpovědný CM",
+    "leader": "Vedoucí",
+    "materials": "Materiály",
+    "finals": "Finální soubory",
+    "unassigned": "Nepřiřazeno",
+    "open_drive": "Otevřít na Disku",
+    "no_link": "Zatím bez odkazu",
+    "edit_link": "Upravit odkaz",
+    "save_link": "Uložit odkaz",
+    "cancel_link": "Zrušit",
+    "ops_save_error": "Uložení se nezdařilo. Odkazy musí začínat http(s) a osoby musí být členy této značky."
   }
 }

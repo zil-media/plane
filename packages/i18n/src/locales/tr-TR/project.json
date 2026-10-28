@@ -478,6 +478,18 @@
     "purpose_operations": "Operasyonlar",
     "other_bus": "Ayrıca çalışanlar",
     "unavailable": "Zil Workspace'e ulaşılamadı. Lütfen biraz sonra tekrar deneyin.",
-    "no_sheet": "Zil Workspace, bu markanın kartını sizinle paylaşmıyor."
+    "no_sheet": "Zil Workspace, bu markanın kartını sizinle paylaşmıyor.",
+    "ops_section": "Ekip ve klasörler",
+    "community_manager": "Sorumlu CM",
+    "leader": "Lider",
+    "materials": "Materyaller",
+    "finals": "Final dosyaları",
+    "unassigned": "Atanmadı",
+    "open_drive": "Drive'da aç",
+    "no_link": "Henüz bağlantı yok",
+    "edit_link": "Bağlantıyı düzenle",
+    "save_link": "Bağlantıyı kaydet",
+    "cancel_link": "İptal",
+    "ops_save_error": "Kaydedilemedi. Bağlantılar http(s) ile başlamalı ve kişiler bu markanın üyesi olmalı."
   }
 }

@@ -478,6 +478,18 @@
     "purpose_operations": "Vận hành",
     "other_bus": "Cùng thực hiện",
     "unavailable": "Không thể kết nối với Zil Workspace. Vui lòng thử lại sau giây lát.",
-    "no_sheet": "Zil Workspace không chia sẻ hồ sơ của thương hiệu này với bạn."
+    "no_sheet": "Zil Workspace không chia sẻ hồ sơ của thương hiệu này với bạn.",
+    "ops_section": "Nhóm và thư mục",
+    "community_manager": "CM phụ trách",
+    "leader": "Trưởng nhóm",
+    "materials": "Tài liệu",
+    "finals": "Bản hoàn thiện",
+    "unassigned": "Chưa giao",
+    "open_drive": "Mở trong Drive",
+    "no_link": "Chưa có liên kết",
+    "edit_link": "Sửa liên kết",
+    "save_link": "Lưu liên kết",
+    "cancel_link": "Hủy",
+    "ops_save_error": "Không thể lưu. Liên kết phải bắt đầu bằng http(s) và người được chọn phải là thành viên của thương hiệu này."
   }
 }

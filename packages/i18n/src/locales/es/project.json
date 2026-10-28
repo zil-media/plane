@@ -478,6 +478,18 @@
     "purpose_operations": "Operaciones",
     "other_bus": "También la trabajan",
     "unavailable": "No se pudo conectar con Zil Workspace. Probá de nuevo en un momento.",
-    "no_sheet": "Zil Workspace no comparte la ficha de esta marca con vos."
+    "no_sheet": "Zil Workspace no comparte la ficha de esta marca con vos.",
+    "ops_section": "Equipo y carpetas",
+    "community_manager": "CM a cargo",
+    "leader": "Líder",
+    "materials": "Materiales",
+    "finals": "Finales",
+    "unassigned": "Sin asignar",
+    "open_drive": "Abrir en Drive",
+    "no_link": "Sin link todavía",
+    "edit_link": "Editar link",
+    "save_link": "Guardar link",
+    "cancel_link": "Cancelar",
+    "ops_save_error": "No se pudo guardar. Los links tienen que empezar con http(s) y las personas tienen que ser miembros de esta marca."
   }
 }

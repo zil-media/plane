@@ -43,8 +43,17 @@ export type TZilBrandSheet = {
   projects: { workspaceSlug: string; businessUnit: string }[] | null;
 };
 
+/** What Ops itself keeps on a brand, loaded from the "Marca" tab. */
+export type TZilBrandOps = {
+  community_manager_id: string | null;
+  leader_id: string | null;
+  materials_url: string;
+  finals_url: string;
+};
+
 export type TZilProjectBrand = {
   brand: TZilBrandProject;
+  ops: TZilBrandOps;
   /** null when Zil said no (or the brand has no sheet), and when Zil could not be reached */
   sheet: TZilBrandSheet | null;
   unavailable: boolean;
@@ -66,6 +75,18 @@ export class ZilBrandService extends APIService {
 
   async getProjectBrand(workspaceSlug: string, projectId: string): Promise<TZilProjectBrand> {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-brand/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async updateProjectBrandOps(
+    workspaceSlug: string,
+    projectId: string,
+    data: Partial<TZilBrandOps>
+  ): Promise<{ ops: TZilBrandOps }> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-brand/`, data)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

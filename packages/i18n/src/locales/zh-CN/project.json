@@ -478,6 +478,18 @@
     "purpose_operations": "运营",
     "other_bus": "其他负责方",
     "unavailable": "无法连接到 Zil Workspace。请稍后再试。",
-    "no_sheet": "Zil Workspace 未与您共享此品牌的资料表。"
+    "no_sheet": "Zil Workspace 未与您共享此品牌的资料表。",
+    "ops_section": "团队与文件夹",
+    "community_manager": "负责 CM",
+    "leader": "负责人",
+    "materials": "素材",
+    "finals": "成品",
+    "unassigned": "未分配",
+    "open_drive": "在 Drive 中打开",
+    "no_link": "暂无链接",
+    "edit_link": "编辑链接",
+    "save_link": "保存链接",
+    "cancel_link": "取消",
+    "ops_save_error": "无法保存。链接必须以 http(s) 开头，且人员必须是该品牌的成员。"
   }
 }

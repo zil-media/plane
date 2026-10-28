@@ -478,6 +478,18 @@
     "purpose_operations": "Operations",
     "other_bus": "Also worked by",
     "unavailable": "Zil Workspace could not be reached. Try again in a moment.",
-    "no_sheet": "Zil Workspace does not share this brand's sheet with you."
+    "no_sheet": "Zil Workspace does not share this brand's sheet with you.",
+    "ops_section": "Team and folders",
+    "community_manager": "CM in charge",
+    "leader": "Lead",
+    "materials": "Materials",
+    "finals": "Finals",
+    "unassigned": "Unassigned",
+    "open_drive": "Open in Drive",
+    "no_link": "No link yet",
+    "edit_link": "Edit link",
+    "save_link": "Save link",
+    "cancel_link": "Cancel",
+    "ops_save_error": "Could not save. Links must start with http(s) and people must be members of this brand."
   }
 }

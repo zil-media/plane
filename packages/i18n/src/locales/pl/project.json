@@ -478,6 +478,18 @@
     "purpose_operations": "Operacje",
     "other_bus": "Pracują nad nią także",
     "unavailable": "Nie można połączyć się z Zil Workspace. Ponów próbę za chwilę.",
-    "no_sheet": "Zil Workspace nie udostępnia karty tej marki."
+    "no_sheet": "Zil Workspace nie udostępnia karty tej marki.",
+    "ops_section": "Zespół i foldery",
+    "community_manager": "Odpowiedzialny CM",
+    "leader": "Lider",
+    "materials": "Materiały",
+    "finals": "Pliki finalne",
+    "unassigned": "Nieprzypisane",
+    "open_drive": "Otwórz w Drive",
+    "no_link": "Brak linku",
+    "edit_link": "Edytuj link",
+    "save_link": "Zapisz link",
+    "cancel_link": "Anuluj",
+    "ops_save_error": "Nie udało się zapisać. Linki muszą zaczynać się od http(s), a osoby muszą być członkami tej marki."
   }
 }

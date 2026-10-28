@@ -478,6 +478,18 @@
     "purpose_operations": "Operațiuni",
     "other_bus": "Lucrează la el și",
     "unavailable": "Nu s-a putut stabili conexiunea cu Zil Workspace. Încercați din nou în scurt timp.",
-    "no_sheet": "Zil Workspace nu partajează fișa acestui brand."
+    "no_sheet": "Zil Workspace nu partajează fișa acestui brand.",
+    "ops_section": "Echipă și foldere",
+    "community_manager": "CM responsabil",
+    "leader": "Lider",
+    "materials": "Materiale",
+    "finals": "Finale",
+    "unassigned": "Neatribuit",
+    "open_drive": "Deschide în Drive",
+    "no_link": "Încă fără link",
+    "edit_link": "Editează linkul",
+    "save_link": "Salvează linkul",
+    "cancel_link": "Anulează",
+    "ops_save_error": "Nu s-a putut salva. Linkurile trebuie să înceapă cu http(s), iar persoanele trebuie să fie membri ai acestui brand."
   }
 }
