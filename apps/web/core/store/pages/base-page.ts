@@ -18,8 +18,8 @@ import type {
   TPageZilClient,
 } from "@plane/types";
 // plane web store
-import { ExtendedBasePage } from "@/plane-web/store/pages/extended-base-page";
-import type { RootStore } from "@/plane-web/store/root.store";
+import { ExtendedBasePage } from "@/store/pages/extended-base-page";
+import type { RootStore } from "@/store/root.store";
 // local imports
 import { PageEditorInstance } from "./page-editor-info";
 

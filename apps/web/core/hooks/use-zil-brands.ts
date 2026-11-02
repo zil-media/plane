@@ -6,7 +6,6 @@
 
 import useSWR from "swr";
 // services
-import type { TZilBrandOps } from "@/services/zil-brand.service";
 import { ZilBrandService } from "@/services/zil-brand.service";
 
 const zilBrandService = new ZilBrandService();
@@ -28,25 +27,10 @@ export function useZilProjectBrandProject(workspaceSlug: string | undefined, pro
 }
 
 export function useZilProjectBrand(workspaceSlug: string | undefined, projectId: string | undefined) {
-  const { data, isLoading, error, mutate } = useSWR(
+  const { data, isLoading, error } = useSWR(
     workspaceSlug && projectId ? `ZIL_PROJECT_BRAND_${projectId}` : null,
     workspaceSlug && projectId ? () => zilBrandService.getProjectBrand(workspaceSlug, projectId) : null,
     { revalidateOnFocus: false, shouldRetryOnError: false }
   );
-  /** Saves what Ops keeps on the brand, shown at once and without asking Zil again; undone if it fails. */
-  const updateOps = async (changes: Partial<TZilBrandOps>) => {
-    if (!workspaceSlug || !projectId || !data) return;
-    const previous = data.ops;
-    await mutate((current) => (current ? { ...current, ops: { ...current.ops, ...changes } } : current), {
-      revalidate: false,
-    });
-    try {
-      const { ops } = await zilBrandService.updateProjectBrandOps(workspaceSlug, projectId, changes);
-      await mutate((current) => (current ? { ...current, ops } : current), { revalidate: false });
-    } catch (failure) {
-      await mutate((current) => (current ? { ...current, ops: previous } : current), { revalidate: false });
-      throw failure;
-    }
-  };
-  return { data, isLoading, error, updateOps };
+  return { data, isLoading, error };
 }

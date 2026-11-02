@@ -139,9 +139,7 @@ Repo rules:
 Before pushing (mandatory):
 - Re-read your whole diff: git diff origin/preview...HEAD. Anything that isn't the reported defect
   comes out. No TODOs or stubs.
-- Python touched: ruff check apps/api, then the tests you touched and the whole suite
-  (cd apps/api && pytest -p no:cacheprovider -q). The session start hook sets the test env up;
-  if it says it failed, the bug is blocked, not fixed.
+- Python touched: pip install ruff==0.9.7 && ruff check apps/api
 - Frontend touched: pnpm install --frozen-lockfile && pnpm check:types (and pnpm check:lint)
 CI runs the full bar (ruff, makemigrations --check, pytest, format, lint, types, build).
 

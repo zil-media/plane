@@ -10,11 +10,10 @@ report ─► BugReport ─► fire_bug_routine ─► routine "Bug fixer Zil Op
        ─► push claude/** ─► agent-auto-merge.yml ─► urgent: preview + deploy │ batch: agent-batch
        ─► agent-batch-window.yml (15/21/02 UTC) ─► preview + deploy ─► resolved + email
 
-suggestion ─► FeatureRequest ─► SPEC ─► spec approves itself (open questions → requester,
-              already exists → closed with the how-to)
-           ─► BUILD ─► feat/agent/<id> ─► feature-agent-pr.yml ─► PR (PR manager) │ agent-batch
-           ─► merged + flag on, no person in the loop. A red CI run rebuilds by itself up to
-              MAX_BUILD_RUNS; only then it goes on hold and the admins hear about it
+suggestion ─► FeatureRequest ─► SPEC ─► spec ─► admin approves (low impact, an admin's own
+              request, or a BU director's up to medium impact, approve themselves)
+           ─► BUILD ─► feat/agent/<id> ─► feature-agent-pr.yml ─► PR │ agent-batch ─► merged (dark)
+           ─► admin turns the flag on in Soporte
 ```
 
 ## 1. Routines (claude.ai/code/routines)
@@ -31,11 +30,6 @@ Enable an API trigger on each and keep its token. Fire URL: `https://api.anthrop
 environment must allow `ops.zil.global` in its network access. The session must be able to push
 branches but **not** workflow files (no `workflows` permission): that is what stops an agent branch
 from rewriting the lanes that gate it.
-
-The sessions have no Docker. `.claude/settings.json` runs `.claude/hooks/cloud-backend-tests.sh` at
-session start (cloud only): it starts the image's Postgres and Redis, installs
-`apps/api/requirements/test.txt` and exports the test env, so `pytest` runs from `apps/api` before
-the push. The environment's network access must allow PyPI.
 
 ## 2. Ops environment (api + worker + beat)
 

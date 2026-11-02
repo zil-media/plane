@@ -11,7 +11,6 @@ POST /api/zil/sync/brand-projects/. The brand → project mapping lives here, ne
 """
 
 # Django imports
-from django.conf import settings
 from django.db import models
 
 # Module imports
@@ -24,9 +23,6 @@ class ZilBrandProject(BaseModel):
     `identifier` is the work item key prefix allocated when the project was made; it never
     changes, since it is part of every work item key (`KFC-123`). `auto_name` is the last name the
     sync gave the project: a project renamed by hand keeps its name.
-
-    `community_managers`, `leaders`, `materials_links` and `finals_links` are Ops' own: loaded from
-    the "Marca" tab, never touched by the sync.
     """
 
     BRAND_KIND = "brand"
@@ -47,11 +43,6 @@ class ZilBrandProject(BaseModel):
     status = models.CharField(max_length=16, default=ACTIVE)
     synced_at = models.DateTimeField(null=True, blank=True)
     members_synced_at = models.DateTimeField(null=True, blank=True)
-    community_managers = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name="zil_brands_as_cm")
-    leaders = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name="zil_brands_as_leader")
-    # [{"name": "Fotos", "url": "https://drive.google.com/…"}], in the order people loaded them
-    materials_links = models.JSONField(default=list, blank=True)
-    finals_links = models.JSONField(default=list, blank=True)
 
     class Meta:
         verbose_name = "Zil Brand Project"

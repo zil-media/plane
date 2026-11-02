@@ -2,14 +2,12 @@ name: Feature Agent PR
 
 # The feature agent's lane (feat/agent/<feature uuid>). Runs the full preview bar, then routes:
 #
-#   - flag gate present and the window's strict guard clean -> merged into `agent-batch`;
-#     agent-batch-window.yml re-gates the combined batch, ships it to preview and Ops turns the
-#     flag on (owner's call: an approved spec that passes CI ships by itself, whatever its impact).
-#   - no flag gate, or something only a person merges (migrations, deleted files) -> PR against
-#     preview, which the PR manager routine integrates.
+#   - high impact, unreadable API, or ANY guard ⚠  -> PR against preview; a person reviews and merges.
+#   - low/medium with a silent guard (incl. the flag gate present) -> merged into `agent-batch`;
+#     agent-batch-window.yml re-gates the combined batch and ships it to preview.
 #
-# A person already decided when they approved the spec; the declared blast radius only informs that
-# decision. What the code must prove on its own is the flag gate and a strict-clean guard.
+# The blast radius is the AGENT's own declaration, so it never auto-merges on its own: the guard,
+# derived from the code, has to be silent too. And everything ships dark behind its flag.
 
 on:
   push:
@@ -92,20 +90,25 @@ jobs:
         env:
           FEATURE_ID: ${{ steps.feature.outputs.feature_id }}
         run: |
-          RADIUS=unknown
+          RADIUS=high
           if [ -n "$FEATURE_AGENT_API_KEY" ] && [ -n "$API_URL" ] && \
              curl -sf -H "Authorization: Bearer ${FEATURE_AGENT_API_KEY}" \
                -o /tmp/feature.json "${API_URL}/api/agent/features/${FEATURE_ID}/"; then
-            RADIUS=$(jq -r '.spec.blast_radius // "unknown"' /tmp/feature.json)
+            RADIUS=$(jq -r '.spec.blast_radius // "high"' /tmp/feature.json)
+          else
+            echo "::warning::Could not read feature ${FEATURE_ID}: assuming high impact (PR lane)"
           fi
-          LANE_NAME=batch
+          LANE_NAME=pr
           FALLBACK=""
-          if grep -q '### ⚠ No flag' /tmp/guard-report.md 2>/dev/null; then
-            LANE_NAME=pr
-            FALLBACK="The diff shows no flag gate (is_feature_enabled / useFeatureFlag): required for auto-merge."
-          elif ! node /tmp/check-agent-diff.preview.mjs --base origin/preview --strict --report /tmp/guard-strict.md >/dev/null 2>&1; then
-            LANE_NAME=pr
-            FALLBACK="The batch window's strict guard would cut it (migrations or deleted files): a person merges those."
+          if [ "$RADIUS" = "low" ] || [ "$RADIUS" = "medium" ]; then
+            LANE_NAME=batch
+            if grep -q '### ⚠ No flag' /tmp/guard-report.md 2>/dev/null; then
+              LANE_NAME=pr
+              FALLBACK="The diff shows no flag gate (is_feature_enabled / useFeatureFlag): required for auto-merge."
+            elif grep -q '⚠' /tmp/guard-report.md 2>/dev/null; then
+              LANE_NAME=pr
+              FALLBACK="The guard raised ⚠ (sensitive files or size): only silent diffs auto-merge."
+            fi
           fi
           echo "Declared blast radius: ${RADIUS}. Lane: ${LANE_NAME}. ${FALLBACK}"
           echo "lane=${LANE_NAME}" >> "$GITHUB_OUTPUT"
@@ -125,11 +128,17 @@ jobs:
             echo "Feature request: \`${FEATURE_ID}\`"
             echo
             [ -n "$FALLBACK" ] && { echo "> ⚠ **Not auto-merged:** ${FALLBACK}"; echo; }
-            echo "Built by the feature agent. The PR manager routine integrates it; no person approves it."
+            echo "Built by the feature agent. **Does not auto-merge**: review the guard report and the diff."
             echo
             cat /tmp/guard-report.md 2>/dev/null || echo "_(no guard report)_"
             echo
-            echo "Merging ships it and Ops turns its flag on by itself."
+            echo "### Before merging"
+            echo "- [ ] The feature is behind its flag and the flag starts off"
+            echo "- [ ] Every ⚠ file was read line by line"
+            echo "- [ ] New env vars from the spec are already set in production"
+            echo "- [ ] Migrations (if any) are safe to run on deploy"
+            echo
+            echo "Merging ships it **dark**. It is turned on from Support → Suggestions in Ops."
           } > /tmp/pr-body.md
           EXISTING=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
           if [ -n "$EXISTING" ]; then
@@ -184,9 +193,7 @@ jobs:
           NOTE="La construcción no pasó las verificaciones automáticas. El equipo la revisa antes de seguir."
           RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           FOR_AGENT="CI rejected the previous push on this branch. Read which check failed before changing anything: ${RUN_URL}"
-          PUSHED_AT=$(git log -1 --format=%cI "$GITHUB_SHA")
-          PAYLOAD=$(jq -n --arg note "$NOTE" --arg for_agent "$FOR_AGENT" --arg pushed_at "$PUSHED_AT" \
-            '{state: "blocked", note: $note, for_agent: $for_agent, pushed_at: $pushed_at}')
+          PAYLOAD=$(jq -n --arg note "$NOTE" --arg for_agent "$FOR_AGENT" '{state: "blocked", note: $note, for_agent: $for_agent}')
           "$LANE/agent-api.sh" build-status "$FEATURE_ID" "$PAYLOAD" || true
 
   # A person merged the PR: the code is on preview (and its push deploys it). Close the loop in Ops.

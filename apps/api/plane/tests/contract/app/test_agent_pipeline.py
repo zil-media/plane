@@ -340,12 +340,14 @@ class TestFeaturePipeline:
         assert tasks["fire_feature"].call_args.args[:2] == (feature_id, "SPEC")
 
         base = f"/api/agent/features/{feature_id}"
-        with django_capture_on_commit_callbacks(execute=True):
-            spec = feature_agent.put(f"{base}/spec/", self.spec(), format="json")
-        # Nobody approves by hand: a clean spec approves itself and the build starts.
-        assert spec.data["status"] == "approved"
+        spec = feature_agent.put(f"{base}/spec/", self.spec(), format="json")
+        assert spec.data["status"] == "spec_ready"
         # the agent has no route to approve its own work
         assert feature_agent.put(f"{base}/approve/", {}, format="json").status_code == 404
+
+        with django_capture_on_commit_callbacks(execute=True):
+            approved = admin_client.post(f"/api/support/feature-requests/{feature_id}/approve/", {}, format="json")
+        assert approved.status_code == status.HTTP_200_OK
         assert FeatureRequest.objects.get(id=feature_id).status == "building"
         assert tasks["fire_feature"].call_args.args[:2] == (feature_id, "BUILD")
 
@@ -399,7 +401,7 @@ class TestFeaturePipeline:
         assert FeatureRequest.objects.get(id=created["id"]).status == "building"
 
     @pytest.mark.django_db
-    def test_high_impact_approves_itself_too(
+    def test_high_impact_from_the_bu_director_still_waits_for_a_person(
         self, session_client, feature_agent, feature_agent_enabled, workspace, django_capture_on_commit_callbacks
     ):
         with django_capture_on_commit_callbacks(execute=True):
@@ -408,10 +410,10 @@ class TestFeaturePipeline:
             response = feature_agent.put(
                 f"/api/agent/features/{created['id']}/spec/", self.spec(blast_radius="high"), format="json"
             )
-        assert response.data["status"] == "approved"
+        assert response.data["status"] == "spec_ready"
 
     @pytest.mark.django_db
-    def test_medium_impact_from_a_plain_member_approves_itself(
+    def test_medium_impact_from_a_plain_member_waits_for_a_person(
         self, session_client, feature_agent, feature_agent_enabled, create_user, django_capture_on_commit_callbacks
     ):
         # Same membership, someone else's workspace: a member is not the director.
@@ -424,10 +426,10 @@ class TestFeaturePipeline:
             response = feature_agent.put(
                 f"/api/agent/features/{created['id']}/spec/", self.spec(blast_radius="medium"), format="json"
             )
-        assert response.data["status"] == "approved"
+        assert response.data["status"] == "spec_ready"
 
     @pytest.mark.django_db
-    def test_an_open_question_goes_to_the_requester(
+    def test_a_directors_open_question_still_stops_the_build(
         self, session_client, feature_agent, feature_agent_enabled, workspace, django_capture_on_commit_callbacks
     ):
         with django_capture_on_commit_callbacks(execute=True):
@@ -438,7 +440,7 @@ class TestFeaturePipeline:
                 self.spec(blast_radius="medium", open_questions=["¿Quiénes deberían verlo?"]),
                 format="json",
             )
-        assert response.data["status"] == "needs_info"
+        assert response.data["status"] == "spec_ready"
 
     @pytest.mark.django_db
     def test_a_build_that_keeps_failing_stops_relaunching_until_a_person_says_so(
