@@ -40,7 +40,12 @@ class ApiTokenEndpoint(BaseAPIView):
 
     def get(self, request: Request, pk: Optional[str] = None) -> Response:
         if pk is None:
-            api_tokens = APIToken.objects.filter(user=request.user, is_service=False)
+            # a connector replaced by connecting the app again is gone for good: don't list it
+            api_tokens = (
+                APIToken.objects.filter(user=request.user, is_service=False)
+                .exclude(mcp_oauth_grant__isnull=False, is_active=False)
+                .select_related("mcp_oauth_grant")
+            )
             serializer = APITokenReadSerializer(api_tokens, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:

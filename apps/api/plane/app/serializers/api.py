@@ -28,12 +28,20 @@ class APITokenSerializer(BaseSerializer):
 
 class APITokenReadSerializer(BaseSerializer):
     is_active = serializers.SerializerMethodField()
+    # Zil Ops: the token of an app connected over MCP OAuth (Claude…). Its 24h expiry is renewed by
+    # the app on its own, so it stays connected until it is deleted or the app is connected again.
+    is_connector = serializers.SerializerMethodField()
 
     class Meta:
         model = APIToken
         exclude = ("token",)
 
+    def get_is_connector(self, obj: APIToken) -> bool:
+        return hasattr(obj, "mcp_oauth_grant")
+
     def get_is_active(self, obj: APIToken) -> bool:
+        if self.get_is_connector(obj):
+            return obj.is_active
         if obj.expired_at is None:
             return True
         return timezone.now() < obj.expired_at

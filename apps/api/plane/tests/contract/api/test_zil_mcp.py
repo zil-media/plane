@@ -484,3 +484,37 @@ class TestMcpOAuthAllWorkspaces:
         )
         assert refreshed.status_code == 200
         assert self.whoami(refreshed.json()["access_token"])["all_workspaces"] is True
+
+
+@pytest.mark.contract
+class TestConnectorTokensInTheList:
+    @pytest.fixture(autouse=True)
+    def _public_url(self, settings):
+        settings.APP_BASE_URL = BASE
+        settings.WEB_URL = BASE
+
+    def test_a_connector_shows_connected_past_its_expiry_and_replaced_ones_disappear(
+        self, db, workspace, create_user
+    ):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        browser = Client()
+        browser.force_login(create_user)
+        flow = TestMcpOAuthAllWorkspaces()
+        _, first = flow.connect(browser, {"workspace": workspace.slug})
+        _, second = flow.connect(browser, {"workspace": workspace.slug})
+        yesterday = timezone.now() - timedelta(days=1)
+        manual = APIToken.objects.create(user=create_user, label="manual", expired_at=yesterday)
+        # not used for days: the access token is past its 24h, the app renews it on its next call
+        APIToken.objects.filter(token=second["access_token"]).update(expired_at=timezone.now() - timedelta(days=2))
+
+        listed = {t["label"]: t for t in browser.get("/api/users/api-tokens/").json()}
+        assert set(listed) == {"Claude (conector)", "manual"}  # the replaced connection is not listed
+        assert listed["Claude (conector)"]["is_connector"] is True
+        assert listed["Claude (conector)"]["is_active"] is True
+        assert listed["manual"]["is_connector"] is False
+        assert listed["manual"]["is_active"] is False
+        assert str(manual.id) == listed["manual"]["id"]
+        assert not APIToken.objects.get(token=first["access_token"]).is_active
