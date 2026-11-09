@@ -39,7 +39,24 @@ class ProjectPagePermission(BasePermission):
             return False
 
         if page_id:
-            page = Page.objects.get(id=page_id, workspace__slug=slug)
+            # Scope the page to the project in the URL. Resolving the page by
+            # workspace + page_id alone allowed a member of one project to read
+            # pages belonging to another project in the same workspace
+            # (GHSA-g49r / GHSA-ghcr). Require an *active* ProjectPage link (both
+            # conditions on the same relation so they match one row) so a page
+            # removed from the project (soft-deleted link) is also denied.
+            page = Page.objects.filter(
+                id=page_id,
+                workspace__slug=slug,
+                project_pages__project_id=project_id,
+                project_pages__deleted_at__isnull=True,
+            ).first()
+            if page is None:
+                # PageViewSet.retrieve scopes its own queryset to the URL project and answers
+                # 404 (or the Zil "page moved" pointer, only for who can open it in its new
+                # project), so the old link of a page that changed project still resolves.
+                # Every other action stays denied.
+                return request.method == "GET" and getattr(view, "action", None) == "retrieve"
 
             # Allow access if the user is the owner of the page
             if page.owned_by_id == user_id:

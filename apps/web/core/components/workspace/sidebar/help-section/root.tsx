@@ -18,8 +18,6 @@ import { openBugReporter, openFeatureSuggest } from "@/components/support/events
 // hooks
 import { useAppRouter } from "@/hooks/use-app-router";
 import { usePowerK } from "@/hooks/store/use-power-k";
-// plane web components
-import { PlaneVersionNumber } from "@/plane-web/components/global";
 
 export const HelpMenuRoot = observer(function HelpMenuRoot() {
   // store hooks
@@ -87,9 +85,6 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
         <CustomMenu.MenuItem onClick={() => toggleShortcutsListModal(true)}>
           <span className="text-11">{t("keyboard_shortcuts")}</span>
         </CustomMenu.MenuItem>
-        <div className="mt-1 border-t border-subtle px-1 pt-2 text-11 text-secondary">
-          <PlaneVersionNumber />
-        </div>
       </CustomMenu>
     </>
   );
