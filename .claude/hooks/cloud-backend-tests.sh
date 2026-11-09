@@ -18,9 +18,13 @@ LOG=/tmp/backend-test-env.log
 as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo -n "$@"; fi; }
 as_postgres() { if [ "$(id -u)" = 0 ]; then su postgres -c "$1"; else sudo -n -u postgres sh -c "$1"; fi; }
 fail() {
+    # Never a reason to stop: the lane runs the whole backend suite in Docker (gates.sh backend)
+    # before anything merges, so CI is the gate. A session that stopped here left the bug claimed
+    # and the reporter waiting on a person (2026-11-09).
     echo "BACKEND TEST ENV FAILED: $1 (log: ${LOG})."
-    echo "You cannot run backend tests in this session. Never push untested backend changes:"
-    echo "report the work as blocked (that is for the maintainers, never a note to the person who asked)."
+    echo "Backend tests can't run locally in this session. Do NOT stop, do not report blocked:"
+    echo "finish the fix, run ruff check apps/api, push, and let CI run the full pytest suite"
+    echo "(it gates every merge). Watch that run; if pytest is red, fix it and push again."
     exit 0
 }
 
@@ -55,10 +59,18 @@ fail() {
         rm -rf "$REQS" && mkdir -p "$REQS" || exit 16
         grep -viE '^psycopg-c([=<>~ ]|$)' "${API}/requirements/base.txt" > "${REQS}/base.txt"
         cp "${API}/requirements/test.txt" "${REQS}/test.txt"
-        "${VENV}/bin/pip" install -q -r "${REQS}/test.txt" ruff==0.9.7 || exit 16
+        # Twice: a single flaky download must not cost the session its tests.
+        PIP=("${VENV}/bin/pip" install -q --retries 5 --timeout 60 -r "${REQS}/test.txt" ruff==0.9.7)
+        "${PIP[@]}" || "${PIP[@]}" || exit 16
         cp "${API}/requirements/base.txt" "${VENV}/.base.txt"
     fi
     mkdir -p "${API}/plane/static-assets/collected-static"
+
+    # Proves the pieces work together (driver + DB + Django settings), not just that they installed.
+    cd "$API" && DJANGO_SETTINGS_MODULE=plane.settings.test \
+        DATABASE_URL=postgresql://plane:plane@localhost:5432/plane \
+        "${VENV}/bin/python" -c "import psycopg; psycopg.connect('postgresql://plane:plane@localhost:5432/plane').close(); import django" ||
+        exit 17
 ) >>"$LOG" 2>&1
 STATUS=$?
 case "$STATUS" in
@@ -66,6 +78,7 @@ case "$STATUS" in
     11|12) fail "Postgres did not start" ;;
     13) fail "could not create the plane role/database" ;;
     14) fail "Redis did not start" ;;
+    17) fail "the installed driver could not reach Postgres" ;;
     *) fail "installing the test requirements failed" ;;
 esac
 

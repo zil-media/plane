@@ -141,7 +141,8 @@ Before pushing (mandatory):
   comes out. No TODOs or stubs.
 - Python touched: ruff check apps/api, then the tests you touched and the whole suite
   (cd apps/api && pytest -p no:cacheprovider -q). The session start hook sets the test env up;
-  if it says it failed, the bug is blocked, not fixed.
+  if it says it failed, push anyway: CI runs the full suite before anything merges. Watch that
+  run and fix what it reports. A broken local env is never a reason to stop.
 - Frontend touched: pnpm install --frozen-lockfile && pnpm check:types (and pnpm check:lint)
 CI runs the full bar (ruff, makemigrations --check, pytest, format, lint, types, build).
 

@@ -1,0 +1,66 @@
+# Copyright (c) 2023-present Plane Software, Inc. and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+# See the LICENSE file for details.
+
+# The bug fixer and feature agent routines build their backend test env with
+# .claude/hooks/cloud-backend-tests.sh when a cloud session starts. When that broke (psycopg-c could
+# not compile there) nobody noticed until a routine stopped mid-bug. This runs the same hook on a
+# bare Ubuntu 24.04 like the cloud image (Postgres, Redis, a compiler, no libpq headers) and then
+# runs real tests with the env it exported, so a requirements bump that breaks it fails here first.
+name: Cloud test env check
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - ".claude/hooks/**"
+      - "apps/api/requirements/**"
+      - "apps/api/.env.example"
+      - ".github/workflows/cloud-hook-check.yml"
+  pull_request:
+    branches: [preview]
+    paths:
+      - ".claude/hooks/**"
+      - "apps/api/requirements/**"
+      - "apps/api/.env.example"
+      - ".github/workflows/cloud-hook-check.yml"
+  schedule:
+    # Weekly: catches a pinned package whose wheels disappear without any commit here.
+    - cron: "0 11 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  hook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: ubuntu:24.04
+    steps:
+      - name: Cloud-like base image
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update -q
+          apt-get install -y -q --no-install-recommends git ca-certificates python3 python3-venv \
+            python3-pip build-essential postgresql redis-server
+      - uses: actions/checkout@v4
+      - name: Run the session start hook
+        env:
+          CLAUDE_CODE_REMOTE: "true"
+        run: |
+          export CLAUDE_PROJECT_DIR="$GITHUB_WORKSPACE"
+          OUT=$(bash .claude/hooks/cloud-backend-tests.sh)
+          echo "$OUT"
+          if ! echo "$OUT" | grep -q "Backend tests are runnable here"; then
+            echo "::error::cloud-backend-tests.sh did not build the test env"
+            tail -60 /tmp/backend-test-env.log
+            exit 1
+          fi
+      - name: Tests run with the exported env
+        run: |
+          . /tmp/backend-test-env.sh
+          cd apps/api
+          pytest -p no:cacheprovider -q -o addopts="--strict-markers --reuse-db --nomigrations" \
+            plane/tests/unit plane/tests/contract/app/test_page_tree_app.py

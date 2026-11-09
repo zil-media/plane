@@ -112,9 +112,9 @@ your improvisation.
    requirements (its message says so). Backend touched → every test you wrote or touched, then the
    whole suite, must pass here before you push:
      cd apps/api && pytest -p no:cacheprovider -q <your test files> && pytest -p no:cacheprovider -q
-   A failing or unrunnable test means you are not done: fix it, or if the hook said the test
-   environment failed, report it as blocked (below) — never push untested backend code and never
-   ship it as an assumption ("dudas").
+   A failing test means you are not done: fix it. If the hook said the test environment failed,
+   push anyway: CI runs the whole suite on feat/agent/** before any PR. Watch that run and fix
+   what it reports. A broken local env is never a reason to report blocked.
      ruff check apps/api   and   pnpm install --frozen-lockfile && pnpm check:types
      git add <your files>        # never git add -A
      git commit -m "feat: <short description>" -m "Feature-Id: <FEATURE_ID>"
