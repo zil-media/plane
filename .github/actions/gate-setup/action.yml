@@ -28,3 +28,9 @@ runs:
       with:
         node-version: 22
         cache: pnpm
+    # A job that runs only the backend gates (Integrator Merge when the routine had no Docker) never
+    # fills the pnpm store, and setup-node's post step then fails saving a cache path that does not
+    # exist: the run shows red although everything merged and deployed.
+    - name: Make sure the pnpm store exists
+      shell: bash
+      run: mkdir -p "$(pnpm store path --silent)"
