@@ -8,6 +8,8 @@ from fastmcp.server.dependencies import get_access_token
 from fastmcp.utilities.logging import get_logger
 from plane import PlaneClient
 
+from plane_mcp.workspace_scope import current_workspace_override
+
 logger = get_logger(__name__)
 
 
@@ -50,6 +52,8 @@ def get_plane_client_context() -> PlaneClientContext:
     if stored_access_token:
         api_key = stored_access_token.token
         workspace_slug = stored_access_token.claims.get("workspace_slug", "") or workspace_slug
+    # Zil Ops: a call that named another workspace the connection may use (see workspace_scope)
+    workspace_slug = current_workspace_override() or workspace_slug
 
     client = PlaneClient(
         base_url=base_url,

@@ -232,8 +232,12 @@ def _redirect(redirect_uri, params):
     return urlunparse(url._replace(query=urlencode(query)))
 
 
-def decide_authorization(user, pending, workspace, allow):
-    """The person tapped Permitir or Cancelar. Returns where to send the browser."""
+def decide_authorization(user, pending, workspace, allow, all_workspaces=False):
+    """The person tapped Permitir or Cancelar. Returns where to send the browser.
+
+    ``workspace`` is the connection's main workspace; ``all_workspaces`` also lets the app work in
+    every other workspace the person belongs to (always with the person's own permissions).
+    """
     params = pending.params
     client, redirect_uri = validate_authorize_request(params)
     pending.delete()
@@ -245,6 +249,7 @@ def decide_authorization(user, pending, workspace, allow):
         client=client,
         user=user,
         workspace=workspace,
+        all_workspaces=bool(all_workspaces),
         redirect_uri=redirect_uri,
         code_challenge=params["code_challenge"],
         resource=params.get("resource") or "",
@@ -313,7 +318,12 @@ def exchange_code(client, data):
             expired_at=now + ACCESS_TTL,
         )
         refresh_token = REFRESH_PREFIX + secrets.token_urlsafe(32)
-        McpOAuthGrant.objects.create(client=client, api_token=token, refresh_hash=hash_secret(refresh_token))
+        McpOAuthGrant.objects.create(
+            client=client,
+            api_token=token,
+            refresh_hash=hash_secret(refresh_token),
+            all_workspaces=record.all_workspaces,
+        )
     return _token_response(token.token, refresh_token)
 
 

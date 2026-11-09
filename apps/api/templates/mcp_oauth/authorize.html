@@ -61,8 +61,10 @@
         background: var(--bg);
         color: var(--text);
         font: inherit;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
       }
+      label.check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--text); margin-bottom: 20px; cursor: pointer; }
+      label.check input { margin-top: 3px; accent-color: var(--brand); }
       .actions { display: flex; gap: 10px; }
       button {
         flex: 1;
@@ -102,6 +104,10 @@
                 <option value="{{ workspace.slug }}">{{ workspace.name }}</option>
               {% endfor %}
             </select>
+            <label class="check">
+              <input type="checkbox" name="all_workspaces" />
+              <span>Dar acceso también a mis otros espacios ({{ workspaces|length|add:"-1" }}). El elegido arriba queda como principal.</span>
+            </label>
           {% else %}
             <input type="hidden" name="workspace" value="{{ workspaces.0.slug }}" />
             <p>Espacio de trabajo: <strong>{{ workspaces.0.name }}</strong></p>

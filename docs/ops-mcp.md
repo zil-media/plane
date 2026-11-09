@@ -10,7 +10,14 @@ adds the URL as a connector and signs in to Ops.
 - **Claude Code:** `claude mcp add --transport http zil-ops https://ops.zil.global/mcp`, then
   `/mcp` → zil-ops → Authenticate.
 
-Everything runs as the person who connected, with their Ops permissions. The connection shows up
+Everything runs as the person who connected, with their Ops permissions.
+
+On the consent page the person picks a **main workspace** and can tick _Dar acceso también a mis
+otros espacios_. Without it the connection only works in the main workspace. With it,
+`list_workspaces` lists every workspace the person belongs to and every tool takes an optional
+`workspace` (slug) to run there; without the argument tools use the main one
+(`apps/mcp/plane_mcp/workspace_scope.py`). Reconnecting the same app replaces the previous
+connection, so changing this means connecting again. The connection shows up
 as a personal access token (`<app> (conector)`) under Settings → Profile → Personal access
 tokens; deleting it disconnects the app. Tokens last 24h and the app renews them on its own.
 

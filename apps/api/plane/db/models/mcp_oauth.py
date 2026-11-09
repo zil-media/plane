@@ -51,7 +51,9 @@ class McpOAuthCode(models.Model):
     code_hash = models.CharField(max_length=64, unique=True)
     client = models.ForeignKey(McpOAuthClient, on_delete=models.CASCADE, related_name="codes")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mcp_oauth_codes")
+    # the connection's main workspace; with all_workspaces it may also use every other one the person is in
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="mcp_oauth_codes")
+    all_workspaces = models.BooleanField(default=False)
     redirect_uri = models.TextField()
     code_challenge = models.CharField(max_length=128)
     resource = models.TextField(blank=True, default="")
@@ -70,6 +72,8 @@ class McpOAuthGrant(models.Model):
     client = models.ForeignKey(McpOAuthClient, on_delete=models.CASCADE, related_name="grants")
     api_token = models.OneToOneField("db.APIToken", on_delete=models.CASCADE, related_name="mcp_oauth_grant")
     refresh_hash = models.CharField(max_length=64, unique=True)
+    # the token's workspace is the main one; this lets the app use the person's other workspaces too
+    all_workspaces = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

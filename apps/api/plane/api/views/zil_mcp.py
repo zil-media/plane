@@ -98,10 +98,16 @@ def snippet(text, query, radius=80):
 
 
 class ApiMcpWhoAmIEndpoint(BaseAPIView):
-    """Who an API token belongs to and the workspace it was issued for (the MCP server's token check)."""
+    """Who an API token belongs to and the workspaces it may use (the MCP server's token check).
+
+    ``workspace_slug`` is the main workspace an OAuth connection was granted for. ``all_workspaces``
+    says whether the connection may also use the person's other workspaces: true when the person
+    chose so on the consent page, and for a plain personal token (it already acts as the person).
+    """
 
     def get(self, request):
-        token = APIToken.objects.select_related("workspace").filter(token=request.auth).first()
+        token = APIToken.objects.select_related("workspace", "mcp_oauth_grant").filter(token=request.auth).first()
+        grant = getattr(token, "mcp_oauth_grant", None) if token else None
         workspaces = (
             Workspace.objects.filter(
                 workspace_member__member=request.user,
@@ -119,6 +125,7 @@ class ApiMcpWhoAmIEndpoint(BaseAPIView):
                     "display_name": request.user.display_name,
                 },
                 "workspace_slug": token.workspace.slug if token and token.workspace else None,
+                "all_workspaces": grant.all_workspaces if grant else True,
                 "workspaces": [{"slug": w.slug, "name": w.name} for w in workspaces],
             },
             status=status.HTTP_200_OK,

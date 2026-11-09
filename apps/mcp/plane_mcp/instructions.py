@@ -13,6 +13,12 @@ items always belong to a project; ask which if one is not named.
 """
 
 OPS_INSTRUCTIONS = """
+## Workspaces
+
+Tools run in the connection's main workspace. If the person gave this connection access to all
+their workspaces, list_workspaces shows them and every tool takes an optional `workspace` (a slug)
+to run in another one; pass it whenever the person names a workspace other than the main one.
+
 ## Pages (Zil Ops documents)
 
 Pages live in projects and form a tree (folders hold pages). Find them with search_pages, then:

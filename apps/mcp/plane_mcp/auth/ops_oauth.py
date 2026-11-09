@@ -2,7 +2,8 @@
 
 Ops (Django, /auth/mcp/...) runs the OAuth flow and issues the access token, which is an Ops API
 token. This side only advertises Ops as the authorization server (RFC 9728) and checks each bearer
-token against Ops, which also says which workspace the connection was granted for.
+token against Ops, which also says which workspace the connection was granted for and whether it may
+use the person's other workspaces too (see plane_mcp.workspace_scope).
 """
 
 from __future__ import annotations
@@ -55,6 +56,9 @@ class OpsTokenVerifier(TokenVerifier):
         # a token issued by the OAuth flow names its workspace; a plain personal token works when
         # the person is in exactly one workspace
         workspace_slug = info.get("workspace_slug") or (workspaces[0]["slug"] if len(workspaces) == 1 else "")
+        # the connection may use the person's other workspaces only if they granted it on the consent page
+        all_workspaces = bool(info.get("all_workspaces"))
+        usable = workspaces if all_workspaces else [w for w in workspaces if w["slug"] == workspace_slug]
         access = AccessToken(
             token=token,
             client_id=f"ops-user:{info['user']['id']}",
@@ -62,6 +66,8 @@ class OpsTokenVerifier(TokenVerifier):
             expires_at=None,
             claims={
                 "workspace_slug": workspace_slug,
+                "all_workspaces": all_workspaces,
+                "workspaces": [{"slug": w["slug"], "name": w.get("name") or w["slug"]} for w in usable],
                 "user_id": info["user"]["id"],
                 "email": info["user"].get("email"),
                 "auth_method": "ops_oauth",

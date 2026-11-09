@@ -14,7 +14,17 @@ import requests
 from unittest import mock
 from django.test import Client
 
-from plane.db.models import APIToken, Page, Project, ProjectMember, ProjectPage, User, McpOAuthGrant
+from plane.db.models import (
+    APIToken,
+    McpOAuthGrant,
+    Page,
+    Project,
+    ProjectMember,
+    ProjectPage,
+    User,
+    Workspace,
+    WorkspaceMember,
+)
 
 BASE = "https://ops.example.com"
 
@@ -198,6 +208,12 @@ class TestWhoAmI:
         assert response.data["user"]["email"] == create_user.email
         assert response.data["workspace_slug"] == workspace.slug
         assert response.data["workspaces"] == [{"slug": workspace.slug, "name": workspace.name}]
+
+    def test_a_plain_personal_token_may_use_every_workspace(self, api_key_client):
+        response = api_key_client.get("/api/v1/zil-mcp/whoami/")
+        assert response.status_code == 200
+        assert response.data["workspace_slug"] is None
+        assert response.data["all_workspaces"] is True
 
 
 # ─── OAuth ─────────────────────────────────────────────────────────────────────
@@ -394,3 +410,77 @@ class TestMcpOAuth:
             },
         )
         assert foreign.status_code == 400
+
+
+@pytest.mark.contract
+class TestMcpOAuthAllWorkspaces:
+    @pytest.fixture(autouse=True)
+    def _public_url(self, settings):
+        settings.APP_BASE_URL = BASE
+        settings.WEB_URL = BASE
+
+    @pytest.fixture
+    def second_workspace(self, db, create_user):
+        other = Workspace.objects.create(name="Meraki", owner=create_user, slug="meraki")
+        WorkspaceMember.objects.create(workspace=other, member=create_user, role=20)
+        return other
+
+    def connect(self, browser, form):
+        client_id = register(Client()).json()["client_id"]
+        verifier, challenge = pkce()
+        location = browser.post(authorize(browser, client_id, challenge), {"decision": "allow", **form})["Location"]
+        code = parse_qs(urlparse(location).query)["code"][0]
+        body = (
+            Client()
+            .post(
+                "/auth/mcp/token/",
+                {"grant_type": "authorization_code", "client_id": client_id, "code": code, "code_verifier": verifier},
+            )
+            .json()
+        )
+        return client_id, body
+
+    def whoami(self, access_token):
+        return Client().get("/api/v1/zil-mcp/whoami/", HTTP_X_API_KEY=access_token).json()
+
+    def test_consent_offers_every_workspace_only_with_more_than_one(self, db, workspace, create_user):
+        browser = Client()
+        browser.force_login(create_user)
+        client_id = register(Client()).json()["client_id"]
+        _, challenge = pkce()
+        single = browser.get(authorize(browser, client_id, challenge)).content.decode()
+        assert 'name="all_workspaces"' not in single
+
+        other = Workspace.objects.create(name="Meraki", owner=create_user, slug="meraki")
+        WorkspaceMember.objects.create(workspace=other, member=create_user, role=20)
+        _, challenge = pkce()
+        several = browser.get(authorize(browser, client_id, challenge)).content.decode()
+        assert 'name="all_workspaces"' in several
+        assert "mis otros espacios (1)" in several
+
+    def test_one_workspace_by_default(self, db, workspace, second_workspace, create_user):
+        browser = Client()
+        browser.force_login(create_user)
+        _, body = self.connect(browser, {"workspace": second_workspace.slug})
+        me = self.whoami(body["access_token"])
+        assert me["workspace_slug"] == second_workspace.slug
+        assert me["all_workspaces"] is False
+        assert not McpOAuthGrant.objects.get().all_workspaces
+
+    def test_every_workspace_keeps_the_main_one_and_survives_refresh(
+        self, db, workspace, second_workspace, create_user
+    ):
+        browser = Client()
+        browser.force_login(create_user)
+        client_id, body = self.connect(browser, {"workspace": second_workspace.slug, "all_workspaces": "on"})
+        me = self.whoami(body["access_token"])
+        assert me["workspace_slug"] == second_workspace.slug
+        assert me["all_workspaces"] is True
+        assert {w["slug"] for w in me["workspaces"]} == {workspace.slug, second_workspace.slug}
+
+        refreshed = Client().post(
+            "/auth/mcp/token/",
+            {"grant_type": "refresh_token", "client_id": client_id, "refresh_token": body["refresh_token"]},
+        )
+        assert refreshed.status_code == 200
+        assert self.whoami(refreshed.json()["access_token"])["all_workspaces"] is True

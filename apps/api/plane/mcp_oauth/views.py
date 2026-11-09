@@ -182,6 +182,10 @@ class AuthorizeRequestView(View):
             if workspace is None:
                 return _error_page(request, OAuthError("invalid_request", "Elegí un espacio de trabajo válido."))
         try:
-            return HttpResponseRedirect(service.decide_authorization(request.user, pending, workspace, allow))
+            return HttpResponseRedirect(
+                service.decide_authorization(
+                    request.user, pending, workspace, allow, all_workspaces=request.POST.get("all_workspaces") == "on"
+                )
+            )
         except OAuthError as error:
             return _error_page(request, error)
