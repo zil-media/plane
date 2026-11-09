@@ -50,6 +50,7 @@ from plane.db.models import (
 from plane.utils.error_codes import ERROR_CODES
 from plane.utils.page_tree import (
     PageTreeError,
+    get_descendant_ids,
     next_child_sort_order,
     set_archived_at_for_page_and_descendants,
     validate_new_parent,
@@ -243,6 +244,8 @@ class PageViewSet(BaseViewSet):
             page_description = page.description_html
             if serializer.is_valid():
                 serializer.save()
+                if "access" in data and page.is_folder:
+                    Page.objects.filter(id__in=get_descendant_ids(page.id)).update(access=page.access)
                 # capture the page transaction
                 if data.get("description_html"):
                     page_transaction.delay(
@@ -359,6 +362,9 @@ class PageViewSet(BaseViewSet):
 
         page.access = access
         page.save()
+        # a folder's contents follow its visibility, otherwise they show up loose in the other tab
+        if page.is_folder:
+            Page.objects.filter(id__in=get_descendant_ids(page.id)).update(access=access)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, slug, project_id):
