@@ -168,6 +168,10 @@ Rules (CI checks the shape and cuts anything else):
     repair = importlib.import_module("plane.db.migrations.<file name>").repair
 - It runs once, when production starts with the new image. If it raises, data_repair undoes only
   the repair, the deploy goes on, and an incident (data-repair) comes back to you.
+- A push with a repair always ships on the urgent tier (straight to production), whatever the
+  bug's urgency. If CI says "Conflicting migrations" (preview got a newer one meanwhile), point
+  your repair's dependencies at preview's latest migration and push again; never add a merge
+  migration.
 - Say in the resolved_message that what was already wrong was corrected too.
 
 ## 5 — Push and confirm
