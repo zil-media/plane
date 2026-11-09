@@ -58,6 +58,25 @@
       "title": "个人访问令牌",
       "description": "生成安全的 API 令牌，将您的数据与外部系统和应用程序集成。"
     },
+    "connect_claude": {
+      "title": "连接 Claude",
+      "description": "在 Claude 中使用 Zil Ops：以您自己的权限处理工作项、周期、模块和页面。",
+      "url_label": "连接器 URL",
+      "copied": "已复制到剪贴板。",
+      "app": {
+        "title": "Claude（网页版或桌面版）",
+        "step_1": "在 Claude 中打开“设置”→“连接器”→“添加自定义连接器”。",
+        "step_2": "将其命名为 {name}，并粘贴连接器 URL。",
+        "step_3": "点击“连接”，如有提示请登录 Zil Ops。",
+        "step_4": "选择您的主工作区。如需使用全部工作区，请勾选 \"Dar acceso también a mis otros espacios\"。然后点击 \"Permitir\"。"
+      },
+      "code": {
+        "title": "Claude Code",
+        "step_1": "在终端中运行：",
+        "step_2": "在 Claude Code 中运行 /mcp，选择 {name}，选择 Authenticate，然后按照上面的第 3 步和第 4 步操作。"
+      },
+      "manage": "该连接会以“Claude (conector)”显示在个人访问令牌中。它会自动续期；在那里删除即可断开连接。"
+    },
     "activity": {
       "heading": "活动",
       "description": "跟踪您在所有项目和工作项中的最近操作和更改。"
@@ -104,7 +123,8 @@
       "preferences": "偏好设置",
       "notifications": "通知",
       "api-tokens": "个人访问令牌",
-      "connections": "连接"
+      "connections": "连接",
+      "connect-claude": "连接 Claude"
     },
     "tabs": {
       "summary": "摘要",

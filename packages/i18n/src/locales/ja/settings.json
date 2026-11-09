@@ -58,6 +58,25 @@
       "title": "個人アクセストークン",
       "description": "外部システムやアプリケーションとデータを統合するための安全なAPIトークンを生成します。"
     },
+    "connect_claude": {
+      "title": "Claude と接続",
+      "description": "Claude から Zil Ops を使えます。作業項目、サイクル、モジュール、ページを、ご自身の権限で操作できます。",
+      "url_label": "コネクター URL",
+      "copied": "クリップボードにコピーしました。",
+      "app": {
+        "title": "Claude（Web またはデスクトップ）",
+        "step_1": "Claude で［設定］→［コネクター］→［カスタムコネクターを追加］を開きます。",
+        "step_2": "名前に {name} と入力し、コネクター URL を貼り付けます。",
+        "step_3": "［接続］をクリックし、求められたら Zil Ops にサインインします。",
+        "step_4": "メインのワークスペースを選びます。すべてのワークスペースを使う場合は \"Dar acceso también a mis otros espacios\" にチェックを入れます。その後 \"Permitir\" をクリックします。"
+      },
+      "code": {
+        "title": "Claude Code",
+        "step_1": "ターミナルで次を実行します：",
+        "step_2": "Claude Code で /mcp を実行し、{name} を選んで Authenticate を選択し、上記の手順 3 と 4 に従います。"
+      },
+      "manage": "接続は［個人アクセストークン］に「Claude (conector)」として表示されます。自動で更新されます。切断するにはそこで削除してください。"
+    },
     "activity": {
       "heading": "アクティビティ",
       "description": "すべてのプロジェクトと作業項目にわたる最近のアクションと変更を追跡します。"
@@ -104,7 +123,8 @@
       "preferences": "環境設定",
       "notifications": "通知",
       "api-tokens": "個人アクセストークン",
-      "connections": "接続"
+      "connections": "接続",
+      "connect-claude": "Claude と接続"
     },
     "tabs": {
       "summary": "サマリー",

@@ -58,6 +58,25 @@
       "title": "Personal Access Tokens",
       "description": "Generate secure API tokens to integrate your data with external systems and applications."
     },
+    "connect_claude": {
+      "title": "Connect Claude",
+      "description": "Use Zil Ops from Claude: work items, cycles, modules and pages, with your own permissions.",
+      "url_label": "Connector URL",
+      "copied": "Copied to clipboard.",
+      "app": {
+        "title": "Claude (web or desktop)",
+        "step_1": "In Claude, open Settings → Connectors → Add custom connector.",
+        "step_2": "Name it {name} and paste the connector URL.",
+        "step_3": "Click Connect and sign in to Zil Ops if asked.",
+        "step_4": "Pick your main workspace. To use all your workspaces, tick \"Dar acceso también a mis otros espacios\". Then click \"Permitir\"."
+      },
+      "code": {
+        "title": "Claude Code",
+        "step_1": "Run this in a terminal:",
+        "step_2": "In Claude Code, run /mcp, choose {name}, select Authenticate and follow steps 3 and 4 above."
+      },
+      "manage": "The connection is listed under Personal access tokens as \"Claude (conector)\". It renews by itself; delete it there to disconnect."
+    },
     "activity": {
       "heading": "Activity",
       "description": "Track your recent actions and changes across all projects and work items."
@@ -104,7 +123,8 @@
       "preferences": "Preferences",
       "notifications": "Notifications",
       "api-tokens": "Personal Access Tokens",
-      "connections": "Connections"
+      "connections": "Connections",
+      "connect-claude": "Connect Claude"
     },
     "tabs": {
       "summary": "Summary",

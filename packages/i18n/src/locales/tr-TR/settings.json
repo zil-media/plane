@@ -58,6 +58,25 @@
       "title": "Kişisel Erişim Tokenları",
       "description": "Verilerinizi harici sistemler ve uygulamalarla entegre etmek için güvenli API tokenları oluşturun."
     },
+    "connect_claude": {
+      "title": "Claude'u bağla",
+      "description": "Zil Ops'u Claude'dan kullanın: iş öğeleri, döngüler, modüller ve sayfalar, kendi izinlerinizle.",
+      "url_label": "Bağlayıcı URL'si",
+      "copied": "Panoya kopyalandı.",
+      "app": {
+        "title": "Claude (web veya masaüstü)",
+        "step_1": "Claude'da Ayarlar → Bağlayıcılar → Özel bağlayıcı ekle'yi açın.",
+        "step_2": "Adını {name} koyun ve bağlayıcı URL'sini yapıştırın.",
+        "step_3": "Bağlan'a tıklayın ve istenirse Zil Ops'ta oturum açın.",
+        "step_4": "Ana çalışma alanınızı seçin. Tüm çalışma alanlarınızı kullanmak için \"Dar acceso también a mis otros espacios\" kutusunu işaretleyin. Ardından \"Permitir\" düğmesine tıklayın."
+      },
+      "code": {
+        "title": "Claude Code",
+        "step_1": "Bunu bir terminalde çalıştırın:",
+        "step_2": "Claude Code'da /mcp komutunu çalıştırın, {name} seçin, Authenticate'i seçin ve yukarıdaki 3. ve 4. adımları izleyin."
+      },
+      "manage": "Bağlantı, Kişisel erişim belirteçleri altında \"Claude (conector)\" olarak listelenir. Kendiliğinden yenilenir; bağlantıyı kesmek için oradan silin."
+    },
     "activity": {
       "heading": "Aktivite",
       "description": "Tüm projeler ve iş öğeleri genelinde son eylemlerinizi ve değişikliklerinizi izleyin."
@@ -104,7 +123,8 @@
       "preferences": "Tercihler",
       "notifications": "Bildirimler",
       "api-tokens": "Kişisel Erişim Tokenları",
-      "connections": "Bağlantılar"
+      "connections": "Bağlantılar",
+      "connect-claude": "Claude'u bağla"
     },
     "tabs": {
       "summary": "Özet",

@@ -58,6 +58,25 @@
       "title": "Persönliche Zugriffstoken",
       "description": "Generieren Sie sichere API-Token, um Ihre Daten mit externen Systemen und Anwendungen zu integrieren."
     },
+    "connect_claude": {
+      "title": "Claude verbinden",
+      "description": "Zil Ops in Claude verwenden: Arbeitselemente, Zyklen, Module und Seiten, mit Ihren eigenen Berechtigungen.",
+      "url_label": "Connector-URL",
+      "copied": "In die Zwischenablage kopiert.",
+      "app": {
+        "title": "Claude (Web oder Desktop)",
+        "step_1": "In Claude Einstellungen → Connectors → Benutzerdefinierten Connector hinzufügen öffnen.",
+        "step_2": "Als Namen {name} eingeben und die Connector-URL einfügen.",
+        "step_3": "Auf Verbinden klicken und sich bei Bedarf bei Zil Ops anmelden.",
+        "step_4": "Den Haupt-Workspace auswählen. Um alle Workspaces zu nutzen, \"Dar acceso también a mis otros espacios\" ankreuzen. Danach auf \"Permitir\" klicken."
+      },
+      "code": {
+        "title": "Claude Code",
+        "step_1": "Diesen Befehl in einem Terminal ausführen:",
+        "step_2": "In Claude Code /mcp ausführen, {name} wählen, Authenticate auswählen und die Schritte 3 und 4 oben befolgen."
+      },
+      "manage": "Die Verbindung erscheint unter Persönliche Zugriffstoken als „Claude (conector)“. Sie erneuert sich automatisch; dort löschen, um sie zu trennen."
+    },
     "activity": {
       "heading": "Aktivität",
       "description": "Verfolgen Sie Ihre letzten Aktionen und Änderungen über alle Projekte und Arbeitselemente hinweg."
@@ -104,7 +123,8 @@
       "preferences": "Einstellungen",
       "notifications": "Benachrichtigungen",
       "api-tokens": "Persönliche Zugriffstoken",
-      "connections": "Verbindungen"
+      "connections": "Verbindungen",
+      "connect-claude": "Claude verbinden"
     },
     "tabs": {
       "summary": "Zusammenfassung",

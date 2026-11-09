@@ -58,6 +58,25 @@
       "title": "Jetons d’accès personnel",
       "description": "Générez des jetons API sécurisés pour intégrer vos données avec des systèmes et applications externes."
     },
+    "connect_claude": {
+      "title": "Connecter Claude",
+      "description": "Utilisez Zil Ops depuis Claude : éléments de travail, cycles, modules et pages, avec vos propres autorisations.",
+      "url_label": "URL du connecteur",
+      "copied": "Copié dans le presse-papiers.",
+      "app": {
+        "title": "Claude (web ou bureau)",
+        "step_1": "Dans Claude, ouvrez Paramètres → Connecteurs → Ajouter un connecteur personnalisé.",
+        "step_2": "Nommez-le {name} et collez l’URL du connecteur.",
+        "step_3": "Cliquez sur Connecter et connectez-vous à Zil Ops si on vous le demande.",
+        "step_4": "Choisissez votre espace de travail principal. Pour utiliser tous vos espaces, cochez \"Dar acceso también a mis otros espacios\". Cliquez ensuite sur \"Permitir\"."
+      },
+      "code": {
+        "title": "Claude Code",
+        "step_1": "Exécutez ceci dans un terminal :",
+        "step_2": "Dans Claude Code, exécutez /mcp, choisissez {name}, sélectionnez Authenticate et suivez les étapes 3 et 4 ci-dessus."
+      },
+      "manage": "La connexion apparaît dans Jetons d’accès personnels sous le nom « Claude (conector) ». Elle se renouvelle seule ; supprimez-la à cet endroit pour la déconnecter."
+    },
     "activity": {
       "heading": "Activité",
       "description": "Suivez vos actions et modifications récentes dans tous les projets et éléments de travail."
@@ -104,7 +123,8 @@
       "preferences": "Préférences",
       "notifications": "Notifications",
       "api-tokens": "Jetons d’accès personnel",
-      "connections": "Connexions"
+      "connections": "Connexions",
+      "connect-claude": "Connecter Claude"
     },
     "tabs": {
       "summary": "Résumé",

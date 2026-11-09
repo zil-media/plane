@@ -58,6 +58,25 @@
       "title": "Mã truy cập cá nhân",
       "description": "Tạo mã API bảo mật để tích hợp dữ liệu của bạn với các hệ thống và ứng dụng bên ngoài."
     },
+    "connect_claude": {
+      "title": "Kết nối Claude",
+      "description": "Sử dụng Zil Ops từ Claude: hạng mục công việc, chu kỳ, mô-đun và trang, với quyền của chính bạn.",
+      "url_label": "URL trình kết nối",
+      "copied": "Đã sao chép vào bộ nhớ tạm.",
+      "app": {
+        "title": "Claude (web hoặc máy tính)",
+        "step_1": "Trong Claude, mở Cài đặt → Trình kết nối → Thêm trình kết nối tùy chỉnh.",
+        "step_2": "Đặt tên là {name} và dán URL trình kết nối.",
+        "step_3": "Nhấp Kết nối và đăng nhập vào Zil Ops nếu được yêu cầu.",
+        "step_4": "Chọn không gian làm việc chính của bạn. Để dùng tất cả không gian, đánh dấu \"Dar acceso también a mis otros espacios\". Sau đó nhấp \"Permitir\"."
+      },
+      "code": {
+        "title": "Claude Code",
+        "step_1": "Chạy lệnh này trong terminal:",
+        "step_2": "Trong Claude Code, chạy /mcp, chọn {name}, chọn Authenticate và làm theo bước 3 và 4 ở trên."
+      },
+      "manage": "Kết nối được liệt kê trong Mã truy cập cá nhân với tên \"Claude (conector)\". Kết nối tự gia hạn; xóa ở đó để ngắt kết nối."
+    },
     "activity": {
       "heading": "Hoạt động",
       "description": "Theo dõi các hành động và thay đổi gần đây của bạn trong tất cả dự án và mục công việc."
@@ -104,7 +123,8 @@
       "preferences": "Tùy chọn",
       "notifications": "Thông báo",
       "api-tokens": "Mã truy cập cá nhân",
-      "connections": "Kết nối"
+      "connections": "Kết nối",
+      "connect-claude": "Kết nối Claude"
     },
     "tabs": {
       "summary": "Tóm tắt",

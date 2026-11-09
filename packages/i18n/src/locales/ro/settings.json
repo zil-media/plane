@@ -58,6 +58,25 @@
       "title": "Tokenuri de acces personale",
       "description": "Generează tokenuri API securizate pentru a integra datele tale cu sisteme și aplicații externe."
     },
+    "connect_claude": {
+      "title": "Conectați Claude",
+      "description": "Folosiți Zil Ops din Claude: elemente de lucru, cicluri, module și pagini, cu propriile permisiuni.",
+      "url_label": "URL-ul conectorului",
+      "copied": "Copiat în clipboard.",
+      "app": {
+        "title": "Claude (web sau desktop)",
+        "step_1": "În Claude, deschideți Setări → Conectori → Adăugați un conector personalizat.",
+        "step_2": "Denumiți-l {name} și lipiți URL-ul conectorului.",
+        "step_3": "Faceți clic pe Conectare și autentificați-vă în Zil Ops dacă vi se cere.",
+        "step_4": "Alegeți spațiul de lucru principal. Pentru a folosi toate spațiile, bifați \"Dar acceso también a mis otros espacios\". Apoi faceți clic pe \"Permitir\"."
+      },
+      "code": {
+        "title": "Claude Code",
+        "step_1": "Rulați asta într-un terminal:",
+        "step_2": "În Claude Code, rulați /mcp, alegeți {name}, selectați Authenticate și urmați pașii 3 și 4 de mai sus."
+      },
+      "manage": "Conexiunea apare în Tokenuri de acces personal ca „Claude (conector)”. Se reînnoiește singură; ștergeți-o de acolo pentru a o deconecta."
+    },
     "activity": {
       "heading": "Activitate",
       "description": "Urmărește acțiunile și modificările tale recente din toate proiectele și activitățile."
@@ -104,7 +123,8 @@
       "preferences": "Preferințe",
       "notifications": "Notificări",
       "api-tokens": "Tokenuri de acces personale",
-      "connections": "Conexiuni"
+      "connections": "Conexiuni",
+      "connect-claude": "Conectați Claude"
     },
     "tabs": {
       "summary": "Sumar",

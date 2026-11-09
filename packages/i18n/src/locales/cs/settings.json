@@ -58,6 +58,25 @@
       "title": "Osobní přístupové tokeny",
       "description": "Generujte bezpečné API tokeny pro integraci vašich dat s externími systémy a aplikacemi."
     },
+    "connect_claude": {
+      "title": "Připojit Claude",
+      "description": "Používejte Zil Ops z Claude: pracovní položky, cykly, moduly a stránky, s vlastními oprávněními.",
+      "url_label": "URL konektoru",
+      "copied": "Zkopírováno do schránky.",
+      "app": {
+        "title": "Claude (web nebo desktop)",
+        "step_1": "V Claude otevřete Nastavení → Konektory → Přidat vlastní konektor.",
+        "step_2": "Pojmenujte jej {name} a vložte URL konektoru.",
+        "step_3": "Klikněte na Připojit a v případě potřeby se přihlaste do Zil Ops.",
+        "step_4": "Vyberte hlavní pracovní prostor. Chcete-li používat všechny prostory, zaškrtněte \"Dar acceso también a mis otros espacios\". Poté klikněte na \"Permitir\"."
+      },
+      "code": {
+        "title": "Claude Code",
+        "step_1": "Spusťte v terminálu:",
+        "step_2": "V Claude Code spusťte /mcp, zvolte {name}, vyberte Authenticate a postupujte podle kroků 3 a 4 výše."
+      },
+      "manage": "Připojení najdete v Osobních přístupových tokenech jako „Claude (conector)“. Obnovuje se samo; chcete-li ho odpojit, odstraňte jej tam."
+    },
     "activity": {
       "heading": "Aktivita",
       "description": "Sledujte vaše nedávné akce a změny napříč všemi projekty a pracovními položkami."
@@ -104,7 +123,8 @@
       "preferences": "Předvolby",
       "notifications": "Oznámení",
       "api-tokens": "Osobní přístupové tokeny",
-      "connections": "Spojení"
+      "connections": "Spojení",
+      "connect-claude": "Připojit Claude"
     },
     "tabs": {
       "summary": "Shrnutí",

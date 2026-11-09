@@ -58,6 +58,25 @@
       "title": "Token Akses Personal",
       "description": "Hasilkan token API yang aman untuk mengintegrasikan data Anda dengan sistem dan aplikasi eksternal."
     },
+    "connect_claude": {
+      "title": "Hubungkan Claude",
+      "description": "Gunakan Zil Ops dari Claude: item kerja, siklus, modul, dan halaman, dengan izin Anda sendiri.",
+      "url_label": "URL konektor",
+      "copied": "Disalin ke papan klip.",
+      "app": {
+        "title": "Claude (web atau desktop)",
+        "step_1": "Di Claude, buka Pengaturan → Konektor → Tambahkan konektor kustom.",
+        "step_2": "Beri nama {name} dan tempelkan URL konektor.",
+        "step_3": "Klik Hubungkan dan masuk ke Zil Ops jika diminta.",
+        "step_4": "Pilih ruang kerja utama Anda. Untuk menggunakan semua ruang kerja, centang \"Dar acceso también a mis otros espacios\". Lalu klik \"Permitir\"."
+      },
+      "code": {
+        "title": "Claude Code",
+        "step_1": "Jalankan ini di terminal:",
+        "step_2": "Di Claude Code, jalankan /mcp, pilih {name}, pilih Authenticate, lalu ikuti langkah 3 dan 4 di atas."
+      },
+      "manage": "Koneksi tercantum di Token akses pribadi sebagai \"Claude (conector)\". Koneksi diperbarui sendiri; hapus di sana untuk memutuskannya."
+    },
     "activity": {
       "heading": "Aktivitas",
       "description": "Lacak tindakan dan perubahan terkini Anda di semua proyek dan item kerja."
@@ -104,7 +123,8 @@
       "preferences": "Preferensi",
       "notifications": "Notifikasi",
       "api-tokens": "Token Akses Personal",
-      "connections": "Koneksi"
+      "connections": "Koneksi",
+      "connect-claude": "Hubungkan Claude"
     },
     "tabs": {
       "summary": "Ringkasan",

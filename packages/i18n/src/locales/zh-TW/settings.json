@@ -58,6 +58,25 @@
       "title": "個人存取權杖",
       "description": "產生安全的 API 權杖，以將您的資料與外部系統和應用程式整合。"
     },
+    "connect_claude": {
+      "title": "連接 Claude",
+      "description": "在 Claude 中使用 Zil Ops：以您自己的權限處理工作項目、週期、模組和頁面。",
+      "url_label": "連接器 URL",
+      "copied": "已複製到剪貼簿。",
+      "app": {
+        "title": "Claude（網頁版或桌面版）",
+        "step_1": "在 Claude 中開啟「設定」→「連接器」→「新增自訂連接器」。",
+        "step_2": "將其命名為 {name}，並貼上連接器 URL。",
+        "step_3": "點擊「連接」，如有提示請登入 Zil Ops。",
+        "step_4": "選擇您的主要工作區。如需使用所有工作區，請勾選 \"Dar acceso también a mis otros espacios\"。然後點擊 \"Permitir\"。"
+      },
+      "code": {
+        "title": "Claude Code",
+        "step_1": "在終端機中執行：",
+        "step_2": "在 Claude Code 中執行 /mcp，選擇 {name}，選擇 Authenticate，然後依照上方第 3 步和第 4 步操作。"
+      },
+      "manage": "此連線會以「Claude (conector)」顯示在個人存取權杖中。它會自動續期；在那裡刪除即可中斷連線。"
+    },
     "activity": {
       "heading": "活動",
       "description": "追蹤您在所有專案和工作事項中的近期操作和變更。"
@@ -104,7 +123,8 @@
       "preferences": "偏好設定",
       "notifications": "通知",
       "api-tokens": "個人存取權杖",
-      "connections": "連接"
+      "connections": "連接",
+      "connect-claude": "連接 Claude"
     },
     "tabs": {
       "summary": "摘要",

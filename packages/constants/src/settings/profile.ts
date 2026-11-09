@@ -49,6 +49,11 @@ export const PROFILE_SETTINGS: Record<
     key: "api-tokens",
     i18n_label: "profile.actions.api-tokens",
   },
+  // Zil Ops: how to connect Claude over MCP
+  "connect-claude": {
+    key: "connect-claude",
+    i18n_label: "profile.actions.connect-claude",
+  },
 };
 
 export const PROFILE_SETTINGS_TABS: TProfileSettingsTabs[] = Object.keys(PROFILE_SETTINGS) as TProfileSettingsTabs[];
@@ -60,5 +65,5 @@ export const GROUPED_PROFILE_SETTINGS: Record<
   // "general" (identity) and "security" (password) are intentionally omitted:
   // identity/credentials come from Zil Workspace SSO and are not editable in Ops.
   [PROFILE_SETTINGS_CATEGORY.YOUR_PROFILE]: [PROFILE_SETTINGS["preferences"], PROFILE_SETTINGS["notifications"]],
-  [PROFILE_SETTINGS_CATEGORY.DEVELOPER]: [PROFILE_SETTINGS["api-tokens"]],
+  [PROFILE_SETTINGS_CATEGORY.DEVELOPER]: [PROFILE_SETTINGS["connect-claude"], PROFILE_SETTINGS["api-tokens"]],
 };
