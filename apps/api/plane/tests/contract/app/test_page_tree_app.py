@@ -8,6 +8,7 @@ import pytest
 from rest_framework import status
 
 from plane.db.models import Page, PageZilClientLink
+from plane.tests.factories import UserFactory
 
 CLIENT_ID = "0123456789abcdef01234567"
 
@@ -143,6 +144,39 @@ class TestPageTree:
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data["restored_page_ids"]) == 3
         assert Page.objects.filter(archived_at__isnull=False).count() == 0
+
+    @pytest.mark.django_db
+    def test_folder_access_carries_its_owners_pages(self, session_client, workspace, project):
+        folder = create_page(session_client, workspace, project, kind="folder")
+        child = create_page(session_client, workspace, project, parent=folder["id"])
+        grandchild = create_page(session_client, workspace, project, parent=child["id"])
+        mine = [child["id"], grandchild["id"]]
+
+        response = session_client.post(
+            pages_url(workspace, project, f"{folder['id']}/access/"), {"access": 1}, format="json"
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert set(Page.objects.filter(id__in=mine).values_list("access", flat=True)) == {1}
+
+        response = session_client.patch(
+            pages_url(workspace, project, f"{folder['id']}/"), {"access": 0}, format="json"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert set(Page.objects.filter(id__in=mine).values_list("access", flat=True)) == {0}
+
+    @pytest.mark.django_db
+    def test_folder_access_leaves_other_peoples_pages_alone(self, session_client, workspace, project):
+        folder = create_page(session_client, workspace, project, kind="folder", access=1)
+        theirs = create_page(session_client, workspace, project, parent=folder["id"], access=1)
+        other = UserFactory(username="page-tree-other")
+        Page.objects.filter(pk=theirs["id"]).update(owned_by=other)
+
+        # Making the folder public must not publish someone else's private page.
+        response = session_client.post(
+            pages_url(workspace, project, f"{folder['id']}/access/"), {"access": 0}, format="json"
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert Page.objects.get(pk=theirs["id"]).access == 1
 
     @pytest.mark.django_db
     def test_delete_moves_children_to_grandparent(self, session_client, workspace, project):

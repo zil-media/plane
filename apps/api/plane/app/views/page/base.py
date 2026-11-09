@@ -126,6 +126,19 @@ def zil_auto_folder_refusal(slug, page, action):
     return None
 
 
+def cascade_folder_access(page):
+    """A folder's own pages follow its visibility, otherwise they show up loose in the other tab.
+
+    Only pages owned by the folder's owner: someone else's private page under a folder made public
+    must not become public, and nobody else's page changes visibility on someone else's click.
+    """
+    if not page.is_folder:
+        return 0
+    return Page.objects.filter(id__in=get_descendant_ids(page.id), owned_by_id=page.owned_by_id).update(
+        access=page.access
+    )
+
+
 class PageViewSet(BaseViewSet):
     serializer_class = PageSerializer
     model = Page
@@ -244,8 +257,8 @@ class PageViewSet(BaseViewSet):
             page_description = page.description_html
             if serializer.is_valid():
                 serializer.save()
-                if "access" in data and page.is_folder:
-                    Page.objects.filter(id__in=get_descendant_ids(page.id)).update(access=page.access)
+                if "access" in data:
+                    cascade_folder_access(page)
                 # capture the page transaction
                 if data.get("description_html"):
                     page_transaction.delay(
@@ -362,9 +375,7 @@ class PageViewSet(BaseViewSet):
 
         page.access = access
         page.save()
-        # a folder's contents follow its visibility, otherwise they show up loose in the other tab
-        if page.is_folder:
-            Page.objects.filter(id__in=get_descendant_ids(page.id)).update(access=access)
+        cascade_folder_access(page)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, slug, project_id):
