@@ -48,7 +48,14 @@ fail() {
     # Test requirements in their own venv; cached for the next session on the same machine.
     if [ ! -x "${VENV}/bin/pytest" ] || ! cmp -s "${API}/requirements/base.txt" "${VENV}/.base.txt"; then
         python3 -m venv "$VENV" || exit 15
-        "${VENV}/bin/pip" install -q -r "${API}/requirements/test.txt" ruff==0.9.7 || exit 16
+        # psycopg-c compiles from source and needs pg_config/libpq headers, which the cloud image
+        # lacks: its wheel build failed and every session ended without tests (2026-11-09).
+        # psycopg-binary (also in base.txt) ships the same C implementation prebuilt.
+        REQS=/tmp/plane-api-reqs
+        rm -rf "$REQS" && mkdir -p "$REQS" || exit 16
+        grep -viE '^psycopg-c([=<>~ ]|$)' "${API}/requirements/base.txt" > "${REQS}/base.txt"
+        cp "${API}/requirements/test.txt" "${REQS}/test.txt"
+        "${VENV}/bin/pip" install -q -r "${REQS}/test.txt" ruff==0.9.7 || exit 16
         cp "${API}/requirements/base.txt" "${VENV}/.base.txt"
     fi
     mkdir -p "${API}/plane/static-assets/collected-static"
