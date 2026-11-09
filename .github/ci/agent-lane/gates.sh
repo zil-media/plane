@@ -28,6 +28,12 @@ case "${1:?backend|frontend}" in
             python manage.py makemigrations --check --dry-run
         run pytest docker compose -f docker-compose-test.yml run --rm api-tests \
             pytest -p no:cacheprovider -o addopts="--strict-markers --reuse-db --nomigrations" -q -rfE --disable-warnings
+        # pytest runs --nomigrations, so a new migration (the bug lane's data repairs) is never
+        # loaded there. Production applies it when the API starts: apply the whole chain here first.
+        if ! git diff --quiet "${LANE_BASE:-origin/preview}...HEAD" -- apps/api/plane/db/migrations 2>/dev/null; then
+            run migrate docker compose -f docker-compose-test.yml run --rm api-tests \
+                python manage.py migrate --noinput
+        fi
         docker compose -f docker-compose-test.yml down -v >/dev/null 2>&1 || true
         ;;
     frontend)

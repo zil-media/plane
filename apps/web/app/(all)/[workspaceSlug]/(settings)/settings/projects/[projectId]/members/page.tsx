@@ -19,8 +19,6 @@ import { SettingsHeading } from "@/components/settings/heading";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useZilMyBrands } from "@/hooks/use-zil-brands";
-// plane web imports
-import { ProjectTeamspaceList } from "@/plane-web/components/projects/teamspaces/teamspace-list";
 // local imports
 import type { Route } from "./+types/page";
 import { MembersProjectSettingsHeader } from "./header";
@@ -59,7 +57,6 @@ function MembersSettingsPage({ params }: Route.ComponentProps) {
         </p>
       )}
       <ProjectSettingsMemberDefaults projectId={projectId} workspaceSlug={workspaceSlug} />
-      <ProjectTeamspaceList projectId={projectId} workspaceSlug={workspaceSlug} />
       <ProjectMemberList projectId={projectId} workspaceSlug={workspaceSlug} />
     </SettingsContentWrapper>
   );

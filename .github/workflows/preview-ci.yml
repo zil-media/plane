@@ -24,6 +24,18 @@ permissions:
   contents: read
 
 jobs:
+  # The blast-radius guard decides what the agent lanes may merge with nobody reading: its rules
+  # (data-repair migrations included) have their own tests.
+  agent-guard-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: bash .github/ci/gate.sh "agent-guard" node --test .github/ci/check-agent-diff.test.mjs
+
   backend-lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -32,7 +32,7 @@ import { usePageTreeOperations } from "@/hooks/use-page-tree-operations";
 // hooks
 import { usePageOperations } from "@/hooks/use-page-operations";
 // plane web components
-import { MovePageModal } from "@/plane-web/components/pages";
+import { MovePageModal } from "@/components/pages/modals/move-page-modal";
 // plane web hooks
 import type { EPageStoreType } from "@/hooks/store";
 import { usePageFlag } from "@/hooks/use-page-flag";

@@ -23,6 +23,14 @@ DELIM="BUGIDS_$(date +%s)_${RANDOM}_${RANDOM}"
 TIER=batch
 [ -n "$BUG_IDS" ] || TIER=urgent
 
+# A data repair (the only migration this lane may ship) never waits for a window: it corrects what
+# the reporter is looking at right now, and two repairs piled up in agent-batch would hang from the
+# same parent migration and make the window's guard and makemigrations stop for a person.
+if ! git diff --quiet "${BASE}...${HEAD_SHA}" -- apps/api/plane/db/migrations; then
+    echo "The push carries a data repair: tier=urgent"
+    TIER=urgent
+fi
+
 for BUG_ID in $BUG_IDS; do
     : > /tmp/bug.json
     HTTP=$(curl -s -o /tmp/bug.json -w '%{http_code}' --connect-timeout 10 --max-time 30 \
