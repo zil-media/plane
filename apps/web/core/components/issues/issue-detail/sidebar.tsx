@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { DateAlert } from "@/components/issues/issue-detail/date-alert";
 import { observer } from "mobx-react";
 // i18n
 import { useTranslation } from "@plane/i18n";
@@ -35,13 +36,8 @@ import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
-// plane web components
 // components
-import { WorkItemAdditionalSidebarProperties } from "@/plane-web/components/issues/issue-details/additional-properties";
-import { IssueParentSelectRoot } from "@/plane-web/components/issues/issue-details/parent-select-root";
-import { DateAlert } from "@/plane-web/components/issues/issue-details/sidebar/date-alert";
-import { TransferHopInfo } from "@/plane-web/components/issues/issue-details/sidebar/transfer-hop-info";
-import { IssueWorklogProperty } from "@/plane-web/components/issues/worklog/property";
+import { IssueParentSelectRoot } from "@/components/issues/parent-select-root";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 import { IssueCycleSelect } from "./cycle-select";
 import { IssueDueTimeInput } from "./due-time-input";
@@ -233,11 +229,7 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
             <IssueZilErpProperties workspaceSlug={workspaceSlug} issueId={issueId} disabled={!isEditable} />
 
             {projectDetails?.cycle_view && (
-              <SidebarPropertyListItem
-                icon={CycleIcon}
-                label={t("common.cycle")}
-                appendElement={<TransferHopInfo workItem={issue} />}
-              >
+              <SidebarPropertyListItem icon={CycleIcon} label={t("common.cycle")} appendElement={null}>
                 <IssueCycleSelect
                   className="h-7.5 w-full grow"
                   workspaceSlug={workspaceSlug}
@@ -268,21 +260,6 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
                 disabled={!isEditable}
               />
             </SidebarPropertyListItem>
-
-            <IssueWorklogProperty
-              workspaceSlug={workspaceSlug}
-              projectId={projectId}
-              issueId={issueId}
-              disabled={!isEditable}
-            />
-
-            <WorkItemAdditionalSidebarProperties
-              workItemId={issue.id}
-              workItemTypeId={issue.type_id}
-              projectId={projectId}
-              workspaceSlug={workspaceSlug}
-              isEditable={isEditable}
-            />
           </div>
         </div>
       </div>
