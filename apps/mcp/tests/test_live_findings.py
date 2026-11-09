@@ -119,3 +119,83 @@ class TestAttachmentsBehindTheProxy:
         assert post.call_args.args[0] == "http://plane-minio:9000/uploads"
         assert post.call_args.kwargs["headers"] == {"Host": "ops.example.com"}
         assert post.call_args.kwargs["data"] == {"key": "k"}
+
+
+class TestMembersOnCommunityEdition:
+    """CE members endpoints take no query params: the tool filters and pages them itself."""
+
+    MEMBERS = [
+        {
+            "id": "1",
+            "first_name": "Brian",
+            "email": "brian@zil.global",
+            "display_name": "brian",
+            "role": 20,
+            "role_slug": "admin",
+            "is_active": True,
+            "is_bot": False,
+        },
+        {
+            "id": "2",
+            "first_name": "Ana",
+            "email": "ana@zil.global",
+            "display_name": "ana",
+            "role": 15,
+            "role_slug": "member",
+            "is_active": True,
+            "is_bot": False,
+        },
+        {
+            "id": "3",
+            "first_name": "Bot",
+            "email": "bot@zil.global",
+            "display_name": "agent",
+            "role": 15,
+            "role_slug": "member",
+            "is_active": True,
+            "is_bot": True,
+        },
+        {
+            "id": "4",
+            "first_name": "Bruno",
+            "email": "bruno@zil.global",
+            "display_name": "bruno",
+            "role": 5,
+            "role_slug": "guest",
+            "is_active": False,
+            "is_bot": False,
+        },
+    ]
+
+    def members(self, args):
+        from plane.errors.errors import HttpError
+        from plane.models.workspaces import WorkspaceMember
+
+        with (
+            mock.patch("plane.api.workspaces.Workspaces.get_members_lite", side_effect=HttpError("nf", 404)),
+            mock.patch(
+                "plane.api.workspaces.Workspaces.get_members",
+                return_value=[WorkspaceMember.model_validate(m) for m in self.MEMBERS],
+            ),
+        ):
+            return call("get_workspace_members", args).structured_content
+
+    def test_filters_are_applied(self, community):
+        assert [m["id"] for m in self.members({"first_name": "br"})["results"]] == ["1", "4"]
+        assert [m["id"] for m in self.members({"role_slug": "member", "is_bot": False})["results"]] == ["2"]
+        assert [m["id"] for m in self.members({"is_active": False})["results"]] == ["4"]
+
+    def test_per_page_and_cursor_page_through_everyone(self, community):
+        first = self.members({"per_page": 3, "order_by": "first_name"})
+        assert [m["first_name"] for m in first["results"]] == ["Ana", "Bot", "Brian"]
+        assert first["total_count"] == 4 and first["next_page_results"] is True
+        second = self.members({"per_page": 3, "order_by": "first_name", "cursor": first["next_cursor"]})
+        assert [m["first_name"] for m in second["results"]] == ["Bruno"]
+        assert second["next_page_results"] is False and second["next_cursor"] == ""
+
+
+def test_an_unknown_module_status_is_refused_instead_of_dropped(community):
+    with mock.patch("plane.api.modules.Modules.update") as update:
+        with pytest.raises(ToolError, match="Unknown module status 'doing'"):
+            call("update_module", {"project_id": "p", "module_id": "m", "status": "doing"})
+    assert not update.called

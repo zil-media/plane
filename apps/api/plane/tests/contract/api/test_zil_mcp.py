@@ -485,6 +485,34 @@ class TestMcpOAuthAllWorkspaces:
         assert refreshed.status_code == 200
         assert self.whoami(refreshed.json()["access_token"])["all_workspaces"] is True
 
+    def projects(self, access_token, slug):
+        return Client().get(f"/api/v1/workspaces/{slug}/projects/", HTTP_X_API_KEY=access_token)
+
+    def test_the_api_keeps_a_single_workspace_connection_in_its_workspace(
+        self, db, workspace, second_workspace, create_user
+    ):
+        browser = Client()
+        browser.force_login(create_user)
+        _, body = self.connect(browser, {"workspace": second_workspace.slug})
+        assert self.projects(body["access_token"], second_workspace.slug).status_code == 200
+        other = self.projects(body["access_token"], workspace.slug)
+        assert other.status_code == 403
+        assert "only has access to the workspace" in other.json()["detail"]
+        # routes without a workspace still work (the MCP needs whoami to start)
+        assert self.whoami(body["access_token"])["workspace_slug"] == second_workspace.slug
+
+    def test_every_workspace_and_personal_tokens_reach_every_workspace(
+        self, db, workspace, second_workspace, create_user
+    ):
+        browser = Client()
+        browser.force_login(create_user)
+        _, body = self.connect(browser, {"workspace": second_workspace.slug, "all_workspaces": "on"})
+        assert self.projects(body["access_token"], workspace.slug).status_code == 200
+
+        personal = APIToken.objects.create(user=create_user, label="mine", token="plane_api_personal_token")
+        assert self.projects(personal.token, workspace.slug).status_code == 200
+        assert self.projects(personal.token, second_workspace.slug).status_code == 200
+
 
 @pytest.mark.contract
 class TestConnectorTokensInTheList:
@@ -536,3 +564,20 @@ class TestProjectVisibilityThroughTheApi:
     def test_an_unknown_visibility_is_rejected(self, api_key_client, workspace, project):
         url = f"/api/v1/workspaces/{workspace.slug}/projects/{project.id}/"
         assert api_key_client.patch(url, {"network": 7}, format="json").status_code == 400
+
+
+@pytest.mark.contract
+class TestMemberListsCarryTheirMembership:
+    def test_workspace_and_project_members_say_role_activity_and_bot(
+        self, api_key_client, workspace, project, create_user
+    ):
+        members = api_key_client.get(f"/api/v1/workspaces/{workspace.slug}/members/").json()
+        me = next(m for m in members if m["id"] == str(create_user.id))
+        assert {k: me[k] for k in ("role", "role_slug", "is_active", "is_bot")} == {
+            "role": 20,
+            "role_slug": "admin",
+            "is_active": True,
+            "is_bot": False,
+        }
+        in_project = api_key_client.get(f"/api/v1/workspaces/{workspace.slug}/projects/{project.id}/members/").json()
+        assert [m["role_slug"] for m in in_project if m["id"] == str(create_user.id)] == ["admin"]

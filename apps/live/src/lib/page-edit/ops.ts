@@ -290,6 +290,7 @@ const applyOp = (tr: Transform, op: EditOp, touched: Set<string>): string => {
     case "delete": {
       const start = findById(tr.doc, op.block);
       let end = start.pos + start.node.nodeSize;
+      let count = 1;
       if (op.through) {
         const last = findById(tr.doc, op.through);
         const a = parentOf(tr.doc, start.pos);
@@ -298,8 +299,8 @@ const applyOp = (tr: Transform, op: EditOp, touched: Set<string>): string => {
           throw new PageEditError("through must be a later sibling of block (same list or top level).");
         }
         end = last.pos + last.node.nodeSize;
+        count = b.index - a.index + 1;
       }
-      const count = op.through ? parentOf(tr.doc, end - 1).index - parentOf(tr.doc, start.pos).index + 1 : 1;
       removeRange(tr, start.pos, end);
       return `deleted ${count > 1 ? `${count} blocks` : describe(start.node)}`;
     }
@@ -334,8 +335,14 @@ const applyOp = (tr: Transform, op: EditOp, touched: Set<string>): string => {
 
     case "replace_all": {
       const blocks = parseMarkdownBlocks(op.content ?? "");
+      const before = new Set<string>();
+      tr.doc.forEach((node) => before.add(node.attrs.id as string));
       const next = reuseIds(tr.doc, blocks.length ? blocks : [pageSchema.nodes[CORE_EXTENSIONS.PARAGRAPH].create()]);
       tr.replaceWith(0, tr.doc.content.size, next);
+      // the blocks that changed come back like any other edit; unchanged ones kept their ids
+      next
+        .filter((node) => !before.has(node.attrs.id as string))
+        .forEach((node) => touched.add(node.attrs.id as string));
       return `replaced the whole page (${next.length} top-level blocks)`;
     }
 

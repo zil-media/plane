@@ -5,6 +5,9 @@ adds the URL as a connector and signs in to Ops.
 
 ## Connect
 
+Every person sees the URL and these steps in Ops under **Settings → Profile → Conectar con Claude**
+(`apps/web/core/components/settings/profile/content/pages/connect-claude.tsx`).
+
 - **Claude (web / desktop):** Settings → Connectors → Add custom connector → URL
   `https://ops.zil.global/mcp` → Connect → sign in to Ops → **Permitir**.
 - **Claude Code:** `claude mcp add --transport http zil-ops https://ops.zil.global/mcp`, then
@@ -17,14 +20,18 @@ otros espacios_. Without it the connection only works in the main workspace. Wit
 `list_workspaces` lists every workspace the person belongs to and every tool takes an optional
 `workspace` (slug) to run there; without the argument tools use the main one
 (`apps/mcp/plane_mcp/workspace_scope.py`). Reconnecting the same app replaces the previous
-connection, so changing this means connecting again. The connection shows up
+connection, so changing this means connecting again. The API enforces the same limit: a
+single-workspace connection gets a 403 on any other workspace's routes
+(`apps/api/plane/api/middleware/api_authentication.py`). The connection shows up
 as a personal access token (`<app> (conector)`) under Settings → Profile → Personal access
 tokens; deleting it disconnects the app. Tokens last 24h and the app renews them on its own.
 
 ## What it can do
 
 Work items, cycles, modules, labels, states, members, comments, links, attachments, intake (the
-CE-verified tool set of the vendored server), plus pages:
+CE-verified tool set of the vendored server), plus pages. Features Plane CE lacks (custom
+properties, PQL filters) are hidden or refused with a clear error, and member lists are filtered
+and paged by the MCP because the CE endpoints take no query parameters.
 
 - `search_pages`: find pages by title or content.
 - `read_page`: the page as markdown with a block ref per line.

@@ -85,3 +85,63 @@ def list_to_paginated(items: Iterable[Any], response_cls: type[T], item_cls: typ
             "prev_page_results": False,
         }
     )
+
+
+_TEXT_FILTERS = ("first_name", "last_name", "email", "display_name")
+_EXACT_FILTERS = ("role_slug", "is_active", "is_bot")
+
+
+def members_page(
+    items: Iterable[Any],
+    response_cls: type[T],
+    item_cls: type,
+    *,
+    filters: dict[str, Any],
+    per_page: int | None,
+    cursor: str | None,
+    order_by: str | None,
+) -> T:
+    """Filter, sort and page a bare members list the way the Cloud ``*-lite`` endpoint would.
+
+    The CE members endpoints return every member and take no query parameters, so without this the
+    tool's filters and ``per_page`` were silently ignored. Text filters are case-insensitive
+    "contains", the rest exact, all combined with AND. Cursors use Plane's
+    ``"{per_page}:{page}:{offset}"`` form.
+    """
+    rows = [it if isinstance(it, dict) else it.model_dump() for it in (items or [])]
+    for field in _TEXT_FILTERS:
+        wanted = filters.get(field)
+        if wanted:
+            rows = [r for r in rows if wanted.lower() in str(r.get(field) or "").lower()]
+    for field in _EXACT_FILTERS:
+        wanted = filters.get(field)
+        if wanted is not None:
+            rows = [r for r in rows if r.get(field) == wanted]
+    if order_by:
+        key = order_by.lstrip("-")
+        rows.sort(key=lambda r: (r.get(key) is None, str(r.get(key) or "").lower()), reverse=order_by.startswith("-"))
+
+    size = max(1, min(per_page or 100, 1000))
+    page = 0
+    if cursor:
+        try:
+            page = int(cursor.split(":")[1])
+        except (IndexError, ValueError):
+            raise ValueError(f"Invalid cursor {cursor!r}: pass a next_cursor from a previous response.") from None
+    total = len(rows)
+    pages = max(1, -(-total // size))
+    chunk = rows[page * size : (page + 1) * size]
+    has_next = (page + 1) * size < total
+    return response_cls.model_validate(
+        {
+            "results": [item_cls.model_validate(r).model_dump() for r in chunk],
+            "total_count": total,
+            "count": len(chunk),
+            "total_results": total,
+            "total_pages": pages,
+            "next_cursor": f"{size}:{page + 1}:0" if has_next else "",
+            "prev_cursor": f"{size}:{page - 1}:0" if page > 0 else "",
+            "next_page_results": has_next,
+            "prev_page_results": page > 0,
+        }
+    )

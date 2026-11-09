@@ -79,6 +79,9 @@ describe("page edit ops", () => {
     expect(list.doc.childCount).toBe(PAGE.childCount - 1);
     const range = applyEdits(PAGE, [{ op: "delete", block: ID(1), through: ID(2) }]);
     expect(lines(range.doc)[0]).toBe("- uno");
+    expect(range.summary).toEqual(["deleted 2 blocks"]);
+    const items = applyEdits(PAGE, [{ op: "delete", block: ID(4), through: ID(5) }]);
+    expect(items.summary).toEqual(["deleted 2 blocks"]);
     const everything = applyEdits(docFromHTML(`<p data-id="${ID(9)}">solo</p>`), [{ op: "delete", block: ID(9) }]);
     expect(everything.doc.childCount).toBe(1);
     expect(everything.doc.textContent).toBe("");
@@ -109,6 +112,8 @@ describe("page edit ops", () => {
     expect(result.doc.child(0).attrs.id).toBe(ID(1));
     expect(result.doc.child(2).attrs.id).toBe(ID(8));
     expect(result.doc.child(1).attrs.id).not.toBe(ID(2));
+    // only the new block comes back as touched
+    expect(result.touchedIds).toEqual([result.doc.child(1).attrs.id]);
   });
 
   it("is all-or-nothing and reports the failing op", () => {

@@ -110,10 +110,10 @@ def register_module_tools(mcp: FastMCP) -> None:
         """
         client, workspace_slug = get_plane_client_context()
 
-        # Validate status against allowed literal values
-        validated_status: ModuleStatusEnum | None = (
-            status if status in get_args(ModuleStatusEnum) else None  # type: ignore[assignment]
-        )
+        # Validate status against allowed literal values; an unknown one used to be dropped silently
+        if status is not None and status not in get_args(ModuleStatusEnum):
+            raise ValueError(f"Unknown module status {status!r}. Use one of: {', '.join(get_args(ModuleStatusEnum))}.")
+        validated_status: ModuleStatusEnum | None = status  # type: ignore[assignment]
 
         data = CreateModule(
             name=name,
@@ -181,10 +181,10 @@ def register_module_tools(mcp: FastMCP) -> None:
         """
         client, workspace_slug = get_plane_client_context()
 
-        # Validate status against allowed literal values
-        validated_status: ModuleStatusEnum | None = (
-            status if status in get_args(ModuleStatusEnum) else None  # type: ignore[assignment]
-        )
+        # Validate status against allowed literal values; an unknown one used to be dropped silently
+        if status is not None and status not in get_args(ModuleStatusEnum):
+            raise ValueError(f"Unknown module status {status!r}. Use one of: {', '.join(get_args(ModuleStatusEnum))}.")
+        validated_status: ModuleStatusEnum | None = status  # type: ignore[assignment]
 
         data = UpdateModule(
             name=name,

@@ -25,12 +25,11 @@ from plane.models.projects import (
 )
 from plane.models.query_params import (
     MemberListQueryParams,
-    MemberQueryParams,
     PaginatedQueryParams,
     ProjectLiteListQueryParams,
 )
 
-from plane_mcp.ce_compat import list_to_paginated, lite_or_fallback, reshape_paginated
+from plane_mcp.ce_compat import lite_or_fallback, members_page, reshape_paginated
 from plane_mcp.client import get_plane_client_context
 
 
@@ -365,23 +364,30 @@ def register_project_tools(mcp: FastMCP) -> None:
         )
 
         # CE has no `project-members-lite` endpoint (404) -> fall back to the
-        # full `project-members` list (bare list) wrapped into the lite envelope.
+        # full `project-members` list (bare list, no query params), filtered and paged here.
         def _full() -> PaginatedProjectMemberResponse:
             members = client.projects.get_members(
                 workspace_slug=workspace_slug,
                 project_id=project_id,
-                params=MemberQueryParams(
-                    first_name=first_name,
-                    last_name=last_name,
-                    email=email,
-                    display_name=display_name,
-                    role_slug=role_slug,
-                    is_active=is_active,
-                    is_bot=is_bot,
-                    order_by=order_by,
-                ),
             )
-            return list_to_paginated(members, PaginatedProjectMemberResponse, ProjectMember)
+            filters = {
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": email,
+                "display_name": display_name,
+                "role_slug": role_slug,
+                "is_active": is_active,
+                "is_bot": is_bot,
+            }
+            return members_page(
+                members,
+                PaginatedProjectMemberResponse,
+                ProjectMember,
+                filters=filters,
+                per_page=per_page,
+                cursor=cursor,
+                order_by=order_by,
+            )
 
         return lite_or_fallback(
             lambda: client.projects.get_members_lite(
