@@ -70,9 +70,55 @@ const DENY = [
 ];
 
 /** Denied only under --strict: nobody reviews these in the lanes that merge alone. */
-const STRICT_DENY = [
-  { re: /^apps\/api\/plane\/db\/migrations\//, why: "migrations run automatically on container start in production" },
+const MIGRATION = /^apps\/api\/plane\/db\/migrations\//;
+const STRICT_DENY = [{ re: MIGRATION, why: "migrations run automatically on container start in production" }];
+
+/**
+ * The one migration the strict lanes may ship: a data repair for what a bug already left wrong
+ * (a code fix only changes what happens next). It must go through data_repair() — savepoint, and a
+ * failure is undone and filed as an incident instead of keeping the API from starting — and do
+ * nothing a reviewer would have to think about: no schema, no SQL, no deletes, no other imports.
+ */
+const DATA_REPAIR_FILE = /^apps\/api\/plane\/db\/migrations\/\d{4}_[a-z0-9_]+\.py$/;
+const DATA_REPAIR_MAX_LINES = 150;
+const DATA_REPAIR_IMPORTS = new Set([
+  "from django.db import migrations",
+  "from plane.utils.agent_pipeline.data_repair import data_repair",
+]);
+const DATA_REPAIR_FORBIDDEN = [
+  [/RunSQL|RawSQL|SeparateDatabaseAndState/, "raw SQL or state-only operations"],
+  [/schema_editor\s*\./, "uses schema_editor"],
+  [/\bconnection\b|\bcursor\b|\.execute\(|\.raw\(|\.extra\(/, "raw database access"],
+  [/\.delete\(|_raw_delete|\.truncate/, "deletes rows (a repair corrects data, it never removes it)"],
+  [/\b(exec|eval|compile|open|getattr|setattr|__import__)\s*\(|importlib|subprocess|\bos\./, "dynamic code or I/O"],
+  [/atomic\s*=\s*False/, "turns off the migration transaction"],
 ];
+
+function dataRepairProblems(file, added, testSources) {
+  if (!DATA_REPAIR_FILE.test(file)) return ["not a new numbered migration file"];
+  if (!added) return ["edits an existing migration (only a new one may be added)"];
+  let src;
+  try {
+    src = execFileSync("git", ["show", `HEAD:${file}`], { encoding: "utf8" });
+  } catch {
+    return ["unreadable"];
+  }
+  const problems = [];
+  const lines = src.split("\n");
+  if (lines.length > DATA_REPAIR_MAX_LINES) problems.push(`${lines.length} lines (cap ${DATA_REPAIR_MAX_LINES})`);
+  for (const line of lines.map((l) => l.trim()).filter((l) => /^(import|from)\s/.test(l))) {
+    if (!DATA_REPAIR_IMPORTS.has(line)) problems.push(`import not allowed: ${line}`);
+  }
+  const ops = [...src.matchAll(/migrations\.(\w+)/g)].map((m) => m[1]);
+  const others = [...new Set(ops.filter((op) => op !== "Migration" && op !== "RunPython"))];
+  if (others.length) problems.push(`schema or other operations: ${others.join(", ")}`);
+  if ((src.match(/migrations\.RunPython\(/g) ?? []).length !== 1) problems.push("needs exactly one RunPython");
+  if (!/migrations\.RunPython\(\s*data_repair\(/.test(src)) problems.push("RunPython must wrap data_repair(...)");
+  for (const [re, why] of DATA_REPAIR_FORBIDDEN) if (re.test(src)) problems.push(why);
+  const module = file.split("/").pop().replace(/\.py$/, "");
+  if (!testSources.some((s) => s.includes(module))) problems.push(`no test in the diff imports ${module}`);
+  return problems;
+}
 
 const ANNOTATE = [
   { re: /^apps\/api\/plane\/db\/migrations\//, label: "Migration (runs on deploy)" },
@@ -125,16 +171,46 @@ if (files.length === 0) {
   process.exit(0);
 }
 
+let added = [];
+try {
+  added = git(["diff", "--no-renames", "--diff-filter=A", "--name-only", `${base}...HEAD`])
+    .split("\n")
+    .filter(Boolean);
+} catch {
+  added = [];
+}
+const testSources = files
+  .filter((f) => /^apps\/api\/plane\/tests\/.+\.py$/.test(f) && !deletions.includes(f))
+  .map((f) => {
+    try {
+      return execFileSync("git", ["show", `HEAD:${f}`], { encoding: "utf8" });
+    } catch {
+      return "";
+    }
+  });
+
 const denyRules = strict ? [...DENY, ...STRICT_DENY] : DENY;
 const violations = [];
+const notes = [];
+const migrations = files.filter((f) => MIGRATION.test(f));
 for (const file of files) {
   const hit = denyRules.find((rule) => rule.re.test(file));
-  if (hit) violations.push({ file, why: hit.why });
+  if (!hit) continue;
+  if (strict && MIGRATION.test(file)) {
+    const problems = dataRepairProblems(file, added.includes(file), testSources);
+    if (migrations.length > 1) problems.push(`${migrations.length} migrations in one diff (one repair at a time)`);
+    if (!problems.length) {
+      notes.push({ file, label: "Data repair migration (shape checked: data_repair, no schema/SQL/deletes)" });
+      continue;
+    }
+    violations.push({ file, why: `${hit.why}; as a data repair: ${problems.join("; ")}` });
+    continue;
+  }
+  violations.push({ file, why: hit.why });
 }
 
-const notes = [];
 for (const file of files) {
-  if (violations.some((v) => v.file === file)) continue;
+  if (violations.some((v) => v.file === file) || notes.some((n) => n.file === file)) continue;
   const rule = ANNOTATE.find((r) => r.re.test(file));
   if (rule) notes.push({ file, label: rule.label });
 }
