@@ -30,7 +30,9 @@ function expiryLabel(token: IApiToken) {
   if (token.is_connector) return "Connected app · renews automatically · delete it to disconnect";
   if (!token.is_active) return `Expired ${calculateTimeAgo(token.expired_at)}`;
   if (!token.expired_at) return "Never expires";
-  return `Expires ${renderFormattedDate(token.expired_at)} at ${renderFormattedTime(token.expired_at)}`;
+  // a Date, not the ISO string: renderFormattedDate reads a string's UTC day, which is off by one at night
+  const expiresAt = new Date(token.expired_at);
+  return `Expires ${renderFormattedDate(expiresAt)} at ${renderFormattedTime(expiresAt)}`;
 }
 
 export function ApiTokenListItem(props: Props) {
