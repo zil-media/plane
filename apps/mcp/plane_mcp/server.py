@@ -7,6 +7,7 @@ from fastmcp import FastMCP
 from plane_mcp.auth import PlaneHeaderAuthProvider, ops_auth_provider
 from plane_mcp.instructions import OPS_INSTRUCTIONS, SERVER_INSTRUCTIONS
 from plane_mcp.middleware import PlaneLoggingMiddleware, PlaneToolVisibilityMiddleware
+from plane_mcp.ops import install_public_origin
 from plane_mcp.tools import hidden_discovery_tools, register_tools
 from plane_mcp.workspace_scope import register_workspace_scope
 
@@ -27,6 +28,7 @@ def get_header_mcp():
 
 def get_ops_mcp():
     """Zil Ops: OAuth-protected endpoint (Ops is the authorization server)."""
+    install_public_origin()
     ops_mcp = FastMCP(
         "Zil Ops",
         instructions=SERVER_INSTRUCTIONS + OPS_INSTRUCTIONS,

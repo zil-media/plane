@@ -1,6 +1,6 @@
 """Cycle-related tools for Plane MCP Server."""
 
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Annotated, Any
 
 from fastmcp import FastMCP
@@ -20,11 +20,26 @@ from plane.models.enums import CycleStatusEnum
 from plane.models.query_params import CycleLiteListQueryParams, LiteListQueryParams, WorkItemQueryParams
 from pydantic import Field
 
+from plane_mcp.app_session import is_community_edition
 from plane_mcp.ce_compat import list_to_paginated, lite_or_fallback, reshape_paginated
 from plane_mcp.client import get_plane_client_context
 from plane_mcp.tools.pql_reference import PQL_FIELD_HINT, PQL_FULL_REFERENCE
 
 logger = get_logger(__name__)
+
+
+def _has_ended(end_date: Any) -> bool:
+    """Whether a cycle's end_date (date or datetime, as a string or an object) is already past."""
+    if isinstance(end_date, datetime):
+        ends = end_date
+    else:
+        text = str(end_date)
+        if len(text) <= 10:  # a bare date ends at the start of that day
+            text += "T00:00:00"
+        ends = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    if ends.tzinfo is None:
+        ends = ends.replace(tzinfo=timezone.utc)
+    return ends <= datetime.now(timezone.utc)
 
 
 def register_cycle_tools(mcp: FastMCP) -> None:
@@ -277,6 +292,12 @@ def register_cycle_tools(mcp: FastMCP) -> None:
         Returns:
             Paginated envelope with results, total_count, next_cursor, prev_cursor.
         """
+        if pql and is_community_edition():
+            # CE drops the pql parameter and returns every item, which reads as a filtered answer
+            raise ValueError(
+                "PQL filters aren't available on this Plane edition (Community Edition): list the "
+                "cycle's work items without pql and filter them from the results."
+            )
         client, workspace_slug = get_plane_client_context()
         params = WorkItemQueryParams(
             pql=pql,
@@ -366,7 +387,9 @@ def register_cycle_tools(mcp: FastMCP) -> None:
         today = date.today().isoformat()
         cycle = client.cycles.retrieve(workspace_slug=workspace_slug, project_id=project_id, cycle_id=cycle_id)
         end_date = cycle.end_date if hasattr(cycle, "end_date") else None
-        if not end_date or end_date > today:
+        # end_date comes back as a datetime ("2026-11-09T00:00:00Z"): compare it with now, not as a
+        # string against today's date, or a cycle completed today looks open and editing it is refused
+        if not end_date or not _has_ended(end_date):
             client.cycles.update(
                 workspace_slug=workspace_slug,
                 project_id=project_id,

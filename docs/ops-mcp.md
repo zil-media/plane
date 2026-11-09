@@ -60,6 +60,10 @@ mcp:
   depends_on: [api]
 ```
 
+Attachments: the MCP calls the API with the public host, so presigned URLs are signed for it, and
+sends the upload/download straight to the object store (`OPS_STORAGE_INTERNAL_URL`, default
+`http://plane-minio:9000`) instead of out through the CDN, which blocks server clients.
+
 `APP_BASE_URL` (or `WEB_URL`) on `api` must be the public origin (`https://ops.zil.global`): it is
 the OAuth issuer and must match `OPS_PUBLIC_URL`. Block edits use the same api → live link as the
 page API (`LIVE_BASE_URL` + `LIVE_SERVER_SECRET_KEY` on `api`).

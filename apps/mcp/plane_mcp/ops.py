@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 from plane import PlaneClient
@@ -19,6 +20,87 @@ TIMEOUT_SECONDS = 30
 
 def ops_enabled() -> bool:
     return bool(os.getenv("OPS_PUBLIC_URL", "").strip())
+
+
+def public_origin_headers() -> dict[str, str]:
+    """Headers that make the API see the public origin instead of the internal one (api:8000).
+
+    Self-hosted Plane builds presigned upload/download URLs from the request's host and scheme;
+    called on the internal address it hands out http://api:8000/uploads/..., which only the API
+    container answers (404). With the public host the URLs go through the proxy to MinIO, like the
+    browser's do.
+    """
+    public = urlparse(os.getenv("OPS_PUBLIC_URL", "").strip())
+    if not public.netloc:
+        return {}
+    return {"Host": public.netloc, "X-Forwarded-Proto": public.scheme or "https"}
+
+
+def storage_internal_url() -> str:
+    """Where this container reaches the object store directly (the proxy sends /uploads there)."""
+    return os.getenv("OPS_STORAGE_INTERNAL_URL", "http://plane-minio:9000").rstrip("/")
+
+
+def internal_storage_target(url: str, headers: dict[str, str] | None = None) -> tuple[str, dict[str, str]]:
+    """A presigned URL on the public origin, rewritten to reach the object store from inside.
+
+    Going out through the public URL hits the CDN, which blocks server clients (403). MinIO checks
+    the signature against the Host header, so the request keeps the public host it was signed for.
+    """
+    headers = dict(headers or {})
+    public = urlparse(os.getenv("OPS_PUBLIC_URL", "").strip())
+    target = urlparse(url)
+    internal = storage_internal_url()
+    if not public.netloc or target.netloc != public.netloc or not internal:
+        return url, headers
+    inner = urlparse(internal)
+    rewritten = target._replace(scheme=inner.scheme, netloc=inner.netloc).geturl()
+    headers.setdefault("Host", public.netloc)
+    return rewritten, headers
+
+
+class _StorageRequests:
+    """``requests`` as the attachment code uses it, with presigned URLs sent inside."""
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(requests, name)
+
+    def get(self, url: str, **kwargs: Any) -> requests.Response:
+        url, kwargs["headers"] = internal_storage_target(url, kwargs.get("headers"))
+        return requests.get(url, **kwargs)
+
+    def post(self, url: str, **kwargs: Any) -> requests.Response:
+        url, kwargs["headers"] = internal_storage_target(url, kwargs.get("headers"))
+        return requests.post(url, **kwargs)
+
+
+storage_requests = _StorageRequests()
+_origin_installed = False
+
+
+def install_public_origin() -> None:
+    """Make presigned attachment URLs work from this container (idempotent).
+
+    SDK calls carry the public origin, so the API signs URLs for it; the attachment upload/download
+    then goes straight to the object store with that host.
+    """
+    global _origin_installed
+    if _origin_installed or not public_origin_headers():
+        return
+    import plane.api.work_items.attachments as sdk_attachments
+    from plane.api.base_resource import BaseResource
+
+    import plane_mcp.tools.work_item_attachments as mcp_attachments
+
+    sdk_headers = BaseResource._headers
+
+    def _headers(self) -> dict[str, str]:
+        return {**sdk_headers(self), **public_origin_headers()}
+
+    BaseResource._headers = _headers
+    sdk_attachments._requests = storage_requests
+    mcp_attachments._requests = storage_requests
+    _origin_installed = True
 
 
 def api_base_url() -> str:

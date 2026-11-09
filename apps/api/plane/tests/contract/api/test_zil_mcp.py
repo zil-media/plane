@@ -518,3 +518,21 @@ class TestConnectorTokensInTheList:
         assert listed["manual"]["is_active"] is False
         assert str(manual.id) == listed["manual"]["id"]
         assert not APIToken.objects.get(token=first["access_token"]).is_active
+
+
+@pytest.mark.contract
+class TestProjectVisibilityThroughTheApi:
+    def test_a_project_can_be_made_secret_and_public_again(self, api_key_client, workspace, project):
+        url = f"/api/v1/workspaces/{workspace.slug}/projects/{project.id}/"
+        secret = api_key_client.patch(url, {"network": 0}, format="json")
+        assert secret.status_code == 200, secret.data
+        project.refresh_from_db()
+        assert project.network == 0
+
+        assert api_key_client.patch(url, {"network": 2}, format="json").status_code == 200
+        project.refresh_from_db()
+        assert project.network == 2
+
+    def test_an_unknown_visibility_is_rejected(self, api_key_client, workspace, project):
+        url = f"/api/v1/workspaces/{workspace.slug}/projects/{project.id}/"
+        assert api_key_client.patch(url, {"network": 7}, format="json").status_code == 400

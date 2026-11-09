@@ -11,6 +11,7 @@ from plane.models.intake import (
 )
 from plane.models.query_params import PaginatedQueryParams, RetrieveQueryParams
 
+from plane_mcp.app_session import is_community_edition
 from plane_mcp.client import get_plane_client_context
 
 
@@ -144,7 +145,10 @@ def register_intake_tools(mcp: FastMCP) -> None:
             source=source,
             source_email=source_email,
         )
-        if status is not None or snoozed_till is not None or duplicate_to is not None:
+        # CE has no .../intake-issues/<id>/status route (404); its PATCH on the item takes the triage
+        # fields directly, so only Cloud goes through update_status
+        triage = status is not None or snoozed_till is not None or duplicate_to is not None
+        if triage and not is_community_edition():
             return client.intake.update_status(
                 workspace_slug=workspace_slug,
                 project_id=project_id,

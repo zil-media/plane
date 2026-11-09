@@ -18,6 +18,7 @@ from plane.models.modules import (
 from plane.models.query_params import LiteListQueryParams, WorkItemQueryParams
 from pydantic import Field
 
+from plane_mcp.app_session import is_community_edition
 from plane_mcp.ce_compat import lite_or_fallback, reshape_paginated
 from plane_mcp.client import get_plane_client_context
 from plane_mcp.tools.pql_reference import PQL_FIELD_HINT, PQL_FULL_REFERENCE
@@ -279,6 +280,12 @@ def register_module_tools(mcp: FastMCP) -> None:
         Returns:
             Paginated envelope with results, total_count, next_cursor, prev_cursor.
         """
+        if pql and is_community_edition():
+            # CE drops the pql parameter and returns every item, which reads as a filtered answer
+            raise ValueError(
+                "PQL filters aren't available on this Plane edition (Community Edition): list the "
+                "module's work items without pql and filter them from the results."
+            )
         client, workspace_slug = get_plane_client_context()
         params = WorkItemQueryParams(
             pql=pql,

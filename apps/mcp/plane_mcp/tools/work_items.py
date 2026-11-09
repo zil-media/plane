@@ -692,7 +692,8 @@ def register_work_item_tools(mcp: FastMCP, *, supports_pql: bool = True) -> None
 
         Matches on work item name, sequence id, and project identifier (not
         description). For structured filtering (priority, state, assignee,
-        dates, etc.) use `list_work_items` with a PQL expression.
+        dates, etc.) use `list_work_items` (with a PQL expression where the
+        Plane edition supports it).
 
         Args:
             query: Free-text string matched against name, sequence id, and project identifier

@@ -88,6 +88,21 @@ CE_UNAVAILABLE_TOOLS = frozenset(
         "get_work_item_property_value",
         "set_work_item_property_value",
         "delete_work_item_property_value",
+        # Custom properties and their options don't exist on CE either (probed live on Zil Ops:
+        # the properties endpoint answers 404).
+        "list_work_item_properties",
+        "create_work_item_property",
+        "retrieve_work_item_property",
+        "update_work_item_property",
+        "delete_work_item_property",
+        "manage_work_item_type_properties",
+        "list_work_item_property_options",
+        "retrieve_work_item_property_option",
+        "create_work_item_property_option",
+        "update_work_item_property_option",
+        "delete_work_item_property_option",
+        # CE has no PQL; the reference would only invite filters that get silently dropped.
+        "get_pql_reference",
     }
 )
 

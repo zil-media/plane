@@ -93,6 +93,8 @@ class ProjectCreateSerializer(BaseSerializer):
             "external_id",
             "is_issue_type_enabled",
             "is_time_tracking_enabled",
+            # Zil Ops: visibility (0 secret, 2 public), as the app's project settings allow
+            "network",
         ]
 
         read_only_fields = [

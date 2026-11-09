@@ -126,7 +126,8 @@ def register_ops_page_tools(mcp: FastMCP) -> None:
           types).
         - ``set_attrs {block, attrs}``: toggle a task (``checked``), heading ``level``, code
           ``language``, ``textAlign``.
-        - ``replace_all {content}``: replace the whole page (unchanged blocks keep their refs).
+        - ``replace_all {content}``: replace the whole page (unchanged top-level blocks keep their refs;
+          a list that changed gets new refs for its items).
 
         ``content`` is markdown: headings, lists, ``- [ ] tasks``, tables, code fences, quotes,
         ``---``; editor HTML passes through for callouts, mentions, images.
