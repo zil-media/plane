@@ -56,7 +56,20 @@
     },
     "api_tokens": {
       "title": "퍼스널 액세스 토큰",
-      "description": "보안 API 토큰을 생성하여 외부 시스템 및 애플리케이션과 데이터를 통합하세요."
+      "description": "보안 API 토큰을 생성하여 외부 시스템 및 애플리케이션과 데이터를 통합하세요.",
+      "status": {
+        "active": "활성",
+        "expired": "만료됨",
+        "connected": "연결됨",
+        "disconnected": "연결 해제됨"
+      },
+      "expiry": {
+        "expires": "{date} {time}에 만료",
+        "expired": "{date}에 만료됨",
+        "never": "만료되지 않음",
+        "connector": "연결된 앱 · 자동으로 갱신됩니다 · 연결을 해제하려면 삭제하세요"
+      },
+      "delete": "토큰 삭제"
     },
     "connect_claude": {
       "title": "Claude 연결",

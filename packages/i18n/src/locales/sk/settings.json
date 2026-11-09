@@ -56,7 +56,20 @@
     },
     "api_tokens": {
       "title": "Osobné prístupové tokeny",
-      "description": "Generujte bezpečné API tokeny na integráciu vašich údajov s externými systémami a aplikáciami."
+      "description": "Generujte bezpečné API tokeny na integráciu vašich údajov s externými systémami a aplikáciami.",
+      "status": {
+        "active": "Aktívny",
+        "expired": "Vypršal",
+        "connected": "Pripojené",
+        "disconnected": "Odpojené"
+      },
+      "expiry": {
+        "expires": "Vyprší {date} o {time}",
+        "expired": "Vypršal {date}",
+        "never": "Nikdy nevyprší",
+        "connector": "Pripojená aplikácia · obnovuje sa automaticky · odstráňte ju na odpojenie"
+      },
+      "delete": "Odstrániť token"
     },
     "connect_claude": {
       "title": "Pripojiť Claude",

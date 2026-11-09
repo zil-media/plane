@@ -56,7 +56,20 @@
     },
     "api_tokens": {
       "title": "Tokens de Acesso Pessoal",
-      "description": "Gere tokens de API seguros para integrar seus dados com sistemas e aplicativos externos."
+      "description": "Gere tokens de API seguros para integrar seus dados com sistemas e aplicativos externos.",
+      "status": {
+        "active": "Ativo",
+        "expired": "Expirado",
+        "connected": "Conectado",
+        "disconnected": "Desconectado"
+      },
+      "expiry": {
+        "expires": "Expira em {date} às {time}",
+        "expired": "Expirou em {date}",
+        "never": "Nunca expira",
+        "connector": "App conectado · renova automaticamente · exclua para desconectar"
+      },
+      "delete": "Excluir token"
     },
     "connect_claude": {
       "title": "Conectar o Claude",

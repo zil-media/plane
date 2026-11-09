@@ -56,7 +56,20 @@
     },
     "api_tokens": {
       "title": "Mã truy cập cá nhân",
-      "description": "Tạo mã API bảo mật để tích hợp dữ liệu của bạn với các hệ thống và ứng dụng bên ngoài."
+      "description": "Tạo mã API bảo mật để tích hợp dữ liệu của bạn với các hệ thống và ứng dụng bên ngoài.",
+      "status": {
+        "active": "Đang hoạt động",
+        "expired": "Đã hết hạn",
+        "connected": "Đã kết nối",
+        "disconnected": "Đã ngắt kết nối"
+      },
+      "expiry": {
+        "expires": "Hết hạn vào {date} lúc {time}",
+        "expired": "Đã hết hạn vào {date}",
+        "never": "Không bao giờ hết hạn",
+        "connector": "Ứng dụng đã kết nối · tự động gia hạn · xóa để ngắt kết nối"
+      },
+      "delete": "Xóa token"
     },
     "connect_claude": {
       "title": "Kết nối Claude",

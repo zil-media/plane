@@ -56,7 +56,20 @@
     },
     "api_tokens": {
       "title": "Jetons d’accès personnel",
-      "description": "Générez des jetons API sécurisés pour intégrer vos données avec des systèmes et applications externes."
+      "description": "Générez des jetons API sécurisés pour intégrer vos données avec des systèmes et applications externes.",
+      "status": {
+        "active": "Actif",
+        "expired": "Expiré",
+        "connected": "Connecté",
+        "disconnected": "Déconnecté"
+      },
+      "expiry": {
+        "expires": "Expire le {date} à {time}",
+        "expired": "Expiré le {date}",
+        "never": "N’expire jamais",
+        "connector": "Application connectée · se renouvelle automatiquement · supprimez-la pour la déconnecter"
+      },
+      "delete": "Supprimer le jeton"
     },
     "connect_claude": {
       "title": "Connecter Claude",

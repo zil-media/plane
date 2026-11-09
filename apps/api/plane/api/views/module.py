@@ -447,7 +447,9 @@ class ModuleDetailAPIEndpoint(BaseAPIView):
                 origin=base_host(request=request, is_app=True),
             )
 
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            # Zil Ops: answer with the whole module (as retrieve does), not just the writable fields
+            module = self.get_queryset().get(pk=pk)
+            return Response(ModuleSerializer(module).data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @module_docs(

@@ -56,7 +56,20 @@
     },
     "api_tokens": {
       "title": "Kişisel Erişim Tokenları",
-      "description": "Verilerinizi harici sistemler ve uygulamalarla entegre etmek için güvenli API tokenları oluşturun."
+      "description": "Verilerinizi harici sistemler ve uygulamalarla entegre etmek için güvenli API tokenları oluşturun.",
+      "status": {
+        "active": "Etkin",
+        "expired": "Süresi doldu",
+        "connected": "Bağlı",
+        "disconnected": "Bağlantı kesildi"
+      },
+      "expiry": {
+        "expires": "{date} {time} tarihinde sona erer",
+        "expired": "{date} tarihinde sona erdi",
+        "never": "Süresi dolmaz",
+        "connector": "Bağlı uygulama · otomatik yenilenir · bağlantıyı kesmek için silin"
+      },
+      "delete": "Tokeni sil"
     },
     "connect_claude": {
       "title": "Claude'u bağla",

@@ -56,7 +56,20 @@
     },
     "api_tokens": {
       "title": "Persönliche Zugriffstoken",
-      "description": "Generieren Sie sichere API-Token, um Ihre Daten mit externen Systemen und Anwendungen zu integrieren."
+      "description": "Generieren Sie sichere API-Token, um Ihre Daten mit externen Systemen und Anwendungen zu integrieren.",
+      "status": {
+        "active": "Aktiv",
+        "expired": "Abgelaufen",
+        "connected": "Verbunden",
+        "disconnected": "Getrennt"
+      },
+      "expiry": {
+        "expires": "Läuft am {date} um {time} ab",
+        "expired": "Abgelaufen am {date}",
+        "never": "Läuft nie ab",
+        "connector": "Verbundene App · verlängert sich automatisch · zum Trennen löschen"
+      },
+      "delete": "Token löschen"
     },
     "connect_claude": {
       "title": "Claude verbinden",

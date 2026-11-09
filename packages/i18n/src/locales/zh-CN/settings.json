@@ -56,7 +56,20 @@
     },
     "api_tokens": {
       "title": "个人访问令牌",
-      "description": "生成安全的 API 令牌，将您的数据与外部系统和应用程序集成。"
+      "description": "生成安全的 API 令牌，将您的数据与外部系统和应用程序集成。",
+      "status": {
+        "active": "有效",
+        "expired": "已过期",
+        "connected": "已连接",
+        "disconnected": "已断开"
+      },
+      "expiry": {
+        "expires": "将于 {date} {time} 过期",
+        "expired": "已于 {date} 过期",
+        "never": "永不过期",
+        "connector": "已连接的应用 · 自动续期 · 删除即可断开连接"
+      },
+      "delete": "删除令牌"
     },
     "connect_claude": {
       "title": "连接 Claude",

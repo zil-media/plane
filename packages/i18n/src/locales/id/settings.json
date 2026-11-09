@@ -56,7 +56,20 @@
     },
     "api_tokens": {
       "title": "Token Akses Personal",
-      "description": "Hasilkan token API yang aman untuk mengintegrasikan data Anda dengan sistem dan aplikasi eksternal."
+      "description": "Hasilkan token API yang aman untuk mengintegrasikan data Anda dengan sistem dan aplikasi eksternal.",
+      "status": {
+        "active": "Aktif",
+        "expired": "Kedaluwarsa",
+        "connected": "Terhubung",
+        "disconnected": "Terputus"
+      },
+      "expiry": {
+        "expires": "Kedaluwarsa pada {date} pukul {time}",
+        "expired": "Kedaluwarsa pada {date}",
+        "never": "Tidak pernah kedaluwarsa",
+        "connector": "Aplikasi terhubung · diperpanjang otomatis · hapus untuk memutuskan"
+      },
+      "delete": "Hapus token"
     },
     "connect_claude": {
       "title": "Hubungkan Claude",

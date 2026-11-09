@@ -56,7 +56,20 @@
     },
     "api_tokens": {
       "title": "個人存取權杖",
-      "description": "產生安全的 API 權杖，以將您的資料與外部系統和應用程式整合。"
+      "description": "產生安全的 API 權杖，以將您的資料與外部系統和應用程式整合。",
+      "status": {
+        "active": "有效",
+        "expired": "已過期",
+        "connected": "已連線",
+        "disconnected": "已中斷連線"
+      },
+      "expiry": {
+        "expires": "將於 {date} {time} 到期",
+        "expired": "已於 {date} 到期",
+        "never": "永不到期",
+        "connector": "已連線的應用程式 · 自動續期 · 刪除即可中斷連線"
+      },
+      "delete": "刪除權杖"
     },
     "connect_claude": {
       "title": "連接 Claude",

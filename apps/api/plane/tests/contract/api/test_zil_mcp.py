@@ -581,3 +581,20 @@ class TestMemberListsCarryTheirMembership:
         }
         in_project = api_key_client.get(f"/api/v1/workspaces/{workspace.slug}/projects/{project.id}/members/").json()
         assert [m["role_slug"] for m in in_project if m["id"] == str(create_user.id)] == ["admin"]
+
+
+@pytest.mark.contract
+class TestModuleUpdateAnswersWithTheWholeModule:
+    def test_patch_returns_what_retrieve_returns(self, api_key_client, workspace, project):
+        from plane.db.models import Module
+
+        project.module_view = True
+        project.save(update_fields=["module_view"])
+        module = Module.objects.create(name="Lanzamiento", project=project, workspace=workspace)
+        url = f"/api/v1/workspaces/{workspace.slug}/projects/{project.id}/modules/{module.id}/"
+        patched = api_key_client.patch(url, {"status": "in-progress"}, format="json")
+        assert patched.status_code == 200, patched.json()
+        body = patched.json()
+        assert body["status"] == "in-progress"
+        assert body["name"] == "Lanzamiento"
+        assert set(api_key_client.get(url).json()) <= set(body)

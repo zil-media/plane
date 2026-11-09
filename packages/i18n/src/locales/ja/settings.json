@@ -56,7 +56,20 @@
     },
     "api_tokens": {
       "title": "個人アクセストークン",
-      "description": "外部システムやアプリケーションとデータを統合するための安全なAPIトークンを生成します。"
+      "description": "外部システムやアプリケーションとデータを統合するための安全なAPIトークンを生成します。",
+      "status": {
+        "active": "有効",
+        "expired": "期限切れ",
+        "connected": "接続済み",
+        "disconnected": "切断済み"
+      },
+      "expiry": {
+        "expires": "{date} {time} に期限切れ",
+        "expired": "{date} に期限切れ",
+        "never": "無期限",
+        "connector": "接続済みアプリ · 自動で更新されます · 切断するには削除してください"
+      },
+      "delete": "トークンを削除"
     },
     "connect_claude": {
       "title": "Claude と接続",

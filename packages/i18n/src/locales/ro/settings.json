@@ -56,7 +56,20 @@
     },
     "api_tokens": {
       "title": "Tokenuri de acces personale",
-      "description": "Generează tokenuri API securizate pentru a integra datele tale cu sisteme și aplicații externe."
+      "description": "Generează tokenuri API securizate pentru a integra datele tale cu sisteme și aplicații externe.",
+      "status": {
+        "active": "Activ",
+        "expired": "Expirat",
+        "connected": "Conectat",
+        "disconnected": "Deconectat"
+      },
+      "expiry": {
+        "expires": "Expiră pe {date} la {time}",
+        "expired": "A expirat pe {date}",
+        "never": "Nu expiră niciodată",
+        "connector": "Aplicație conectată · se reînnoiește automat · ștergeți-o pentru a o deconecta"
+      },
+      "delete": "Ștergeți tokenul"
     },
     "connect_claude": {
       "title": "Conectați Claude",
