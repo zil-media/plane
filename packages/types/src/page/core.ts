@@ -17,6 +17,8 @@ export type TPageZilClient = {
   company_name: string;
   lifecycle_status: string;
   business_unit_slug: string;
+  /** The client's logo (its single active brand's); empty when it has none. */
+  logo_url?: string;
   synced_at: string | null;
   /**
    * Made by the clients-folder sync (not linked by hand): Ops keeps it linked to its client, archives it when
@@ -127,6 +129,7 @@ export type TZilClientSearchResult = {
   companyName: string;
   lifecycleStatus: string;
   businessUnitSlug: string;
+  logoUrl?: string | null;
   linkedPageId: string | null;
 };
 

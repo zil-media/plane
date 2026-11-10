@@ -16,6 +16,7 @@ import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/prop
 // services
 import type { TZilErpRefKind, TZilIssueErpRefs } from "@/services/zil.service";
 import { ZilService } from "@/services/zil.service";
+import { ZilBrandLogo } from "@/components/zil-brand/brand-logo";
 
 const zilService = new ZilService();
 const NONE = "__none__";
@@ -54,9 +55,14 @@ function ZilErpRefSelect({ kind, workspaceSlug, issueId, refs, unavailable, disa
       value: option.id,
       query: `${option.name} ${option.subtitle ?? ""}`,
       content: (
-        <span className="flex min-w-0 flex-col">
-          <span className="truncate">{option.name}</span>
-          {option.subtitle && <span className="truncate text-caption-sm-regular text-tertiary">{option.subtitle}</span>}
+        <span className="flex min-w-0 items-center gap-2">
+          {kind === "client" && <ZilBrandLogo name={option.name} logoUrl={option.logo_url || null} size={20} />}
+          <span className="flex min-w-0 flex-col">
+            <span className="truncate">{option.name}</span>
+            {option.subtitle && (
+              <span className="truncate text-caption-sm-regular text-tertiary">{option.subtitle}</span>
+            )}
+          </span>
         </span>
       ),
     })),
@@ -95,6 +101,14 @@ function ZilErpRefSelect({ kind, workspaceSlug, issueId, refs, unavailable, disa
               !current && "text-placeholder"
             )}
           >
+            {current && kind === "client" && (
+              <ZilBrandLogo
+                name={currentBrand?.name ?? current.name}
+                logoUrl={current.logo_url || null}
+                size={16}
+                className="mr-1.5"
+              />
+            )}
             {current && currentBrand ? (
               <span className="flex min-w-0 items-baseline gap-1">
                 <span className="truncate">{currentBrand.name}</span>

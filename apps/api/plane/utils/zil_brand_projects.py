@@ -129,11 +129,16 @@ def allocate_identifier(workspace_id, name):
     raise ValueError("no identifier left")
 
 
-def _logo_props(color):
+def _logo_props(color, logo_url=""):
+    """The project's icon: the brand's logo when Zil has one (``image``, drawn by ``Logo``), and the
+    generic brand icon in its color underneath, for whatever doesn't draw images."""
     icon = {"name": DEFAULT_BRAND_ICON}
     if color:
         icon["color"] = color
-    return {"in_use": "icon", "icon": icon}
+    props = {"in_use": "icon", "icon": icon}
+    if str(logo_url or "").startswith("https://"):
+        props["image"] = {"url": str(logo_url)[:2000]}
+    return props
 
 
 def create_zil_project(workspace, name, identifier, owner, color=None, template=None):
@@ -369,7 +374,7 @@ def _apply_brand(workspace, brand, mapping, owner, template, stats, ws_roles, wi
     if project.network != ProjectNetwork.SECRET.value:
         project.network = ProjectNetwork.SECRET.value
         fields.add("network")
-    logo_props = _logo_props(color)
+    logo_props = _logo_props(color, brand.get("logo"))
     if (project.logo_props or {}).get("in_use") != "emoji" and project.logo_props != logo_props:
         project.logo_props = logo_props
         fields.add("logo_props")

@@ -41,6 +41,7 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
 import { HIGHLIGHT_CLASS, highlightIssueOnDrop } from "../../issues/issue-layouts/utils";
 import { useZilProjectBrandProject } from "@/hooks/use-zil-brands";
+import { ZilBrandLogo } from "@/components/zil-brand/brand-logo";
 import { ProjectNavigation } from "./project-navigation";
 import { useNavigationItems } from "@/components/navigation/use-navigation-items";
 
@@ -95,7 +96,8 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   const router = useRouter();
   // derived values
   const project = getPartialProjectById(projectId);
-  const isBrandProject = !!useZilProjectBrandProject(workspaceSlug.toString(), projectId);
+  const brandProject = useZilProjectBrandProject(workspaceSlug.toString(), projectId);
+  const isBrandProject = !!brandProject;
 
   // Get available navigation items for this project
   const navigationItems = useNavigationItems({
@@ -341,14 +343,34 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                     }
                   >
                     <div className="grid size-4 flex-shrink-0 place-items-center">
-                      <Logo logo={project.logo_props} size={16} />
+                      {brandProject?.logo_url ? (
+                        <ZilBrandLogo
+                          name={project.name}
+                          logoUrl={brandProject.logo_url}
+                          color={brandProject.color}
+                          size={16}
+                          className="rounded-xs"
+                        />
+                      ) : (
+                        <Logo logo={project.logo_props} size={16} />
+                      )}
                     </div>
                     <p className="truncate text-13 font-medium text-secondary">{project.name}</p>
                   </Disclosure.Button>
                 ) : (
                   <div className="flex w-full flex-grow items-center gap-1.5 text-left select-none">
                     <div className="grid size-4 flex-shrink-0 place-items-center">
-                      <Logo logo={project.logo_props} size={16} />
+                      {brandProject?.logo_url ? (
+                        <ZilBrandLogo
+                          name={project.name}
+                          logoUrl={brandProject.logo_url}
+                          color={brandProject.color}
+                          size={16}
+                          className="rounded-xs"
+                        />
+                      ) : (
+                        <Logo logo={project.logo_props} size={16} />
+                      )}
                     </div>
                     <p className="truncate text-13 font-medium text-secondary">{project.name}</p>
                   </div>

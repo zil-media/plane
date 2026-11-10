@@ -10,6 +10,8 @@ import { useTranslation } from "@plane/i18n";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TPageZilClient } from "@plane/types";
 import { cn } from "@plane/utils";
+// components
+import { ZilBrandLogo } from "@/components/zil-brand/brand-logo";
 
 type Props = {
   client: TPageZilClient;
@@ -33,7 +35,11 @@ export function ZilClientBadge({ client, className }: Props) {
           className
         )}
       >
-        <Building2 className="size-3 flex-shrink-0" />
+        {client.logo_url ? (
+          <ZilBrandLogo name={label} logoUrl={client.logo_url} size={12} className="rounded-xs border-0" />
+        ) : (
+          <Building2 className="size-3 flex-shrink-0" />
+        )}
         <span className="truncate">{label}</span>
       </span>
     </Tooltip>

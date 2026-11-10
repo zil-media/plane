@@ -34,6 +34,7 @@ def serialize_link(link):
         "company_name": link.company_name,
         "lifecycle_status": link.lifecycle_status,
         "business_unit_slug": link.business_unit_slug,
+        "logo_url": link.logo_url,
         "synced_at": link.synced_at,
         "auto_created": link.auto_created,
     }

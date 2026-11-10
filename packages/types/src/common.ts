@@ -27,6 +27,10 @@ export type TLogoProps = {
     color?: string;
     background_color?: string;
   };
+  /** Zil: a brand project's logo. Drawn instead of the icon; the icon stays as the fallback. */
+  image?: {
+    url?: string;
+  };
 };
 
 export type TNameDescriptionLoader = "submitting" | "submitted" | "saved";

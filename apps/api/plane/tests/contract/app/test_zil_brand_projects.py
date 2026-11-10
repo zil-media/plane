@@ -96,6 +96,8 @@ class TestBrandProjectCreation:
         }
         assert project.network == 0 and project.name == "KFC" and project.identifier == "KFC"
         assert project.logo_props["icon"]["color"] == "#E2231A"
+        # the brand's logo is the project's icon (Logo draws it; the colored icon is the fallback)
+        assert project.logo_props["image"] == {"url": f"https://zil.test/logos/{KFC}.png"}
         assert ProjectIdentifier.objects.filter(project=project, name="KFC").exists()
         assert State.objects.filter(project=project).count() >= 5
         mapping = ZilBrandProject.objects.get(zil_brand_id=KFC)

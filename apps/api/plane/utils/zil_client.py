@@ -36,6 +36,9 @@ def apply_zil_client_fields(link, client):
     link.company_name = (client.get("companyName") or "")[:255]
     link.lifecycle_status = (client.get("lifecycleStatus") or "")[:32]
     link.business_unit_slug = (client.get("businessUnitSlug") or "")[:64]
+    # only when the source says it: the live profile carries no logo and must not blank the cached one
+    if "logoUrl" in client:
+        link.logo_url = client.get("logoUrl") or ""
     link.synced_at = timezone.now()
 
 

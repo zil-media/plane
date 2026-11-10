@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 from rest_framework import status
 
-from plane.db.models import Issue, ProjectMember, User, WorkspaceMember
+from plane.db.models import Issue, ProjectMember, User, WorkspaceMember, ZilBrandProject
 from plane.utils.zil_client import ZilUnavailable
 
 CLIENT_ID = "0123456789abcdef01234567"
@@ -56,8 +56,15 @@ class TestZilErpOptions:
         # Zil narrows the list to what the person asking can pick.
         search.assert_called_once_with(workspace.slug, "", 200, actor_email=create_user.email)
         assert response.data["options"] == [
-            {"id": CLIENT_ID, "erp_id": CLIENT_ID, "brand_id": None, "name": "Joyas", "subtitle": "Joyas Esmeralda SA"},
-            {"id": OTHER_ID, "erp_id": OTHER_ID, "brand_id": None, "name": "DEGASA S. A.", "subtitle": ""},
+            {
+                "id": CLIENT_ID,
+                "erp_id": CLIENT_ID,
+                "brand_id": None,
+                "name": "Joyas",
+                "subtitle": "Joyas Esmeralda SA",
+                "logo_url": "",
+            },
+            {"id": OTHER_ID, "erp_id": OTHER_ID, "brand_id": None, "name": "DEGASA S. A.", "subtitle": "", "logo_url": ""},
             # one row per brand, saved as the client plus that brand
             {
                 "id": f"{OTHER_ID}:{BRAND_ID}",
@@ -65,6 +72,7 @@ class TestZilErpOptions:
                 "brand_id": BRAND_ID,
                 "name": "KFC",
                 "subtitle": "DEGASA S. A.",
+                "logo_url": "",
             },
         ]
 
@@ -119,6 +127,20 @@ class TestZilIssueErpRefs:
         assert response.status_code == status.HTTP_200_OK
         get_refs.assert_called_once_with(workspace.slug, str(issue.id), create_user.email)
         assert response.data == REFS
+
+    @pytest.mark.django_db
+    def test_read_adds_the_logo_of_a_synced_brand(self, session_client, workspace, project, issue, zil_env):
+        ZilBrandProject.objects.create(
+            workspace=workspace, project_id=project["id"], zil_brand_id=BRAND_ID, logo_url="https://cdn.test/kfc.png"
+        )
+        refs = {
+            "client": {"id": CLIENT_ID, "name": "DEGASA", "url": "http://zil.test/c", "brand": {"id": BRAND_ID, "name": "KFC"}},
+            "project": None,
+        }
+        with mock.patch("plane.authentication.views.zil_sync.get_issue_erp_refs", return_value=refs):
+            response = session_client.get("/api/zil/issue-erp-refs/", {"issue_id": str(issue.id)})
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["client"]["logo_url"] == "https://cdn.test/kfc.png"
 
     @pytest.mark.django_db
     def test_read_tells_zil_who_is_looking_and_where(self, session_client, workspace, issue, create_user, zil_env):

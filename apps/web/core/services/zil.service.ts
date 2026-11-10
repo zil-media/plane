@@ -20,12 +20,27 @@ export type TZilErpRefKind = "client" | "project";
  * A picker row. `id` is the select value (unique per row); for clients, `erp_id` / `brand_id` are what gets
  * saved: a client has one row of its own plus one per brand.
  */
-export type TZilErpOption = { id: string; name: string; subtitle?: string; erp_id?: string; brand_id?: string | null };
+export type TZilErpOption = {
+  id: string;
+  name: string;
+  subtitle?: string;
+  erp_id?: string;
+  brand_id?: string | null;
+  /** Clients: the brand's logo (or the client's only brand's). */
+  logo_url?: string;
+};
 
 export type TZilErpBrand = { id: string; name: string };
 
 /** The client ref also carries the brand the work item belongs to (null = the client itself). */
-export type TZilErpRef = { id: string; name: string; url: string; brand?: TZilErpBrand | null } | null;
+export type TZilErpRef = {
+  id: string;
+  name: string;
+  url: string;
+  brand?: TZilErpBrand | null;
+  /** The brand's logo, when it is one of the synced brand projects. */
+  logo_url?: string;
+} | null;
 
 export type TZilIssueErpRefs = { client: TZilErpRef; project: TZilErpRef };
 

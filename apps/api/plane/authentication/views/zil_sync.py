@@ -44,6 +44,7 @@ from plane.db.models import (
     FileAsset,
     Workspace,
     WorkspaceMember,
+    ZilBrandProject,
 )
 from plane.settings.storage import S3Storage
 from plane.utils.zil_brand_projects import apply_user_brand_projects
@@ -838,6 +839,8 @@ def _client_options(client):
             "brand_id": None,
             "name": name,
             "subtitle": company if alias and company != alias else "",
+            # the logo of its only brand (a single-brand client has no brand rows)
+            "logo_url": client.get("logoUrl") or "",
         }
     ]
     for brand in client.get("brands") or []:
@@ -848,6 +851,7 @@ def _client_options(client):
                 "brand_id": brand.get("id"),
                 "name": brand.get("name") or "",
                 "subtitle": name,
+                "logo_url": brand.get("logoUrl") or "",
             }
         )
     return options
@@ -917,6 +921,26 @@ def _member_issue(request, issue_id, min_role):
     )
 
 
+def _with_brand_logo(refs, workspace):
+    """Adds `logo_url` to the client ref when its brand is a synced brand project (it keeps the logo)."""
+    client = (refs or {}).get("client")
+    if not client:
+        return refs
+    # Zil sends the logo (the brand's, or the single-brand client's); the synced project is the fallback
+    if client.get("logoUrl"):
+        client["logo_url"] = client["logoUrl"]
+        return refs
+    brand_id = (client.get("brand") or {}).get("id")
+    if not brand_id:
+        return refs
+    logo_url = (
+        ZilBrandProject.objects.filter(workspace=workspace, zil_brand_id=brand_id).values_list("logo_url", flat=True).first()
+    )
+    if logo_url:
+        client["logo_url"] = logo_url
+    return refs
+
+
 class ZilIssueErpRefsEndpoint(APIView):
     """The ERP client / project a work item belongs to.
 
@@ -941,9 +965,8 @@ class ZilIssueErpRefsEndpoint(APIView):
         if not zil_enabled():
             return Response({"client": None, "project": None}, status=status.HTTP_200_OK)
         try:
-            return Response(
-                get_issue_erp_refs(issue.workspace.slug, str(issue.id), request.user.email), status=status.HTTP_200_OK
-            )
+            refs = get_issue_erp_refs(issue.workspace.slug, str(issue.id), request.user.email)
+            return Response(_with_brand_logo(refs, issue.workspace), status=status.HTTP_200_OK)
         except ZilUnavailable:
             return Response({"error": "zil_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
 
@@ -978,7 +1001,7 @@ class ZilIssueErpRefsEndpoint(APIView):
             return Response({"error": "zil_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
         if refs is None:
             return Response({"error": "erp_entity_not_found"}, status=status.HTTP_404_NOT_FOUND)
-        return Response(refs, status=status.HTTP_200_OK)
+        return Response(_with_brand_logo(refs, issue.workspace), status=status.HTTP_200_OK)
 
 
 class ZilIssueErpTargetsEndpoint(APIView):

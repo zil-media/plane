@@ -7,6 +7,7 @@
 // Due to some weird issue with the import order, the import of useFontFaceObserver
 // should be after the imported here rather than some below helper functions as it is in the original file
 
+import { useState } from "react";
 import useFontFaceObserver from "use-font-face-observer";
 // plane imports
 import type { TLogoProps } from "@plane/types";
@@ -21,6 +22,8 @@ type Props = {
 };
 
 export function Logo({ logo, size = 16, type = "material" }: Props) {
+  // a logo URL that doesn't load falls back to the icon
+  const [failedImage, setFailedImage] = useState<string | null>(null);
   const isMaterialSymbolsFontLoaded = useFontFaceObserver([
     {
       family: "Material Symbols Rounded",
@@ -35,6 +38,20 @@ export function Logo({ logo, size = 16, type = "material" }: Props) {
 
   // Early returns for loading/empty states
   if (!logo || !logo.in_use) return loadingSkeleton;
+
+  // Zil brand project: its logo, round like an avatar. The icon below is the fallback.
+  if (logo.in_use === "icon" && logo.image?.url && failedImage !== logo.image.url) {
+    const url = logo.image.url;
+    return (
+      <img
+        src={url}
+        alt=""
+        onError={() => setFailedImage(url)}
+        className="flex-shrink-0 rounded-full object-cover"
+        style={{ height: size, width: size }}
+      />
+    );
+  }
 
   const { in_use, emoji, icon } = logo;
   const value = in_use === "emoji" ? emoji?.value : icon?.name;

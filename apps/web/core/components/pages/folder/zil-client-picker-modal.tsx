@@ -15,6 +15,8 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TZilClientSearchResult } from "@plane/types";
 import { EModalPosition, EModalWidth, ModalCore, Spinner } from "@plane/ui";
 import { cn } from "@plane/utils";
+// components
+import { ZilBrandLogo } from "@/components/zil-brand/brand-logo";
 // hooks
 import { useAppRouter } from "@/hooks/use-app-router";
 import useDebounce from "@/hooks/use-debounce";
@@ -212,7 +214,11 @@ export const ZilClientPickerModal = observer(function ZilClientPickerModal(props
                     { "bg-layer-transparent-active": isCurrent }
                   )}
                 >
-                  <Building2 className="size-4 flex-shrink-0 text-tertiary" />
+                  {client.logoUrl ? (
+                    <ZilBrandLogo name={client.alias || client.companyName} logoUrl={client.logoUrl} size={16} />
+                  ) : (
+                    <Building2 className="size-4 flex-shrink-0 text-tertiary" />
+                  )}
                   <span className="flex min-w-0 flex-grow flex-col">
                     <span className="truncate text-13 text-primary">{client.alias || client.companyName}</span>
                     {client.alias && <span className="truncate text-11 text-tertiary">{client.companyName}</span>}

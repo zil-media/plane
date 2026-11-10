@@ -109,6 +109,8 @@ class PageZilClientLink(BaseModel):
     lifecycle_status = models.CharField(max_length=32, blank=True, default="")
     business_unit_slug = models.CharField(max_length=64, blank=True, default="")
     synced_at = models.DateTimeField(null=True, blank=True)
+    # the client's logo (its single active brand's), absolute public URL; empty when it has none
+    logo_url = models.TextField(blank=True, default="")
     # created by the clients-root sync (not linked by hand): only these folders are renamed
     # and archived by it; `auto_name` is the name it gave, so a hand rename is left alone
     auto_created = models.BooleanField(default=False)
