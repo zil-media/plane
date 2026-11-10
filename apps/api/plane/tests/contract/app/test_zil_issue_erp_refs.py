@@ -64,7 +64,14 @@ class TestZilErpOptions:
                 "subtitle": "Joyas Esmeralda SA",
                 "logo_url": "",
             },
-            {"id": OTHER_ID, "erp_id": OTHER_ID, "brand_id": None, "name": "DEGASA S. A.", "subtitle": "", "logo_url": ""},
+            {
+                "id": OTHER_ID,
+                "erp_id": OTHER_ID,
+                "brand_id": None,
+                "name": "DEGASA S. A.",
+                "subtitle": "",
+                "logo_url": "",
+            },
             # one row per brand, saved as the client plus that brand
             {
                 "id": f"{OTHER_ID}:{BRAND_ID}",
@@ -134,7 +141,12 @@ class TestZilIssueErpRefs:
             workspace=workspace, project_id=project["id"], zil_brand_id=BRAND_ID, logo_url="https://cdn.test/kfc.png"
         )
         refs = {
-            "client": {"id": CLIENT_ID, "name": "DEGASA", "url": "http://zil.test/c", "brand": {"id": BRAND_ID, "name": "KFC"}},
+            "client": {
+                "id": CLIENT_ID,
+                "name": "DEGASA",
+                "url": "http://zil.test/c",
+                "brand": {"id": BRAND_ID, "name": "KFC"},
+            },
             "project": None,
         }
         with mock.patch("plane.authentication.views.zil_sync.get_issue_erp_refs", return_value=refs):

@@ -934,7 +934,9 @@ def _with_brand_logo(refs, workspace):
     if not brand_id:
         return refs
     logo_url = (
-        ZilBrandProject.objects.filter(workspace=workspace, zil_brand_id=brand_id).values_list("logo_url", flat=True).first()
+        ZilBrandProject.objects.filter(workspace=workspace, zil_brand_id=brand_id)
+        .values_list("logo_url", flat=True)
+        .first()
     )
     if logo_url:
         client["logo_url"] = logo_url
