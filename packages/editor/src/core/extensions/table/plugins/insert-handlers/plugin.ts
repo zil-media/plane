@@ -82,7 +82,8 @@ export const TableInsertPlugin = (editor: Editor): Plugin => {
     key: TABLE_INSERT_PLUGIN_KEY,
 
     view() {
-      setTimeout(updateAllTables, 0);
+      // the editor can be unmounted before this deferred call runs; the view has no DOM to read by then
+      const initialUpdateTimeout = setTimeout(updateAllTables, 0);
 
       return {
         update(view, prevState) {
@@ -92,6 +93,7 @@ export const TableInsertPlugin = (editor: Editor): Plugin => {
           }
         },
         destroy() {
+          clearTimeout(initialUpdateTimeout);
           // Clean up all tables
           tableMap.forEach((_, tableElement) => {
             cleanupTable(tableElement);
