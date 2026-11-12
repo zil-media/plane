@@ -46,13 +46,31 @@ export type TZilBrandSheet = {
 /** A Drive link of a brand; `name` may be empty. */
 export type TZilBrandLink = { name: string; url: string };
 
-/** What Ops itself keeps on a brand, loaded from the "Marca" tab. Each field is saved whole. */
+/** Someone on the brand's team, in any of the workspaces (Business Units) that work it. */
+export type TZilBrandPerson = {
+  id: string;
+  display_name: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  avatar_url: string;
+  /** the workspaces where they work the brand, by name */
+  business_units: string[];
+};
+
+/**
+ * What Ops itself keeps on a brand, loaded from the "Marca" tab and shared by every workspace that
+ * works it. Each field is saved whole; `team` is read-only (who Zil put on the brand).
+ */
 export type TZilBrandOps = {
   community_manager_ids: string[];
   leader_ids: string[];
   materials_links: TZilBrandLink[];
   finals_links: TZilBrandLink[];
+  team: TZilBrandPerson[];
 };
+
+export type TZilBrandOpsChanges = Partial<Omit<TZilBrandOps, "team">>;
 
 export type TZilProjectBrand = {
   brand: TZilBrandProject;
@@ -87,7 +105,7 @@ export class ZilBrandService extends APIService {
   async updateProjectBrandOps(
     workspaceSlug: string,
     projectId: string,
-    data: Partial<TZilBrandOps>
+    data: TZilBrandOpsChanges
   ): Promise<{ ops: TZilBrandOps }> {
     return this.patch(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-brand/`, data)
       .then((response) => response?.data)

@@ -17,10 +17,9 @@ import { getFileURL } from "@plane/utils";
 // components
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 // hooks
-import { useMember } from "@/hooks/store/use-member";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useZilProjectBrand } from "@/hooks/use-zil-brands";
-import type { TZilBrandLink, TZilBrandOps } from "@/services/zil-brand.service";
+import type { TZilBrandLink, TZilBrandOpsChanges, TZilBrandPerson, TZilBrandSheet } from "@/services/zil-brand.service";
 // local imports
 import { ZilBrandLogo } from "./brand-logo";
 
@@ -55,10 +54,12 @@ function OpsCard({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/** The people picked for a role, by name: clicking the list opens the picker when editable. */
-const PeopleList = observer(function PeopleList({ memberIds }: { memberIds: string[] }) {
+/**
+ * The people picked for a role, by name: clicking the list opens the picker when editable. They come
+ * from the brand's team, so someone who works the brand from another workspace shows too.
+ */
+function PeopleList({ memberIds, team }: { memberIds: string[]; team: Map<string, TZilBrandPerson> }) {
   const { t } = useTranslation();
-  const { getUserDetails } = useMember();
 
   if (memberIds.length === 0)
     return (
@@ -70,7 +71,7 @@ const PeopleList = observer(function PeopleList({ memberIds }: { memberIds: stri
   return (
     <ul className="flex flex-col gap-1.5">
       {memberIds.map((memberId) => {
-        const member = getUserDetails(memberId);
+        const member = team.get(memberId);
         return (
           <li key={memberId} className="flex min-w-0 items-center gap-2">
             <Avatar name={member?.display_name} src={getFileURL(member?.avatar_url ?? "")} size="md" />
@@ -80,16 +81,17 @@ const PeopleList = observer(function PeopleList({ memberIds }: { memberIds: stri
       })}
     </ul>
   );
-});
+}
 
 type TPeopleFieldProps = {
   projectId: string;
   memberIds: string[];
+  team: Map<string, TZilBrandPerson>;
   isEditable: boolean;
   onChange: (memberIds: string[]) => void;
 };
 
-function PeopleField({ projectId, memberIds, isEditable, onChange }: TPeopleFieldProps) {
+function PeopleField({ projectId, memberIds, team, isEditable, onChange }: TPeopleFieldProps) {
   return (
     <MemberDropdown
       value={memberIds}
@@ -100,7 +102,7 @@ function PeopleField({ projectId, memberIds, isEditable, onChange }: TPeopleFiel
       buttonVariant="transparent-with-text"
       button={
         <div className="w-full rounded-sm px-1 py-1 text-left hover:bg-layer-1">
-          <PeopleList memberIds={memberIds} />
+          <PeopleList memberIds={memberIds} team={team} />
         </div>
       }
       className="h-auto w-full"
@@ -270,14 +272,114 @@ function LinksField({ links, isEditable, onSave }: TLinksFieldProps) {
   );
 }
 
+type TTeamCard = {
+  key: string;
+  name: string;
+  avatarUrl: string;
+  detail: string;
+  businessUnits: string[];
+  isCommunityManager: boolean;
+  isLeader: boolean;
+};
+
+const teamRank = (card: TTeamCard) => (card.isCommunityManager ? 0 : card.isLeader ? 1 : 2);
+
+/**
+ * Everyone on the brand with their photo: the team in Ops (every workspace that works the brand),
+ * with the role Zil gives them, plus whoever Zil lists who has not signed in to Ops yet. CMs and
+ * líderes first.
+ */
+function TeamSection({
+  team,
+  sheetTeam,
+  communityManagerIds,
+  leaderIds,
+}: {
+  team: TZilBrandPerson[];
+  sheetTeam: TZilBrandSheet["team"];
+  communityManagerIds: string[];
+  leaderIds: string[];
+}) {
+  const { t } = useTranslation();
+  const roleByEmail = new Map((sheetTeam ?? []).map((person) => [person.email.toLowerCase(), person]));
+  const cards: TTeamCard[] = team.map((person) => {
+    const fromZil = roleByEmail.get(person.email.toLowerCase());
+    roleByEmail.delete(person.email.toLowerCase());
+    return {
+      key: person.id,
+      name: person.display_name,
+      avatarUrl: getFileURL(person.avatar_url) ?? "",
+      detail: fromZil?.role || person.email,
+      businessUnits: person.business_units,
+      isCommunityManager: communityManagerIds.includes(person.id),
+      isLeader: leaderIds.includes(person.id),
+    };
+  });
+  for (const person of roleByEmail.values()) {
+    cards.push({
+      key: person.email,
+      name: person.name || person.email,
+      avatarUrl: "",
+      detail: person.role || person.email,
+      businessUnits: [],
+      isCommunityManager: false,
+      isLeader: false,
+    });
+  }
+  cards.sort((a, b) => teamRank(a) - teamRank(b) || a.name.localeCompare(b.name));
+
+  return (
+    <Section title={t("zil_brand.team")}>
+      {cards.length === 0 ? (
+        <Empty>{t("zil_brand.no_team")}</Empty>
+      ) : (
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {cards.map((card) => (
+            <li key={card.key} className="flex min-w-0 items-center gap-3 rounded-md border border-subtle p-4">
+              <Avatar name={card.name} src={card.avatarUrl} size="lg" />
+              <div className="flex min-w-0 flex-col gap-1">
+                <span className="truncate text-13 font-medium text-primary">{card.name}</span>
+                <span className="truncate text-11 text-tertiary">{card.detail}</span>
+                {(card.isCommunityManager || card.isLeader || card.businessUnits.length > 0) && (
+                  <div className="flex flex-wrap gap-1">
+                    {card.isCommunityManager && (
+                      <span className="inline-flex items-center rounded-sm border border-subtle px-1.5 py-0.5 text-11 text-primary">
+                        {t("zil_brand.community_manager")}
+                      </span>
+                    )}
+                    {card.isLeader && (
+                      <span className="inline-flex items-center rounded-sm border border-subtle px-1.5 py-0.5 text-11 text-primary">
+                        {t("zil_brand.leader")}
+                      </span>
+                    )}
+                    {card.businessUnits.map((unit) => (
+                      <span
+                        key={unit}
+                        className="inline-flex items-center rounded-sm border border-subtle px-1.5 py-0.5 text-11 text-secondary"
+                      >
+                        {unit}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
+  );
+}
+
 function formatDate(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
 }
 
 /**
- * The "Marca" tab: who runs the brand and its Drive folders (kept in Ops), then its specifications
- * strip, assets, team and calls, read live from Zil.
+ * The "Marca" tab: who runs the brand and its Drive folders (kept in Ops, shared by every workspace
+ * that works the brand), its team with their photos, then its specifications strip, assets, files
+ * and calls, read live from Zil.
  */
 export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, projectId }: Props) {
   const { t } = useTranslation();
@@ -290,7 +392,7 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
     projectId
   );
 
-  const saveOps = async (changes: Partial<TZilBrandOps>) => {
+  const saveOps = async (changes: TZilBrandOpsChanges) => {
     try {
       await updateOps(changes);
       return true;
@@ -311,6 +413,7 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
   }
 
   const { brand, ops, sheet, unavailable } = data;
+  const team = new Map(ops.team.map((person) => [person.id, person]));
   const strip = sheet?.specs?.strip?.slice(0, 3) ?? [];
   const otherProjects = sheet?.projects ?? [];
   const purposeLabel = (purpose: string) =>
@@ -340,6 +443,7 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
             <PeopleField
               projectId={projectId}
               memberIds={ops.community_manager_ids}
+              team={team}
               isEditable={isEditable}
               onChange={(memberIds) => void saveOps({ community_manager_ids: memberIds })}
             />
@@ -348,6 +452,7 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
             <PeopleField
               projectId={projectId}
               memberIds={ops.leader_ids}
+              team={team}
               isEditable={isEditable}
               onChange={(memberIds) => void saveOps({ leader_ids: memberIds })}
             />
@@ -368,6 +473,13 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
           </OpsCard>
         </div>
       </Section>
+
+      <TeamSection
+        team={ops.team}
+        sheetTeam={sheet?.team ?? null}
+        communityManagerIds={ops.community_manager_ids}
+        leaderIds={ops.leader_ids}
+      />
 
       {unavailable && <Notice>{t("zil_brand.unavailable")}</Notice>}
       {!unavailable && !sheet && <Notice>{t("zil_brand.no_sheet")}</Notice>}
@@ -391,24 +503,6 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
           </Section>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <Section title={t("zil_brand.team")}>
-              {!sheet.team?.length ? (
-                <Empty>{t("zil_brand.no_team")}</Empty>
-              ) : (
-                <ul className="flex flex-col divide-y divide-subtle rounded-md border border-subtle">
-                  {sheet.team.map((person) => (
-                    <li key={person.email} className="flex items-center gap-3 px-3 py-2">
-                      <UserRound className="size-4 flex-shrink-0 text-tertiary" />
-                      <div className="flex min-w-0 flex-col">
-                        <span className="truncate text-13 text-primary">{person.name || person.email}</span>
-                        {person.role && <span className="truncate text-11 text-tertiary">{person.role}</span>}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Section>
-
             <Section title={t("zil_brand.assets")}>
               {!sheet.assets?.length ? (
                 <Empty>{t("zil_brand.no_assets")}</Empty>
@@ -436,35 +530,35 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
                 </ul>
               )}
             </Section>
-          </div>
 
-          <Section title={t("zil_brand.files")}>
-            {!sheet.files?.length ? (
-              <Empty>{t("zil_brand.no_files")}</Empty>
-            ) : (
-              <ul className="flex flex-col divide-y divide-subtle rounded-md border border-subtle">
-                {sheet.files.map((file) => (
-                  <li key={file.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <FileText className="size-3.5 flex-shrink-0 text-tertiary" />
-                      <span className="truncate text-13 text-primary">{file.name}</span>
-                    </div>
-                    {file.url && (
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-shrink-0 text-tertiary hover:text-primary"
-                        aria-label={file.name}
-                      >
-                        <ExternalLink className="size-4" />
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
+            <Section title={t("zil_brand.files")}>
+              {!sheet.files?.length ? (
+                <Empty>{t("zil_brand.no_files")}</Empty>
+              ) : (
+                <ul className="flex flex-col divide-y divide-subtle rounded-md border border-subtle">
+                  {sheet.files.map((file) => (
+                    <li key={file.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <FileText className="size-3.5 flex-shrink-0 text-tertiary" />
+                        <span className="truncate text-13 text-primary">{file.name}</span>
+                      </div>
+                      {file.url && (
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-shrink-0 text-tertiary hover:text-primary"
+                          aria-label={file.name}
+                        >
+                          <ExternalLink className="size-4" />
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+          </div>
 
           <Section title={t("zil_brand.calls")}>
             {!sheet.calls?.length ? (

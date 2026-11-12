@@ -25,8 +25,8 @@ class ZilBrandProject(BaseModel):
     changes, since it is part of every work item key (`KFC-123`). `auto_name` is the last name the
     sync gave the project: a project renamed by hand keeps its name.
 
-    `community_managers`, `leaders`, `materials_links` and `finals_links` are Ops' own: loaded from
-    the "Marca" tab, never touched by the sync.
+    What Ops itself keeps on the brand (CMs, líderes, Drive links) is in `ZilBrandOps`, one per
+    brand and shared by every workspace that works it.
     """
 
     BRAND_KIND = "brand"
@@ -47,11 +47,6 @@ class ZilBrandProject(BaseModel):
     status = models.CharField(max_length=16, default=ACTIVE)
     synced_at = models.DateTimeField(null=True, blank=True)
     members_synced_at = models.DateTimeField(null=True, blank=True)
-    community_managers = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name="zil_brands_as_cm")
-    leaders = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name="zil_brands_as_leader")
-    # [{"name": "Fotos", "url": "https://drive.google.com/…"}], in the order people loaded them
-    materials_links = models.JSONField(default=list, blank=True)
-    finals_links = models.JSONField(default=list, blank=True)
 
     class Meta:
         verbose_name = "Zil Brand Project"
@@ -73,6 +68,39 @@ class ZilBrandProject(BaseModel):
 
     def __str__(self):
         return f"{self.zil_brand_id or self.kind} -> {self.project_id}"
+
+
+class ZilBrandOps(BaseModel):
+    """What Ops keeps on a brand, loaded from the "Marca" tab and never touched by the sync.
+
+    One per Zil brand, not per workspace: a brand worked by several Business Units (Meraki, Zil,
+    Marketwise) shows the same CMs, líderes and Drive links in each of their workspaces.
+    """
+
+    zil_brand_id = models.CharField(max_length=24)
+    community_managers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name="zil_brand_ops_as_cm"
+    )
+    leaders = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name="zil_brand_ops_as_leader")
+    # [{"name": "Fotos", "url": "https://drive.google.com/…"}], in the order people loaded them
+    materials_links = models.JSONField(default=list, blank=True)
+    finals_links = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        verbose_name = "Zil Brand Ops"
+        verbose_name_plural = "Zil Brand Ops"
+        db_table = "zil_brand_ops"
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["zil_brand_id"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="zil_brand_ops_unique_brand",
+            )
+        ]
+
+    def __str__(self):
+        return self.zil_brand_id
 
 
 class ZilBrandMember(BaseModel):

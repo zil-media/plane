@@ -7,6 +7,7 @@
 # Django imports
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
+from django.db import transaction
 
 # Third party imports
 from rest_framework import status
@@ -14,7 +15,7 @@ from rest_framework.response import Response
 
 # Module imports
 from plane.app.permissions import ROLE, allow_permission
-from plane.db.models import ProjectMember, ZilBrandProject
+from plane.db.models import ProjectMember, ZilBrandOps, ZilBrandProject
 from plane.utils.zil_client import ZilUnavailable, get_zil_brand, zil_enabled
 from ..base import BaseAPIView
 
@@ -76,32 +77,75 @@ MAX_LINK_NAME = 120
 validate_link = URLValidator(schemes=["http", "https"])
 
 
-def serialize_brand_ops(mapping):
-    """What Ops itself keeps on the brand: who runs it and where its Drive folders are.
+def brand_team(zil_brand_id):
+    """The active memberships of everyone on the brand, in every workspace that works it.
 
-    People show only while they are on the brand's team: someone Zil takes off the brand stops
-    showing as its CM or líder (and shows again if they come back).
+    A brand worked by several Business Units has one project per workspace: its team is all of
+    them, so a Meraki CM shows on the brand in Zil's workspace too.
     """
-    team = ProjectMember.objects.filter(project_id=mapping.project_id, is_active=True).values("member_id")
+    return ProjectMember.objects.filter(
+        project__zil_brand__zil_brand_id=zil_brand_id,
+        project__zil_brand__kind=ZilBrandProject.BRAND_KIND,
+        project__zil_brand__deleted_at__isnull=True,
+        project__deleted_at__isnull=True,
+        is_active=True,
+        member__is_bot=False,
+        member__is_active=True,
+    )
+
+
+def brand_ops(mapping):
+    """The brand's shared row (unsaved and empty while nobody loaded anything)."""
+    found = ZilBrandOps.objects.filter(zil_brand_id=mapping.zil_brand_id).first()
+    return found or ZilBrandOps(zil_brand_id=mapping.zil_brand_id)
+
+
+def serialize_brand_ops(mapping, ops=None):
+    """What Ops itself keeps on the brand: who runs it and where its Drive folders are, plus its team.
+
+    People show only while they are on the brand's team: someone Zil takes off the brand (in every
+    workspace) stops showing as its CM or líder, and shows again if they come back.
+    """
+    ops = ops or brand_ops(mapping)
+    team = {}
+    for membership in brand_team(mapping.zil_brand_id).select_related("member", "member__avatar_asset", "workspace"):
+        user = membership.member
+        person = team.setdefault(
+            user.id,
+            {
+                "id": str(user.id),
+                "display_name": user.display_name or user.first_name or user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+                "avatar_url": user.avatar_url or "",
+                "business_units": [],
+            },
+        )
+        if membership.workspace.name not in person["business_units"]:
+            person["business_units"].append(membership.workspace.name)
 
     def on_team(people):
+        if ops.pk is None:
+            return []
         return [str(pk) for pk in people.filter(id__in=team).order_by("display_name").values_list("id", flat=True)]
 
     return {
-        "community_manager_ids": on_team(mapping.community_managers),
-        "leader_ids": on_team(mapping.leaders),
-        "materials_links": mapping.materials_links,
-        "finals_links": mapping.finals_links,
+        "community_manager_ids": on_team(ops.community_managers),
+        "leader_ids": on_team(ops.leaders),
+        "materials_links": ops.materials_links,
+        "finals_links": ops.finals_links,
+        "team": sorted(team.values(), key=lambda person: person["display_name"].lower()),
     }
 
 
-def active_member_ids(project_id, member_ids):
-    """The ids, as given, when every one is an active member of the project; None otherwise."""
+def team_member_ids(zil_brand_id, member_ids):
+    """The ids, as given, when every one is on the brand's team (in any workspace); None otherwise."""
     if not isinstance(member_ids, list) or not all(isinstance(pk, str) for pk in member_ids):
         return None
     member_ids = list(dict.fromkeys(member_ids))
     try:
-        found = ProjectMember.objects.filter(project_id=project_id, member_id__in=member_ids, is_active=True).count()
+        found = brand_team(zil_brand_id).filter(member_id__in=member_ids).values("member_id").distinct().count()
     except (ValidationError, ValueError):
         return None
     return member_ids if found == len(member_ids) else None
@@ -155,8 +199,9 @@ class ZilMyBrandsEndpoint(BaseAPIView):
 
 class ZilProjectBrandEndpoint(BaseAPIView):
     """GET → the project's brand, what Ops keeps on it and its live sheet from Zil Workspace (the "Marca" tab).
-    PATCH → change what Ops keeps on it: the CMs a cargo and líderes (active project members) and the
-    Drive links of materiales and finales. Each field sent replaces the whole list.
+    PATCH → change what Ops keeps on it: the CMs a cargo and líderes (on the brand's team, in any
+    workspace) and the Drive links of materiales and finales. Each field sent replaces the whole
+    list. It is the brand's, so every workspace that works the brand sees the change.
 
     404 when the project is not a brand's. When Zil is off or down the brand comes back with
     `sheet: null` and `unavailable: true`, so the tab still shows the brand.
@@ -196,9 +241,9 @@ class ZilProjectBrandEndpoint(BaseAPIView):
             key = f"{field[:-1]}_ids"
             if key not in request.data:
                 continue
-            member_ids = active_member_ids(project_id, request.data.get(key) or [])
+            member_ids = team_member_ids(mapping.zil_brand_id, request.data.get(key) or [])
             if member_ids is None:
-                errors[key] = "Must be active members of this project"
+                errors[key] = "Must be on the brand's team"
             else:
                 people[field] = member_ids
         links = {}
@@ -212,10 +257,12 @@ class ZilProjectBrandEndpoint(BaseAPIView):
                 links[field] = cleaned
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
-        for field, member_ids in people.items():
-            getattr(mapping, field).set(member_ids)
-        if links:
-            for field, cleaned in links.items():
-                setattr(mapping, field, cleaned)
-            mapping.save(update_fields=[*links, "updated_at", "updated_by"])
-        return Response({"ops": serialize_brand_ops(mapping)}, status=status.HTTP_200_OK)
+        with transaction.atomic():
+            ops, _ = ZilBrandOps.objects.select_for_update().get_or_create(zil_brand_id=mapping.zil_brand_id)
+            for field, member_ids in people.items():
+                getattr(ops, field).set(member_ids)
+            if links:
+                for field, cleaned in links.items():
+                    setattr(ops, field, cleaned)
+                ops.save(update_fields=[*links, "updated_at", "updated_by"])
+        return Response({"ops": serialize_brand_ops(mapping, ops)}, status=status.HTTP_200_OK)

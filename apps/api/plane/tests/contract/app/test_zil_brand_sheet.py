@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 from rest_framework import status
 
-from plane.db.models import Project, ProjectMember, User, WorkspaceMember, ZilBrandProject
+from plane.db.models import Project, ProjectMember, User, Workspace, WorkspaceMember, ZilBrandOps, ZilBrandProject
 from plane.utils.zil_brand_projects import apply_brand_roster
 
 KFC = "0123456789abcdef0123d001"
@@ -188,8 +188,7 @@ class TestBrandOpsFields:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert set(response.data) == {"community_manager_ids", "leader_ids", "materials_links", "finals_links"}
-        mapping = ZilBrandProject.objects.get(zil_brand_id=KFC)
-        assert not mapping.community_managers.exists() and mapping.materials_links == []
+        assert not ZilBrandOps.objects.filter(zil_brand_id=KFC).exists()
 
     @pytest.mark.django_db
     def test_someone_off_the_brand_team_stops_showing_and_shows_again_on_return(
@@ -222,5 +221,85 @@ class TestBrandOpsFields:
             [{"brandId": KFC, "name": "KFC Argentina"}, {"brandId": WENDYS, "name": "Wendy's"}],
             authoritative=True,
         )
-        mapping = ZilBrandProject.objects.get(zil_brand_id=KFC)
-        assert list(mapping.leaders.all()) == [create_user] and mapping.finals_links == link
+        ops = ZilBrandOps.objects.get(zil_brand_id=KFC)
+        assert list(ops.leaders.all()) == [create_user] and ops.finals_links == link
+
+
+@pytest.fixture
+def meraki(brands, create_user):
+    """Meraki's workspace also works KFC: its own KFC project, with its own CM on it."""
+    workspace = Workspace.objects.create(name="Meraki", slug="meraki", owner=create_user)
+    WorkspaceMember.objects.create(workspace=workspace, member=create_user, role=20)
+    apply_brand_roster(workspace.id, [{"brandId": KFC, "name": "KFC"}], authoritative=True)
+    project = ZilBrandProject.objects.get(workspace=workspace, zil_brand_id=KFC).project
+    cm = User.objects.create(
+        email="cm@meraki.ar", username="cm-meraki", display_name="Mora", avatar="https://x.test/m.png"
+    )
+    WorkspaceMember.objects.create(workspace=workspace, member=cm, role=15)
+    ProjectMember.objects.create(project=project, member=cm, role=15, workspace=workspace)
+    return workspace, project, cm
+
+
+@pytest.mark.contract
+class TestBrandOpsSharedAcrossUnits:
+    def url(self, workspace, project):
+        return f"/api/workspaces/{workspace.slug}/projects/{project.id}/zil-brand/"
+
+    def get_ops(self, client, workspace, project):
+        with mock.patch.dict("os.environ", {"ZIL_BASE_URL": "", "ZIL_SERVICE_SECRET": ""}):
+            return client.get(self.url(workspace, project)).data["ops"]
+
+    @pytest.mark.django_db
+    def test_what_one_unit_loads_shows_in_every_workspace_of_the_brand(
+        self, session_client, workspace, brands, meraki, create_user
+    ):
+        meraki_ws, meraki_kfc, meraki_cm = meraki
+        # loaded from Zil's workspace, with Meraki's CM (on the brand only in Meraki's workspace)
+        response = session_client.patch(
+            self.url(workspace, brands),
+            {
+                "community_manager_ids": [str(meraki_cm.id)],
+                "leader_ids": [str(create_user.id)],
+                "materials_links": [{"name": "Fotos", "url": "https://drive.google.com/drive/folders/fotos"}],
+            },
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK, response.data
+        assert response.data["ops"]["community_manager_ids"] == [str(meraki_cm.id)]
+
+        seen_from_meraki = self.get_ops(session_client, meraki_ws, meraki_kfc)
+        assert seen_from_meraki["community_manager_ids"] == [str(meraki_cm.id)]
+        assert seen_from_meraki["leader_ids"] == [str(create_user.id)]
+        assert seen_from_meraki["materials_links"] == [
+            {"name": "Fotos", "url": "https://drive.google.com/drive/folders/fotos"}
+        ]
+
+        # and a change from Meraki's workspace shows back in Zil's
+        session_client.patch(
+            self.url(meraki_ws, meraki_kfc), {"finals_links": [{"url": "https://d.test/f"}]}, format="json"
+        )
+        assert self.get_ops(session_client, workspace, brands)["finals_links"] == [
+            {"name": "", "url": "https://d.test/f"}
+        ]
+        assert ZilBrandOps.objects.filter(zil_brand_id=KFC).count() == 1
+
+    @pytest.mark.django_db
+    def test_the_team_is_everyone_on_the_brand_in_every_workspace_with_their_photo(
+        self, session_client, workspace, brands, meraki, create_user
+    ):
+        _, _, meraki_cm = meraki
+        team = {person["email"]: person for person in self.get_ops(session_client, workspace, brands)["team"]}
+        assert set(team) == {create_user.email, meraki_cm.email}
+        assert team[meraki_cm.email]["avatar_url"] == "https://x.test/m.png"
+        assert team[meraki_cm.email]["business_units"] == ["Meraki"]
+        assert sorted(team[create_user.email]["business_units"]) == sorted([workspace.name, "Meraki"])
+
+    @pytest.mark.django_db
+    def test_someone_off_the_brand_in_every_workspace_cannot_be_picked(self, session_client, workspace, brands, meraki):
+        _, meraki_kfc, meraki_cm = meraki
+        ProjectMember.objects.filter(project=meraki_kfc, member=meraki_cm).update(is_active=False)
+        response = session_client.patch(
+            self.url(workspace, brands), {"community_manager_ids": [str(meraki_cm.id)]}, format="json"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert meraki_cm.email not in [p["email"] for p in self.get_ops(session_client, workspace, brands)["team"]]

@@ -6,7 +6,7 @@
 
 import useSWR from "swr";
 // services
-import type { TZilBrandOps } from "@/services/zil-brand.service";
+import type { TZilBrandOpsChanges } from "@/services/zil-brand.service";
 import { ZilBrandService } from "@/services/zil-brand.service";
 
 const zilBrandService = new ZilBrandService();
@@ -34,7 +34,7 @@ export function useZilProjectBrand(workspaceSlug: string | undefined, projectId:
     { revalidateOnFocus: false, shouldRetryOnError: false }
   );
   /** Saves what Ops keeps on the brand, shown at once and without asking Zil again; undone if it fails. */
-  const updateOps = async (changes: Partial<TZilBrandOps>) => {
+  const updateOps = async (changes: TZilBrandOpsChanges) => {
     if (!workspaceSlug || !projectId || !data) return;
     const previous = data.ops;
     await mutate((current) => (current ? { ...current, ops: { ...current.ops, ...changes } } : current), {
