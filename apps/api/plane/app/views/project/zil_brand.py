@@ -88,6 +88,9 @@ def brand_team(zil_brand_id):
         project__zil_brand__kind=ZilBrandProject.BRAND_KIND,
         project__zil_brand__deleted_at__isnull=True,
         project__deleted_at__isnull=True,
+        # a unit that stopped working the brand (its project archived) or a removed workspace is off it
+        project__archived_at__isnull=True,
+        workspace__deleted_at__isnull=True,
         is_active=True,
         member__is_bot=False,
         member__is_active=True,
@@ -261,8 +264,7 @@ class ZilProjectBrandEndpoint(BaseAPIView):
             ops, _ = ZilBrandOps.objects.select_for_update().get_or_create(zil_brand_id=mapping.zil_brand_id)
             for field, member_ids in people.items():
                 getattr(ops, field).set(member_ids)
-            if links:
-                for field, cleaned in links.items():
-                    setattr(ops, field, cleaned)
-                ops.save(update_fields=[*links, "updated_at", "updated_by"])
+            for field, cleaned in links.items():
+                setattr(ops, field, cleaned)
+            ops.save(update_fields=[*links, "updated_at", "updated_by"])
         return Response({"ops": serialize_brand_ops(mapping, ops)}, status=status.HTTP_200_OK)

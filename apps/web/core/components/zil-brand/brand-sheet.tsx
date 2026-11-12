@@ -15,7 +15,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Avatar, Input, Loader } from "@plane/ui";
 import { getFileURL } from "@plane/utils";
 // components
-import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
+import { MemberDropdownBase } from "@/components/dropdowns/member/base";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";
 import { useZilProjectBrand } from "@/hooks/use-zil-brands";
@@ -84,19 +84,23 @@ function PeopleList({ memberIds, team }: { memberIds: string[]; team: Map<string
 }
 
 type TPeopleFieldProps = {
-  projectId: string;
   memberIds: string[];
   team: Map<string, TZilBrandPerson>;
   isEditable: boolean;
   onChange: (memberIds: string[]) => void;
 };
 
-function PeopleField({ projectId, memberIds, team, isEditable, onChange }: TPeopleFieldProps) {
+/** The picker offers the whole brand team, so a CM who works the brand from another unit can be picked. */
+function PeopleField({ memberIds, team, isEditable, onChange }: TPeopleFieldProps) {
   return (
-    <MemberDropdown
+    <MemberDropdownBase
       value={memberIds}
       onChange={onChange}
-      projectId={projectId}
+      memberIds={[...team.keys()]}
+      getUserDetails={(userId) => {
+        const person = team.get(userId);
+        return person ? { ...person, is_bot: false } : undefined;
+      }}
       multiple
       disabled={!isEditable}
       buttonVariant="transparent-with-text"
@@ -282,6 +286,8 @@ type TTeamCard = {
   isLeader: boolean;
 };
 
+const emailKey = (email: string | null | undefined) => (email ?? "").toLowerCase();
+
 const teamRank = (card: TTeamCard) => (card.isCommunityManager ? 0 : card.isLeader ? 1 : 2);
 
 /**
@@ -301,10 +307,10 @@ function TeamSection({
   leaderIds: string[];
 }) {
   const { t } = useTranslation();
-  const roleByEmail = new Map((sheetTeam ?? []).map((person) => [person.email.toLowerCase(), person]));
+  const roleByEmail = new Map((sheetTeam ?? []).map((person) => [emailKey(person.email), person]));
   const cards: TTeamCard[] = team.map((person) => {
-    const fromZil = roleByEmail.get(person.email.toLowerCase());
-    roleByEmail.delete(person.email.toLowerCase());
+    const fromZil = roleByEmail.get(emailKey(person.email));
+    roleByEmail.delete(emailKey(person.email));
     return {
       key: person.id,
       name: person.display_name,
@@ -317,7 +323,7 @@ function TeamSection({
   });
   for (const person of roleByEmail.values()) {
     cards.push({
-      key: person.email,
+      key: person.email || person.name,
       name: person.name || person.email,
       avatarUrl: "",
       detail: person.role || person.email,
@@ -441,7 +447,6 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <OpsCard label={t("zil_brand.community_manager")}>
             <PeopleField
-              projectId={projectId}
               memberIds={ops.community_manager_ids}
               team={team}
               isEditable={isEditable}
@@ -450,7 +455,6 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
           </OpsCard>
           <OpsCard label={t("zil_brand.leader")}>
             <PeopleField
-              projectId={projectId}
               memberIds={ops.leader_ids}
               team={team}
               isEditable={isEditable}
