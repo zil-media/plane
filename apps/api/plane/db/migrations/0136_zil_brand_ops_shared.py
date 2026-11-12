@@ -27,7 +27,7 @@ def move_to_brand(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("db", "0132_zil_brand_ops_fields"),
+        ("db", "0135_pagezilclientlink_logo_url"),
     ]
 
     operations = [
