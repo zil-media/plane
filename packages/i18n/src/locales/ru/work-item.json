@@ -267,6 +267,10 @@
       "click_to_downvote": "Нажмите, чтобы проголосовать против",
       "click_to_view_upvotes": "Нажмите, чтобы посмотреть голоса за",
       "click_to_view_downvotes": "Нажмите, чтобы посмотреть голоса против"
+    },
+    "checklist": {
+      "label": "Чек-лист",
+      "progress": "Выполнено {completed} из {total}"
     }
   },
   "sub_work_item": {

@@ -267,6 +267,10 @@
       "click_to_downvote": "クリックして反対票を投じる",
       "click_to_view_upvotes": "クリックして賛成票を表示",
       "click_to_view_downvotes": "クリックして反対票を表示"
+    },
+    "checklist": {
+      "label": "チェックリスト",
+      "progress": "{total}件中{completed}件完了"
     }
   },
   "sub_work_item": {

@@ -9,6 +9,8 @@ import { computedFn } from "mobx-utils";
 // types
 import type { TIssue, TIssueServiceType } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
+// helpers
+import { countDescriptionChecklist } from "@/helpers/description-checklist.helper";
 // services
 import { IssueArchiveService, WorkspaceDraftService, IssueService } from "@/services/issue";
 // types
@@ -101,9 +103,9 @@ export class IssueStore implements IIssueStore {
     // store handlers from issue detail
     // parent
     if (issue && issue?.parent && issue?.parent?.id && issue?.parent?.project_id) {
-      this.issueService.retrieve(workspaceSlug, issue.parent.project_id, issue?.parent?.id).then((res) => {
-        this.rootIssueDetailStore.rootIssueStore.issues.addIssue([res]);
-      });
+      this.issueService
+        .retrieve(workspaceSlug, issue.parent.project_id, issue?.parent?.id)
+        .then((res) => this.rootIssueDetailStore.rootIssueStore.issues.addIssue([res]));
     }
     // assignees
     // labels
@@ -152,6 +154,8 @@ export class IssueStore implements IIssueStore {
       assignee_ids: issue?.assignee_ids,
       estimate_point: issue?.estimate_point,
       sub_issues_count: issue?.sub_issues_count,
+      checklist_total: issue?.checklist_total,
+      checklist_completed: issue?.checklist_completed,
       attachment_count: issue?.attachment_count,
       link_count: issue?.link_count,
       project_id: issue?.project_id,
@@ -188,6 +192,12 @@ export class IssueStore implements IIssueStore {
       currentStore.updateIssue(workspaceSlug, projectId, issueId, data),
       this.rootIssueDetailStore.activity.fetchActivities(workspaceSlug, projectId, issueId),
     ]);
+    // keep the card's checklist counter in step with the saved description (the API recounts on save)
+    if (data.description_html !== undefined)
+      this.rootIssueDetailStore.rootIssueStore.issues.updateIssue(
+        issueId,
+        countDescriptionChecklist(data.description_html)
+      );
   };
 
   removeIssue = async (workspaceSlug: string, projectId: string, issueId: string) => {
@@ -286,9 +296,9 @@ export class IssueStore implements IIssueStore {
 
     // handle parent issue if exists
     if (issue?.parent && issue?.parent?.id && issue?.parent?.project_id) {
-      this.issueService.retrieve(workspaceSlug, issue.parent.project_id, issue.parent.id).then((res) => {
-        this.rootIssueDetailStore.rootIssueStore.issues.addIssue([res]);
-      });
+      this.issueService
+        .retrieve(workspaceSlug, issue.parent.project_id, issue.parent.id)
+        .then((res) => this.rootIssueDetailStore.rootIssueStore.issues.addIssue([res]));
     }
 
     // add identifiers to map

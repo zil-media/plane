@@ -162,6 +162,8 @@ class SubIssuesEndpoint(BaseAPIView):
                 "label_ids",
                 "assignee_ids",
                 "sub_issues_count",
+                "checklist_total",
+                "checklist_completed",
                 "created_at",
                 "updated_at",
                 "created_by",

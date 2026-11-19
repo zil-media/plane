@@ -267,6 +267,10 @@
       "click_to_downvote": "Klicken zum Runterstimmen",
       "click_to_view_upvotes": "Klicken um Hochstimmen anzuzeigen",
       "click_to_view_downvotes": "Klicken um Runterstimmen anzuzeigen"
+    },
+    "checklist": {
+      "label": "Checkliste",
+      "progress": "{completed} von {total} erledigt"
     }
   },
   "sub_work_item": {

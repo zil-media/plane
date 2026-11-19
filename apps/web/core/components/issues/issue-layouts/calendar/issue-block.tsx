@@ -7,7 +7,7 @@
 import { useState, useRef, forwardRef } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { MoreHorizontal } from "lucide-react";
+import { ListChecks, MoreHorizontal } from "lucide-react";
 // plane imports
 import { useOutsideClickDetector } from "@plane/hooks";
 import { Popover } from "@plane/propel/popover";
@@ -19,6 +19,7 @@ import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import useIssuePeekOverviewRedirection from "@/hooks/use-issue-peek-overview-redirection";
 import { usePlatformOS } from "@/hooks/use-platform-os";
@@ -56,6 +57,9 @@ export const CalendarIssueBlock = observer(
 
     const stateColor = getProjectStates(issue?.project_id)?.find((state) => state?.id == issue?.state_id)?.color || "";
     const projectIdentifier = getProjectIdentifierById(issue?.project_id);
+    const isChecklistEnabled = useFeatureFlag("workItemChecklist");
+    const checklistTotal = issue?.checklist_total ?? 0;
+    const checklistCompleted = Math.min(issue?.checklist_completed ?? 0, checklistTotal);
 
     // handlers
     const handleIssuePeekOverview = (peekIssue: TIssue) =>
@@ -141,6 +145,16 @@ export const CalendarIssueBlock = observer(
                       />
                     )}
                     <div className="truncate text-13 font-medium md:text-11 md:font-regular">{issue.name}</div>
+                    {isChecklistEnabled && checklistTotal > 0 && (
+                      <span
+                        className={cn("flex flex-shrink-0 items-center gap-0.5 text-11 text-tertiary", {
+                          "text-success-primary": checklistCompleted === checklistTotal,
+                        })}
+                      >
+                        <ListChecks className="size-3 flex-shrink-0" strokeWidth={2} />
+                        {`${checklistCompleted}/${checklistTotal}`}
+                      </span>
+                    )}
                   </div>
                   {/* Wrapper exists only to stop clicks reaching the ControlLink; the
                       quick-action menu inside carries its own interactive semantics. */}

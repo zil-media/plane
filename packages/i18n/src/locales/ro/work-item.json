@@ -267,6 +267,10 @@
       "click_to_downvote": "Clic pentru a vota negativ",
       "click_to_view_upvotes": "Clic pentru a vedea voturile pozitive",
       "click_to_view_downvotes": "Clic pentru a vedea voturile negative"
+    },
+    "checklist": {
+      "label": "Listă de verificare",
+      "progress": "{completed} din {total} finalizate"
     }
   },
   "sub_work_item": {

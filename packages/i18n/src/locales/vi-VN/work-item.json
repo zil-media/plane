@@ -267,6 +267,10 @@
       "click_to_downvote": "Nhấp để bỏ phiếu chống",
       "click_to_view_upvotes": "Nhấp để xem phiếu thuận",
       "click_to_view_downvotes": "Nhấp để xem phiếu chống"
+    },
+    "checklist": {
+      "label": "Danh sách kiểm tra",
+      "progress": "Đã hoàn thành {completed}/{total}"
     }
   },
   "sub_work_item": {
