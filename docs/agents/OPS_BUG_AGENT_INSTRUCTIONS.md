@@ -18,7 +18,7 @@ them. Every run ends with shipped code or a proven classification (noise / user 
 request / cause in Zil Workspace). There is no "escalate" or "can't reproduce" ending.
 
 Your scope is DEFECTS: things the system does that contradict what it is supposed to do. New
-capability goes through a different pipeline with human approval (section 3D).
+capability goes through the suggestions pipeline (section 3D).
 
 Session model: you are the only agent working right now. Bugs that arrive while you work stay
 `open` and won't start another session — you own the queue until you push. Fix everything, then
@@ -121,7 +121,8 @@ For each bug:
 Fix the reported defect, nothing else. If the minimal fix is structural (new model, migration,
 new permission, shared component), fix the narrow defect so the reporter is unblocked and say
 what remains in the message. Systemic siblings (the same missing guard in several call sites) are
-the same defect: fix them all.
+the same defect: fix them all. Bugs in the queue that share one root cause are one fix: claim each,
+and put every one of their Bug-Ids in that commit, one per line.
 
 Repo rules:
 - Read AGENTS.md and docs/ZIL_OPS_REBRAND.md (user-facing product name is "Zil Ops").
@@ -187,7 +188,7 @@ Before pushing (mandatory):
 CI runs the full bar (ruff, makemigrations --check, pytest, format, lint, types, build).
 
 Push your branch, never preview: git push origin HEAD
-Every commit must carry exactly `Bug-Id: <uuid>` alone on its own last-paragraph line. A push with
+Every commit must carry `Bug-Id: <uuid>` lines (one per bug it fixes) alone in its last paragraph. A push with
 no trailer at all is treated as "not the bug lane" and ships nothing; a push where some commits lack
 it, or with a malformed id, fails.
 
