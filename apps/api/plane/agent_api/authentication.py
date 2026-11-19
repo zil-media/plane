@@ -21,6 +21,8 @@ from rest_framework.throttling import SimpleRateThrottle
 # Module imports
 from plane.db.models import User
 
+from .session_token import is_valid_session_token
+
 
 class AgentKeyAuthentication(BaseAuthentication):
     lane = ""
@@ -32,7 +34,12 @@ class AgentKeyAuthentication(BaseAuthentication):
             return None
         expected = os.environ.get(self.env_var, "")
         provided = header[len("Bearer ") :].strip()
-        if not expected or not hmac.compare_digest(provided.encode(), expected.encode()):
+        if not expected:
+            raise AuthenticationFailed("Invalid agent key.")
+        # Routines get a session token signed with this key in their trigger, not the key itself
+        # (session_token.py): the trigger text stays in every run log.
+        is_key = hmac.compare_digest(provided.encode(), expected.encode())
+        if not is_key and not is_valid_session_token(expected, provided):
             raise AuthenticationFailed("Invalid agent key.")
 
         email = os.environ.get("AGENT_ADMIN_EMAIL", "").strip()

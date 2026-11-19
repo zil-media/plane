@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+import time
 import uuid
 from unittest import mock
 
@@ -10,6 +11,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from plane.agent_api.session_token import SESSION_TTL_MS, mint_session_token
 from plane.db.models import (
     AgentFeatureFlag,
     AgentPipelineConfig,
@@ -144,6 +146,19 @@ class TestBugAgentApi:
         feature_key = APIClient()
         feature_key.credentials(HTTP_AUTHORIZATION=f"Bearer {FEATURE_KEY}")
         assert feature_key.get("/api/agent/bugs/").status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_a_session_token_opens_only_its_lane_until_it_expires(self, session_client):
+        report_bug(session_client)
+        token, _ = mint_session_token(BUG_KEY)
+        session = APIClient()
+        session.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        assert session.get("/api/agent/bugs/").status_code == status.HTTP_200_OK
+        assert session.get("/api/agent/features/").status_code == status.HTTP_401_UNAUTHORIZED
+        expired, _ = mint_session_token(BUG_KEY, now_ms=int(time.time() * 1000) - SESSION_TTL_MS - 1)
+        old = APIClient()
+        old.credentials(HTTP_AUTHORIZATION=f"Bearer {expired}")
+        assert old.get("/api/agent/bugs/").status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.django_db
     def test_claim_progress_message_resolve(self, session_client, bug_agent, tasks):

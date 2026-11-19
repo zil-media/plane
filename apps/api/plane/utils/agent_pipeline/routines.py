@@ -5,8 +5,8 @@
 """Fires the Claude Code Routines (cloud agent sessions) that work the bug and feature queues.
 
 A routine is a saved cloud session bound to this repo. Firing it is one POST with a text
-payload; the payload carries the Ops API URL and the lane's own agent key, which the session
-uses to read and update the queue. The detailed instructions live in the routine itself
+payload; the payload carries the Ops API URL and a session token signed with the lane's own agent
+key, which the session uses to read and update the queue. The detailed instructions live in the routine itself
 (docs/agents/*_INSTRUCTIONS.md is the repo mirror).
 """
 
@@ -22,6 +22,7 @@ from django.utils import timezone
 import requests
 
 # Module imports
+from plane.agent_api.session_token import mint_session_token
 from plane.db.models import AgentPipelineConfig, BugReport
 from plane.settings.redis import redis_instance
 
@@ -43,12 +44,22 @@ def resolve_agent_key(env_var):
     if not key:
         logger.warning("agent routine skipped: %s not configured", env_var)
         return None
-    # The key travels inside the routine transcript. An Anthropic token pasted here by
-    # mistake (they sit next to each other in the env) would leak into it.
+    # An Anthropic token pasted here by mistake (they sit next to each other in the env) would sign
+    # the session tokens and fail every call: refuse it loudly instead.
     if key.startswith("sk-ant-"):
         logger.error("agent routine aborted: %s looks like an Anthropic secret", env_var)
         return None
     return key
+
+
+def session_credential_lines(api_key):
+    """What the trigger says about the credential. Never the key: the text stays in every run
+    log, so a session token signed with it travels instead, and it expires on its own."""
+    token, expires_at = mint_session_token(api_key)
+    return [
+        f"AGENT_API_KEY: {token}",
+        f"(session credential, valid until {expires_at.isoformat()}; use it exactly like the key)",
+    ]
 
 
 def post_routine(url, token, text, label):
@@ -122,7 +133,7 @@ def fire_bug_routine(reason, bug_id=None, urgency=None):
             "",
             "Connection details for the bug API (sourced from this deployment's config):",
             f"API_URL: {api_base_url()}",
-            f"AGENT_API_KEY: {api_key}",
+            *session_credential_lines(api_key),
             "",
             "Context for this run:",
             f"- Reason: {reason or 'N/A'}",
@@ -173,7 +184,7 @@ def fire_feature_routine(feature_id, mode, title="", reason="", previous_failure
             "",
             "Connection details for the feature API (sourced from this deployment's config):",
             f"API_URL: {base}",
-            f"AGENT_API_KEY: {api_key}",
+            *session_credential_lines(api_key),
             "",
             "Context for this run:",
             f"MODE: {mode}",
