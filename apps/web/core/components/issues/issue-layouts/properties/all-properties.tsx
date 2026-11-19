@@ -10,7 +10,7 @@ import { xor } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // icons
-import { Paperclip } from "lucide-react";
+import { ListChecks, Paperclip } from "lucide-react";
 // i18n
 import { useTranslation } from "@plane/i18n";
 import { LinkIcon, StartDatePropertyIcon, ViewsIcon, DueDatePropertyIcon } from "@plane/propel/icons";
@@ -40,6 +40,7 @@ import { useLabel } from "@/hooks/store/use-label";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { useAppRouter } from "@/hooks/use-app-router";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // local components
@@ -82,6 +83,9 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
   // derived values
   const stateDetails = getStateById(issue.state_id);
   const subIssueCount = issue?.sub_issues_count ?? 0;
+  const isChecklistEnabled = useFeatureFlag("workItemChecklist");
+  const checklistTotal = issue?.checklist_total ?? 0;
+  const checklistCompleted = Math.min(issue?.checklist_completed ?? 0, checklistTotal);
 
   const issueOperations = useMemo(
     () => ({
@@ -436,6 +440,26 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
             </div>
           </Tooltip>
         </WithDisplayPropertiesHOC>
+      )}
+
+      {/* checklist progress: to-do list items in the description */}
+      {isChecklistEnabled && checklistTotal > 0 && (
+        <Tooltip
+          tooltipHeading={t("issue.checklist.label")}
+          tooltipContent={t("issue.checklist.progress", { completed: checklistCompleted, total: checklistTotal })}
+          isMobile={isMobile}
+          renderByDefault={false}
+        >
+          <div
+            className={cn(
+              "flex h-5 flex-shrink-0 items-center justify-center gap-1 overflow-hidden rounded-sm border-[0.5px] border-strong px-2.5 py-1",
+              { "text-success-primary": checklistCompleted === checklistTotal }
+            )}
+          >
+            <ListChecks className="h-3 w-3 flex-shrink-0" strokeWidth={2} />
+            <div className="text-caption-sm-regular">{`${checklistCompleted}/${checklistTotal}`}</div>
+          </div>
+        </Tooltip>
       )}
 
       {/* attachments */}

@@ -267,6 +267,10 @@
       "click_to_downvote": "點擊反對",
       "click_to_view_upvotes": "點擊查看贊成票",
       "click_to_view_downvotes": "點擊查看反對票"
+    },
+    "checklist": {
+      "label": "檢查清單",
+      "progress": "已完成 {completed}/{total}"
     }
   },
   "sub_work_item": {

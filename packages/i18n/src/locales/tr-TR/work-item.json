@@ -267,6 +267,10 @@
       "click_to_downvote": "Olumsuz oy vermek için tıklayın",
       "click_to_view_upvotes": "Olumlu oyları görüntülemek için tıklayın",
       "click_to_view_downvotes": "Olumsuz oyları görüntülemek için tıklayın"
+    },
+    "checklist": {
+      "label": "Kontrol listesi",
+      "progress": "{total} öğeden {completed} tanesi tamamlandı"
     }
   },
   "sub_work_item": {

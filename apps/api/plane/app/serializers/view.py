@@ -37,6 +37,8 @@ class ViewIssueListSerializer(serializers.Serializer):
             "parent_id": instance.parent_id,
             "cycle_id": instance.cycle_id,
             "sub_issues_count": instance.sub_issues_count,
+            "checklist_total": instance.checklist_total,
+            "checklist_completed": instance.checklist_completed,
             "created_at": instance.created_at,
             "updated_at": instance.updated_at,
             "created_by": instance.created_by_id,

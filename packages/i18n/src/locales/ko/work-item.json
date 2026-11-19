@@ -267,6 +267,10 @@
       "click_to_downvote": "클릭하여 비추천",
       "click_to_view_upvotes": "클릭하여 추천 목록 보기",
       "click_to_view_downvotes": "클릭하여 비추천 목록 보기"
+    },
+    "checklist": {
+      "label": "체크리스트",
+      "progress": "{total}개 중 {completed}개 완료"
     }
   },
   "sub_work_item": {

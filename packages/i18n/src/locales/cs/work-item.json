@@ -267,6 +267,10 @@
       "click_to_downvote": "Klikněte pro hlasování dolů",
       "click_to_view_upvotes": "Klikněte pro zobrazení hlasů nahoru",
       "click_to_view_downvotes": "Klikněte pro zobrazení hlasů dolů"
+    },
+    "checklist": {
+      "label": "Kontrolní seznam",
+      "progress": "Dokončeno {completed} z {total}"
     }
   },
   "sub_work_item": {

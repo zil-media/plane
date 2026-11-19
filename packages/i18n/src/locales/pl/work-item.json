@@ -267,6 +267,10 @@
       "click_to_downvote": "Kliknij, aby zagłosować przeciw",
       "click_to_view_upvotes": "Kliknij, aby zobaczyć głosy za",
       "click_to_view_downvotes": "Kliknij, aby zobaczyć głosy przeciw"
+    },
+    "checklist": {
+      "label": "Lista kontrolna",
+      "progress": "Ukończono {completed} z {total}"
     }
   },
   "sub_work_item": {

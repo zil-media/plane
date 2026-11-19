@@ -267,6 +267,10 @@
       "click_to_downvote": "Clique para votar contra",
       "click_to_view_upvotes": "Clique para ver os votos a favor",
       "click_to_view_downvotes": "Clique para ver os votos contra"
+    },
+    "checklist": {
+      "label": "Checklist",
+      "progress": "{completed} de {total} concluídos"
     }
   },
   "sub_work_item": {

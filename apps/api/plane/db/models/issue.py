@@ -17,6 +17,7 @@ from django import apps
 
 # Module imports
 from plane.utils.html_processor import strip_tags
+from plane.utils.description_checklist import count_checklist
 from plane.utils.path_validator import sanitize_filename
 from plane.db.mixins import SoftDeletionManager, ChangeTrackerMixin
 from plane.utils.exception_logger import log_exception
@@ -138,6 +139,10 @@ class Issue(ChangeTrackerMixin, ProjectBaseModel):
     description_html = models.TextField(blank=True, default="<p></p>")
     description_stripped = models.TextField(blank=True, null=True)
     description_binary = models.BinaryField(null=True)
+    # To-do list items in description_html (checked / total), kept in sync by save(); gated by the
+    # workItemChecklist flag in the UI.
+    checklist_total = models.PositiveIntegerField(default=0)
+    checklist_completed = models.PositiveIntegerField(default=0)
     priority = models.CharField(
         max_length=30,
         choices=PRIORITY_CHOICES,
@@ -182,6 +187,7 @@ class Issue(ChangeTrackerMixin, ProjectBaseModel):
     def save(self, *args, **kwargs):
         self._ensure_default_state()
         kwargs = self._sync_completed_at(kwargs)
+        kwargs = self._sync_checklist_counts(kwargs)
 
         if self._state.adding:
             with transaction.atomic():
@@ -238,6 +244,16 @@ class Issue(ChangeTrackerMixin, ProjectBaseModel):
             self.state = default_state or State.objects.filter(~models.Q(is_triage=True), project=self.project).first()
         except ImportError as e:
             log_exception(e)
+
+    def _sync_checklist_counts(self, kwargs):
+        """Recount the description's to-do items. Returns kwargs."""
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "description_html" not in update_fields:
+            return kwargs
+        self.checklist_total, self.checklist_completed = count_checklist(self.description_html)
+        if update_fields is not None:
+            kwargs["update_fields"] = list(set(update_fields) | {"checklist_total", "checklist_completed"})
+        return kwargs
 
     def _sync_completed_at(self, kwargs):
         """Update completed_at when state changes. Returns kwargs."""
