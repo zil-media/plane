@@ -8,6 +8,7 @@ from datetime import timedelta
 
 # Django imports
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 # Module imports
@@ -38,9 +39,11 @@ def block(bug, reason, now=None):
 def requeue_due_blocked(now=None):
     """Blocked bugs whose retry_at passed go back to the agent queue. Returns how many."""
     now = now or timezone.now()
+    # Bugs blocked before retry_at existed have none: they wait the first interval from blocked_at.
+    due = Q(retry_at__lte=now) | Q(retry_at__isnull=True, blocked_at__lte=now - retry_wait(0))
     return BugReport.objects.filter(
+        due,
         blocked_at__isnull=False,
-        retry_at__lte=now,
         status__in=(BugReport.Status.OPEN, BugReport.Status.IN_PROGRESS),
     ).update(blocked_at=None, retry_at=None, status=BugReport.Status.OPEN, claimed_at=None)
 
