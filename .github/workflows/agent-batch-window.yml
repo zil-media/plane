@@ -73,6 +73,7 @@ jobs:
         if: steps.pending.outputs.pending == 'true'
         env:
           LANE_TIP: agent-batch
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: '"$LANE/pick-shippable.sh"'
       - name: Go to the shippable point
         if: steps.pending.outputs.pending == 'true'
@@ -131,6 +132,17 @@ jobs:
         if: steps.merge.outputs.merged == 'true'
         run: '"$LANE/trigger-deploy.sh"'
 
+      # Nothing could ship (the first commit is the rejected one): every window would fail the same
+      # way, so it goes to the fixer routine as an incident instead of waiting for someone to notice.
+      - name: Report a batch that cannot ship
+        if: failure() && steps.pick.outputs.stuck == 'true'
+        env:
+          BLOCKED_SHA: ${{ steps.pick.outputs.blocked_sha }}
+          BLOCKED_FILES: ${{ steps.pick.outputs.blocked_files }}
+        run: |
+          "$LANE/report-incident.sh" window-stuck agent-batch \
+            "Nothing in agent-batch can ship: ${BLOCKED_SHA:-its first commit} trips the strict guard and the reviewer agents rejected it (${BLOCKED_FILES:-see the run}). Drop that commit from agent-batch (revert it there) and reopen its Bug-Id/Feature-Id through the API with the reviewers' reasons so it is rewritten; the rest ships in the next window." || true
+
       - name: Report the blocked tail of the batch
         if: always() && steps.pick.outputs.partial == 'true'
         env:
@@ -139,7 +151,7 @@ jobs:
           BLOCKED_FILES: ${{ steps.pick.outputs.blocked_files }}
         run: |
           "$LANE/report-incident.sh" window-split agent-batch \
-            "The batch shipped up to ${SHIP_SHA}. ${BLOCKED_SHA} is blocked by denylisted file(s): ${BLOCKED_FILES}. A PERSON merges those in a separate commit; the tail behind it does not ship on its own." || true
+            "The batch shipped up to ${SHIP_SHA}. ${BLOCKED_SHA} touches reserved file(s) the reviewer agents rejected: ${BLOCKED_FILES}. Drop that commit from agent-batch (revert it there) and reopen its Bug-Id/Feature-Id through the API with the reviewers' reasons so it is rewritten; the tail then ships in the next window." || true
 
       - name: Resolve the shipped bugs
         if: steps.merge.outputs.merged == 'true'

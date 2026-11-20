@@ -223,15 +223,14 @@ class AgentBugActionEndpoint(AgentBugBaseView):
         data = _valid(BlockedSerializer, request)
         if bug.status in TERMINAL:
             return _conflict(f"Bug is {bug.status}.")
-        bug.blocked_at = timezone.now()
         reason = data["reason"]
         if data.get("run_url"):
             reason = f"{reason}\n{data['run_url']}"
-        bug.blocked_reason = reason
+        # Nobody unblocks it by hand: it goes back to the queue on its retry_at (agent_claim_sweep).
+        bug_ops.block(bug, reason)
         bug.status = BugReport.Status.OPEN
         bug.claimed_at = None
         bug.save()
-        notify.admins_bug_blocked(bug)
         return Response(bug_summary(bug))
 
     def do_dismiss_user_error(self, request, bug):

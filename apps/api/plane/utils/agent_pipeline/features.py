@@ -12,7 +12,7 @@ from django.utils import timezone
 # Module imports
 from plane.db.models import AgentFeatureFlag, AgentPipelineConfig, FeatureRequest
 
-from .constants import MAX_BUILD_RUNS, MAX_SPEC_RUNS
+from .constants import MAX_BUILD_RUNS, MAX_SPEC_RUNS, retry_wait
 
 S = FeatureRequest.Status
 
@@ -83,8 +83,6 @@ def request_build(feature, reason="aprobada"):
     """
     from plane.bgtasks.agent_pipeline_task import fire_feature_routine_task
 
-    from . import notify
-
     with transaction.atomic():
         config = AgentPipelineConfig.objects.select_for_update().get(pk=AgentPipelineConfig.get().pk)
         if not config.feature_agent_enabled:
@@ -101,12 +99,22 @@ def request_build(feature, reason="aprobada"):
         runs = int(build.get("runs", 0))
         held = runs >= MAX_BUILD_RUNS and not build.get("manual_retry")
         if held:
-            # Out of the approved queue, not just skipped: the drain only ever tries the oldest approved
-            # feature, so one stuck here would starve every build behind it.
-            build["last_note"] = (
-                f"La construcción se intentó {runs} veces sin terminar. Queda en espera hasta que el equipo la revise."
+            # Nobody is coming to look at it: it waits its turn again after a growing wait, with the
+            # runs reset and the last failure kept in for_agent. Out of the drain until then
+            # (retry_due), so it doesn't starve the builds behind it.
+            cycles = int(build.get("block_cycles", 0))
+            retry_at = timezone.now() + retry_wait(cycles)
+            build.update(
+                {
+                    "runs": 0,
+                    "block_cycles": cycles + 1,
+                    "retry_at": retry_at.isoformat(),
+                    "last_note": (
+                        f"La construcción se intentó {runs} veces sin terminar. "
+                        f"Se vuelve a intentar sola el {retry_at.strftime('%d/%m')}."
+                    ),
+                }
             )
-            current.status = S.ON_HOLD
         else:
             build.update(
                 {
@@ -118,6 +126,7 @@ def request_build(feature, reason="aprobada"):
                     "progress": [],
                     # A person's rebuild buys exactly one run; the sweep's re-fires count against the cap again.
                     "manual_retry": False,
+                    "retry_at": None,
                 }
             )
             current.status = S.BUILDING
@@ -126,18 +135,37 @@ def request_build(feature, reason="aprobada"):
     feature.build, feature.status = current.build, current.status
 
     if held:
-        # On hold and out of the queue: only a person picks it up again, so a person has to know.
-        notify.admins_feature_build_blocked(feature, build["last_note"])
-        return False, "build run limit"
+        return False, "build run limit: retries on its own"
     fire_feature_routine_task.delay(str(feature.id), "BUILD", reason)
     return True, "queued"
 
 
+def answered(feature):
+    """The last agent question already has the requester's answer after it."""
+    comments = feature.comments or []
+    last_question = max((i for i, c in enumerate(comments) if c.get("role") == "agent"), default=-1)
+    return last_question >= 0 and any(c.get("role") == "user" for c in comments[last_question + 1 :])
+
+
+def retry_due(feature, now=None):
+    """An approved build past its run cap waits for its retry_at; any other is due now."""
+    retry_at = (feature.build or {}).get("retry_at")
+    return not retry_at or retry_at <= (now or timezone.now()).isoformat()
+
+
 def drain_feature_queue(reason="se liberó la corrida anterior"):
-    """Starts the oldest approved build once the lane is free."""
+    """Starts the oldest approved build that is due once the lane is free."""
     # Oldest APPROVAL first: updated_at moves with any comment ("¿novedades?"), which sent a waiting
     # feature behind every later approval.
-    next_feature = FeatureRequest.objects.filter(status=S.APPROVED).order_by("approval__at", "created_at").first()
+    now = timezone.now()
+    next_feature = next(
+        (
+            f
+            for f in FeatureRequest.objects.filter(status=S.APPROVED).order_by("approval__at", "created_at")
+            if retry_due(f, now)
+        ),
+        None,
+    )
     if next_feature is None:
         return False, "empty"
     return request_build(next_feature, reason)

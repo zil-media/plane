@@ -78,6 +78,7 @@ jobs:
         id: guard
         env:
           GUARD_STRICT: "0"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: '"$LANE/guard.sh"'
 
       - name: Gate toolchains
@@ -181,7 +182,7 @@ jobs:
           [ -n "$FEATURE_AGENT_API_KEY" ] && [ -n "$API_URL" ] && [ -n "$FEATURE_ID" ] || exit 0
           # `note` is read by the person who asked for the feature: plain words, no CI jargon.
           # `for_agent` is for the rebuild's session only (Ops never shows it to them): where to read why.
-          NOTE="La construcción no pasó las verificaciones automáticas. El equipo la revisa antes de seguir."
+          NOTE="La construcción no pasó las verificaciones automáticas. La corregimos y se vuelve a intentar sola."
           RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           FOR_AGENT="CI rejected the previous push on this branch. Read which check failed before changing anything: ${RUN_URL}"
           PUSHED_AT=$(git log -1 --format=%cI "$GITHUB_SHA")

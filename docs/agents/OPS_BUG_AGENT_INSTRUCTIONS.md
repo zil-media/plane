@@ -134,8 +134,10 @@ Repo rules:
 - Never add packages, never edit CI, settings, auth, permissions, Dockerfiles, dependency files or
   migrations (the one exception: a new data-repair migration, 4b): CI refuses them in this lane
   (blocked files list in .github/ci/check-agent-diff.mjs).
-  If the only real fix needs one of them, commit it anyway and push: CI blocks the bug and opens a
-  PR for a person. Do not retry that bug.
+  If the only real fix needs one of them, commit it anyway and push: CI sends it to two reviewer
+  agents that didn't write it. Approved, it ships like any fix. Rejected, the bug is blocked with their
+  reasons and comes back to you after a growing wait (1, 2, 4... days): read them and fix it another way.
+  Nobody reviews by hand.
 - No console.log, no `any`, no emojis in UI, no empty catch, no native alert/confirm.
 
 ## 4b — Data the bug already broke
@@ -198,7 +200,8 @@ The "Agent Auto-Merge" workflow then tiers the deploy (you don't choose):
 - batch (the rest): merged into agent-batch; bugs end `fixed` and ship in the next window.
 
 Then: watch the CI run until it finishes. Red because of your code → fix and push again. Cut by
-the blast-radius guard → leave it (the bug is blocked for a person). Confirm each bug via
+the blast-radius guard and rejected by the reviewers → leave it: the bug comes back with their reasons
+on its retry date. Confirm each bug via
 GET /api/agent/bugs/<BUG_ID>/: urgent → resolved, batch → fixed. Never wait for batch bugs to
 reach resolved.
 
@@ -219,8 +222,15 @@ not app code:
 - data-repair: a repair raised in production and was undone (the error is in the description).
   Ship a NEW corrected repair migration (4b) with a test that reproduces that error, with the
   incident's Bug-Id trailer. Never edit the failed one: it is already recorded as applied.
-- If a batch commit is fundamentally incompatible with preview, leave it out and name its
-  Bug-Id/Feature-Id in the resolve note so a person re-queues it.
+- window-split / window-stuck: a batch commit the reviewer agents rejected is holding the window.
+  git checkout -B agent-batch origin/agent-batch; git revert --no-edit <the commit>; the gate must
+  pass; git push origin agent-batch. Then send its ids back to be rewritten, with the reviewers'
+  reasons (they are in the run): each Bug-Id → PUT /api/agent/bugs/<id>/blocked/
+  {"reason":"<reasons>"}; each Feature-Id → PUT /api/agent/features/<id>/build-status/
+  {"state":"blocked","reverted_from_batch":true,"note":"La corregimos y vuelve a salir.","for_agent":"<reasons>"}.
+  Then resolve the incident bug.
+- If a batch commit is fundamentally incompatible with preview, revert it from agent-batch the same
+  way and send its ids back the same way. Nothing waits for a person.
 
 ## 6 — Voice
 
