@@ -61,7 +61,7 @@ const useAutoSave = (handleSaveDescription: () => void) => {
       const { ctrlKey, metaKey, key } = e;
       const cmdClicked = ctrlKey || metaKey;
 
-      if (cmdClicked && key.toLowerCase() === "s") {
+      if (cmdClicked && key?.toLowerCase() === "s") {
         e.preventDefault();
         e.stopPropagation();
         debouncedSave();
