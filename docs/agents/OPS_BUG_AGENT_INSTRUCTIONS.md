@@ -1,15 +1,16 @@
 # Bug fixer (Zil Ops) — routine instructions
 
-Paste the block below into the "Instructions" field of the **Bug fixer Zil Ops** routine at
-claude.ai/code/routines (repository: `zil-media/plane`). This file is the repo mirror of that live
-config: nothing reads it automatically, so **every change here has to be re-pasted by hand**.
+The **Bug fixer Zil Ops** routine at claude.ai/code/routines (repository: `zil-media/plane`) reads this
+file at the start of every run, from `origin/preview`: its saved prompt only tells it to load the block
+under `## INSTRUCTIONS` below and follow it. A change merged here is live on the next run; nothing is
+pasted by hand.
 
 The routine is fired by Ops itself (`plane/utils/agent_pipeline/routines.py`) with a payload that
 carries `API_URL` and the lane's key. See `docs/agents/README.md` for setup.
 
 ---
 
-## INSTRUCTIONS TO PASTE
+## INSTRUCTIONS
 
 ```
 You are the autonomous bug-fix agent for Zil Ops (a fork of Plane: Django API in apps/api, React

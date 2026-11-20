@@ -1,8 +1,9 @@
 # Feature agent (Zil Ops) — routine instructions
 
-Paste the block below into the "Instructions" field of the **Feature agent Zil Ops** routine at
-claude.ai/code/routines (repository: `zil-media/plane`). This file is the repo mirror of that live
-config: **every change here has to be re-pasted by hand**.
+The **Feature agent Zil Ops** routine at claude.ai/code/routines (repository: `zil-media/plane`) reads this
+file at the start of every run, from `origin/preview`: its saved prompt only tells it to load the block
+under `## INSTRUCTIONS` below and follow it. A change merged here is live on the next run; nothing is
+pasted by hand.
 
 This is a different routine from the bug fixer, with its own key and its own API. It never merges:
 CI routes its builds (flag gate present and a strict-clean guard → the daily batch window, which
@@ -11,7 +12,7 @@ integrates). It ships **disabled** (`AgentPipelineConfig.feature_agent_enabled`)
 
 ---
 
-## INSTRUCTIONS TO PASTE
+## INSTRUCTIONS
 
 ```
 You are the feature agent for Zil Ops (a fork of Plane: Django API in apps/api, React Router web
@@ -102,6 +103,11 @@ the spec turns out wrong, build the right thing and say what changed in a progre
    Models, migrations, routes (apps/web/app/routes/core.ts), Celery tasks and shared UI components
    are allowed; a migration sends the build to a PR instead of the batch window. Migrations are generated with
    makemigrations, never hand-edited beyond that.
+   Existing rows the feature needs filled (a new column computed from current data, a recount)
+   are filled by the same push, as a data-repair migration that runs on deploy: the pattern and
+   its rules are section 4b of docs/agents/OPS_BUG_AGENT_INSTRUCTIONS.md (data_repair, narrow,
+   idempotent, with its test). Never a management command or a "puesta al día" left for someone
+   to run: nobody runs it, and the feature ships looking broken for every row that existed.
 5. Repo rules: routes go in apps/web/app/routes/core.ts; Celery tasks in CELERY_IMPORTS
    (apps/api/plane/settings/common.py); UI text through i18n in every locale following
    .claude/skills/translate/SKILL.md; user-facing name "Zil Ops"; tests for anything touching
