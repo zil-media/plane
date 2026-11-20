@@ -20,7 +20,7 @@ import requests
 from plane.db.models import FeatureRequest, User, Workspace
 from plane.license.utils.instance_value import get_email_configuration
 from plane.utils.agent_pipeline import bugs, features, routines
-from plane.utils.agent_pipeline.constants import FEATURE_RUN_EXPIRY, MAX_SPEC_RUNS
+from plane.utils.agent_pipeline.constants import FEATURE_RUN_EXPIRY, MAX_SPEC_RUNS, UNANSWERED_WAIT, retry_wait
 from plane.utils.exception_logger import log_exception
 
 logger = logging.getLogger("plane.worker")
@@ -92,11 +92,12 @@ def agent_claim_sweep():
     bugs and no new traffic would never move.
     """
     freed = routines.expire_stale_bug_claims()
+    requeued = bugs.requeue_due_blocked()
     pending = bugs.agent_queue().count()
     if not pending:
-        return {"freed": freed, "pending": 0, "fired": False}
+        return {"freed": freed, "requeued": requeued, "pending": 0, "fired": False}
     result = routines.fire_bug_routine(f"barrido periódico: {pending} bug(s) abiertos sin sesión en curso")
-    return {"freed": freed, "pending": pending, **result}
+    return {"freed": freed, "requeued": requeued, "pending": pending, **result}
 
 
 def _last_activity(feature, started_at):
@@ -148,20 +149,42 @@ def feature_run_sweep():
                 decide_spec(feature)
 
     # Specs released above, or that never started (agent off at the time, or the fire failed), go back
-    # on their own: nothing else re-requests a submitted feature. A few per tick, oldest first, within
-    # the automatic-run cap (request_spec checks it and the agent switch).
-    pending_since = timezone.now() - FEATURE_RUN_EXPIRY
+    # on their own: nothing else re-requests a submitted feature. A few per tick, oldest first. Past the
+    # automatic-run cap they still go back, after a growing wait (nobody relaunches them by hand).
+    now = timezone.now()
+    pending_since = now - FEATURE_RUN_EXPIRY
     retried = 0
     for feature in FeatureRequest.objects.filter(
         Q(spec_requested_at__isnull=True) | Q(spec_requested_at__lt=pending_since),
         status=FeatureRequest.Status.SUBMITTED,
-        spec_runs__lt=MAX_SPEC_RUNS,
-    ).order_by("created_at")[:SPEC_RETRIES_PER_SWEEP]:
-        queued, _ = features.request_spec(feature, "barrido periódico: análisis pendiente")
+    ).order_by("created_at"):
+        if retried >= SPEC_RETRIES_PER_SWEEP:
+            break
+        over_cap = feature.spec_runs >= MAX_SPEC_RUNS
+        if over_cap and feature.spec_requested_at and now - feature.spec_requested_at < retry_wait(
+            feature.spec_runs - MAX_SPEC_RUNS
+        ):
+            continue
+        queued, _ = features.request_spec(feature, "barrido periódico: análisis pendiente", force=over_cap)
         retried += int(queued)
 
+    # A question to the requester: answered, the analysis reruns with the answer (when the relaunch
+    # failed, it waited on an admin); unanswered for UNANSWERED_WAIT, it reruns deciding on stated
+    # assumptions. Either way nobody has to relaunch it.
+    asked = 0
+    for feature in FeatureRequest.objects.filter(status=FeatureRequest.Status.NEEDS_INFO).order_by("updated_at"):
+        if features.answered(feature):
+            reason = "Quien la pidió contestó: seguí con su respuesta"
+        elif now - feature.updated_at >= UNANSWERED_WAIT:
+            reason = "Nadie contestó en 3 días: decidí vos con supuestos explícitos, escritos en el spec"
+        else:
+            continue
+        queued, _ = features.request_spec(feature, reason, force=True)
+        asked += int(queued)
+
     drained = features.drain_feature_queue("barrido periódico")
-    return {"released": released, "retried": retried, "drained": drained}
+    return {"released": released, "retried": retried, "asked": asked, "drained": drained}
+
 
 
 @shared_task

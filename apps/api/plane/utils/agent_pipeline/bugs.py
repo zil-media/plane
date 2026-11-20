@@ -8,12 +8,13 @@ from datetime import timedelta
 
 # Django imports
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 # Module imports
 from plane.db.models import BugReport, FeatureRequest
 
-from .constants import ESCALATE_EVERY, ESCALATE_MIN_GAP, NOISE_PATTERNS
+from .constants import ESCALATE_EVERY, ESCALATE_MIN_GAP, NOISE_PATTERNS, retry_wait
 
 ACTIVE_STATUSES = (BugReport.Status.OPEN, BugReport.Status.IN_PROGRESS, BugReport.Status.FIXED)
 # A crash handed to Workspace is closed here, but its fix ships there (within a day, normally). While
@@ -24,6 +25,27 @@ HANDED_OFF_QUIET = timedelta(days=7)
 
 def agent_queue():
     return BugReport.objects.filter(status=BugReport.Status.OPEN, blocked_at__isnull=True)
+
+
+def block(bug, reason, now=None):
+    """Out of the queue until its retry_at, with the reason for the next session. The caller saves."""
+    now = now or timezone.now()
+    bug.blocked_at = now
+    bug.blocked_reason = reason
+    bug.retry_at = now + retry_wait(bug.block_cycles)
+    bug.block_cycles += 1
+
+
+def requeue_due_blocked(now=None):
+    """Blocked bugs whose retry_at passed go back to the agent queue. Returns how many."""
+    now = now or timezone.now()
+    # Bugs blocked before retry_at existed have none: they wait the first interval from blocked_at.
+    due = Q(retry_at__lte=now) | Q(retry_at__isnull=True, blocked_at__lte=now - retry_wait(0))
+    return BugReport.objects.filter(
+        due,
+        blocked_at__isnull=False,
+        status__in=(BugReport.Status.OPEN, BugReport.Status.IN_PROGRESS),
+    ).update(blocked_at=None, retry_at=None, status=BugReport.Status.OPEN, claimed_at=None)
 
 
 def fingerprint_for(key):

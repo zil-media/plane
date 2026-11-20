@@ -65,7 +65,8 @@ No branch, no edits, no commits. The only output is one API call.
     "category":"<Work items | Proyectos | Ciclos | Módulos | Páginas | Vistas | Intake |
                  Notificaciones | Importaciones | Configuración | Sistema | Otro>",
     "plain_summary":"<≤200 chars, for someone who does not program>"}
-   new_env_vars: LIST them — you cannot add them (settings are blocked); a person sets them.
+   new_env_vars: avoid them — nobody sets values by hand, so a feature that needs a new one can't
+   ship. Build with what settings already has; if you truly can't, say so in open_questions.
 Then stop. You do not build in SPEC mode, however obvious the feature looks.
 
 ═══════════════ MODE: BUILD — implement the approved spec ═══════════════

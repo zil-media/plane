@@ -66,6 +66,8 @@ jobs:
       # control in between.
       - name: Blast-radius guard
         id: guard
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: '"$LANE/guard.sh"'
 
       - name: Gate toolchains
@@ -129,7 +131,7 @@ jobs:
             exit 1
           fi
 
-      # ── the guard cut: this needs a person, not a retry ──
+      # ── the guard cut and the reviewers said no: blocked, back to the fixer on its retry_at ──
       - name: Block the bugs the guard stopped
         if: failure() && steps.guard.outputs.denied == 'true'
         env:
@@ -144,11 +146,6 @@ jobs:
             PAYLOAD=$(jq -n --arg reason "$REASON" --arg run_url "$RUN_URL" '{reason: $reason, run_url: $run_url}')
             "$LANE/agent-api.sh" blocked "$BUG_ID" "$PAYLOAD" || true
           done
-      - name: Leave the branch in a PR
-        if: failure() && steps.guard.outputs.denied == 'true'
-        env:
-          GUARD_REASON: ${{ steps.guard.outputs.reason }}
-        run: '"$LANE/open-guard-pr.sh"'
 
       # Any other failure is the agent's to fix: note it on the bug so the next session reads why.
       - name: Note why CI rejected the attempt

@@ -253,7 +253,6 @@ class TestTheBuildLane:
         client = APIClient()
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {key}")
         with (
-            mock.patch("plane.utils.agent_pipeline.notify.admins_feature_build_blocked") as admins,
             mock.patch("plane.utils.agent_pipeline.notify.requester_feature_update") as told,
             django_capture_on_commit_callbacks(execute=True),
         ):
@@ -263,7 +262,6 @@ class TestTheBuildLane:
                 format="json",
             )
         assert response.status_code == status.HTTP_200_OK, response.data
-        admins.assert_not_called()
         told.assert_not_called()
         building.refresh_from_db()
         # Straight into the next run, which reads why the last one failed.
@@ -382,13 +380,25 @@ class TestRoundFour:
         assert bug.resolved_at is None and bug.fixed_at is None
 
     @pytest.mark.django_db
-    def test_run_limit_hold_tells_admins(self, create_user, agent_on, tasks):
+    def test_past_the_run_limit_it_retries_on_its_own_later(self, create_user, agent_on, tasks):
+        from datetime import timedelta
+
+        from plane.utils.agent_pipeline.features import drain_feature_queue
+
         feature = own_feature(create_user, status=S.APPROVED, flag_key="tired", build={"runs": 3})
-        with mock.patch("plane.utils.agent_pipeline.notify.admins_feature_build_blocked") as admins:
-            assert request_build(feature) == (False, "build run limit")
-        admins.assert_called_once()
+        assert request_build(feature) == (False, "build run limit: retries on its own")
         feature.refresh_from_db()
-        assert feature.status == S.ON_HOLD
+        # Still approved, not on hold waiting for someone: a retry date, runs back to zero.
+        assert feature.status == S.APPROVED
+        assert feature.build["runs"] == 0 and feature.build["block_cycles"] == 1
+        assert feature.build["retry_at"] > timezone.now().isoformat()
+        assert "Se vuelve a intentar sola" in feature.build["last_note"]
+        # Before its date the drain leaves it alone; once due, it builds again.
+        assert drain_feature_queue() == (False, "empty")
+        build = dict(feature.build)
+        build["retry_at"] = (timezone.now() - timedelta(minutes=1)).isoformat()
+        FeatureRequest.objects.filter(id=feature.id).update(build=build)
+        assert drain_feature_queue() == (True, "queued")
 
     @pytest.mark.django_db
     def test_a_failed_reanalysis_keeps_a_ready_spec_ready(self, create_user, agent_on):
@@ -657,12 +667,10 @@ class TestRoundSix:
         client = APIClient()
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {key}")
         url = f"/api/agent/features/{feature.id}/build-status/"
-        with mock.patch("plane.utils.agent_pipeline.notify.admins_feature_build_blocked") as admins:
-            response = client.put(url, {"state": "blocked", "note": "No pasó."}, format="json")
-            assert response.status_code == status.HTTP_200_OK, response.data
-            # Already back in the queue: a late report from the same push changes nothing.
-            assert client.put(url, {"state": "blocked", "note": "Tampoco."}, format="json").status_code == 409
-        admins.assert_not_called()
+        response = client.put(url, {"state": "blocked", "note": "No pasó."}, format="json")
+        assert response.status_code == status.HTTP_200_OK, response.data
+        # Already back in the queue: a late report from the same push changes nothing.
+        assert client.put(url, {"state": "blocked", "note": "Tampoco."}, format="json").status_code == 409
         feature.refresh_from_db()
         assert feature.status == S.APPROVED and feature.build["last_note"] == "No pasó."
 
@@ -790,13 +798,11 @@ class TestRoundSeven:
             data={"summary": "Exportar", "approach": "x", "blast_radius": "high", "effort": "M", "flag_key": "exportar"}
         )
         with (
-            mock.patch("plane.utils.agent_pipeline.notify.admins_feature_needs_decision") as admins,
             mock.patch("plane.utils.agent_pipeline.notify.requester_feature_update") as told,
             mock.patch("plane.agent_api.features._valid", side_effect=lambda _s, r: r.data),
             mock.patch("plane.agent_api.features.transaction.on_commit"),
         ):
             AgentFeatureActionEndpoint().do_spec(request, feature)
-        admins.assert_not_called()
         told.assert_not_called()
         assert feature.status == S.APPROVED
 
@@ -875,24 +881,6 @@ class TestRoundEight:
         assert response.status_code == 429
         assert "varios reportes" in response.data["detail"]
         admins.assert_not_called()
-
-    @pytest.mark.django_db
-    def test_the_admins_read_the_impact_in_spanish(self, create_user, tasks):
-        from plane.utils.agent_pipeline import notify
-
-        admin = User.objects.create(email="owner@zil.global", username=uuid.uuid4().hex, is_active=True)
-        instance = Instance.objects.create(
-            instance_name="Test Instance",
-            instance_id=str(uuid.uuid4()),
-            current_version="1.0.0",
-            domain="http://localhost:8000",
-            last_checked_at=timezone.now(),
-            is_setup_done=True,
-        )
-        InstanceAdmin.objects.create(instance=instance, user=admin, role=20)
-        feature = own_feature(create_user, spec={"summary": "Exportar", "blast_radius": "medium"})
-        notify.admins_feature_needs_decision(feature)
-        assert "Impacto estimado: medio" in tasks["email"].call_args[0][3]
 
     @pytest.mark.django_db
     def test_a_crash_handed_to_workspace_stays_one_report_while_its_fix_ships(self, create_user):
@@ -1128,16 +1116,6 @@ class TestRoundTwelve:
         assert bug.status == BugReport.Status.RESOLVED and bug.resolved_message == "Listo."
 
     @pytest.mark.django_db
-    def test_the_admins_hear_it_already_exists(self, create_user, tasks, admin_client):
-        from plane.utils.agent_pipeline import notify
-
-        feature = own_feature(create_user, spec={"summary": "Se hace desde Vistas.", "already_exists": True})
-        notify.admins_feature_needs_decision(feature)
-        heading, paragraphs = tasks["email"].call_args[0][2], tasks["email"].call_args[0][3]
-        assert heading == "Según el análisis, esto ya existe"
-        assert any("aprobala y se cierra" in p for p in paragraphs)
-
-    @pytest.mark.django_db
     def test_approving_what_already_exists_closes_it_without_a_build(self, create_user, tasks, admin_client):
         feature = own_feature(
             create_user,
@@ -1171,10 +1149,8 @@ class TestRoundTwelve:
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {key}")
         url = f"/api/agent/features/{feature.id}/build-status/"
         assert client.put(url, {"state": "already_done"}, format="json").status_code == status.HTTP_409_CONFLICT
-        with mock.patch("plane.utils.agent_pipeline.notify.admins_feature_build_blocked") as admins:
-            response = client.put(url, {"state": "already_done", "note": "Dale rol Administrador."}, format="json")
+        response = client.put(url, {"state": "already_done", "note": "Dale rol Administrador."}, format="json")
         assert response.status_code == status.HTTP_200_OK, response.data
-        admins.assert_not_called()
         feature.refresh_from_db()
         assert feature.status == S.MERGED
         assert feature.build["last_note"] == "Dale rol Administrador."

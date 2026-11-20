@@ -456,7 +456,7 @@ class TestFeaturePipeline:
         assert response.data["status"] == "needs_info"
 
     @pytest.mark.django_db
-    def test_a_build_that_keeps_failing_stops_relaunching_until_a_person_says_so(
+    def test_a_build_that_keeps_failing_waits_its_retry_date_instead_of_a_person(
         self, admin_client, feature_agent_enabled, tasks, django_capture_on_commit_callbacks
     ):
         from plane.utils.agent_pipeline import features as feature_ops
@@ -469,19 +469,19 @@ class TestFeaturePipeline:
             flag_key="algoNuevo",
             build={"runs": MAX_BUILD_RUNS},
         )
-        # the sweep's automatic re-dispatch hits the ceiling: no session, out of the approved queue
-        assert feature_ops.request_build(feature, "barrido periódico") == (False, "build run limit")
+        # the sweep's automatic re-dispatch hits the ceiling: no session, a retry date instead of a hold
+        assert feature_ops.request_build(feature, "barrido periódico") == (False, "build run limit: retries on its own")
         feature.refresh_from_db()
-        assert feature.status == "on_hold"
+        assert feature.status == "approved" and feature.build["retry_at"]
         tasks["fire_feature"].assert_not_called()
 
-        # a person's rebuild buys exactly one more run
+        # an admin can still start it before its date: one more run
         with django_capture_on_commit_callbacks(execute=True):
             response = admin_client.post(f"/api/support/feature-requests/{feature.id}/rebuild/", {}, format="json")
         assert response.status_code == status.HTTP_200_OK
         feature.refresh_from_db()
         assert feature.status == "building"
-        assert feature.build["runs"] == MAX_BUILD_RUNS + 1
+        assert feature.build["runs"] == 1 and feature.build["retry_at"] is None
         assert feature.build["manual_retry"] is False
         assert tasks["fire_feature"].call_args.args[:2] == (str(feature.id), "BUILD")
 

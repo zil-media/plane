@@ -125,13 +125,11 @@ def bug_detail(bug, request):
 
 
 def _answered(feature):
-    """needs_info whose last agent question already has the requester's answer after it: the analysis
-    didn't relaunch (feature agent off), so it now waits on an admin, not on the requester."""
-    if feature.status != "needs_info":
-        return False
-    comments = feature.comments or []
-    last_question = max((i for i, c in enumerate(comments) if c.get("role") == "agent"), default=-1)
-    return last_question >= 0 and any(c.get("role") == "user" for c in comments[last_question + 1 :])
+    """needs_info whose last agent question already has the requester's answer after it: the sweep
+    reruns the analysis with it (feature_run_sweep), nobody has to relaunch it."""
+    from plane.utils.agent_pipeline.features import answered
+
+    return feature.status == "needs_info" and answered(feature)
 
 
 def feature_summary(feature):

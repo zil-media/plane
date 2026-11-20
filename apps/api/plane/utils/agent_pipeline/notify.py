@@ -160,37 +160,6 @@ def admins_new_bug(bug):
     )
 
 
-def admins_bug_blocked(bug):
-    send_admins(
-        "Un arreglo automático necesita una persona",
-        "El agente no puede seguir solo",
-        [
-            f"Reporte: {bug.display_title or bug.description[:200]}",
-            f"Motivo: {bug.blocked_reason or '—'}",
-            "El reporte salió de la cola del agente hasta que alguien lo revise.",
-        ],
-        "Abrir la bandeja",
-        bug.workspace,
-        bug.id,
-    )
-
-
-def admins_feature_build_blocked(feature, note):
-    send_admins(
-        "Un desarrollo automático necesita una persona",
-        "El agente no puede seguir solo",
-        [
-            f"Sugerencia: {feature.display_title or feature.title}",
-            f"Motivo: {note or 'sin detalle'}",
-            "Mientras tanto, el carril de desarrollo sigue con la próxima sugerencia aprobada.",
-        ],
-        "Abrir la sugerencia",
-        feature.workspace,
-        feature.id,
-        "feature",
-    )
-
-
 def admins_new_feature(feature):
     who = feature.requested_by.email if feature.requested_by else "—"
     send_admins(
@@ -202,28 +171,6 @@ def admins_new_feature(feature):
         feature.id,
         "feature",
         exclude=feature.requested_by,
-    )
-
-
-def admins_feature_needs_decision(feature):
-    spec = feature.spec or {}
-    # Ops ya lo hace: aprobarla no construye nada, la cierra como disponible y a quien la pidió le
-    # llega el resumen con cómo hacerlo.
-    exists = bool(spec.get("already_exists"))
-    send_admins(
-        "Una sugerencia espera tu decisión",
-        "Según el análisis, esto ya existe" if exists else "Hay un análisis listo para aprobar",
-        [
-            feature.display_title or feature.title,
-            spec.get("summary", "")[:1500],
-            "No hay nada que construir: aprobala y se cierra avisándole cómo hacerlo."
-            if exists
-            else f"Impacto estimado: {IMPACT.get(spec.get('blast_radius'), '—')}",
-        ],
-        "Revisar y decidir",
-        feature.workspace,
-        feature.id,
-        "feature",
     )
 
 

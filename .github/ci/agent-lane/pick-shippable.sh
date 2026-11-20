@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # How far into agent-batch can this window ship? Outputs: ship_sha, partial, blocked_sha, blocked_files.
 #
-# Normally the whole batch. If the combined batch touches a denylisted file (a feature merged
-# from a reviewed PR can't, but a manual push to agent-batch could), everything BEFORE the first
-# commit that touches it still ships, and the rest waits for a person instead of freezing every fix.
+# Normally the whole batch. If the combined batch trips the strict guard (a reserved file the lane's
+# reviewer agents approved, a data-repair migration), the same reviewers read the whole batch; approved,
+# it all ships. Rejected, everything BEFORE the first commit that touches it ships, and the incident
+# goes to the fixer routine. Nothing waits on a person.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
@@ -29,11 +30,24 @@ if guard_clean "$TIP_SHA" "$REPORT"; then
     exit 0
 fi
 
+REVIEW_BIN=/tmp/agent-review.preview.mjs
+if git show "${BASE}:.github/ci/agent-review.mjs" > "$REVIEW_BIN" 2>/dev/null \
+    && node "$REVIEW_BIN" --base "$BASE" --tip "$TIP_SHA" --report "$REPORT" --notes /tmp/window-review.txt \
+    && [ -s /tmp/window-review.txt ]; then
+    emit "ship_sha=${TIP_SHA}"
+    emit "partial=false"
+    echo "The guard flagged the batch and the reviewer agents approved it: shipping ${TIP_SHA}"
+    exit 0
+fi
+cat /tmp/window-review.txt >> "${GITHUB_STEP_SUMMARY:-/dev/null}" 2>/dev/null || true
+
 FILES=$(awk '/⛔/ { inside = 1; next } inside && /^### / { exit } inside' "$REPORT" \
     | grep -oE '^\| `[^`]+`' | sed 's/^| `//; s/`$//' || true)
 if [ -z "$FILES" ]; then
-    echo "::error::The guard cut for something that is not a denylisted file (deletions under --strict?). The batch is not split: read the report."
+    echo "::error::The guard cut for something that is not a denylisted file (deletions under --strict?) and the reviewers rejected it. Nothing ships this window."
     cat "$REPORT" >> "${GITHUB_STEP_SUMMARY:-/dev/null}" 2>/dev/null || true
+    emit "partial=false"
+    emit "stuck=true"
     exit 1
 fi
 
@@ -79,7 +93,8 @@ done
 if [ -z "$SHIP" ]; then
     emit "partial=false"
     emit "ship_sha="
-    echo "::error::The first commit of the batch (${FIRST_BAD}) touches a denylisted file: nothing ships before it. A person has to merge it."
+    echo "::error::The first commit of the batch (${FIRST_BAD}) touches a denylisted file the reviewers rejected: nothing ships before it."
+    emit "stuck=true"
     exit 1
 fi
 

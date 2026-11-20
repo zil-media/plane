@@ -63,9 +63,12 @@ class BugReport(BaseModel):
     # agent workflow
     claimed_at = models.DateTimeField(null=True, blank=True)
     progress = models.JSONField(default=list, blank=True)
-    # still open, but out of the agent queue until a person looks at it
+    # still open, out of the agent queue until retry_at: then the sweep puts it back (nobody looks at it)
     blocked_at = models.DateTimeField(null=True, blank=True)
     blocked_reason = models.TextField(blank=True, default="")
+    retry_at = models.DateTimeField(null=True, blank=True)
+    # how many times it was blocked: each one waits longer (constants.retry_wait)
+    block_cycles = models.PositiveIntegerField(default=0)
     commit_hash = models.CharField(max_length=64, blank=True, default="")
     fixed_at = models.DateTimeField(null=True, blank=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
