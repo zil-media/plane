@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 SESSION_TTL_MS = 24 * 60 * 60 * 1000
 
 PREFIX = "ags1"
-_SHAPE = re.compile(r"^ags1\.(\d{1,15})\.([0-9a-f]{32})\.([0-9a-f]{64})$")
+_SHAPE = re.compile(r"^ags1\.([0-9]{1,15})\.([0-9a-f]{32})\.([0-9a-f]{64})$")
 
 
 def _sign(key, expires_at, nonce):
@@ -55,6 +55,8 @@ def is_valid_session_token(key, token, now_ms=None):
         return False
     raw_expires, nonce, signature = match.groups()
     expires_at = int(raw_expires)
-    if expires_at <= (now_ms if now_ms is not None else _now_ms()):
+    now = now_ms if now_ms is not None else _now_ms()
+    # Never mints past now + TTL, so a later expiry was not minted here.
+    if expires_at <= now or expires_at > now + SESSION_TTL_MS:
         return False
     return hmac.compare_digest(signature, _sign(key, expires_at, nonce))

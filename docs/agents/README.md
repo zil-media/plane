@@ -49,7 +49,9 @@ the push. The environment's network access must allow PyPI.
 | `ANTHROPIC_OPS_FEATURE_ROUTINE_URL` / `_TOKEN` | fire URL + token of the feature routine             |
 | `AGENT_CAPTURE_SERVER_ERRORS`                  | `1` (default) files 5xx as auto bug reports         |
 
-Firing aborts if an agent key starts with `sk-ant-`: the key travels inside the routine transcript.
+The keys never travel in the trigger: it carries a session token signed with the lane key that expires in
+24 h (`apps/api/plane/agent_api/session_token.py`), because the trigger text stays in every run log. Firing
+aborts if an agent key starts with `sk-ant-`.
 
 ## 3. GitHub Actions secrets
 

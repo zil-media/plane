@@ -32,7 +32,7 @@ class AgentKeyAuthentication(BaseAuthentication):
         header = request.META.get("HTTP_AUTHORIZATION", "")
         if not header.startswith("Bearer "):
             return None
-        expected = os.environ.get(self.env_var, "")
+        expected = os.environ.get(self.env_var, "").strip()
         provided = header[len("Bearer ") :].strip()
         if not expected:
             raise AuthenticationFailed("Invalid agent key.")

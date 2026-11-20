@@ -26,6 +26,10 @@ class TestSessionToken:
         stretched = ".".join([prefix, str(int(expires) + SESSION_TTL_MS), nonce, signature])
         assert not is_valid_session_token(KEY, stretched)
 
+    def test_an_expiry_beyond_the_ttl_was_not_minted_here(self):
+        token, _ = mint_session_token(KEY, now_ms=10 * SESSION_TTL_MS)
+        assert not is_valid_session_token(KEY, token, now_ms=0)
+
     def test_garbage_is_refused(self):
         assert not is_valid_session_token(KEY, KEY)
         assert not is_valid_session_token(KEY, None)
