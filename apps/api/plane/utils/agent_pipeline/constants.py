@@ -45,6 +45,19 @@ MAX_BUILD_RUNS = 3
 
 REOPEN_MIN_GAP = timedelta(minutes=5)
 
+# Nothing waits on a person: a blocked bug, a build past its run cap or a spec past its own goes back
+# to its routine after a growing wait (1, 2, 4... days, never more than 14). Same scheme as Workspace
+# (server/services/bugBlock.js).
+MAX_RETRY_WAIT = timedelta(days=14)
+
+
+def retry_wait(cycles):
+    return min(timedelta(days=2 ** max(0, cycles)), MAX_RETRY_WAIT)
+
+
+# An agent question nobody answered: after this, the analysis reruns deciding on stated assumptions.
+UNANSWERED_WAIT = timedelta(days=3)
+
 NOISE_PATTERNS = (
     "resizeobserver loop",
     "hot-update",

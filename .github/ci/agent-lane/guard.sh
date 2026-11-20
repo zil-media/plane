@@ -25,8 +25,27 @@ node "$GUARD_BIN" --base "$BASE" ${STRICT_FLAG} --report "$REPORT"
 RC=$?
 set -e
 
-# A guard cut is not like a failing test: the denylist reserves those files for a person, so a
-# retry is guaranteed to hit the same wall. Flag it so the lane blocks the bug and opens a PR.
+# Nobody reviews by hand: a cut goes to two reviewer agents that didn't write it (preview's copy of
+# agent-review.mjs, like the guard). Approved, it goes on; otherwise the lane blocks the bug, which
+# goes back to the fixer on its retry_at with the reviewers' reasons.
+if [ "$RC" != "0" ]; then
+    REVIEW_BIN=/tmp/agent-review.preview.mjs
+    if git show "${BASE}:.github/ci/agent-review.mjs" > "$REVIEW_BIN" 2>/dev/null; then
+        set +e
+        node "$REVIEW_BIN" --base "$BASE" --tip HEAD --report "$REPORT" --notes /tmp/agent-review-notes.txt
+        REVIEW_RC=$?
+        set -e
+        [ -s /tmp/agent-review-notes.txt ] || REVIEW_RC=1
+        if [ "$REVIEW_RC" = "0" ]; then
+            echo "Approved by review: $(cat /tmp/agent-review-notes.txt)"
+            { echo; echo "### ✅ Reviewed and approved by agents"; echo; cat /tmp/agent-review-notes.txt; } >> "$REPORT"
+            RC=0
+        else
+            { echo; echo "### ⛔ Review"; echo; cat /tmp/agent-review-notes.txt 2>/dev/null; echo; } >> "$REPORT"
+        fi
+    fi
+fi
+
 if [ "$RC" != "0" ]; then
     emit "denied=true"
     # Unique delimiter: the content holds FILE NAMES from the agent's diff.

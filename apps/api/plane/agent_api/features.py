@@ -87,6 +87,9 @@ class BuildStatusSerializer(serializers.Serializer):
     # When the failing commit was made: a report about a push older than the current run's claim
     # belongs to the previous run and must not cut the rebuild that is already fixing it.
     pushed_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
+    # A pipeline incident took its commit back out of agent-batch (the reviewers rejected it there):
+    # a queued feature goes back to be rebuilt, which `blocked` otherwise refuses for merged code.
+    reverted_from_batch = serializers.BooleanField(required=False, default=False)
 
 
 class ProgressSerializer(serializers.Serializer):
@@ -242,11 +245,12 @@ class AgentFeatureActionEndpoint(AgentFeatureBaseView):
             transaction.on_commit(feature_ops.drain_feature_queue)
             return Response(feature_summary(feature))
         if data["state"] == "blocked":
-            if feature.status != S.BUILDING:
+            reverted = data["reverted_from_batch"] and feature.status == S.QUEUED
+            if feature.status != S.BUILDING and not reverted:
                 return _conflict("Only a running build can be blocked; merged code has nothing left to block.")
             # Nobody unblocks it by hand: it goes back to the queue and the next run reads `for_agent` to
-            # fix what failed. request_build's MAX_BUILD_RUNS cap puts it on hold (and tells the admins)
-            # when the rebuilds run out.
+            # fix what failed. Past MAX_BUILD_RUNS, request_build gives it a retry_at that grows each
+            # time, and the drain picks it up again then.
             claimed = build.get("claimed_at")
             if data["pushed_at"] and claimed and data["pushed_at"] < datetime.fromisoformat(claimed):
                 return Response(feature_summary(feature))
