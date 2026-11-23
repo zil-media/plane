@@ -12,18 +12,20 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { EPageAccess } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 // plane types
-import { Button } from "@plane/propel/button";
-import { PageIcon } from "@plane/propel/icons";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { Button } from "@makeplane/propel/components/button";
+import { PagesOutline } from "@makeplane/propel/icons";
+import { setToast } from "@plane/blocks/toast";
 import type { TPage, TPageKind } from "@plane/types";
 // plane ui
-import { Breadcrumbs, Header } from "@plane/ui";
+import { Breadcrumbs } from "@plane/blocks/breadcrumb";
+import { Header } from "@plane/blocks/layout";
 // helpers
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 // plane web imports
 import { CommonProjectBreadcrumbs } from "@/components/breadcrumbs/common";
+import { useProjectCrumbProps } from "@/components/breadcrumbs/use-project-crumb-props";
 import { EPageStoreType, usePageStore } from "@/hooks/store";
 
 export const PagesListHeader = observer(function PagesListHeader() {
@@ -34,6 +36,7 @@ export const PagesListHeader = observer(function PagesListHeader() {
   // router
   const router = useRouter();
   const { workspaceSlug, projectId } = useParams();
+  const projectCrumb = useProjectCrumbProps(workspaceSlug?.toString(), projectId?.toString());
   const searchParams = useSearchParams();
   const pageType = searchParams.get("type");
   // store hooks
@@ -58,7 +61,7 @@ export const PagesListHeader = observer(function PagesListHeader() {
       })
       .catch((err) => {
         setToast({
-          type: TOAST_TYPE.ERROR,
+          type: "error",
           title: "Error!",
           message: err?.data?.error || "Page could not be created. Please try again.",
         });
@@ -70,13 +73,17 @@ export const PagesListHeader = observer(function PagesListHeader() {
     <Header>
       <Header.LeftItem>
         <Breadcrumbs isLoading={loader === "init-loader"}>
-          <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug?.toString()} projectId={projectId?.toString()} />
+          <CommonProjectBreadcrumbs
+            workspaceSlug={workspaceSlug?.toString()}
+            projectId={projectId?.toString()}
+            {...projectCrumb}
+          />
           <Breadcrumbs.Item
             component={
               <BreadcrumbLink
                 label="Pages"
                 href={`/${workspaceSlug}/projects/${currentProjectDetails?.id}/pages/`}
-                icon={<PageIcon className="h-4 w-4 text-tertiary" />}
+                icon={<PagesOutline className="h-4 w-4 text-tertiary" />}
                 isLast
               />
             }
@@ -89,23 +96,23 @@ export const PagesListHeader = observer(function PagesListHeader() {
           <div className="flex items-center gap-2">
             <Button
               variant="secondary"
-              size="lg"
-              onClick={() => handleCreatePage("folder")}
+              size="md"
+              stretch="auto"
+              icon={<FolderPlus className="size-3.5" />}
+              label={t("page_tree.new_folder")}
+              onClick={() => void handleCreatePage("folder")}
               loading={isCreatingPage === "folder"}
               disabled={!!isCreatingPage}
-            >
-              <FolderPlus className="size-3.5" />
-              {t("page_tree.new_folder")}
-            </Button>
+            />
             <Button
               variant="primary"
-              size="lg"
-              onClick={() => handleCreatePage("page")}
+              size="md"
+              stretch="auto"
+              label={isCreatingPage === "page" ? "Adding" : "Add page"}
+              onClick={() => void handleCreatePage("page")}
               loading={isCreatingPage === "page"}
               disabled={!!isCreatingPage}
-            >
-              {isCreatingPage === "page" ? "Adding" : "Add page"}
-            </Button>
+            />
           </div>
         </Header.RightItem>
       )}

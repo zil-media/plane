@@ -6,7 +6,8 @@
 
 import { LifeBuoy } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
-import { Breadcrumbs, Header } from "@plane/ui";
+import { Breadcrumbs } from "@plane/blocks/breadcrumb";
+import { Header } from "@plane/blocks/layout";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 
 export function WorkspaceSupportHeader() {

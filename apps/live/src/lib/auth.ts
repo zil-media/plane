@@ -10,10 +10,12 @@ import type { TUserDetails } from "@plane/editor";
 import { logger } from "@plane/logger";
 import { AppError } from "@/lib/errors";
 // services
-import { getPageService } from "@/services/page/handler";
 import { UserService } from "@/services/user.service";
 // types
 import type { HocusPocusServerContext, TDocumentTypes } from "@/types";
+
+// Only user document types may open a socket; any other type is set in-process, never by a client.
+const USER_DOCUMENT_TYPES: ReadonlySet<string> = new Set<TDocumentTypes>(["project_page"]);
 
 /**
  * Authenticate the user
@@ -28,12 +30,14 @@ export const onAuthenticate = async ({
   context,
   token,
   documentName,
+  connectionConfig,
 }: {
   requestHeaders: IncomingHttpHeaders;
   context: HocusPocusServerContext;
   requestParameters: URLSearchParams;
   token: string;
   documentName: string;
+  connectionConfig: { readOnly: boolean };
 }) => {
   let cookie: string | undefined = undefined;
   let userId: string | undefined = undefined;
@@ -62,47 +66,58 @@ export const onAuthenticate = async ({
     throw appError;
   }
 
+  const documentType = requestParameters.get("documentType");
+  if (!documentType || !USER_DOCUMENT_TYPES.has(documentType)) {
+    const appError = new AppError("Invalid document type", { code: "AUTH_INVALID_DOCUMENT_TYPE" });
+    logger.error("Invalid document type", appError);
+    throw appError;
+  }
+
   // set cookie in context, so it can be used throughout the ws connection
   context.cookie = cookie ?? requestParameters.get("cookie") ?? "";
-  context.documentType = requestParameters.get("documentType")?.toString() as TDocumentTypes;
-  context.projectId = requestParameters.get("projectId");
+  context.documentType = documentType as TDocumentTypes;
   context.userId = userId;
   context.workspaceSlug = requestParameters.get("workspaceSlug");
 
-  const authenticationResult = await handleAuthentication({
+  const authenticated = await handleAuthentication({
     cookie: context.cookie,
     userId: context.userId,
   });
 
-  // Authorize the authenticated user against the target page on EVERY connection.
-  // Hocuspocus only re-runs the database extension's permission-scoped fetch for
-  // documents that aren't already loaded in memory, so once a document is warm,
-  // later connections would otherwise skip page-level authorization entirely.
-  await authorizePageAccess({ context, pageId: documentName });
+  // Hocuspocus loads a document once and hands it to every later connection without fetching it again, so the
+  // first loader's fetch checks no one else: every connection must prove its own access to the page. The project
+  // comes from the checked page, never from the socket.
+  const access = await authorizePage(context, documentName);
+  connectionConfig.readOnly = access.read_only;
+  context.projectId = access.project_id;
 
-  return authenticationResult;
+  return authenticated;
 };
 
 /**
- * Authorize the authenticated user for the target page/project using the same
- * permission-scoped Django endpoint the document fetch path relies on
- * (see apps/live/src/extensions/database.ts fetchDocument). Throws if the
- * user is not authorized to access the page, rejecting the connection.
+ * Checks the user's access to the page with their own cookie.
+ * @returns the page's project, and whether the connection must be read-only
  */
-const authorizePageAccess = async ({ context, pageId }: { context: HocusPocusServerContext; pageId: string }) => {
+const authorizePage = async (
+  context: HocusPocusServerContext,
+  pageId: string
+): Promise<{ project_id: string; read_only: boolean }> => {
+  let access: { project_id: string; read_only?: boolean };
   try {
-    const service = getPageService(context.documentType, context);
-    await service.fetchDescriptionBinary(pageId);
+    access = await new UserService().getPageAccess(context.cookie, context.workspaceSlug ?? "", pageId, "view");
   } catch (error) {
-    const appError = new AppError(error, {
-      context: { operation: "authorizePageAccess", pageId },
-    });
+    const appError = new AppError(error, { context: { operation: "authorizePage", pageId } });
     logger.error("Page authorization failed", appError);
-    throw new AppError("Authentication unsuccessful: insufficient page permissions", {
-      code: "AUTH_FORBIDDEN",
-      statusCode: appError.statusCode,
+    // Django denies with a 404; an outage also refuses the connection, under its own code.
+    throw new AppError("Page access denied", {
+      code: appError.statusCode === 404 ? "AUTH_PAGE_ACCESS_DENIED" : appError.code,
     });
   }
+  // An API older than this check gives no answer; refuse visibly rather than open a read-only socket that drops edits.
+  if (typeof access.read_only !== "boolean") {
+    throw new AppError("Page access unknown", { code: "AUTH_PAGE_ACCESS_UNKNOWN" });
+  }
+  return { project_id: access.project_id, read_only: access.read_only };
 };
 
 export const handleAuthentication = async ({ cookie, userId }: { cookie: string; userId: string }) => {

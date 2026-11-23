@@ -19,6 +19,7 @@ from plane.app.views import (
     PageZilClientDriveEndpoint,
     PageZilClientBrandFilesEndpoint,
     PageZilClientBrandFileEndpoint,
+    PageLiveAccessEndpoint,
 )
 
 urlpatterns = [
@@ -128,5 +129,11 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-client/brand-files/<str:file_id>/",
         PageZilClientBrandFileEndpoint.as_view(),
         name="page-zil-client-brand-file",
+    ),
+    # live server per-connection access check
+    path(
+        "workspaces/<str:slug>/pages/<uuid:page_id>/live-access/",
+        PageLiveAccessEndpoint.as_view(),
+        name="page-live-access",
     ),
 ]

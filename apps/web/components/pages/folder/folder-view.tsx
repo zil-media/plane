@@ -1,0 +1,198 @@
+/**
+ * Copyright (c) 2023-present Plane Software, Inc. and contributors
+ * SPDX-License-Identifier: AGPL-3.0-only
+ * See the LICENSE file for details.
+ */
+
+import { useEffect, useState } from "react";
+import { observer } from "mobx-react";
+import { useParams } from "next/navigation";
+import { Building2, FilePlus2, FolderOpen, FolderPlus, RefreshCw, Users } from "lucide-react";
+// plane imports
+import { EPageAccess } from "@plane/constants";
+import { useTranslation } from "@plane/i18n";
+import { Button } from "@makeplane/propel/components/button";
+import { Logo } from "@plane/blocks/emoji-icon-picker";
+import { Tooltip } from "@makeplane/propel/components/tooltip";
+import type { TPageNavigationTabs } from "@plane/types";
+import { getPageName } from "@plane/utils";
+// components
+import { ListLayout } from "@/components/core/list";
+import { PageTreeNode } from "@/components/pages/list/tree-node";
+// hooks
+import type { EPageStoreType } from "@/hooks/store";
+import { usePageStore } from "@/hooks/store";
+import { usePageTreeOperations } from "@/hooks/use-page-tree-operations";
+import { useZilProjectBrandProject } from "@/hooks/use-zil-brands";
+// store
+import type { TPageInstance } from "@/store/pages/base-page";
+// local imports
+import { ZilClientBadge } from "./zil-client-badge";
+import { ZilClientPanel } from "./zil-client-panel";
+import { ZilClientPickerModal } from "./zil-client-picker-modal";
+
+type Props = {
+  page: TPageInstance;
+  storeType: EPageStoreType;
+};
+
+const getTabForPage = (page: TPageInstance): TPageNavigationTabs => {
+  if (page.archived_at) return "archived";
+  return page.access === EPageAccess.PRIVATE ? "private" : "public";
+};
+
+/**
+ * A folder has no editor: it shows its name and an index of its children. A folder linked to a Zil
+ * client also shows the client's profile, assets and calls; the clients folder holds one per client.
+ */
+export const FolderPageView = observer(function FolderPageView(props: Props) {
+  const { page, storeType } = props;
+  // states
+  // the picker belongs to the folder it was opened on: this view is reused when navigating between folders
+  // (e.g. the "Open folder" action of the already-linked toast) and must not stay open, with its unlink
+  // button, over the next one
+  const [zilClientModalPageId, setZilClientModalPageId] = useState<string | null>(null);
+  // hooks
+  const { t } = useTranslation();
+  const { data } = usePageStore(storeType);
+  const { workspaceSlug, projectId } = useParams();
+  // a brand's project already is its client: its folders are not linked to one
+  const isBrandProject = !!useZilProjectBrandProject(workspaceSlug?.toString(), projectId?.toString());
+  const { canCreateChild, createChild } = usePageTreeOperations({ page, storeType });
+  // a folder opened later must not find the picker still open from the previous one (going back to the
+  // first would reopen it otherwise)
+  useEffect(() => {
+    setZilClientModalPageId(null);
+  }, [page.id]);
+  // derived values
+  const isZilClientModalOpen = zilClientModalPageId === page.id;
+  const { name, logo_props, zil_client, is_zil_clients_root, canCurrentUserEditPage, archived_at, updateTitle } = page;
+  const canEdit = canCurrentUserEditPage && !archived_at;
+  // children are shown regardless of their access, each in the tab it belongs to
+  const children = Object.values(data).filter(
+    (child) => child.parent === page.id && (!!archived_at || !child.archived_at)
+  );
+  const orderedChildren = [
+    ...children.filter((child) => child.isFolder),
+    ...children.filter((child) => !child.isFolder),
+  ];
+
+  const childrenIndex =
+    orderedChildren.length > 0 ? (
+      <div className="rounded-md border border-subtle">
+        <ListLayout>
+          {orderedChildren.map((child) => (
+            <PageTreeNode
+              key={child.id}
+              pageId={child.id as string}
+              pageType={getTabForPage(child)}
+              storeType={storeType}
+              depth={0}
+            />
+          ))}
+        </ListLayout>
+      </div>
+    ) : (
+      <div className="flex flex-col items-center gap-1 rounded-md border border-dashed border-subtle py-16 text-center">
+        <FolderOpen className="mb-2 size-8 text-placeholder" />
+        <h4 className="text-14 font-medium text-primary">{t("page_tree.folder.empty_title")}</h4>
+        <p className="text-13 text-secondary">{t("page_tree.folder.empty_description")}</p>
+      </div>
+    );
+
+  return (
+    <div className="flex size-full flex-col overflow-y-auto">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-page-x py-8">
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 flex-shrink-0 place-items-center rounded-md bg-layer-3">
+            {logo_props?.in_use ? (
+              <Logo logo={logo_props} size={22} type="lucide" />
+            ) : (
+              <FolderOpen className="size-5 text-tertiary" />
+            )}
+          </span>
+          <input
+            className="w-full min-w-0 bg-transparent text-20 font-semibold text-primary outline-none placeholder:text-placeholder disabled:cursor-default"
+            value={name ?? ""}
+            placeholder={getPageName(undefined)}
+            disabled={!canEdit}
+            onChange={(e) => updateTitle(e.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {zil_client && <ZilClientBadge client={zil_client} />}
+          {is_zil_clients_root && (
+            <Tooltip label={t("page_tree.zil_client.clients_root.hint")}>
+              <span className="inline-flex items-center gap-1 rounded-sm border border-subtle px-1.5 py-0.5 text-11 text-secondary">
+                <Users className="size-3 flex-shrink-0" />
+                {t("page_tree.zil_client.clients_root.badge")}
+              </span>
+            </Tooltip>
+          )}
+          {/* a client's folder made by the sync stays linked to its client: it says so instead of offering a change */}
+          {zil_client?.auto_created && (
+            <Tooltip label={t("page_tree.zil_client.auto.hint")}>
+              <span className="inline-flex items-center gap-1 rounded-sm border border-subtle px-1.5 py-0.5 text-11 text-secondary">
+                <RefreshCw className="size-3 flex-shrink-0" />
+                {t("page_tree.zil_client.auto.badge")}
+              </span>
+            </Tooltip>
+          )}
+          {canEdit && !isBrandProject && !is_zil_clients_root && !zil_client?.auto_created && (
+            <Button
+              stretch="auto"
+              variant="ghost"
+              size="lg"
+              onClick={() => setZilClientModalPageId(page.id ?? null)}
+              icon={<Building2 className="size-3.5" />}
+              label={zil_client ? t("page_tree.zil_client.change") : t("page_tree.zil_client.link")}
+            />
+          )}
+          <span className="text-13 text-tertiary">
+            {t("page_tree.folder.items_count", { count: orderedChildren.length })}
+          </span>
+          {canCreateChild && (
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                stretch="auto"
+                variant="secondary"
+                size="lg"
+                onClick={() => createChild("folder")}
+                icon={<FolderPlus className="size-3.5" />}
+                label={t("page_tree.new_folder")}
+              />
+              <Button
+                stretch="auto"
+                variant="primary"
+                size="lg"
+                onClick={() => createChild("page")}
+                icon={<FilePlus2 className="size-3.5" />}
+                label={t("page_tree.new_page")}
+              />
+            </div>
+          )}
+        </div>
+
+        {zil_client ? (
+          // one panel per folder and client: this view is reused when navigating between folders, and a
+          // request still in flight for the previous one must not land in the next one's profile
+          <ZilClientPanel
+            key={`${page.id}:${zil_client.id}`}
+            page={page}
+            pagesCount={orderedChildren.length}
+            pages={childrenIndex}
+          />
+        ) : (
+          childrenIndex
+        )}
+      </div>
+      <ZilClientPickerModal
+        key={page.id}
+        isOpen={isZilClientModalOpen}
+        onClose={() => setZilClientModalPageId(null)}
+        page={page}
+      />
+    </div>
+  );
+});

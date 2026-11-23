@@ -6,8 +6,10 @@
     "status_page": "página de estado"
   },
   "submit": "Enviar",
+  "submitting": "Enviando",
   "cancel": "Cancelar",
   "loading": "Cargando",
+  "searching": "Buscando...",
   "error": "Error",
   "success": "Éxito",
   "warning": "Advertencia",
@@ -62,8 +64,6 @@
   "notifications": "Notificaciones",
   "workspaces": "Espacios de trabajo",
   "create_workspace": "Crear espacio de trabajo",
-  "set_default_workspace": "Establecer como espacio de trabajo predeterminado",
-  "unset_default_workspace": "Quitar como espacio de trabajo predeterminado",
   "invitations": "Invitaciones",
   "summary": "Resumen",
   "assigned": "Asignado",
@@ -154,6 +154,7 @@
   "no_favorites_yet": "Aún no hay favoritos",
   "create_folder": "Crear carpeta",
   "new_folder": "Nueva carpeta",
+  "rename_folder": "Renombrar carpeta",
   "favorite_updated_successfully": "Favorito actualizado exitosamente",
   "favorite_created_successfully": "Favorito creado exitosamente",
   "folder_already_exists": "La carpeta ya existe",
@@ -305,6 +306,9 @@
   "create_new_label": "Crear nueva etiqueta",
   "label_name": "Nombre de etiqueta",
   "failed_to_create_label": "No se pudo crear la etiqueta. Por favor, inténtelo de nuevo.",
+  "no_matching_labels": "No hay etiquetas coincidentes",
+  "adding_label": "Agregando \"{name}\"",
+  "add_label_to_labels": "Agregar \"{name}\" a etiquetas",
   "start_date": "Fecha de inicio",
   "end_date": "Fecha de fin",
   "due_date": "Fecha de vencimiento",
@@ -366,6 +370,7 @@
   "member": "{count, plural, one{# miembro} other{# miembros}}",
   "new_password_must_be_different_from_old_password": "La nueva contraseña debe ser diferente a la contraseña anterior",
   "edited": "Modificado",
+  "entity_detail_toolbar": "Acciones",
   "bot": "Bot",
   "settings_description": "Administra las preferencias de tu cuenta, espacio de trabajo y proyecto en un solo lugar. Cambia entre pestañas para configurar fácilmente.",
   "back_to_workspace": "Volver al espacio de trabajo",
@@ -527,6 +532,7 @@
       "updated_on": "Actualizado el"
     },
     "sort": {
+      "label": "Ordenar",
       "asc": "Ascendente",
       "desc": "Descendente",
       "created_on": "Creado el",
@@ -540,6 +546,7 @@
     "link_copied": "¡Enlace copiado!",
     "link_copied_to_clipboard": "Enlace copiado al portapapeles",
     "copied_to_clipboard": "Enlace del elemento de trabajo copiado al portapapeles",
+    "clipboard_copy_failed": "No se pudo copiar al portapapeles",
     "branch_name_copied_to_clipboard": "Nombre de rama copiado al portapapeles",
     "is_copied_to_clipboard": "El elemento de trabajo está copiado al portapapeles",
     "no_links_added_yet": "Aún no se han agregado enlaces",
@@ -624,7 +631,8 @@
       "enable": "Habilitar",
       "disable": "Deshabilitar",
       "copy_markdown": "Copiar markdown",
-      "reply": "Responder"
+      "reply": "Responder",
+      "add_reaction": "Agregar una reacción"
     },
     "name": "Nombre",
     "discard": "Descartar",
@@ -722,7 +730,14 @@
     "developer": "Desarrollador",
     "work_structure": "Work structure",
     "execution": "Execution",
-    "administration": "Administration"
+    "administration": "Administration",
+    "status": "Estado",
+    "tooltip": {
+      "copy_to_clipboard": "Copiar al portapapeles",
+      "created_on_date": "Creado el {date}",
+      "priority": "Prioridad: {value}"
+    },
+    "locked": "Bloqueado"
   },
   "chart": {
     "x_axis": "Eje X",
@@ -873,6 +888,17 @@
       "short_description": "Exportar como json"
     }
   },
+  "labels_count": "{count, plural, one {# etiqueta} other {# etiquetas}}",
+  "rich_filters": {
+    "view_controls": {
+      "save_options": "Opciones para guardar la vista",
+      "update_view": "Actualizar vista",
+      "save_as": "Guardar como",
+      "hide_filters": "Ocultar filtros"
+    }
+  },
+  "set_default_workspace": "Establecer como espacio de trabajo predeterminado",
+  "unset_default_workspace": "Quitar como espacio de trabajo predeterminado",
   "zil_seed_studio_defaults_label": "Configurar proyecto de cliente estándar",
   "zil_seed_studio_defaults_description": "Agrega a este proyecto los estados habituales del estudio (Briefing, Propuesta inicial, Correcciones, Entrega, Suspendidos) y las etiquetas de entregables (Branding, Web, Landing, Redes Sociales, Email, Merchandising).",
   "zil_erp": {

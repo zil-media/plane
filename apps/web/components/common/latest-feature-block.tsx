@@ -1,0 +1,39 @@
+/**
+ * Copyright (c) 2023-present Plane Software, Inc. and contributors
+ * SPDX-License-Identifier: AGPL-3.0-only
+ * See the LICENSE file for details.
+ */
+
+import { useTheme } from "next-themes";
+// icons
+import { ThoughtsOutline } from "@makeplane/propel/icons";
+// images
+import latestFeatures from "@/app/assets/onboarding/onboarding-pages.webp?url";
+
+export function LatestFeatureBlock() {
+  const { resolvedTheme } = useTheme();
+
+  return (
+    <>
+      <div className="mx-auto mt-16 flex rounded-[3.5px] border border-subtle bg-surface-1 py-2 sm:w-96">
+        <ThoughtsOutline className="mx-3 mr-2 h-7 w-7" />
+        <p className="text-left text-body-xs-regular text-primary">
+          Pages gets a facelift! Write anything and use Galileo to help you start.
+        </p>
+      </div>
+      <div
+        className={`mx-auto mt-8 overflow-hidden rounded-md border border-subtle object-cover sm:h-52 sm:w-96 ${
+          resolvedTheme === "dark" ? "bg-surface-1" : "bg-layer-2"
+        }`}
+      >
+        <div className="h-[90%]">
+          <img
+            src={latestFeatures}
+            alt="Zil Ops work items"
+            className={`-mt-2 ml-10 h-full rounded-md ${resolvedTheme === "dark" ? "bg-surface-1" : "bg-layer-2"}`}
+          />
+        </div>
+      </div>
+    </>
+  );
+}

@@ -1,4 +1,4 @@
-import { prosemirrorToYXmlFragment } from "y-prosemirror";
+import { prosemirrorToYXmlFragment } from "@tiptap/y-tiptap";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { docFromHTML } from "@/lib/page-edit/schema";

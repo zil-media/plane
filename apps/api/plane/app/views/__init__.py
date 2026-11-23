@@ -190,6 +190,7 @@ from .page.zil_client import (
     PageZilClientBrandFilesEndpoint,
     PageZilClientBrandFileEndpoint,
 )
+from .page.live import PageLiveAccessEndpoint
 
 from .search.base import GlobalSearchEndpoint, SearchEndpoint
 from .search.issue import IssueSearchEndpoint

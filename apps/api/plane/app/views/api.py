@@ -42,24 +42,24 @@ class ApiTokenEndpoint(BaseAPIView):
         if pk is None:
             # a connector replaced by connecting the app again is gone for good: don't list it
             api_tokens = (
-                APIToken.objects.filter(user=request.user, is_service=False)
+                APIToken.objects.filter(user=request.user)
                 .exclude(mcp_oauth_grant__isnull=False, is_active=False)
                 .select_related("mcp_oauth_grant")
             )
             serializer = APITokenReadSerializer(api_tokens, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
-            api_tokens = APIToken.objects.get(user=request.user, pk=pk, is_service=False)
+            api_tokens = APIToken.objects.get(user=request.user, pk=pk)
             serializer = APITokenReadSerializer(api_tokens)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
     def delete(self, request: Request, pk: str) -> Response:
-        api_token = APIToken.objects.get(user=request.user, pk=pk, is_service=False)
+        api_token = APIToken.objects.get(user=request.user, pk=pk)
         api_token.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def patch(self, request: Request, pk: str) -> Response:
-        api_token = APIToken.objects.get(user=request.user, pk=pk, is_service=False)
+        api_token = APIToken.objects.get(user=request.user, pk=pk)
         serializer = APITokenSerializer(api_token, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()

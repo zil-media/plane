@@ -577,7 +577,6 @@ def sync_zil_agent(email, name, workspaces, rotate_token=False, suspended=False)
                 user_type=1,
                 label=ZIL_AGENT_TOKEN_LABEL,
                 workspace=None,
-                allowed_rate_limit=ZIL_AGENT_RATE_LIMIT,
             ).token
 
     return {"user": agent, "created": created, "token": token, "suspended": False}

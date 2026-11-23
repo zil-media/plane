@@ -5,7 +5,7 @@
  */
 
 import type { Node as PMNode } from "@tiptap/pm/model";
-import { updateYFragment, yXmlFragmentToProseMirrorRootNode } from "y-prosemirror";
+import { updateYFragment, yXmlFragmentToProseMirrorRootNode } from "@tiptap/y-tiptap";
 import type * as Y from "yjs";
 import type { EditOp, EditResult } from "./ops";
 import { applyEdits } from "./ops";

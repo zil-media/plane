@@ -1,0 +1,65 @@
+/*
+ * Zil Ops palette overrides (see docs/ZIL_OPS_REBRAND.md).
+ *
+ * Token values come from @makeplane/propel/styles (imported in ./index.css); this file re-applies Zil's
+ * overrides on top of them and MUST be imported after it. Only the accent ramp (both themes) and the
+ * dark neutrals are remapped; light neutrals stay as propel ships them (Zil has no light variant).
+ */
+@layer base {
+  :root,
+  :host {
+    /* Brand colors (Zil blue, hue 272) */
+    --brand-100: oklch(0.9847 0.0108 272);
+    --brand-200: oklch(0.9715 0.0217 272);
+    --brand-300: oklch(0.9428 0.0443 272);
+    --brand-400: oklch(0.9008 0.0763 272);
+    --brand-500: oklch(0.8414 0.1231 272);
+    --brand-600: oklch(0.7649 0.181 272);
+    --brand-700: oklch(0.6766 0.2 272);
+    --brand-900: oklch(0.59 0.172 272); /* accent hover (darker than default) */
+    --brand-1000: oklch(0.53 0.156 272); /* accent active */
+    --brand-1100: oklch(0.2626 0.0751 272);
+    --brand-1200: oklch(0.2093 0.0569 272);
+    --brand-default: oklch(0.6601 0.1804 272); /* Zil brand blue #6D86FF */
+
+    @variant dark {
+      /* Zil near-black ramp (dark-first identity) */
+      --neutral-black: oklch(0.1448 0.004 286); /* #0A0A0A base bg */
+      --neutral-100: oklch(0.1785 0.0041 286); /* #111113 card/surface */
+      --neutral-200: oklch(0.2011 0.0039 286); /* #161618 elevated */
+      --neutral-300: oklch(0.2195 0.0077 285.74); /* #1A1A1E hover/border */
+      --neutral-400: oklch(0.245 0.009 280);
+      --neutral-500: oklch(0.27 0.01 275);
+      --neutral-600: oklch(0.2936 0.0112 271.01); /* #2A2C32 dark-grey */
+      --neutral-700: oklch(0.375 0.018 271);
+      --neutral-800: oklch(0.4691 0.0267 271.65); /* #555A6A mid-grey-2 */
+      --neutral-900: oklch(0.55 0.026 270);
+      --neutral-1000: oklch(0.6305 0.025 269.29); /* #838999 mid-grey */
+      --neutral-1100: oklch(0.8 0.01 260);
+      --neutral-1200: oklch(0.9637 0.0017 247.84); /* #F2F3F4 primary text */
+      --neutral-white: oklch(0.9702 0 0);
+      /* Brand colors */
+      --brand-100: oklch(0.2029 0.039 272);
+      --brand-200: oklch(0.2513 0.0543 272);
+      --brand-300: oklch(0.3208 0.0755 272);
+      --brand-400: oklch(0.4088 0.101 272);
+      --brand-500: oklch(0.4511 0.1131 272);
+      --brand-700: oklch(0.7408 0.1304 272);
+      --brand-800: oklch(0.8318 0.0853 272);
+      --brand-900: oklch(0.8969 0.0521 272);
+      --brand-1000: oklch(0.9409 0.0297 272);
+      --brand-1100: oklch(0.9704 0.0148 272);
+      --brand-1200: oklch(0.9856 0.0065 272);
+      --brand-default: oklch(0.6601 0.1804 272); /* Zil brand blue #6D86FF */
+    }
+  }
+}
+
+@theme {
+  --font-heading:
+    "Red Hat Display", "Inter Variable", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+  --font-body:
+    "Red Hat Display", "Inter Variable", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+}
