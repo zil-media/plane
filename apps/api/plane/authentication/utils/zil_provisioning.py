@@ -231,8 +231,9 @@ def provision_brand_team_user(email, workspace_id, role):
     the brand's team and can't be picked as its CM or Responsable. The account is the one their
     first sign-in would make (no local password, email verified upstream, Spanish) plus a
     membership of the brand's workspace; that sign-in then fills in their name and photo and
-    reconciles their workspaces and roles. Until then the account is only a stand-in made here:
-    it joins each brand's workspace as it comes, with the highest brand role it was given there.
+    reconciles their workspaces and roles. A new account is told by email to sign in. Until then
+    the account is only a stand-in made here: it joins each brand's workspace as it comes, with the
+    highest brand role it was given there.
     An account that ever signed in, or was deactivated, is never touched.
 
     Returns (user_id, workspace role, created) or None.
@@ -261,7 +262,32 @@ def provision_brand_team_user(email, workspace_id, role):
                 membership.save(update_fields=["role", "updated_at"])
     except IntegrityError:
         return None  # made at the same time by their own sign-in: that one wins
+    if created:
+        # once, when the account is made, and only if what made it is kept (a dry run sends nothing)
+        transaction.on_commit(lambda: send_sign_in_invitation(email, workspace_id))
     return user.id, membership.role, created
+
+
+def send_sign_in_invitation(email, workspace_id):
+    """Tell someone whose Ops account the brand sync just made that they have to sign in to Ops."""
+    from django.conf import settings
+
+    from plane.utils.agent_pipeline import notify
+
+    workspace = Workspace.objects.filter(pk=workspace_id).first()
+    base = (settings.WEB_URL or "").rstrip("/")
+    notify.send(
+        email,
+        "Ya tenés acceso a Zil Ops",
+        "Ya tenés acceso a Zil Ops",
+        [
+            "Hola,",
+            f"Te sumaron al equipo de marcas de {workspace.name if workspace else 'tu unidad'} en Zil Ops.",
+            "Entrá con tu cuenta de Zil para ver tus marcas y tus tareas.",
+        ],
+        "Entrar a Zil Ops",
+        f"{base}/{workspace.slug}/" if workspace else base,
+    )
 
 
 def provision_user_workspaces(user, workspaces, authoritative=False):

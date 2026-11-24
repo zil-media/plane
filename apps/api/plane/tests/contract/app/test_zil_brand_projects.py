@@ -415,6 +415,35 @@ class TestBrandMembers:
         assert ProjectMember.objects.get(project=project_of(KFC), member=guest).role == 5
 
     @pytest.mark.django_db
+    def test_a_new_account_is_told_once_by_email_to_sign_in(
+        self, workspace, create_user, django_capture_on_commit_callbacks
+    ):
+        make_user(workspace, "ana@zil.global", last_login_time=timezone.now())
+        team = [{"email": "ana@zil.global"}, {"email": "nueva@zil.global"}]
+        with (
+            mock.patch("plane.bgtasks.agent_pipeline_task.send_support_email_task.delay") as email,
+            mock.patch("django.conf.settings.WEB_URL", "https://ops.zil.test"),
+        ):
+            with django_capture_on_commit_callbacks(execute=True):
+                push(workspace, [brand(KFC, "KFC", members=team), brand(WENDYS, "Wendy's", members=team)])
+            with django_capture_on_commit_callbacks(execute=True):
+                push(workspace, [brand(KFC, "KFC", members=team)])
+
+        # only the account just made, once, with the way in to its workspace; never who has one
+        email.assert_called_once()
+        to, subject, _heading, paragraphs, cta_label, cta_url = email.call_args.args
+        assert to == ["nueva@zil.global"] and "Zil Ops" in subject
+        assert any(workspace.name in paragraph for paragraph in paragraphs)
+        assert cta_url == f"https://ops.zil.test/{workspace.slug}/" and cta_label
+
+    @pytest.mark.django_db
+    def test_a_dry_run_sends_no_email(self, workspace, django_capture_on_commit_callbacks):
+        with mock.patch("plane.bgtasks.agent_pipeline_task.send_support_email_task.delay") as email:
+            with django_capture_on_commit_callbacks(execute=True):
+                push(workspace, [brand(KFC, "KFC", members=[{"email": "nueva@zil.global"}])], dry_run=True)
+        email.assert_not_called()
+
+    @pytest.mark.django_db
     def test_a_dry_run_makes_no_account(self, workspace):
         response = push(workspace, [brand(KFC, "KFC", members=[{"email": "nueva@zil.global"}])], dry_run=True)
         assert response["users_provisioned"] == 1
