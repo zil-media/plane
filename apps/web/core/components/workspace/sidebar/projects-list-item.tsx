@@ -113,7 +113,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   const defaultTabKey = tabPreferences.defaultTab;
   // Validate that the default tab is available
   const validatedTabKey = availableTabKeys.includes(defaultTabKey) ? defaultTabKey : DEFAULT_TAB_KEY;
-  // a brand's project opens on its pages (it has no work items tab)
+  // a brand's project opens on its pages
   const validatedDefaultTabKey = isBrandProject && validatedTabKey === "work_items" ? "pages" : validatedTabKey;
   const defaultTabUrl = project ? getTabUrl(workspaceSlug.toString(), project.id, validatedDefaultTabKey) : "";
 
