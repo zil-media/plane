@@ -56,7 +56,12 @@ export type TZilBrandPerson = {
   avatar_url: string;
   /** the workspaces where they work the brand, by name */
   business_units: string[];
+  /** the same workspaces, by id */
+  business_unit_ids: string[];
 };
+
+/** The Responsable of one Business Unit (workspace) that works the brand; null while nobody is. */
+export type TZilBrandResponsible = { workspace_id: string; business_unit: string; member_id: string | null };
 
 /**
  * What Ops itself keeps on a brand, loaded from the "Marca" tab and shared by every workspace that
@@ -64,7 +69,8 @@ export type TZilBrandPerson = {
  */
 export type TZilBrandOps = {
   community_manager_ids: string[];
-  leader_ids: string[];
+  /** one per unit that works the brand; a change sends the units it changes */
+  responsibles: TZilBrandResponsible[];
   materials_links: TZilBrandLink[];
   finals_links: TZilBrandLink[];
   team: TZilBrandPerson[];

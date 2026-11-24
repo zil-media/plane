@@ -74,14 +74,14 @@ class ZilBrandOps(BaseModel):
     """What Ops keeps on a brand, loaded from the "Marca" tab and never touched by the sync.
 
     One per Zil brand, not per workspace: a brand worked by several Business Units (Meraki, Zil,
-    Marketwise) shows the same CMs, líderes and Drive links in each of their workspaces.
+    Marketwise) shows the same CMs and Drive links in each of their workspaces. Each unit's
+    Responsable is its own (`ZilBrandResponsible`).
     """
 
     zil_brand_id = models.CharField(max_length=24)
     community_managers = models.ManyToManyField(
         settings.AUTH_USER_MODEL, blank=True, related_name="zil_brand_ops_as_cm"
     )
-    leaders = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name="zil_brand_ops_as_leader")
     # [{"name": "Fotos", "url": "https://drive.google.com/…"}], in the order people loaded them
     materials_links = models.JSONField(default=list, blank=True)
     finals_links = models.JSONField(default=list, blank=True)
@@ -101,6 +101,35 @@ class ZilBrandOps(BaseModel):
 
     def __str__(self):
         return self.zil_brand_id
+
+
+class ZilBrandResponsible(BaseModel):
+    """Who answers for a brand in one Business Unit (workspace): one Responsable per unit.
+
+    Loaded from the "Marca" tab and never touched by the sync, like `ZilBrandOps`.
+    """
+
+    zil_brand_id = models.CharField(max_length=24)
+    workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="zil_brand_responsibles")
+    member = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="zil_brand_responsible_of"
+    )
+
+    class Meta:
+        verbose_name = "Zil Brand Responsible"
+        verbose_name_plural = "Zil Brand Responsibles"
+        db_table = "zil_brand_responsibles"
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["zil_brand_id", "workspace"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="zil_brand_responsible_unique_unit",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.zil_brand_id} @ {self.workspace_id}"
 
 
 class ZilBrandMember(BaseModel):

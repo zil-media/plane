@@ -19,7 +19,13 @@ import { MemberDropdownBase } from "@/components/dropdowns/member/base";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";
 import { useZilProjectBrand } from "@/hooks/use-zil-brands";
-import type { TZilBrandLink, TZilBrandOpsChanges, TZilBrandPerson, TZilBrandSheet } from "@/services/zil-brand.service";
+import type {
+  TZilBrandLink,
+  TZilBrandOpsChanges,
+  TZilBrandPerson,
+  TZilBrandResponsible,
+  TZilBrandSheet,
+} from "@/services/zil-brand.service";
 // local imports
 import { ZilBrandLogo } from "./brand-logo";
 
@@ -112,6 +118,61 @@ function PeopleField({ memberIds, team, isEditable, onChange }: TPeopleFieldProp
       className="h-auto w-full"
       buttonContainerClassName="-mx-1 h-auto w-full"
     />
+  );
+}
+
+type TResponsiblesFieldProps = {
+  responsibles: TZilBrandResponsible[];
+  team: Map<string, TZilBrandPerson>;
+  isEditable: boolean;
+  onChange: (responsibles: TZilBrandResponsible[]) => void;
+};
+
+/** One Responsable per unit that works the brand, picked among who works the brand in that unit. */
+function ResponsiblesField({ responsibles, team, isEditable, onChange }: TResponsiblesFieldProps) {
+  const { t } = useTranslation();
+
+  if (responsibles.length === 0) return <Empty>{t("zil_brand.unassigned")}</Empty>;
+  return (
+    <ul className="flex flex-col gap-2">
+      {responsibles.map((unit) => {
+        const memberIds = [...team.values()]
+          .filter((person) => person.business_unit_ids.includes(unit.workspace_id))
+          .map((person) => person.id);
+        return (
+          <li key={unit.workspace_id} className="flex min-w-0 flex-col gap-1">
+            <span className="text-11 text-tertiary">{unit.business_unit}</span>
+            <MemberDropdownBase
+              value={unit.member_id}
+              onChange={(memberId) =>
+                onChange(
+                  responsibles.map((other) =>
+                    other.workspace_id === unit.workspace_id
+                      ? { ...other, member_id: memberId === unit.member_id ? null : memberId }
+                      : other
+                  )
+                )
+              }
+              memberIds={memberIds}
+              getUserDetails={(userId) => {
+                const person = team.get(userId);
+                return person ? { ...person, is_bot: false } : undefined;
+              }}
+              multiple={false}
+              disabled={!isEditable}
+              buttonVariant="transparent-with-text"
+              button={
+                <div className="w-full rounded-sm px-1 py-1 text-left hover:bg-layer-1">
+                  <PeopleList memberIds={unit.member_id ? [unit.member_id] : []} team={team} />
+                </div>
+              }
+              className="h-auto w-full"
+              buttonContainerClassName="-mx-1 h-auto w-full"
+            />
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -283,7 +344,7 @@ type TTeamCard = {
   detail: string;
   businessUnits: string[];
   isCommunityManager: boolean;
-  isLeader: boolean;
+  isResponsible: boolean;
 };
 
 const emailKey = (email: string | null | undefined) => (email ?? "").toLowerCase();
@@ -306,23 +367,23 @@ const summaryPreview = (markdown: string) =>
     .filter(Boolean)
     .join(" ");
 
-const teamRank = (card: TTeamCard) => (card.isCommunityManager ? 0 : card.isLeader ? 1 : 2);
+const teamRank = (card: TTeamCard) => (card.isCommunityManager ? 0 : card.isResponsible ? 1 : 2);
 
 /**
  * Everyone on the brand with their photo: the team in Ops (every workspace that works the brand),
  * with the role Zil gives them, plus whoever Zil lists who has not signed in to Ops yet. CMs and
- * líderes first.
+ * Responsables first.
  */
 function TeamSection({
   team,
   sheetTeam,
   communityManagerIds,
-  leaderIds,
+  responsibleIds,
 }: {
   team: TZilBrandPerson[];
   sheetTeam: TZilBrandSheet["team"];
   communityManagerIds: string[];
-  leaderIds: string[];
+  responsibleIds: string[];
 }) {
   const { t } = useTranslation();
   const roleByEmail = new Map((sheetTeam ?? []).map((person) => [emailKey(person.email), person]));
@@ -336,7 +397,7 @@ function TeamSection({
       detail: fromZil?.role || person.email,
       businessUnits: person.business_units,
       isCommunityManager: communityManagerIds.includes(person.id),
-      isLeader: leaderIds.includes(person.id),
+      isResponsible: responsibleIds.includes(person.id),
     };
   });
   for (const person of roleByEmail.values()) {
@@ -347,7 +408,7 @@ function TeamSection({
       detail: person.role || person.email,
       businessUnits: [],
       isCommunityManager: false,
-      isLeader: false,
+      isResponsible: false,
     });
   }
   cards.sort((a, b) => teamRank(a) - teamRank(b) || a.name.localeCompare(b.name));
@@ -364,16 +425,16 @@ function TeamSection({
               <div className="flex min-w-0 flex-col gap-1">
                 <span className="truncate text-13 font-medium text-primary">{card.name}</span>
                 <span className="truncate text-11 text-tertiary">{card.detail}</span>
-                {(card.isCommunityManager || card.isLeader || card.businessUnits.length > 0) && (
+                {(card.isCommunityManager || card.isResponsible || card.businessUnits.length > 0) && (
                   <div className="flex flex-wrap gap-1">
                     {card.isCommunityManager && (
                       <span className="inline-flex items-center rounded-sm border border-subtle px-1.5 py-0.5 text-11 text-primary">
                         {t("zil_brand.community_manager")}
                       </span>
                     )}
-                    {card.isLeader && (
+                    {card.isResponsible && (
                       <span className="inline-flex items-center rounded-sm border border-subtle px-1.5 py-0.5 text-11 text-primary">
-                        {t("zil_brand.leader")}
+                        {t("zil_brand.responsible")}
                       </span>
                     )}
                     {card.businessUnits.map((unit) => (
@@ -471,12 +532,12 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
               onChange={(memberIds) => void saveOps({ community_manager_ids: memberIds })}
             />
           </OpsCard>
-          <OpsCard label={t("zil_brand.leader")}>
-            <PeopleField
-              memberIds={ops.leader_ids}
+          <OpsCard label={t("zil_brand.responsible")}>
+            <ResponsiblesField
+              responsibles={ops.responsibles}
               team={team}
               isEditable={isEditable}
-              onChange={(memberIds) => void saveOps({ leader_ids: memberIds })}
+              onChange={(responsibles) => void saveOps({ responsibles })}
             />
           </OpsCard>
           <OpsCard label={t("zil_brand.materials")}>
@@ -500,7 +561,7 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
         team={ops.team}
         sheetTeam={sheet?.team ?? null}
         communityManagerIds={ops.community_manager_ids}
-        leaderIds={ops.leader_ids}
+        responsibleIds={ops.responsibles.flatMap((unit) => (unit.member_id ? [unit.member_id] : []))}
       />
 
       {unavailable && <Notice>{t("zil_brand.unavailable")}</Notice>}

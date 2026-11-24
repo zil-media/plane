@@ -5,9 +5,19 @@
 from unittest import mock
 
 import pytest
+from django.utils import timezone
 from rest_framework import status
 
-from plane.db.models import Project, ProjectMember, User, Workspace, WorkspaceMember, ZilBrandOps, ZilBrandProject
+from plane.db.models import (
+    Project,
+    ProjectMember,
+    User,
+    Workspace,
+    WorkspaceMember,
+    ZilBrandOps,
+    ZilBrandProject,
+    ZilBrandResponsible,
+)
 from plane.utils.zil_brand_projects import apply_brand_roster
 
 KFC = "0123456789abcdef0123d001"
@@ -137,12 +147,12 @@ class TestBrandOpsFields:
             return client.get(self.url(workspace, project)).data["ops"]
 
     @pytest.mark.django_db
-    def test_several_cms_leaders_and_drive_links_are_loaded_from_ops_and_shown(
+    def test_several_cms_a_responsable_and_drive_links_are_loaded_from_ops_and_shown(
         self, session_client, workspace, brands, create_user, teammate
     ):
         body = {
             "community_manager_ids": [str(create_user.id), str(teammate.id)],
-            "leader_ids": [str(teammate.id)],
+            "responsibles": [{"workspace_id": str(workspace.id), "member_id": str(teammate.id)}],
             "materials_links": [
                 {"name": " Fotos ", "url": " https://drive.google.com/drive/folders/fotos "},
                 {"url": "https://drive.google.com/drive/folders/logos"},
@@ -154,7 +164,9 @@ class TestBrandOpsFields:
 
         ops = self.get_ops(session_client, workspace, brands)
         assert set(ops["community_manager_ids"]) == {str(create_user.id), str(teammate.id)}
-        assert ops["leader_ids"] == [str(teammate.id)]
+        assert ops["responsibles"] == [
+            {"workspace_id": str(workspace.id), "business_unit": workspace.name, "member_id": str(teammate.id)}
+        ]
         assert ops["materials_links"] == [
             {"name": "Fotos", "url": "https://drive.google.com/drive/folders/fotos"},
             {"name": "", "url": "https://drive.google.com/drive/folders/logos"},
@@ -162,10 +174,12 @@ class TestBrandOpsFields:
         assert ops["finals_links"] == [{"name": "Octubre", "url": "https://drive.google.com/drive/folders/octubre"}]
 
         # each field sent replaces its whole list; the rest stay as they were
+        unset = [{"workspace_id": str(workspace.id), "member_id": None}]
         cleared = session_client.patch(
-            self.url(workspace, brands), {"leader_ids": [], "finals_links": []}, format="json"
+            self.url(workspace, brands), {"responsibles": unset, "finals_links": []}, format="json"
         )
-        assert cleared.data["ops"]["leader_ids"] == [] and cleared.data["ops"]["finals_links"] == []
+        assert cleared.data["ops"]["responsibles"][0]["member_id"] is None
+        assert cleared.data["ops"]["finals_links"] == []
         assert (
             len(cleared.data["ops"]["community_manager_ids"]) == 2 and len(cleared.data["ops"]["materials_links"]) == 2
         )
@@ -177,7 +191,7 @@ class TestBrandOpsFields:
             self.url(workspace, brands),
             {
                 "community_manager_ids": [str(create_user.id), str(outsider.id)],
-                "leader_ids": ["not-a-uuid"],
+                "responsibles": [{"workspace_id": str(workspace.id), "member_id": "not-a-uuid"}],
                 "materials_links": [
                     {"name": "ok", "url": "https://drive.google.com/a"},
                     {"url": "javascript:alert(1)"},
@@ -187,7 +201,7 @@ class TestBrandOpsFields:
             format="json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert set(response.data) == {"community_manager_ids", "leader_ids", "materials_links", "finals_links"}
+        assert set(response.data) == {"community_manager_ids", "responsibles", "materials_links", "finals_links"}
         assert not ZilBrandOps.objects.filter(zil_brand_id=KFC).exists()
 
     @pytest.mark.django_db
@@ -213,16 +227,16 @@ class TestBrandOpsFields:
     @pytest.mark.django_db
     def test_the_roster_sync_keeps_what_ops_loaded(self, session_client, workspace, brands, create_user):
         link = [{"name": "", "url": "https://drive.google.com/f"}]
-        session_client.patch(
-            self.url(workspace, brands), {"leader_ids": [str(create_user.id)], "finals_links": link}, format="json"
-        )
+        unit = [{"workspace_id": str(workspace.id), "member_id": str(create_user.id)}]
+        session_client.patch(self.url(workspace, brands), {"responsibles": unit, "finals_links": link}, format="json")
         apply_brand_roster(
             workspace.id,
             [{"brandId": KFC, "name": "KFC Argentina"}, {"brandId": WENDYS, "name": "Wendy's"}],
             authoritative=True,
         )
         ops = ZilBrandOps.objects.get(zil_brand_id=KFC)
-        assert list(ops.leaders.all()) == [create_user] and ops.finals_links == link
+        assert ops.finals_links == link
+        assert ZilBrandResponsible.objects.get(zil_brand_id=KFC, workspace=workspace).member == create_user
 
 
     @pytest.mark.django_db
@@ -243,6 +257,7 @@ class TestBrandOpsFields:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["ops"]["community_manager_ids"] == [str(cm.id)]
+
 
 @pytest.fixture
 def meraki(brands, create_user):
@@ -278,7 +293,6 @@ class TestBrandOpsSharedAcrossUnits:
             self.url(workspace, brands),
             {
                 "community_manager_ids": [str(meraki_cm.id)],
-                "leader_ids": [str(create_user.id)],
                 "materials_links": [{"name": "Fotos", "url": "https://drive.google.com/drive/folders/fotos"}],
             },
             format="json",
@@ -288,7 +302,6 @@ class TestBrandOpsSharedAcrossUnits:
 
         seen_from_meraki = self.get_ops(session_client, meraki_ws, meraki_kfc)
         assert seen_from_meraki["community_manager_ids"] == [str(meraki_cm.id)]
-        assert seen_from_meraki["leader_ids"] == [str(create_user.id)]
         assert seen_from_meraki["materials_links"] == [
             {"name": "Fotos", "url": "https://drive.google.com/drive/folders/fotos"}
         ]
@@ -322,3 +335,65 @@ class TestBrandOpsSharedAcrossUnits:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert meraki_cm.email not in [p["email"] for p in self.get_ops(session_client, workspace, brands)["team"]]
+
+    @pytest.mark.django_db
+    def test_each_unit_has_its_own_responsable_picked_among_who_works_the_brand_there(
+        self, session_client, workspace, brands, meraki, create_user
+    ):
+        meraki_ws, meraki_kfc, meraki_cm = meraki
+        body = {
+            "responsibles": [
+                {"workspace_id": str(workspace.id), "member_id": str(create_user.id)},
+                {"workspace_id": str(meraki_ws.id), "member_id": str(meraki_cm.id)},
+            ]
+        }
+        response = session_client.patch(self.url(workspace, brands), body, format="json")
+        assert response.status_code == status.HTTP_200_OK, response.data
+
+        expected = sorted(
+            [
+                {"workspace_id": str(meraki_ws.id), "business_unit": "Meraki", "member_id": str(meraki_cm.id)},
+                {"workspace_id": str(workspace.id), "business_unit": workspace.name, "member_id": str(create_user.id)},
+            ],
+            key=lambda unit: unit["business_unit"],
+        )
+        assert self.get_ops(session_client, meraki_ws, meraki_kfc)["responsibles"] == expected
+
+        # a change to one unit leaves the other's
+        one = {"responsibles": [{"workspace_id": str(meraki_ws.id), "member_id": str(create_user.id)}]}
+        session_client.patch(self.url(meraki_ws, meraki_kfc), one, format="json")
+        by_unit = {
+            unit["workspace_id"]: unit["member_id"]
+            for unit in self.get_ops(session_client, workspace, brands)["responsibles"]
+        }
+        assert by_unit == {str(workspace.id): str(create_user.id), str(meraki_ws.id): str(create_user.id)}
+
+    @pytest.mark.django_db
+    def test_a_responsable_must_work_the_brand_in_that_unit(self, session_client, workspace, brands, meraki):
+        meraki_ws, meraki_kfc, meraki_cm = meraki
+        # Meraki's CM works the brand only in Meraki: not Responsable of Zil's unit
+        wrong = {"responsibles": [{"workspace_id": str(workspace.id), "member_id": str(meraki_cm.id)}]}
+        response = session_client.patch(self.url(workspace, brands), wrong, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert set(response.data) == {"responsibles"}
+
+        # nor a unit that does not work the brand
+        elsewhere = Workspace.objects.create(name="Otra", slug="otra", owner=meraki_cm)
+        bad_unit = {"responsibles": [{"workspace_id": str(elsewhere.id), "member_id": None}]}
+        assert session_client.patch(self.url(workspace, brands), bad_unit, format="json").status_code == 400
+
+        # someone who leaves the brand in their unit stops showing as its Responsable
+        ok = {"responsibles": [{"workspace_id": str(meraki_ws.id), "member_id": str(meraki_cm.id)}]}
+        session_client.patch(self.url(workspace, brands), ok, format="json")
+        ProjectMember.objects.filter(project=meraki_kfc, member=meraki_cm).update(is_active=False)
+        units = self.get_ops(session_client, workspace, brands)["responsibles"]
+        assert next(u for u in units if u["workspace_id"] == str(meraki_ws.id))["member_id"] is None
+
+    @pytest.mark.django_db
+    def test_a_unit_that_stopped_working_the_brand_has_no_responsable_row(
+        self, session_client, workspace, brands, meraki
+    ):
+        _, meraki_kfc, _ = meraki
+        Project.objects.filter(pk=meraki_kfc.pk).update(archived_at=timezone.now())
+        units = self.get_ops(session_client, workspace, brands)["responsibles"]
+        assert [u["workspace_id"] for u in units] == [str(workspace.id)]

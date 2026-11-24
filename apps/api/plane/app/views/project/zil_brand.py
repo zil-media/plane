@@ -15,7 +15,7 @@ from rest_framework.response import Response
 
 # Module imports
 from plane.app.permissions import ROLE, allow_permission
-from plane.db.models import ProjectMember, ZilBrandOps, ZilBrandProject
+from plane.db.models import ProjectMember, ZilBrandOps, ZilBrandProject, ZilBrandResponsible
 from plane.utils.zil_client import ZilUnavailable, get_zil_brand, zil_enabled
 from ..base import BaseAPIView
 
@@ -70,7 +70,7 @@ def serialize_brand_project(mapping):
     }
 
 
-OPS_PEOPLE = ("community_managers", "leaders")
+OPS_PEOPLE = ("community_managers",)
 OPS_LINKS = ("materials_links", "finals_links")
 MAX_LINKS = 30
 MAX_LINK_NAME = 120
@@ -103,18 +103,34 @@ def brand_ops(mapping):
     return found or ZilBrandOps(zil_brand_id=mapping.zil_brand_id)
 
 
+def brand_units(zil_brand_id):
+    """The live projects of the brand, one per Business Unit (workspace) that works it, by unit name."""
+    return (
+        ZilBrandProject.objects.filter(
+            zil_brand_id=zil_brand_id,
+            kind=ZilBrandProject.BRAND_KIND,
+            project__deleted_at__isnull=True,
+            project__archived_at__isnull=True,
+            workspace__deleted_at__isnull=True,
+        )
+        .select_related("workspace")
+        .order_by("workspace__name")
+    )
+
+
 def serialize_brand_ops(mapping, ops=None):
     """What Ops itself keeps on the brand: who runs it and where its Drive folders are, plus its team.
 
     People show only while they are on the brand's team: someone Zil takes off the brand (in every
-    workspace) stops showing as its CM or líder, and shows again if they come back.
+    workspace) stops showing as its CM, and shows again if they come back. A unit's Responsable
+    shows only while they work the brand in that unit.
     """
     ops = ops or brand_ops(mapping)
     team = {}
     for membership in brand_team(mapping.zil_brand_id).select_related("member", "member__avatar_asset", "workspace"):
         user = membership.member
         person = team.setdefault(
-            user.id,
+            str(user.id),
             {
                 "id": str(user.id),
                 "display_name": user.display_name or user.first_name or user.email,
@@ -123,9 +139,11 @@ def serialize_brand_ops(mapping, ops=None):
                 "email": user.email,
                 "avatar_url": user.avatar_url or "",
                 "business_units": [],
+                "business_unit_ids": [],
             },
         )
-        if membership.workspace.name not in person["business_units"]:
+        if str(membership.workspace_id) not in person["business_unit_ids"]:
+            person["business_unit_ids"].append(str(membership.workspace_id))
             person["business_units"].append(membership.workspace.name)
 
     def on_team(people):
@@ -133,9 +151,22 @@ def serialize_brand_ops(mapping, ops=None):
             return []
         return [str(pk) for pk in people.filter(id__in=team).order_by("display_name").values_list("id", flat=True)]
 
+    chosen = {
+        str(row.workspace_id): str(row.member_id)
+        for row in ZilBrandResponsible.objects.filter(zil_brand_id=mapping.zil_brand_id)
+    }
+    responsibles = []
+    for unit in brand_units(mapping.zil_brand_id):
+        unit_id = str(unit.workspace_id)
+        member_id = chosen.get(unit_id)
+        on_unit = member_id in team and unit_id in team[member_id]["business_unit_ids"] if member_id else False
+        responsibles.append(
+            {"workspace_id": unit_id, "business_unit": unit.workspace.name, "member_id": member_id if on_unit else None}
+        )
+
     return {
         "community_manager_ids": on_team(ops.community_managers),
-        "leader_ids": on_team(ops.leaders),
+        "responsibles": responsibles,
         "materials_links": ops.materials_links,
         "finals_links": ops.finals_links,
         "team": sorted(team.values(), key=lambda person: person["display_name"].lower()),
@@ -152,6 +183,30 @@ def team_member_ids(zil_brand_id, member_ids):
     except (ValidationError, ValueError):
         return None
     return member_ids if found == len(member_ids) else None
+
+
+def clean_responsibles(zil_brand_id, items):
+    """{workspace_id: member_id | None} when every item names a unit of the brand and someone who
+    works the brand in that unit (None clears it); None when anything is off."""
+    if not isinstance(items, list):
+        return None
+    units = {str(pk) for pk in brand_units(zil_brand_id).values_list("workspace_id", flat=True)}
+    cleaned = {}
+    for item in items:
+        if not isinstance(item, dict):
+            return None
+        unit_id, member_id = item.get("workspace_id"), item.get("member_id")
+        if unit_id not in units or not (member_id is None or isinstance(member_id, str)):
+            return None
+        if member_id is not None:
+            try:
+                on_unit = brand_team(zil_brand_id).filter(workspace_id=unit_id, member_id=member_id).exists()
+            except (ValidationError, ValueError):
+                return None
+            if not on_unit:
+                return None
+        cleaned[unit_id] = member_id
+    return cleaned
 
 
 def clean_links(links):
@@ -202,9 +257,11 @@ class ZilMyBrandsEndpoint(BaseAPIView):
 
 class ZilProjectBrandEndpoint(BaseAPIView):
     """GET → the project's brand, what Ops keeps on it and its live sheet from Zil Workspace (the "Marca" tab).
-    PATCH → change what Ops keeps on it: the CMs a cargo and líderes (on the brand's team, in any
-    workspace) and the Drive links of materiales and finales. Each field sent replaces the whole
-    list. It is the brand's, so every workspace that works the brand sees the change.
+    PATCH → change what Ops keeps on it: the CMs a cargo (on the brand's team, in any workspace),
+    the Responsable of each unit (`responsibles: [{workspace_id, member_id | null}]`, someone who
+    works the brand in that unit; units left out keep theirs) and the Drive links of materiales and
+    finales. Each other field sent replaces the whole list. It is the brand's, so every workspace
+    that works the brand sees the change.
 
     404 when the project is not a brand's. When Zil is off or down the brand comes back with
     `sheet: null` and `unavailable: true`, so the tab still shows the brand.
@@ -249,6 +306,11 @@ class ZilProjectBrandEndpoint(BaseAPIView):
                 errors[key] = "Must be on the brand's team"
             else:
                 people[field] = member_ids
+        responsibles = None
+        if "responsibles" in request.data:
+            responsibles = clean_responsibles(mapping.zil_brand_id, request.data.get("responsibles") or [])
+            if responsibles is None:
+                errors["responsibles"] = "Each must be a unit of the brand and someone who works it there"
         links = {}
         for field in OPS_LINKS:
             if field not in request.data:
@@ -267,4 +329,13 @@ class ZilProjectBrandEndpoint(BaseAPIView):
             for field, cleaned in links.items():
                 setattr(ops, field, cleaned)
             ops.save(update_fields=[*links, "updated_at", "updated_by"])
+            for unit_id, member_id in (responsibles or {}).items():
+                if member_id is None:
+                    ZilBrandResponsible.objects.filter(zil_brand_id=mapping.zil_brand_id, workspace_id=unit_id).delete(
+                        soft=False
+                    )
+                else:
+                    ZilBrandResponsible.objects.update_or_create(
+                        zil_brand_id=mapping.zil_brand_id, workspace_id=unit_id, defaults={"member_id": member_id}
+                    )
         return Response({"ops": serialize_brand_ops(mapping, ops)}, status=status.HTTP_200_OK)
