@@ -37,7 +37,7 @@ def leaders_to_units(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("db", "0137_issue_checklist_counts"),
+        ("db", "0138_bug_report_retry"),
     ]
 
     operations = [
