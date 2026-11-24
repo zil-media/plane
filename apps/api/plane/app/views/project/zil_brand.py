@@ -195,7 +195,9 @@ def clean_responsibles(zil_brand_id, items):
     for item in items:
         if not isinstance(item, dict):
             return None
-        unit_id, member_id = item.get("workspace_id"), item.get("member_id")
+        if "member_id" not in item:
+            return None
+        unit_id, member_id = item.get("workspace_id"), item["member_id"]
         if unit_id not in units or not (member_id is None or isinstance(member_id, str)):
             return None
         if member_id is not None:

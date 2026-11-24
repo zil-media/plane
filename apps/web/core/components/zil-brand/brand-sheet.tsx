@@ -125,6 +125,7 @@ type TResponsiblesFieldProps = {
   responsibles: TZilBrandResponsible[];
   team: Map<string, TZilBrandPerson>;
   isEditable: boolean;
+  /** gets only the unit that changed: the others are left as they are on the server */
   onChange: (responsibles: TZilBrandResponsible[]) => void;
 };
 
@@ -144,15 +145,7 @@ function ResponsiblesField({ responsibles, team, isEditable, onChange }: TRespon
             <span className="text-11 text-tertiary">{unit.business_unit}</span>
             <MemberDropdownBase
               value={unit.member_id}
-              onChange={(memberId) =>
-                onChange(
-                  responsibles.map((other) =>
-                    other.workspace_id === unit.workspace_id
-                      ? { ...other, member_id: memberId === unit.member_id ? null : memberId }
-                      : other
-                  )
-                )
-              }
+              onChange={(memberId) => onChange([{ ...unit, member_id: memberId === unit.member_id ? null : memberId }])}
               memberIds={memberIds}
               getUserDetails={(userId) => {
                 const person = team.get(userId);

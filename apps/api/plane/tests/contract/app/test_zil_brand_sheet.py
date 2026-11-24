@@ -377,6 +377,10 @@ class TestBrandOpsSharedAcrossUnits:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert set(response.data) == {"responsibles"}
 
+        # a unit sent without who is its Responsable is a mistake, not a clear
+        no_member = {"responsibles": [{"workspace_id": str(meraki_ws.id)}]}
+        assert session_client.patch(self.url(workspace, brands), no_member, format="json").status_code == 400
+
         # nor a unit that does not work the brand
         elsewhere = Workspace.objects.create(name="Otra", slug="otra", owner=meraki_cm)
         bad_unit = {"responsibles": [{"workspace_id": str(elsewhere.id), "member_id": None}]}

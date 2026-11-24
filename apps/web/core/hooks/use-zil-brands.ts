@@ -6,7 +6,7 @@
 
 import useSWR from "swr";
 // services
-import type { TZilBrandOpsChanges } from "@/services/zil-brand.service";
+import type { TZilBrandOps, TZilBrandOpsChanges } from "@/services/zil-brand.service";
 import { ZilBrandService } from "@/services/zil-brand.service";
 
 const zilBrandService = new ZilBrandService();
@@ -37,7 +37,18 @@ export function useZilProjectBrand(workspaceSlug: string | undefined, projectId:
   const updateOps = async (changes: TZilBrandOpsChanges) => {
     if (!workspaceSlug || !projectId || !data) return;
     const previous = data.ops;
-    await mutate((current) => (current ? { ...current, ops: { ...current.ops, ...changes } } : current), {
+    // a change to some units' Responsable leaves the other units as they are
+    const merge = (ops: TZilBrandOps): TZilBrandOps => {
+      const { responsibles, ...rest } = changes;
+      if (!responsibles) return { ...ops, ...rest };
+      const changed = new Map(responsibles.map((unit) => [unit.workspace_id, unit]));
+      return {
+        ...ops,
+        ...rest,
+        responsibles: ops.responsibles.map((unit) => changed.get(unit.workspace_id) ?? unit),
+      };
+    };
+    await mutate((current) => (current ? { ...current, ops: merge(current.ops) } : current), {
       revalidate: false,
     });
     try {

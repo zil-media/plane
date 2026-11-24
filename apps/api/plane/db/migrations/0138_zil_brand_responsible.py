@@ -12,7 +12,7 @@ def leaders_to_units(apps, schema_editor):
     ZilBrandResponsible = apps.get_model("db", "ZilBrandResponsible")
     ProjectMember = apps.get_model("db", "ProjectMember")
     for ops in ZilBrandOps.objects.filter(deleted_at__isnull=True):
-        leaders = list(ops.leaders.order_by("display_name").values_list("id", flat=True))
+        leaders = list(ops.leaders.order_by("display_name", "id").values_list("id", flat=True))
         if not leaders:
             continue
         mappings = ZilBrandProject.objects.filter(
