@@ -19,8 +19,9 @@ on each one (POST /api/zil/sync/brand-projects/). Nobody sets anything up in Ops
 - who works on the brand is decided only in Zil: the members of the project are the list, applied
   as a difference (nobody is re-added or touched when nothing changed). Workspace admins (directors
   and Zil admins) are Admin members of every brand project of their workspace, team or not, so every
-  brand is in their sidebar; they are never removed while they stay workspace admins. People who
-  never signed in to Ops are kept by email and join on their first sign-in.
+  brand is in their sidebar; they are never removed while they stay workspace admins. Someone who
+  never signed in to Ops gets their account made here (so they are on the brand's team and can be
+  picked as its CM), and is also kept by email in case that account can't be made.
 
 Safe against a bad push: an authoritative but empty list archives nothing (it is a truncated
 payload, not "no brands"), and one that would archive more than half of the workspace's brands
@@ -41,7 +42,7 @@ from django.db import connection, transaction
 from django.utils import timezone
 
 # Module imports
-from plane.authentication.utils.zil_provisioning import get_service_user
+from plane.authentication.utils.zil_provisioning import get_service_user, provision_brand_team_user
 from plane.db.models import (
     BotTypeEnum,
     Project,
@@ -49,6 +50,7 @@ from plane.db.models import (
     ProjectMember,
     ProjectMemberInvite,
     State,
+    User,
     UserFavorite,
     Workspace,
     WorkspaceMember,
@@ -274,8 +276,13 @@ def apply_members(mapping, raw_members, members_authoritative, stats, ws_roles=N
     for email, role in desired.items():
         found = ws_roles.get(email)
         if found is None:
-            stats["members_pending"] += 1
-            continue
+            # never signed in to Ops: their account is made now, so they are on the brand's team
+            user_id = provision_brand_team_user(email, project.workspace_id, role)
+            if user_id is None:
+                stats["members_pending"] += 1
+                continue
+            stats["users_provisioned"] += 1
+            found = ws_roles[email] = (user_id, role)
         user_id, ws_role = found
         if ws_role >= ADMIN_ROLE:
             continue  # joined below, as Admin
@@ -457,6 +464,7 @@ def apply_brand_roster(
         "members_added": 0,
         "members_removed": 0,
         "members_pending": 0,
+        "users_provisioned": 0,
         "brands": [],
     }
     try:
@@ -649,7 +657,7 @@ def apply_user_brand_projects(email, items, authoritative=False, user=None):
     the roster. Returns counters.
     """
     email = (email or "").strip().lower()
-    stats = {"added": 0, "removed": 0, "pending": 0}
+    stats = {"added": 0, "removed": 0, "pending": 0, "provisioned": 0}
     wanted = {}
     for item in items or []:
         if not isinstance(item, dict):
@@ -685,6 +693,13 @@ def apply_user_brand_projects(email, items, authoritative=False, user=None):
                 if user is not None
                 else None
             )
+            if user is None:
+                # never signed in to Ops: their account is made now, so they are on the brand's team
+                user_id = provision_brand_team_user(email, mapping.workspace_id, role)
+                if user_id is not None:
+                    user = User.objects.get(pk=user_id)
+                    ws_role = role
+                    stats["provisioned"] += 1
             if ws_role is None:
                 stats["pending"] += 1
             elif ws_role < ADMIN_ROLE and _ensure_member(mapping.project, user.id, min(role, ws_role)):

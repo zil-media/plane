@@ -338,15 +338,45 @@ class TestBrandMembers:
         assert director.id not in active_member_ids(project_of(KFC))
 
     @pytest.mark.django_db
-    def test_someone_who_never_signed_in_joins_on_their_first_sign_in(self, workspace):
-        response = push(workspace, [brand(KFC, "KFC", members=[{"email": "nueva@zil.global"}])])
-        assert response["members_pending"] == 1
-        assert ZilBrandMember.objects.filter(email="nueva@zil.global").exists()
+    def test_someone_who_never_signed_in_gets_an_account_on_the_brand_and_keeps_it_on_sign_in(self, workspace):
+        team = [{"email": "Nueva@zil.global"}, {"email": "invitada@zil.global", "role": "guest"}]
+        response = push(workspace, [brand(KFC, "KFC", members=team), brand(WENDYS, "Wendy's", members=team[:1])])
 
-        user = User.objects.create(email="nueva@zil.global", username="nueva")
-        provision_user_workspaces(user, [{"slug": workspace.slug, "name": workspace.name, "role": "operativo"}])
+        assert response["users_provisioned"] == 2 and response["members_pending"] == 0
+        nueva = User.objects.get(email="nueva@zil.global")
+        assert nueva.is_active and not nueva.is_bot and nueva.is_password_autoset and nueva.last_logout_time is None
+        assert nueva.profile.language == "es"
+        assert WorkspaceMember.objects.get(workspace=workspace, member=nueva, role=15).is_active
+        invitada = User.objects.get(email="invitada@zil.global")
+        assert WorkspaceMember.objects.get(workspace=workspace, member=invitada).role == 5
+        assert ProjectMember.objects.get(project=project_of(KFC), member=invitada).role == 5
+        # one account for both brands of the push
+        assert {nueva.id, invitada.id} <= active_member_ids(project_of(KFC))
+        assert nueva.id in active_member_ids(project_of(WENDYS))
 
-        assert user.id in active_member_ids(project_of(KFC))
+        provision_user_workspaces(nueva, [{"slug": workspace.slug, "name": workspace.name, "role": "operativo"}])
+        assert nueva.id in active_member_ids(project_of(KFC))
+        # a second push makes no second account
+        assert push(workspace, [brand(KFC, "KFC", members=team)])["users_provisioned"] == 0
+
+    @pytest.mark.django_db
+    def test_a_deactivated_account_is_not_brought_back_by_the_roster(self, workspace):
+        gone = User.objects.create(
+            email="gone@zil.global", username="gone", is_active=False, last_logout_time=timezone.now()
+        )
+        response = push(workspace, [brand(KFC, "KFC", members=[{"email": "gone@zil.global"}])])
+
+        assert response["users_provisioned"] == 0 and response["members_pending"] == 1
+        gone.refresh_from_db()
+        assert not gone.is_active
+        assert not WorkspaceMember.objects.filter(member=gone).exists()
+        assert gone.id not in active_member_ids(project_of(KFC))
+
+    @pytest.mark.django_db
+    def test_a_dry_run_makes_no_account(self, workspace):
+        response = push(workspace, [brand(KFC, "KFC", members=[{"email": "nueva@zil.global"}])], dry_run=True)
+        assert response["users_provisioned"] == 1
+        assert not User.objects.filter(email="nueva@zil.global").exists()
 
     @pytest.mark.django_db
     def test_one_brand_failing_does_not_stop_the_revocations_of_the_others(self, workspace):
@@ -450,6 +480,22 @@ class TestUserBrandProjectsFastPath:
         return response.data
 
     @pytest.mark.django_db
+    def test_someone_who_never_signed_in_gets_an_account_on_their_brands(self, workspace):
+        push(workspace, [brand(KFC, "KFC")])
+
+        body = self.sync_user(
+            {
+                "email": "nueva@zil.global",
+                "brand_projects": [{"brandId": KFC, "role": "member", "workspace_slug": workspace.slug}],
+            }
+        )
+
+        assert body["brand_projects"] == {"added": 1, "removed": 0, "pending": 0, "provisioned": 1}
+        nueva = User.objects.get(email="nueva@zil.global")
+        assert WorkspaceMember.objects.get(workspace=workspace, member=nueva).role == 15
+        assert nueva.id in active_member_ids(project_of(KFC))
+
+    @pytest.mark.django_db
     def test_a_revoked_brand_is_left_at_once_and_the_rest_kept(self, workspace):
         ana = make_user(workspace, "ana@zil.global")
         team = [{"email": "ana@zil.global"}]
@@ -463,7 +509,7 @@ class TestUserBrandProjectsFastPath:
             }
         )
 
-        assert body["brand_projects"] == {"added": 0, "removed": 1, "pending": 0}
+        assert body["brand_projects"] == {"added": 0, "removed": 1, "pending": 0, "provisioned": 0}
         assert ana.id in active_member_ids(project_of(KFC))
         assert ana.id not in active_member_ids(project_of(WENDYS))
         assert not ZilBrandMember.objects.filter(email="ana@zil.global", brand_project__zil_brand_id=WENDYS).exists()
@@ -481,12 +527,14 @@ class TestUserBrandProjectsFastPath:
         assert ana.id in active_member_ids(project_of(KFC)) and ana.id in active_member_ids(project_of(WENDYS))
 
     @pytest.mark.django_db
-    def test_someone_who_never_signed_in_loses_the_brand_on_record(self, workspace):
+    def test_someone_who_never_signed_in_loses_the_brand_their_account_was_made_for(self, workspace):
         push(workspace, [brand(KFC, "KFC", members=[{"email": "nueva@zil.global"}])])
+        nueva = User.objects.get(email="nueva@zil.global")
 
         body = self.sync_user({"email": "nueva@zil.global", "brand_projects": [], "brand_projects_authoritative": True})
 
-        assert body["status"] == "skipped"
+        assert body["brand_projects"]["removed"] == 1
+        assert nueva.id not in active_member_ids(project_of(KFC))
         assert not ZilBrandMember.objects.filter(email="nueva@zil.global").exists()
 
 

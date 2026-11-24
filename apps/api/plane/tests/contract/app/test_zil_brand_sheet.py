@@ -225,6 +225,25 @@ class TestBrandOpsFields:
         assert list(ops.leaders.all()) == [create_user] and ops.finals_links == link
 
 
+    @pytest.mark.django_db
+    def test_a_cm_who_never_signed_in_is_on_the_team_and_can_be_picked(self, session_client, workspace, brands):
+        apply_brand_roster(
+            workspace.id,
+            [
+                {"brandId": KFC, "name": "KFC", "members": [{"email": "andreina@zil.global"}]},
+                {"brandId": WENDYS, "name": "Wendy's"},
+            ],
+            authoritative=True,
+        )
+        cm = User.objects.get(email="andreina@zil.global")
+        assert str(cm.id) in [person["id"] for person in self.get_ops(session_client, workspace, brands)["team"]]
+
+        body = {"community_manager_ids": [str(cm.id)]}
+        response = session_client.patch(self.url(workspace, brands), body, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["ops"]["community_manager_ids"] == [str(cm.id)]
+
 @pytest.fixture
 def meraki(brands, create_user):
     """Meraki's workspace also works KFC: its own KFC project, with its own CM on it."""

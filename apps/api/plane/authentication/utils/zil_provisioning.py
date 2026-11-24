@@ -224,6 +224,31 @@ def _upsert_membership(workspace, user, role, authoritative=False):
     return wm
 
 
+def provision_brand_team_user(email, workspace_id, role):
+    """Create the Ops account of someone Zil put on a brand team who never signed in to Ops.
+
+    Without an account they cannot be a member of the brand's project, so they are missing from
+    the brand's team and can't be picked as its CM or Responsable. The account is the one their
+    first sign-in would make (no local password, email verified upstream, Spanish) plus a
+    membership of the brand's workspace with `role`; that sign-in then fills in their name and
+    photo and reconciles their workspaces. An existing account (a deactivated one included) is
+    never touched. Returns the new user's id, or None.
+    """
+    email = (email or "").strip().lower()
+    if "@" not in email or User.objects.filter(email=email).exists():
+        return None
+    try:
+        with transaction.atomic():
+            user = User(email=email, username=uuid.uuid4().hex, is_password_autoset=True, is_email_verified=True)
+            user.set_password(uuid.uuid4().hex)
+            user.save()
+            Profile.objects.create(user=user, language=ZIL_DEFAULT_LANGUAGE)
+            WorkspaceMember.objects.create(workspace_id=workspace_id, member=user, role=role)
+    except IntegrityError:
+        return None  # created at the same time by their own sign-in: that one wins
+    return user.id
+
+
 def provision_user_workspaces(user, workspaces, authoritative=False):
     """Reconcile a user's workspace memberships against the desired list.
 
