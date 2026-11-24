@@ -225,28 +225,43 @@ def _upsert_membership(workspace, user, role, authoritative=False):
 
 
 def provision_brand_team_user(email, workspace_id, role):
-    """Create the Ops account of someone Zil put on a brand team who never signed in to Ops.
+    """Give an Ops account to someone Zil put on a brand team who never signed in to Ops.
 
     Without an account they cannot be a member of the brand's project, so they are missing from
     the brand's team and can't be picked as its CM or Responsable. The account is the one their
     first sign-in would make (no local password, email verified upstream, Spanish) plus a
-    membership of the brand's workspace with `role`; that sign-in then fills in their name and
-    photo and reconciles their workspaces. An existing account (a deactivated one included) is
-    never touched. Returns the new user's id, or None.
+    membership of the brand's workspace; that sign-in then fills in their name and photo and
+    reconciles their workspaces and roles. Until then the account is only a stand-in made here:
+    it joins each brand's workspace as it comes, with the highest brand role it was given there.
+    An account that ever signed in, or was deactivated, is never touched.
+
+    Returns (user_id, workspace role, created) or None.
     """
     email = (email or "").strip().lower()
-    if "@" not in email or User.objects.filter(email=email).exists():
+    if "@" not in email:
         return None
+    user = User.objects.filter(email=email).first()
+    created = user is None
     try:
         with transaction.atomic():
-            user = User(email=email, username=uuid.uuid4().hex, is_password_autoset=True, is_email_verified=True)
-            user.set_password(uuid.uuid4().hex)
-            user.save()
-            Profile.objects.create(user=user, language=ZIL_DEFAULT_LANGUAGE)
-            WorkspaceMember.objects.create(workspace_id=workspace_id, member=user, role=role)
+            if created:
+                user = User(email=email, username=uuid.uuid4().hex, is_password_autoset=True, is_email_verified=True)
+                user.set_password(uuid.uuid4().hex)
+                user.save()
+                Profile.objects.create(user=user, language=ZIL_DEFAULT_LANGUAGE)
+            elif user.is_bot or not user.is_active or user.last_login_time or user.last_logout_time:
+                return None
+            membership = WorkspaceMember.objects.filter(workspace_id=workspace_id, member=user).first()
+            if membership is None:
+                membership = WorkspaceMember.objects.create(workspace_id=workspace_id, member=user, role=role)
+            elif not membership.is_active:
+                return None  # taken off that workspace (or the workspace was turned off): left so
+            elif membership.role < role:
+                membership.role = role
+                membership.save(update_fields=["role", "updated_at"])
     except IntegrityError:
-        return None  # created at the same time by their own sign-in: that one wins
-    return user.id
+        return None  # made at the same time by their own sign-in: that one wins
+    return user.id, membership.role, created
 
 
 def provision_user_workspaces(user, workspaces, authoritative=False):

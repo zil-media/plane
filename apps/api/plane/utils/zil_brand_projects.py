@@ -275,14 +275,17 @@ def apply_members(mapping, raw_members, members_authoritative, stats, ws_roles=N
 
     for email, role in desired.items():
         found = ws_roles.get(email)
+        if found is None or found[1] < role:
+            # never signed in to Ops: their account is made (or joins this workspace) now, so they
+            # are on the brand's team; a real member's own role is left as it is
+            provisioned = provision_brand_team_user(email, project.workspace_id, role)
+            if provisioned is not None:
+                user_id, ws_role, created = provisioned
+                stats["users_provisioned"] += int(created)
+                found = ws_roles[email] = (user_id, ws_role)
         if found is None:
-            # never signed in to Ops: their account is made now, so they are on the brand's team
-            user_id = provision_brand_team_user(email, project.workspace_id, role)
-            if user_id is None:
-                stats["members_pending"] += 1
-                continue
-            stats["users_provisioned"] += 1
-            found = ws_roles[email] = (user_id, role)
+            stats["members_pending"] += 1
+            continue
         user_id, ws_role = found
         if ws_role >= ADMIN_ROLE:
             continue  # joined below, as Admin
@@ -693,13 +696,15 @@ def apply_user_brand_projects(email, items, authoritative=False, user=None):
                 if user is not None
                 else None
             )
-            if user is None:
-                # never signed in to Ops: their account is made now, so they are on the brand's team
-                user_id = provision_brand_team_user(email, mapping.workspace_id, role)
-                if user_id is not None:
-                    user = User.objects.get(pk=user_id)
-                    ws_role = role
-                    stats["provisioned"] += 1
+            if ws_role is None or ws_role < role:
+                # never signed in to Ops: their account is made (or joins this workspace) now, so
+                # they are on the brand's team; a real member's own role is left as it is
+                provisioned = provision_brand_team_user(email, mapping.workspace_id, role)
+                if provisioned is not None:
+                    user_id, ws_role, created = provisioned
+                    stats["provisioned"] += int(created)
+                    if user is None:
+                        user = User.objects.get(pk=user_id)
             if ws_role is None:
                 stats["pending"] += 1
             elif ws_role < ADMIN_ROLE and _ensure_member(mapping.project, user.id, min(role, ws_role)):

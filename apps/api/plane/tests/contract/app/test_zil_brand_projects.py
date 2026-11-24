@@ -18,6 +18,7 @@ from plane.db.models import (
     ProjectMember,
     State,
     User,
+    Workspace,
     WorkspaceMember,
     ZilBrandMember,
     ZilBrandProject,
@@ -63,6 +64,10 @@ def brand(brand_id, name, members=None, status_="active", members_authoritative=
 
 def project_of(brand_id):
     return ZilBrandProject.objects.select_related("project").get(zil_brand_id=brand_id).project
+
+
+def project_of_in(workspace, brand_id):
+    return ZilBrandProject.objects.select_related("project").get(workspace=workspace, zil_brand_id=brand_id).project
 
 
 def make_user(workspace, email, role=15, **fields):
@@ -373,6 +378,43 @@ class TestBrandMembers:
         assert gone.id not in active_member_ids(project_of(KFC))
 
     @pytest.mark.django_db
+    def test_a_stand_in_account_joins_each_workspace_of_its_brands_with_its_highest_role(
+        self, workspace, create_user
+    ):
+        meraki = Workspace.objects.create(name="Meraki", slug="meraki", owner=create_user)
+        # guest on the first brand, member on the second: the workspace role is the higher one
+        push(
+            workspace,
+            [
+                brand(KFC, "KFC", members=[{"email": "nueva@zil.global", "role": "guest"}]),
+                brand(WENDYS, "Wendy's", members=[{"email": "nueva@zil.global"}]),
+            ],
+        )
+        response = push(meraki, [brand(KFC, "KFC", members=[{"email": "nueva@zil.global"}])])
+
+        nueva = User.objects.get(email="nueva@zil.global")
+        assert response["users_provisioned"] == 0 and response["members_pending"] == 0
+        assert WorkspaceMember.objects.get(workspace=workspace, member=nueva).role == 15
+        assert WorkspaceMember.objects.get(workspace=meraki, member=nueva).role == 15
+        assert ProjectMember.objects.get(project=project_of_in(workspace, KFC), member=nueva).role == 5
+        assert ProjectMember.objects.get(project=project_of_in(workspace, WENDYS), member=nueva).role == 15
+        assert nueva.id in active_member_ids(project_of_in(meraki, KFC))
+
+    @pytest.mark.django_db
+    def test_someone_who_signed_in_is_never_added_to_a_workspace_by_the_roster(self, workspace, create_user):
+        other = Workspace.objects.create(name="Otra", slug="otra", owner=create_user)
+        real = make_user(other, "real@zil.global", last_login_time=timezone.now())
+        guest = make_user(workspace, "guest@zil.global", role=5, last_login_time=timezone.now())
+
+        team = [{"email": "real@zil.global"}, {"email": "guest@zil.global"}]
+        response = push(workspace, [brand(KFC, "KFC", members=team)])
+
+        assert response["members_pending"] == 1 and response["users_provisioned"] == 0
+        assert not WorkspaceMember.objects.filter(workspace=workspace, member=real).exists()
+        assert WorkspaceMember.objects.get(workspace=workspace, member=guest).role == 5
+        assert ProjectMember.objects.get(project=project_of(KFC), member=guest).role == 5
+
+    @pytest.mark.django_db
     def test_a_dry_run_makes_no_account(self, workspace):
         response = push(workspace, [brand(KFC, "KFC", members=[{"email": "nueva@zil.global"}])], dry_run=True)
         assert response["users_provisioned"] == 1
@@ -494,6 +536,19 @@ class TestUserBrandProjectsFastPath:
         nueva = User.objects.get(email="nueva@zil.global")
         assert WorkspaceMember.objects.get(workspace=workspace, member=nueva).role == 15
         assert nueva.id in active_member_ids(project_of(KFC))
+
+    @pytest.mark.django_db
+    def test_a_stand_in_account_joins_its_brands_in_every_workspace(self, workspace, create_user):
+        meraki = Workspace.objects.create(name="Meraki", slug="meraki", owner=create_user)
+        push(workspace, [brand(KFC, "KFC")])
+        push(meraki, [brand(KFC, "KFC")])
+
+        body = self.sync_user({"email": "nueva@zil.global", "brand_projects": [{"brandId": KFC, "role": "member"}]})
+
+        assert body["brand_projects"] == {"added": 2, "removed": 0, "pending": 0, "provisioned": 1}
+        nueva = User.objects.get(email="nueva@zil.global")
+        assert nueva.id in active_member_ids(project_of_in(workspace, KFC))
+        assert nueva.id in active_member_ids(project_of_in(meraki, KFC))
 
     @pytest.mark.django_db
     def test_a_revoked_brand_is_left_at_once_and_the_rest_kept(self, workspace):
