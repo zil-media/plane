@@ -288,6 +288,24 @@ type TTeamCard = {
 
 const emailKey = (email: string | null | undefined) => (email ?? "").toLowerCase();
 
+/**
+ * A call's summary comes from Tactiq as markdown ("## Overview", "- point", "**bold**"): the list
+ * shows it as plain prose, without the headings, so its first lines say what the call was about.
+ */
+const summaryPreview = (markdown: string) =>
+  markdown
+    .split("\n")
+    .filter((line) => !/^\s*#{1,6}\s/.test(line))
+    .map((line) =>
+      line
+        .replace(/^\s*(?:[-*+]|\d+[.)])\s+/, "")
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+        .replace(/(\*\*|__|\*|`)(.+?)\1/g, "$2")
+        .trim()
+    )
+    .filter(Boolean)
+    .join(" ");
+
 const teamRank = (card: TTeamCard) => (card.isCommunityManager ? 0 : card.isLeader ? 1 : 2);
 
 /**
@@ -579,7 +597,9 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
                         {call.purpose && ` · ${purposeLabel(call.purpose)}`}
                       </span>
                     </div>
-                    {call.summary && <p className="line-clamp-3 text-12 text-secondary">{call.summary}</p>}
+                    {call.summary && (
+                      <p className="line-clamp-3 text-12 text-secondary">{summaryPreview(call.summary)}</p>
+                    )}
                   </li>
                 ))}
               </ul>
