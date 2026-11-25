@@ -529,6 +529,23 @@
         "heading": "Scripts",
         "new_script": "New Script",
         "description": "Automate your workflows with custom scripts and automation rules."
+      },
+      "client_states": {
+        "title": "Client states",
+        "description": "Pick a team project whose states every client will use. Work items move to the equivalent state and new clients are created with these states.",
+        "model_label": "Model project",
+        "select_placeholder": "Select a project",
+        "states_label": "States",
+        "preview": "Clients affected: {clients}. Work items that will change state: {items}.",
+        "apply": "Apply to all clients",
+        "applying": "Applying",
+        "confirm_title": "Apply these states to every client?",
+        "confirm_content": "Every client will use the states of {project}. Work items move to the equivalent state and none are deleted. States left empty are removed.",
+        "success_title": "States applied",
+        "success_message": "Clients updated: {updated}. Work items that changed state: {moved}.",
+        "error": "The states could not be applied. Try again.",
+        "last_applied": "Last applied: {date}",
+        "no_projects": "There are no team projects to use as a model."
       }
     },
     "empty_state": {

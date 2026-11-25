@@ -529,6 +529,23 @@
         "heading": "Skripte",
         "new_script": "Neues Skript",
         "description": "Automatisieren Sie Ihre Workflows mit benutzerdefinierten Skripten und Automatisierungsregeln."
+      },
+      "client_states": {
+        "title": "Status der Kunden",
+        "description": "Wählen Sie ein Teamprojekt, dessen Status alle Kunden verwenden. Arbeitselemente wechseln in den entsprechenden Status, und neue Kunden werden mit diesen Status angelegt.",
+        "model_label": "Vorlageprojekt",
+        "select_placeholder": "Projekt auswählen",
+        "states_label": "Status",
+        "preview": "Betroffene Kunden: {clients}. Arbeitselemente, die den Status wechseln: {items}.",
+        "apply": "Auf alle Kunden anwenden",
+        "applying": "Wird angewendet",
+        "confirm_title": "Diese Status auf alle Kunden anwenden?",
+        "confirm_content": "Alle Kunden verwenden die Status von {project}. Arbeitselemente wechseln in den entsprechenden Status, keines wird gelöscht. Leere Status werden entfernt.",
+        "success_title": "Status angewendet",
+        "success_message": "Aktualisierte Kunden: {updated}. Arbeitselemente mit geändertem Status: {moved}.",
+        "error": "Die Status konnten nicht angewendet werden. Bitte erneut versuchen.",
+        "last_applied": "Zuletzt angewendet: {date}",
+        "no_projects": "Es gibt kein Teamprojekt, das als Vorlage dienen kann."
       }
     },
     "empty_state": {

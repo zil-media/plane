@@ -40,28 +40,32 @@ STUDIO_LABELS = [
 ]
 
 
-def seed_studio_defaults(project, workspace, user):
+def seed_studio_defaults(project, workspace, user, states=True):
     """Seed the studio's standard client-project skeleton onto ``project``:
     STUDIO_STATES (mapped to Plane state groups) and STUDIO_LABELS.
 
     Additive only — must be called right after a project (and its
     DEFAULT_STATES) is created, never against an existing project, since it
     does not check for pre-existing states/labels with the same name.
+
+    ``states=False`` seeds the labels only: for a client project born with the states its
+    workspace chose for every client.
     """
-    State.objects.bulk_create(
-        [
-            State(
-                name=state["name"],
-                color=state["color"],
-                project=project,
-                workspace=workspace,
-                sequence=state["sequence"],
-                group=match_state_group(state["name"]),
-                created_by=user,
-            )
-            for state in STUDIO_STATES
-        ]
-    )
+    if states:
+        State.objects.bulk_create(
+            [
+                State(
+                    name=state["name"],
+                    color=state["color"],
+                    project=project,
+                    workspace=workspace,
+                    sequence=state["sequence"],
+                    group=match_state_group(state["name"]),
+                    created_by=user,
+                )
+                for state in STUDIO_STATES
+            ]
+        )
 
     Label.objects.bulk_create(
         [

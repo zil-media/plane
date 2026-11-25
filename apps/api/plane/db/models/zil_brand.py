@@ -186,3 +186,33 @@ class ZilBrandRoster(BaseModel):
 
     def __str__(self):
         return f"{self.workspace_id} @ {self.synced_at}"
+
+
+class ZilClientStatesTemplate(BaseModel):
+    """The project whose states every brand (client) project of a workspace uses.
+
+    Chosen by a workspace admin. Applying it gives every client its states, moving work items
+    by state group (`plane.utils.zil_client_states`); new client projects are born with them.
+    """
+
+    workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="zil_client_states_templates")
+    template_project = models.ForeignKey(
+        "db.Project", on_delete=models.SET_NULL, null=True, blank=True, related_name="zil_client_states_template_of"
+    )
+    applied_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Zil Client States Template"
+        verbose_name_plural = "Zil Client States Templates"
+        db_table = "zil_client_states_templates"
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["workspace"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="zil_client_states_template_unique_per_workspace",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.workspace_id} <- {self.template_project_id}"

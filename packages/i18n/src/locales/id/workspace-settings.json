@@ -529,6 +529,23 @@
         "heading": "Skrip",
         "new_script": "Skrip Baru",
         "description": "Otomatisasi alur kerja Anda dengan skrip kustom dan aturan otomatisasi."
+      },
+      "client_states": {
+        "title": "Status klien",
+        "description": "Pilih proyek tim yang statusnya akan digunakan oleh semua klien. Item kerja dipindahkan ke status yang setara dan klien baru dibuat dengan status ini.",
+        "model_label": "Proyek model",
+        "select_placeholder": "Pilih proyek",
+        "states_label": "Status",
+        "preview": "Klien yang terdampak: {clients}. Item kerja yang akan berganti status: {items}.",
+        "apply": "Terapkan ke semua klien",
+        "applying": "Menerapkan",
+        "confirm_title": "Terapkan status ini ke semua klien?",
+        "confirm_content": "Semua klien akan menggunakan status dari {project}. Item kerja dipindahkan ke status yang setara dan tidak ada yang dihapus. Status yang kosong akan dihapus.",
+        "success_title": "Status diterapkan",
+        "success_message": "Klien diperbarui: {updated}. Item kerja yang berganti status: {moved}.",
+        "error": "Status tidak dapat diterapkan. Coba lagi.",
+        "last_applied": "Terakhir diterapkan: {date}",
+        "no_projects": "Tidak ada proyek tim yang dapat digunakan sebagai model."
       }
     },
     "empty_state": {
