@@ -529,6 +529,23 @@
         "heading": "指令碼",
         "new_script": "新指令碼",
         "description": "使用自訂指令碼和自動化規則，自動化您的工作流程。"
+      },
+      "client_states": {
+        "title": "客戶狀態",
+        "description": "選擇一個團隊專案，所有客戶都將使用其狀態。工作項目會移到對應的狀態，新客戶也會以這些狀態建立。",
+        "model_label": "範本專案",
+        "select_placeholder": "選擇專案",
+        "states_label": "狀態",
+        "preview": "受影響的客戶：{clients}。將變更狀態的工作項目：{items}。",
+        "apply": "套用到所有客戶",
+        "applying": "正在套用",
+        "confirm_title": "要將這些狀態套用到所有客戶嗎？",
+        "confirm_content": "所有客戶都將使用 {project} 的狀態。工作項目會移到對應的狀態，不會刪除任何工作項目。變為空的狀態將被移除。",
+        "success_title": "狀態已套用",
+        "success_message": "已更新的客戶：{updated}。已變更狀態的工作項目：{moved}。",
+        "error": "無法套用狀態，請再試一次。",
+        "last_applied": "上次套用：{date}",
+        "no_projects": "沒有可作為範本的團隊專案。"
       }
     },
     "empty_state": {

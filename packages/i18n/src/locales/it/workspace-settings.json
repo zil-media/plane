@@ -529,6 +529,23 @@
         "heading": "Script",
         "new_script": "Nuovo script",
         "description": "Automatizza i tuoi flussi di lavoro con script personalizzati e regole di automazione."
+      },
+      "client_states": {
+        "title": "Stati dei clienti",
+        "description": "Scegli un progetto del team i cui stati verranno usati da tutti i clienti. Gli elementi di lavoro passano allo stato equivalente e i nuovi clienti vengono creati con questi stati.",
+        "model_label": "Progetto modello",
+        "select_placeholder": "Seleziona un progetto",
+        "states_label": "Stati",
+        "preview": "Clienti interessati: {clients}. Elementi di lavoro che cambieranno stato: {items}.",
+        "apply": "Applica a tutti i clienti",
+        "applying": "Applicazione in corso",
+        "confirm_title": "Applicare questi stati a tutti i clienti?",
+        "confirm_content": "Tutti i clienti useranno gli stati di {project}. Gli elementi di lavoro passano allo stato equivalente e nessuno viene eliminato. Gli stati rimasti vuoti vengono rimossi.",
+        "success_title": "Stati applicati",
+        "success_message": "Clienti aggiornati: {updated}. Elementi di lavoro che hanno cambiato stato: {moved}.",
+        "error": "Impossibile applicare gli stati. Riprova.",
+        "last_applied": "Ultima applicazione: {date}",
+        "no_projects": "Non ci sono progetti del team da usare come modello."
       }
     },
     "empty_state": {

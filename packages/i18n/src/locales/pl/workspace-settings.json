@@ -529,6 +529,23 @@
         "heading": "Skrypty",
         "new_script": "Nowy skrypt",
         "description": "Automatyzuj swoje przepływy pracy za pomocą niestandardowych skryptów i reguł automatyzacji."
+      },
+      "client_states": {
+        "title": "Stany klientów",
+        "description": "Wybierz projekt zespołu, którego stany będą używane przez wszystkich klientów. Elementy pracy przechodzą do odpowiedniego stanu, a nowi klienci są tworzeni z tymi stanami.",
+        "model_label": "Projekt wzorcowy",
+        "select_placeholder": "Wybierz projekt",
+        "states_label": "Stany",
+        "preview": "Klienci objęci zmianą: {clients}. Elementy pracy, które zmienią stan: {items}.",
+        "apply": "Zastosuj do wszystkich klientów",
+        "applying": "Stosowanie",
+        "confirm_title": "Zastosować te stany do wszystkich klientów?",
+        "confirm_content": "Wszyscy klienci będą używać stanów projektu {project}. Elementy pracy przechodzą do odpowiedniego stanu i żaden nie zostanie usunięty. Puste stany zostaną usunięte.",
+        "success_title": "Stany zastosowane",
+        "success_message": "Zaktualizowani klienci: {updated}. Elementy pracy ze zmienionym stanem: {moved}.",
+        "error": "Nie udało się zastosować stanów. Spróbuj ponownie.",
+        "last_applied": "Ostatnio zastosowano: {date}",
+        "no_projects": "Brak projektów zespołu, które mogą posłużyć za wzór."
       }
     },
     "empty_state": {

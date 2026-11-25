@@ -529,6 +529,23 @@
         "heading": "스크립트",
         "new_script": "새 스크립트",
         "description": "커스텀 스크립트와 자동화 규칙으로 워크플로우를 자동화하세요."
+      },
+      "client_states": {
+        "title": "클라이언트 상태",
+        "description": "모든 클라이언트가 사용할 상태를 가져올 팀 프로젝트를 선택하세요. 작업 항목은 해당하는 상태로 이동하며 새 클라이언트는 이 상태로 생성됩니다.",
+        "model_label": "모델 프로젝트",
+        "select_placeholder": "프로젝트 선택",
+        "states_label": "상태",
+        "preview": "영향받는 클라이언트: {clients}. 상태가 바뀔 작업 항목: {items}.",
+        "apply": "모든 클라이언트에 적용",
+        "applying": "적용 중",
+        "confirm_title": "이 상태를 모든 클라이언트에 적용할까요?",
+        "confirm_content": "모든 클라이언트가 {project}의 상태를 사용합니다. 작업 항목은 해당하는 상태로 이동하며 삭제되는 항목은 없습니다. 비어 있는 상태는 제거됩니다.",
+        "success_title": "상태 적용됨",
+        "success_message": "업데이트된 클라이언트: {updated}. 상태가 바뀐 작업 항목: {moved}.",
+        "error": "상태를 적용할 수 없습니다. 다시 시도하세요.",
+        "last_applied": "마지막 적용: {date}",
+        "no_projects": "모델로 사용할 팀 프로젝트가 없습니다."
       }
     },
     "empty_state": {
