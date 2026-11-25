@@ -234,3 +234,9 @@ class TestClientStatesEndpoint:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         response = session_client.put(_url(workspace), {"template_project_id": "nope"}, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_get_with_a_malformed_model_id_has_no_preview(self, session_client, workspace, team_project, flag):
+        response = session_client.get(_url(workspace), {"template_project_id": "nope"})
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["preview"] is None

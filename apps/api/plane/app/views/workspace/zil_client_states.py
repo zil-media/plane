@@ -45,9 +45,12 @@ class ZilClientStatesEndpoint(BaseAPIView):
             for project in _candidates(workspace.id)
         ]
         preview_project_id = request.query_params.get("template_project_id")
-        preview_project = (
-            _candidates(workspace.id).filter(pk=preview_project_id).first() if preview_project_id else current
-        )
+        try:
+            preview_project = (
+                _candidates(workspace.id).filter(pk=preview_project_id).first() if preview_project_id else current
+            )
+        except (ValueError, ValidationError):
+            preview_project = None
         return Response(
             {
                 "template_project_id": str(current.id) if current else None,
