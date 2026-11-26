@@ -161,6 +161,38 @@ class ZilBrandMember(BaseModel):
         return f"{self.email} -> {self.brand_project_id}"
 
 
+class ZilBrandClient(BaseModel):
+    """A client contact of a brand: sees that brand's portal in this workspace, nothing of Ops.
+
+    Zil pushes them in the brand roster with `role: "client"`. A client is never a project or
+    workspace member, so the team's Ops stays closed to them whatever URL they open. `user` is their
+    Ops account (made by the sync when they had none); it stays empty only for a deactivated one.
+    """
+
+    brand_project = models.ForeignKey(ZilBrandProject, on_delete=models.CASCADE, related_name="clients")
+    email = models.CharField(max_length=255)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="zil_brand_client_of"
+    )
+
+    class Meta:
+        verbose_name = "Zil Brand Client"
+        verbose_name_plural = "Zil Brand Clients"
+        db_table = "zil_brand_clients"
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["brand_project", "email"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="zil_brand_client_unique_email",
+            )
+        ]
+        indexes = [models.Index(fields=["email"], name="zil_brand_client_email_idx")]
+
+    def __str__(self):
+        return f"{self.email} -> {self.brand_project_id} (client)"
+
+
 class ZilBrandRoster(BaseModel):
     """The `computed_at` of the last brand roster a workspace applied (the ordering stamp).
 

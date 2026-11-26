@@ -22,6 +22,8 @@ on each one (POST /api/zil/sync/brand-projects/). Nobody sets anything up in Ops
   brand is in their sidebar; they are never removed while they stay workspace admins. Someone who
   never signed in to Ops gets their account made here (so they are on the brand's team and can be
   picked as its CM), and is also kept by email in case that account can't be made.
+- a member with `role: "client"` is one of the brand's client contacts (`ZilBrandClient`): they get
+  an Ops account if they had none and join no project or workspace; the brand's portal is theirs.
 
 Safe against a bad push: an authoritative but empty list archives nothing (it is a truncated
 payload, not "no brands"), and one that would archive more than half of the workspace's brands
@@ -42,7 +44,11 @@ from django.db import connection, transaction
 from django.utils import timezone
 
 # Module imports
-from plane.authentication.utils.zil_provisioning import get_service_user, provision_brand_team_user
+from plane.authentication.utils.zil_provisioning import (
+    get_service_user,
+    provision_brand_client_user,
+    provision_brand_team_user,
+)
 from plane.db.models import (
     BotTypeEnum,
     Project,
@@ -54,6 +60,7 @@ from plane.db.models import (
     UserFavorite,
     Workspace,
     WorkspaceMember,
+    ZilBrandClient,
     ZilBrandMember,
     ZilBrandProject,
     ZilBrandRoster,
@@ -70,6 +77,8 @@ ADMIN_ROLE = 20
 MEMBER_ROLE = 15
 GUEST_ROLE = 5
 BRAND_ROLES = {"member": MEMBER_ROLE, "guest": GUEST_ROLE}
+# a brand's client contact: sees the brand's portal, is never a member of anything (ZilBrandClient)
+CLIENT_ROLE = "client"
 
 DEFAULT_BRAND_ICON = "storefront"
 MIGRATION_PROJECT_NAME = "Migración"
@@ -208,17 +217,23 @@ def _restore(project):
 
 
 def _parse_members(raw_members):
+    """({email: team role}, {client emails}). Someone both on the team and a client is team only."""
     desired = {}
+    clients = set()
     for member in raw_members or []:
         if not isinstance(member, dict):
             continue
         email = str(member.get("email") or "").strip().lower()
         if "@" not in email:
             continue
-        role = BRAND_ROLES.get(str(member.get("role") or "member").strip().lower(), MEMBER_ROLE)
+        role_name = str(member.get("role") or "member").strip().lower()
+        if role_name == CLIENT_ROLE:
+            clients.add(email)
+            continue
+        role = BRAND_ROLES.get(role_name, MEMBER_ROLE)
         # the same person twice keeps the higher role
         desired[email] = max(role, desired.get(email, 0))
-    return desired
+    return desired, clients - desired.keys()
 
 
 def _workspace_roles(workspace_id):
@@ -252,12 +267,45 @@ def _ensure_member(project, user_id, role):
     return bool(fields)
 
 
+def apply_clients(mapping, clients, team, authoritative, stats):
+    """Make the brand's client contacts in this workspace the ones Zil sent. Returns whether anything changed.
+
+    Each gets an Ops account if they had none, and joins nothing: their access is the row. One who
+    is on the brand's team now stops being a client even without `authoritative` (the team wins).
+    """
+    changed = False
+    stored = {row.email: row for row in ZilBrandClient.objects.filter(brand_project=mapping)}
+    for email in sorted(clients):
+        user_id = None
+        provisioned = provision_brand_client_user(email)
+        if provisioned is not None:
+            user_id, created = provisioned
+            stats["users_provisioned"] += int(created)
+        row = stored.get(email)
+        if row is None:
+            ZilBrandClient(brand_project=mapping, email=email, user_id=user_id).save(disable_auto_set_user=True)
+            stats["clients_added"] += 1
+            changed = True
+        elif row.user_id != user_id:
+            # an account made since, or one deactivated since (it loses the portal)
+            row.user_id = user_id
+            row.save(update_fields=["user", "updated_at"])
+            changed = True
+    gone = [row.pk for email, row in stored.items() if email not in clients and (authoritative or email in team)]
+    if gone:
+        ZilBrandClient.objects.filter(pk__in=gone).delete(soft=False)
+        stats["clients_removed"] += len(gone)
+        changed = True
+    return changed
+
+
 def apply_members(mapping, raw_members, members_authoritative, stats, ws_roles=None):
-    """Make the project's members the brand's team. Returns whether anything changed."""
-    desired = _parse_members(raw_members)
+    """Make the project's members the brand's team, and its client contacts the brand's clients.
+    Returns whether anything changed."""
+    desired, clients = _parse_members(raw_members)
     project = mapping.project
     ws_roles = _workspace_roles(project.workspace_id) if ws_roles is None else ws_roles
-    changed = False
+    changed = apply_clients(mapping, clients, desired.keys(), members_authoritative, stats)
 
     # who Zil wants, by email: also those who never signed in, applied on their first sign-in
     stored = {row.email: row for row in ZilBrandMember.objects.filter(brand_project=mapping)}
@@ -467,6 +515,8 @@ def apply_brand_roster(
         "members_added": 0,
         "members_removed": 0,
         "members_pending": 0,
+        "clients_added": 0,
+        "clients_removed": 0,
         "users_provisioned": 0,
         "brands": [],
     }
@@ -668,7 +718,10 @@ def apply_user_brand_projects(email, items, authoritative=False, user=None):
         brand_id = str(item.get("brandId") or "").strip().lower()
         if not is_valid_client_id(brand_id):
             continue
-        role = BRAND_ROLES.get(str(item.get("role") or "member").strip().lower(), MEMBER_ROLE)
+        role_name = str(item.get("role") or "member").strip().lower()
+        if role_name == CLIENT_ROLE:
+            continue  # clients come only in the brand roster (apply_clients): this path is the team's
+        role = BRAND_ROLES.get(role_name, MEMBER_ROLE)
         slug = str(item.get("workspace_slug") or "").strip().lower() or None
         wanted[(brand_id, slug)] = max(role, wanted.get((brand_id, slug), 0))
 

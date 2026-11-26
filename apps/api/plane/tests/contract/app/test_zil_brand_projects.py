@@ -20,6 +20,7 @@ from plane.db.models import (
     User,
     Workspace,
     WorkspaceMember,
+    ZilBrandClient,
     ZilBrandMember,
     ZilBrandProject,
     ZilBrandRoster,
@@ -551,6 +552,17 @@ class TestUserBrandProjectsFastPath:
         return response.data
 
     @pytest.mark.django_db
+    def test_a_client_role_here_joins_nothing_and_makes_no_account(self, workspace):
+        push(workspace, [brand(KFC, "KFC")])
+
+        body = self.sync_user({"email": "cliente@kfc.test", "brand_projects": [{"brandId": KFC, "role": "client"}]})
+
+        # clients come only in the brand roster; never as a member through the team's fast path
+        assert body["brand_projects"] == {"added": 0, "removed": 0, "pending": 0, "provisioned": 0}
+        assert not ZilBrandMember.objects.filter(email="cliente@kfc.test").exists()
+        assert not ZilBrandClient.objects.filter(email="cliente@kfc.test").exists()
+
+    @pytest.mark.django_db
     def test_someone_who_never_signed_in_gets_an_account_on_their_brands(self, workspace):
         push(workspace, [brand(KFC, "KFC")])
 
@@ -652,3 +664,130 @@ class TestRefusedRosterChangesNoAccess:
 
         assert response["refused"] is None and response["archived"] == 8
         assert ana.id not in active_member_ids(project_of(EXTRA[0]))
+
+
+def client_rows(brand_id):
+    return {row.email: row.user_id for row in ZilBrandClient.objects.filter(brand_project__zil_brand_id=brand_id)}
+
+
+@pytest.mark.contract
+class TestBrandClients:
+    @pytest.mark.django_db
+    def test_a_client_gets_an_account_and_joins_no_project_or_workspace(
+        self, workspace, create_user, django_capture_on_commit_callbacks
+    ):
+        ana = make_user(workspace, "ana@zil.global")
+        team = [{"email": "ana@zil.global"}, {"email": "Cliente@KFC.test", "role": "client"}]
+        with mock.patch("plane.bgtasks.agent_pipeline_task.send_support_email_task.delay") as email:
+            with django_capture_on_commit_callbacks(execute=True):
+                response = push(workspace, [brand(KFC, "KFC", members=team)])
+
+        cliente = User.objects.get(email="cliente@kfc.test")
+        assert response["clients_added"] == 1 and response["users_provisioned"] == 1
+        assert response["members_pending"] == 0
+        assert client_rows(KFC) == {"cliente@kfc.test": cliente.id}
+        assert cliente.is_active and cliente.is_password_autoset and cliente.profile.language == "es"
+        assert not WorkspaceMember.objects.filter(member=cliente).exists()
+        assert not ProjectMember.objects.filter(member=cliente).exists()
+        assert active_member_ids(project_of(KFC)) == {ana.id, create_user.id}
+        # the team's "you have access to Ops" email is not for clients (their invite is the portal's)
+        email.assert_not_called()
+
+        # the same roster again changes nothing
+        again = push(workspace, [brand(KFC, "KFC", members=team)])
+        assert again["clients_added"] == 0 and again["clients_removed"] == 0 and again["users_provisioned"] == 0
+        assert result_of(again, KFC)["status"] == "unchanged"
+
+    @pytest.mark.django_db
+    def test_an_existing_account_is_linked_and_left_as_it_is(self, workspace, create_user):
+        other = Workspace.objects.create(name="Otra", slug="otra", owner=create_user)
+        real = make_user(other, "real@kfc.test", last_login_time=timezone.now())
+
+        push(workspace, [brand(KFC, "KFC", members=[{"email": "real@kfc.test", "role": "client"}])])
+
+        assert client_rows(KFC) == {"real@kfc.test": real.id}
+        assert not WorkspaceMember.objects.filter(workspace=workspace, member=real).exists()
+        assert WorkspaceMember.objects.get(workspace=other, member=real).role == 15
+
+    @pytest.mark.django_db
+    def test_someone_on_the_team_is_never_also_a_client(self, workspace):
+        ana = make_user(workspace, "ana@zil.global")
+        both = [{"email": "ana@zil.global", "role": "client"}, {"email": "ana@zil.global", "role": "guest"}]
+        push(workspace, [brand(KFC, "KFC", members=both)])
+        assert client_rows(KFC) == {}
+        assert ProjectMember.objects.get(project=project_of(KFC), member=ana, is_active=True).role == 5
+
+        # a client who joins the team stops being a client, even in a partial (non-authoritative) push
+        push(workspace, [brand(WENDYS, "Wendy's", members=[{"email": "ana@zil.global", "role": "client"}])])
+        assert client_rows(WENDYS) == {"ana@zil.global": ana.id}
+        response = push(
+            workspace,
+            [brand(WENDYS, "Wendy's", members=[{"email": "ana@zil.global"}], members_authoritative=False)],
+            authoritative=False,
+        )
+        assert response["clients_removed"] == 1 and client_rows(WENDYS) == {}
+        assert ana.id in active_member_ids(project_of(WENDYS))
+
+    @pytest.mark.django_db
+    def test_leaving_an_authoritative_list_removes_the_client_and_a_partial_one_keeps_it(self, workspace):
+        clients = [{"email": "uno@kfc.test", "role": "client"}, {"email": "dos@kfc.test", "role": "client"}]
+        push(workspace, [brand(KFC, "KFC", members=clients)])
+
+        push(workspace, [brand(KFC, "KFC", members=clients[:1], members_authoritative=False)])
+        assert set(client_rows(KFC)) == {"uno@kfc.test", "dos@kfc.test"}
+
+        response = push(workspace, [brand(KFC, "KFC", members=clients[:1])])
+        assert response["clients_removed"] == 1 and set(client_rows(KFC)) == {"uno@kfc.test"}
+        # the account stays; only the access goes
+        assert User.objects.filter(email="dos@kfc.test", is_active=True).exists()
+
+    @pytest.mark.django_db
+    def test_a_client_is_per_workspace_like_the_brand_project(self, workspace, create_user):
+        meraki = Workspace.objects.create(name="Meraki", slug="meraki", owner=create_user)
+        cliente = [{"email": "cliente@kfc.test", "role": "client"}]
+        push(workspace, [brand(KFC, "KFC", members=cliente)])
+        push(meraki, [brand(KFC, "KFC", members=[])])
+
+        rows = ZilBrandClient.objects.filter(email="cliente@kfc.test")
+        assert [row.brand_project.workspace_id for row in rows] == [workspace.id]
+
+    @pytest.mark.django_db
+    def test_a_deactivated_account_or_a_bot_gets_no_access(self, workspace):
+        User.objects.create(email="gone@kfc.test", username="gone", is_active=False)
+        User.objects.create(email="bot@kfc.test", username="bot", is_bot=True)
+        clients = [{"email": "gone@kfc.test", "role": "client"}, {"email": "bot@kfc.test", "role": "client"}]
+
+        response = push(workspace, [brand(KFC, "KFC", members=clients)])
+
+        assert response["users_provisioned"] == 0
+        assert client_rows(KFC) == {"gone@kfc.test": None, "bot@kfc.test": None}
+        assert not User.objects.get(email="gone@kfc.test").is_active
+
+    @pytest.mark.django_db
+    def test_an_account_deactivated_later_loses_its_link(self, workspace):
+        cliente = [{"email": "cliente@kfc.test", "role": "client"}]
+        push(workspace, [brand(KFC, "KFC", members=cliente)])
+        User.objects.filter(email="cliente@kfc.test").update(is_active=False)
+
+        push(workspace, [brand(KFC, "KFC", members=cliente)])
+
+        assert client_rows(KFC) == {"cliente@kfc.test": None}
+
+    @pytest.mark.django_db
+    def test_a_dry_run_makes_no_client_and_no_account(self, workspace):
+        cliente = [{"email": "cliente@kfc.test", "role": "client"}]
+        response = push(workspace, [brand(KFC, "KFC", members=cliente)], dry_run=True)
+
+        assert response["clients_added"] == 1 and response["users_provisioned"] == 1
+        assert not ZilBrandClient.objects.exists()
+        assert not User.objects.filter(email="cliente@kfc.test").exists()
+
+    @pytest.mark.django_db
+    def test_a_roster_the_fuse_refuses_changes_no_client(self, workspace):
+        cliente = [{"email": "cliente@kfc.test", "role": "client"}]
+        push(workspace, [brand(KFC, "KFC", members=cliente)] + [brand(b, f"Marca {n}") for n, b in enumerate(EXTRA)])
+
+        response = push(workspace, [brand(KFC, "KFC", members=[])])
+
+        assert response["refused"] == "archive_fuse" and response["clients_removed"] == 0
+        assert set(client_rows(KFC)) == {"cliente@kfc.test"}

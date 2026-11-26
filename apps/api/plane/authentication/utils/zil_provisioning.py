@@ -224,6 +224,39 @@ def _upsert_membership(workspace, user, role, authoritative=False):
     return wm
 
 
+def _make_stand_in_user(email):
+    """The account someone's first sign-in would make: no local password, email verified upstream, Spanish."""
+    user = User(email=email, username=uuid.uuid4().hex, is_password_autoset=True, is_email_verified=True)
+    user.set_password(uuid.uuid4().hex)
+    user.save()
+    Profile.objects.create(user=user, language=ZIL_DEFAULT_LANGUAGE)
+    return user
+
+
+def provision_brand_client_user(email):
+    """The Ops account of a brand's client contact: made when they have none, never touched otherwise.
+
+    A client joins no workspace (their way in is the brand's portal), so an existing account,
+    signed in or not, is only looked up. A deactivated account or a bot is never given access.
+
+    Returns (user_id, created) or None.
+    """
+    email = (email or "").strip().lower()
+    if "@" not in email:
+        return None
+    user = User.objects.filter(email=email).first()
+    if user is not None:
+        return None if user.is_bot or not user.is_active else (user.id, False)
+    try:
+        with transaction.atomic():
+            user = _make_stand_in_user(email)
+    except IntegrityError:
+        # made at the same time by their own sign-in: that one wins
+        user = User.objects.filter(email=email).first()
+        return None if user is None or user.is_bot or not user.is_active else (user.id, False)
+    return user.id, True
+
+
 def provision_brand_team_user(email, workspace_id, role):
     """Give an Ops account to someone Zil put on a brand team who never signed in to Ops.
 
@@ -246,10 +279,7 @@ def provision_brand_team_user(email, workspace_id, role):
     try:
         with transaction.atomic():
             if created:
-                user = User(email=email, username=uuid.uuid4().hex, is_password_autoset=True, is_email_verified=True)
-                user.set_password(uuid.uuid4().hex)
-                user.save()
-                Profile.objects.create(user=user, language=ZIL_DEFAULT_LANGUAGE)
+                user = _make_stand_in_user(email)
             elif user.is_bot or not user.is_active or user.last_login_time or user.last_logout_time:
                 return None
             membership = WorkspaceMember.objects.filter(workspace_id=workspace_id, member=user).first()

@@ -17,9 +17,11 @@ class ZilBrandProjectsSyncEndpoint(ZilServiceView):
     """Zil pushes the brands a workspace works and who works on each: one private project per brand.
 
     POST {workspace_slug, brands: [{brandId, name, logo, color, status, members: [{email, role}],
-    membersAuthoritative}], authoritative, computed_at, force?, dry_run?, template?}. No client data
-    travels here. Answers the counters and one `{brandId, projectId, identifier, status, error}` per
-    brand, so Zil can link the brand to its project. See plane.utils.zil_brand_projects.
+    membersAuthoritative}], authoritative, computed_at, force?, dry_run?, template?}. `role` is
+    member, guest or client (a brand's client contact: an Ops account and the brand's portal, no
+    membership). No ERP client data travels here. Answers the counters and one
+    `{brandId, projectId, identifier, status, error}` per brand, so Zil can link the brand to its
+    project. See plane.utils.zil_brand_projects.
     """
 
     def post(self, request):
