@@ -752,6 +752,25 @@ class TestBrandClients:
         assert [row.brand_project.workspace_id for row in rows] == [workspace.id]
 
     @pytest.mark.django_db
+    def test_a_suspended_brand_pauses_its_clients_and_coming_back_resumes_them(self, workspace):
+        cliente = [{"email": "cliente@kfc.test", "role": "client"}]
+        push(workspace, [brand(KFC, "KFC", members=cliente), brand(WENDYS, "Wendy's")])
+        before = client_rows(KFC)
+
+        # suspended or dropped in Zil: sent as archived, with its clients still on the list
+        archived = push(workspace, [brand(KFC, "KFC", members=cliente, status_="archived"), brand(WENDYS, "Wendy's")])
+        assert archived["archived"] == 1 and archived["clients_removed"] == 0
+        assert project_of(KFC).archived_at is not None and client_rows(KFC) == before
+
+        # leaving the roster altogether archives it too, and keeps them as well
+        push(workspace, [brand(WENDYS, "Wendy's")])
+        assert client_rows(KFC) == before
+
+        restored = push(workspace, [brand(KFC, "KFC", members=cliente), brand(WENDYS, "Wendy's")])
+        assert restored["restored"] == 1 and restored["clients_added"] == 0
+        assert project_of(KFC).archived_at is None and client_rows(KFC) == before
+
+    @pytest.mark.django_db
     def test_a_deactivated_account_or_a_bot_gets_no_access(self, workspace):
         User.objects.create(email="gone@kfc.test", username="gone", is_active=False)
         User.objects.create(email="bot@kfc.test", username="bot", is_bot=True)

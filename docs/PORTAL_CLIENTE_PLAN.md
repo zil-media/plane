@@ -44,8 +44,9 @@ publicaciones y lea las páginas que el equipo deja en la carpeta del cliente.
 Regla: el cliente no aprende nada. Una sola pantalla, sin menús, sin términos de Ops ("elemento de
 trabajo", "estado", "proyecto" no aparecen).
 
-1. **Entrar:** el mail trae un botón "Ver mi calendario". Entra con código al mail o Google, sin
-   contraseña. La sesión queda abierta; la próxima vez entra directo.
+1. **Entrar:** como en el portal de Marketwise. El mail de invitación trae un botón "Ver mi
+   calendario" (vence a los 7 días, se puede reenviar); la primera vez elige su contraseña y después
+   entra con email y contraseña. La sesión queda abierta; la próxima vez entra directo.
 2. **Pantalla única** con dos pestañas: **Calendario** y **Documentos**. Arriba solo el logo de su
    marca. "Mis marcas" aparece únicamente si tiene más de una.
 3. **Arriba del calendario:** franja "Para revisar" con las publicaciones que esperan su opinión
@@ -64,8 +65,10 @@ trabajo", "estado", "proyecto" no aparecen).
 
 ### Paso 1. Cuentas de cliente desde Zil Workspace (hecho en Ops)
 
-1. Zil Workspace (otro repo) suma a cada marca sus **contactos cliente** (email) y los empuja en el
-   mismo roster de marcas con `role: "client"`.
+1. Zil Workspace (otro repo, `leads`): el estratega, el admin y los demás roles que gestionan la
+   marca **invitan al cliente desde la página de la marca**, eligiendo entre los contactos del cliente
+   (o cargando uno nuevo), como en Marketwise. Los invitados viajan en el roster de marcas con
+   `role: "client"`; revocar = sacarlo de la lista.
 2. Ops: modelo `ZilBrandClient(brand_project, email, user nullable)`, por proyecto de marca (como
    `ZilBrandMember`), aplicado como diferencia: agregar, quitar con `membersAuthoritative`, nunca tocar
    si no cambió. Un `client` **no** crea `ProjectMember` ni `WorkspaceMember`. El camino rápido por
@@ -76,6 +79,13 @@ trabajo", "estado", "proyecto" no aparecen).
 4. Si un email es a la vez equipo y cliente, gana el equipo (también en un push parcial).
 5. Tests de contrato en `tests/contract/app/test_zil_brand_projects.py` (`TestBrandClients`).
 6. **Orden de deploy:** Ops antes que Zil Workspace; un Ops viejo trata `client` como `member`.
+7. **Marca suspendida o dada de baja = acceso pausado.** Zil ya manda esa marca como `archived` (o la
+   saca del roster) y Ops archiva el proyecto sin tocar a sus clientes; el portal (paso 4) niega el
+   acceso mientras el proyecto está archivado. Si la marca vuelve, el acceso vuelve solo. Zil tiene que
+   seguir mandando los clientes de una marca archivada, como ya hace con el equipo: una lista
+   autoritativa sin ellos los borra (eso es revocar, no pausar).
+8. Estado del acceso para la página de la marca en Zil Workspace (invitado / nunca entró / activo,
+   último ingreso): Ops lo devuelve por cliente en la respuesta del roster (paso 4, con la invitación).
 
 ### Paso 2. Login y redirección del cliente
 
@@ -103,6 +113,7 @@ trabajo", "estado", "proyecto" no aparecen).
 2. Guardia común para **todas** las vistas de `plane/space/views` (proyecto, items, detalle,
    comentarios, reacciones, assets, labels, estados): si el board tiene portal, exige login y que el
    usuario sea `ZilBrandClient` de esa marca o miembro del proyecto. Si no, 404 (no revela que existe).
+   Un cliente de una marca archivada (suspendida o dada de baja) no entra: ve "Acceso en pausa".
 3. Solo items con la etiqueta "Visible al cliente" (filtro en el queryset, también en detalle y
    comentarios).
 4. Serializer de portal con lista blanca: nombre, descripción, estado, fecha de publicación, etiquetas,
@@ -110,8 +121,9 @@ trabajo", "estado", "proyecto" no aparecen).
    sub-items, relaciones, actividad, comentarios internos.
 5. Tests de contrato: cliente de otra marca → 404; anónimo → 404; item sin etiqueta → 404; comentario
    interno nunca aparece; campos ocultos no salen en la respuesta.
-6. Mail de entrada a cada cliente de la marca al habilitar el portal (y a los que se sumen después),
-   con el link directo; `invited_at` en `ZilBrandClient` para mandarlo una sola vez.
+6. Invitación como en Marketwise: mail con link de un solo uso que vence a los 7 días, donde el cliente
+   elige su contraseña; reenviar invalida el anterior. Se manda al habilitar el portal y a cada cliente
+   que se sume después; `invited_at` y el token hasheado en `ZilBrandClient`.
 
 ### Paso 5. Portal: calendario (front `apps/space`)
 
@@ -158,5 +170,4 @@ trabajo", "estado", "proyecto" no aparecen).
 1. ¿El cliente ve todos los items del calendario o solo los marcados "Visible al cliente"? (el plan
    asume marcados).
 2. ¿El cliente puede aprobar (mover a "Programado") o solo comentar? (el plan asume solo comentar).
-3. ¿Zil Workspace ya guarda los contactos cliente de cada marca o hay que agregarlos ahí?
-4. ¿Comentarios también en las páginas de la carpeta Cliente, o solo lectura? (el plan asume lectura).
+3. ¿Comentarios también en las páginas de la carpeta Cliente, o solo lectura? (el plan asume lectura).
