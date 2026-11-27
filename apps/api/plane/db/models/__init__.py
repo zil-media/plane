@@ -107,4 +107,5 @@ from .zil_brand import (
     ZilCommentMoment,
     ZilPostReview,
     ZilChangeDraft,
+    ZilClientStatesTemplate,
 )

@@ -529,6 +529,23 @@
         "heading": "Script-uri",
         "new_script": "Script nou",
         "description": "Automatizează fluxurile tale de lucru cu scripturi personalizate și reguli de automatizare."
+      },
+      "client_states": {
+        "title": "Stările clienților",
+        "description": "Alegeți un proiect al echipei ale cărui stări vor fi folosite de toți clienții. Elementele de lucru trec în starea echivalentă, iar clienții noi sunt creați cu aceste stări.",
+        "model_label": "Proiect model",
+        "select_placeholder": "Selectați un proiect",
+        "states_label": "Stări",
+        "preview": "Clienți afectați: {clients}. Elemente de lucru care își vor schimba starea: {items}.",
+        "apply": "Aplică la toți clienții",
+        "applying": "Se aplică",
+        "confirm_title": "Aplicați aceste stări tuturor clienților?",
+        "confirm_content": "Toți clienții vor folosi stările proiectului {project}. Elementele de lucru trec în starea echivalentă și niciunul nu este șters. Stările rămase goale sunt eliminate.",
+        "success_title": "Stări aplicate",
+        "success_message": "Clienți actualizați: {updated}. Elemente de lucru care și-au schimbat starea: {moved}.",
+        "error": "Stările nu au putut fi aplicate. Încercați din nou.",
+        "last_applied": "Ultima aplicare: {date}",
+        "no_projects": "Nu există proiecte ale echipei care să poată fi folosite ca model."
       }
     },
     "empty_state": {

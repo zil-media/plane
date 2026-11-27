@@ -7,22 +7,12 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("db", "0140_zil_brand_client"),
+        ("db", "0140_zil_client_states_template"),
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="zilbrandclient",
-            name="invite_token_hash",
-            field=models.CharField(blank=True, db_index=True, default="", max_length=64),
-        ),
-        migrations.AddField(
-            model_name="zilbrandclient",
-            name="invited_at",
-            field=models.DateTimeField(blank=True, null=True),
-        ),
         migrations.CreateModel(
-            name="ZilClientPortal",
+            name="ZilBrandClient",
             fields=[
                 ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="Created At")),
                 ("updated_at", models.DateTimeField(auto_now=True, verbose_name="Last Modified At")),
@@ -38,23 +28,23 @@ class Migration(migrations.Migration):
                         unique=True,
                     ),
                 ),
-                ("enabled", models.BooleanField(default=False)),
+                ("email", models.CharField(max_length=255)),
                 (
-                    "project",
-                    models.OneToOneField(
+                    "brand_project",
+                    models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        related_name="zil_client_portal",
-                        to="db.project",
+                        related_name="clients",
+                        to="db.zilbrandproject",
                     ),
                 ),
                 (
-                    "pages_folder",
+                    "user",
                     models.ForeignKey(
                         blank=True,
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="zil_client_portals",
-                        to="db.page",
+                        related_name="zil_brand_client_of",
+                        to=settings.AUTH_USER_MODEL,
                     ),
                 ),
                 (
@@ -79,10 +69,18 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "Zil Client Portal",
-                "verbose_name_plural": "Zil Client Portals",
-                "db_table": "zil_client_portals",
+                "verbose_name": "Zil Brand Client",
+                "verbose_name_plural": "Zil Brand Clients",
+                "db_table": "zil_brand_clients",
                 "ordering": ("-created_at",),
+                "indexes": [models.Index(fields=["email"], name="zil_brand_client_email_idx")],
+                "constraints": [
+                    models.UniqueConstraint(
+                        condition=models.Q(deleted_at__isnull=True),
+                        fields=("brand_project", "email"),
+                        name="zil_brand_client_unique_email",
+                    )
+                ],
             },
         ),
     ]

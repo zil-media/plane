@@ -8,7 +8,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("db", "0143_zil_comment_moment"),
+        ("db", "0144_zil_comment_moment"),
     ]
 
     operations = [

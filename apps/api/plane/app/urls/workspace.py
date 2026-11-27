@@ -38,6 +38,7 @@ from plane.app.views import (
     WorkspaceUserPreferenceViewSet,
 )
 
+from plane.app.views.workspace.zil_client_states import ZilClientStatesEndpoint
 
 urlpatterns = [
     path(
@@ -256,5 +257,11 @@ urlpatterns = [
         "workspaces/<str:slug>/sidebar-preferences/",
         WorkspaceUserPreferenceViewSet.as_view(),
         name="workspace-user-preference",
+    ),
+    # the states every client (brand) project of the workspace uses
+    path(
+        "workspaces/<str:slug>/zil-client-states/",
+        ZilClientStatesEndpoint.as_view(),
+        name="workspace-zil-client-states",
     ),
 ]

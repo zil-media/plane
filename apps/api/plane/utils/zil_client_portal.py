@@ -98,28 +98,36 @@ STATUS_PUBLISHED = "published"
 
 
 def seed_brand_content(project, user):
-    """Give a brand project its content workflow, its calendar view and its "Cliente" folder.
+    """Give a brand project its content workflow (unless the workspace chose its clients' states),
+    its "Visible al cliente" label, its calendar view and its "Cliente" folder.
 
     Idempotent and additive: what already exists by name is left as it is (a renamed or recoloured
     state stays so), so it is safe on an adopted project and in the backfill. Returns the portal.
     """
+    from plane.utils.zil_client_states import template_states_for
+
     workspace_id = project.workspace_id
-    states = {name.lower() for name in State.all_state_objects.filter(project=project).values_list("name", flat=True)}
-    State.objects.bulk_create(
-        [
-            State(
-                name=state["name"],
-                color=state["color"],
-                group=state["group"],
-                sequence=state["sequence"],
-                project=project,
-                workspace_id=workspace_id,
-                created_by=user,
-            )
-            for state in CONTENT_STATES
-            if state["name"].lower() not in states
-        ]
-    )
+    # a workspace that chose its clients' states (a model project) keeps exactly those: the portal
+    # adds no states of its own there (it only reads state names for the status it shows)
+    if template_states_for(workspace_id) is None:
+        states = {
+            name.lower() for name in State.all_state_objects.filter(project=project).values_list("name", flat=True)
+        }
+        State.objects.bulk_create(
+            [
+                State(
+                    name=state["name"],
+                    color=state["color"],
+                    group=state["group"],
+                    sequence=state["sequence"],
+                    project=project,
+                    workspace_id=workspace_id,
+                    created_by=user,
+                )
+                for state in CONTENT_STATES
+                if state["name"].lower() not in states
+            ]
+        )
     labels = {name.lower() for name in Label.objects.filter(project=project).values_list("name", flat=True)}
     Label.objects.bulk_create(
         [

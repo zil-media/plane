@@ -529,6 +529,23 @@
         "heading": "Komut Dosyaları",
         "new_script": "Yeni Komut Dosyası",
         "description": "İş akışlarınızı özel komut dosyaları ve otomasyon kurallarıyla otomatikleştirin."
+      },
+      "client_states": {
+        "title": "Müşteri durumları",
+        "description": "Tüm müşterilerin kullanacağı durumların alınacağı bir ekip projesi seçin. İş öğeleri eşdeğer duruma taşınır ve yeni müşteriler bu durumlarla oluşturulur.",
+        "model_label": "Model proje",
+        "select_placeholder": "Bir proje seçin",
+        "states_label": "Durumlar",
+        "preview": "Etkilenen müşteriler: {clients}. Durumu değişecek iş öğeleri: {items}.",
+        "apply": "Tüm müşterilere uygula",
+        "applying": "Uygulanıyor",
+        "confirm_title": "Bu durumlar tüm müşterilere uygulansın mı?",
+        "confirm_content": "Tüm müşteriler {project} projesinin durumlarını kullanacak. İş öğeleri eşdeğer duruma taşınır ve hiçbiri silinmez. Boş kalan durumlar kaldırılır.",
+        "success_title": "Durumlar uygulandı",
+        "success_message": "Güncellenen müşteriler: {updated}. Durumu değişen iş öğeleri: {moved}.",
+        "error": "Durumlar uygulanamadı. Tekrar deneyin.",
+        "last_applied": "Son uygulama: {date}",
+        "no_projects": "Model olarak kullanılabilecek bir ekip projesi yok."
       }
     },
     "empty_state": {

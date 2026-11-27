@@ -529,6 +529,23 @@
         "heading": "Skripty",
         "new_script": "Nový skript",
         "description": "Automatizujte svoje pracovné postupy pomocou vlastných skriptov a automatizačných pravidiel."
+      },
+      "client_states": {
+        "title": "Stavy klientov",
+        "description": "Vyberte projekt tímu, ktorého stavy budú používať všetci klienti. Pracovné položky prejdú do zodpovedajúceho stavu a noví klienti sa vytvoria s týmito stavmi.",
+        "model_label": "Vzorový projekt",
+        "select_placeholder": "Vyberte projekt",
+        "states_label": "Stavy",
+        "preview": "Dotknutí klienti: {clients}. Pracovné položky, ktoré zmenia stav: {items}.",
+        "apply": "Použiť pre všetkých klientov",
+        "applying": "Prebieha použitie",
+        "confirm_title": "Použiť tieto stavy pre všetkých klientov?",
+        "confirm_content": "Všetci klienti budú používať stavy projektu {project}. Pracovné položky prejdú do zodpovedajúceho stavu a žiadna sa neodstráni. Prázdne stavy sa odstránia.",
+        "success_title": "Stavy použité",
+        "success_message": "Aktualizovaní klienti: {updated}. Pracovné položky so zmeneným stavom: {moved}.",
+        "error": "Stavy sa nepodarilo použiť. Skúste to znova.",
+        "last_applied": "Naposledy použité: {date}",
+        "no_projects": "Neexistuje žiadny projekt tímu, ktorý by mohol slúžiť ako vzor."
       }
     },
     "empty_state": {

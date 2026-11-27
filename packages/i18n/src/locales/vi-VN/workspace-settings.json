@@ -529,6 +529,23 @@
         "heading": "Script",
         "new_script": "Script mới",
         "description": "Tự động hóa quy trình làm việc của bạn với các script và quy tắc tự động hóa tùy chỉnh."
+      },
+      "client_states": {
+        "title": "Trạng thái của khách hàng",
+        "description": "Chọn một dự án của nhóm có các trạng thái mà mọi khách hàng sẽ dùng. Các mục công việc được chuyển sang trạng thái tương ứng và khách hàng mới được tạo với các trạng thái này.",
+        "model_label": "Dự án mẫu",
+        "select_placeholder": "Chọn một dự án",
+        "states_label": "Trạng thái",
+        "preview": "Khách hàng bị ảnh hưởng: {clients}. Mục công việc sẽ đổi trạng thái: {items}.",
+        "apply": "Áp dụng cho tất cả khách hàng",
+        "applying": "Đang áp dụng",
+        "confirm_title": "Áp dụng các trạng thái này cho tất cả khách hàng?",
+        "confirm_content": "Mọi khách hàng sẽ dùng các trạng thái của {project}. Các mục công việc được chuyển sang trạng thái tương ứng và không mục nào bị xóa. Các trạng thái trống sẽ bị gỡ bỏ.",
+        "success_title": "Đã áp dụng trạng thái",
+        "success_message": "Khách hàng đã cập nhật: {updated}. Mục công việc đã đổi trạng thái: {moved}.",
+        "error": "Không thể áp dụng trạng thái. Vui lòng thử lại.",
+        "last_applied": "Lần áp dụng gần nhất: {date}",
+        "no_projects": "Không có dự án nào của nhóm để dùng làm mẫu."
       }
     },
     "empty_state": {

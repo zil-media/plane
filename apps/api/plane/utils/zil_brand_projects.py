@@ -71,6 +71,7 @@ from plane.db.models.state import DEFAULT_STATES
 from plane.utils.studio_defaults import seed_studio_defaults
 from plane.utils.zil_client import is_valid_client_id
 from plane.utils.zil_client_portal import client_access, invite_client, seed_brand_content
+from plane.utils.zil_client_states import template_states_for
 from plane.utils.zil_managed import ZIL_PROJECT_NAME_FORBIDDEN
 
 logger = logging.getLogger("plane.zil.brand_projects")
@@ -154,9 +155,12 @@ def _logo_props(color, logo_url=""):
     return props
 
 
-def create_zil_project(workspace, name, identifier, owner, color=None, template=None):
+def create_zil_project(workspace, name, identifier, owner, color=None, template=None, client=False):
     """A new private project with what `ProjectViewSet.create` gives one (identifier row, default
-    states) except members and agents: Zil decides who is in it."""
+    states) except members and agents: Zil decides who is in it.
+
+    A client (brand) project of a workspace that chose its clients' states is born with those.
+    """
     project = Project(
         workspace_id=workspace.id,
         name=name,
@@ -172,6 +176,10 @@ def create_zil_project(workspace, name, identifier, owner, color=None, template=
     )
     project.save(created_by_id=owner.id)
     ProjectIdentifier.objects.create(name=project.identifier, project=project, workspace_id=workspace.id)
+    # a workspace that chose its clients' states gives them to every new client (Triage still added)
+    client_states = template_states_for(workspace.id) if client else None
+    if client_states is not None:
+        client_states = client_states + [state for state in DEFAULT_STATES if state["group"] == "triage"]
     State.objects.bulk_create(
         [
             State(
@@ -184,11 +192,11 @@ def create_zil_project(workspace, name, identifier, owner, color=None, template=
                 default=state.get("default", False),
                 created_by=owner,
             )
-            for state in DEFAULT_STATES
+            for state in (client_states or DEFAULT_STATES)
         ]
     )
     if template == STUDIO_TEMPLATE:
-        seed_studio_defaults(project=project, workspace=workspace, user=owner)
+        seed_studio_defaults(project=project, workspace=workspace, user=owner, states=client_states is None)
     return project
 
 
@@ -427,7 +435,7 @@ def _apply_brand(workspace, brand, mapping, owner, template, stats, ws_roles, wi
             stats["created"] += 1
             auto_name = _unique_name(workspace.id, name, brand_id)
             project = create_zil_project(
-                workspace, auto_name, allocate_identifier(workspace.id, auto_name), owner, color, template
+                workspace, auto_name, allocate_identifier(workspace.id, auto_name), owner, color, template, client=True
             )
         mapping = ZilBrandProject(
             workspace_id=workspace.id,

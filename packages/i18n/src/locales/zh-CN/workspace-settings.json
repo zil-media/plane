@@ -529,6 +529,23 @@
         "heading": "脚本",
         "new_script": "新建脚本",
         "description": "使用自定义脚本和自动化规则自动化您的工作流程。"
+      },
+      "client_states": {
+        "title": "客户状态",
+        "description": "选择一个团队项目，所有客户都将使用其状态。工作项会移到对应的状态，新客户也会以这些状态创建。",
+        "model_label": "模板项目",
+        "select_placeholder": "选择项目",
+        "states_label": "状态",
+        "preview": "受影响的客户：{clients}。将更改状态的工作项：{items}。",
+        "apply": "应用到所有客户",
+        "applying": "正在应用",
+        "confirm_title": "将这些状态应用到所有客户？",
+        "confirm_content": "所有客户都将使用 {project} 的状态。工作项会移到对应的状态，不会删除任何工作项。变为空的状态将被移除。",
+        "success_title": "状态已应用",
+        "success_message": "已更新的客户：{updated}。已更改状态的工作项：{moved}。",
+        "error": "无法应用状态，请重试。",
+        "last_applied": "上次应用：{date}",
+        "no_projects": "没有可用作模板的团队项目。"
       }
     },
     "empty_state": {
