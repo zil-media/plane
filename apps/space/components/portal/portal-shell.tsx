@@ -48,7 +48,7 @@ export function PortalShell({ brand, showMyBrands = false, children }: Props) {
           </div>
           <div className="flex items-center gap-3">
             {showMyBrands && (
-              <Link to="/portal" className="text-13 text-secondary hover:text-primary">
+              <Link to="/portal" className="text-13 whitespace-nowrap text-secondary hover:text-primary">
                 Mis marcas
               </Link>
             )}

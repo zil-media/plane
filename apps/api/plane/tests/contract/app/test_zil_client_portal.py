@@ -22,6 +22,7 @@ from plane.db.models import (
     Label,
     Notification,
     Page,
+    Profile,
     ProjectPage,
     State,
     User,
@@ -716,6 +717,146 @@ class TestInviteHardening:
 
         assert use_invite(first) is True
         assert use_invite(second) is False
+
+
+def tokens_sent(emails):
+    """The invite tokens in the emails the mock captured, in order."""
+    return [call.args[5].rsplit("/invite/", 1)[1] for call in emails.call_args_list if "/invite/" in call.args[5]]
+
+
+@pytest.mark.contract
+class TestClientWithSeveralBrands:
+    """One contact invited to the portal of several brands: one account, one access per brand."""
+
+    def _two_brands(self, workspace, wendys_clients=("lucia@x.test",), wendys_status="active"):
+        push(
+            workspace,
+            [
+                brand(KFC, "KFC", clients=["lucia@x.test"]),
+                brand(WENDYS, "Wendys", clients=list(wendys_clients), status_=wendys_status),
+            ],
+        )
+
+    def _signed_in(self):
+        user = User.objects.get(email="lucia@x.test")
+        user.last_login_time = timezone.now()
+        user.is_password_autoset = False
+        user.save()
+        return user
+
+    @pytest.mark.django_db
+    def test_one_account_with_an_access_per_brand_and_mis_marcas_lists_them(self, workspace, emails):
+        self._two_brands(workspace)
+        turn_on(KFC)
+        turn_on(WENDYS)
+        lucia = self._signed_in()
+
+        assert User.objects.filter(email="lucia@x.test").count() == 1
+        assert set(ZilBrandClient.objects.filter(email="lucia@x.test").values_list("user_id", flat=True)) == {lucia.id}
+        brands = as_user(lucia).get("/api/public/portal/").json()["brands"]
+        assert [(b["name"], b["paused"]) for b in brands] == [("KFC", False), ("Wendys", False)]
+        for b in brands:
+            assert as_user(lucia).get(f"/api/public/portal/{b['id']}/posts/").status_code == 200
+
+    @pytest.mark.django_db
+    def test_each_brand_only_shows_its_own_posts_and_documents(self, workspace, create_user, emails):
+        self._two_brands(workspace)
+        turn_on(KFC)
+        turn_on(WENDYS)
+        lucia = self._signed_in()
+        kfc, wendys = mapping_of(KFC).project, mapping_of(WENDYS).project
+        kfc_post = item(kfc, "Reel KFC", target_date=timezone.now().date())
+        item(wendys, "Reel Wendys", target_date=timezone.now().date())
+
+        kfc_posts = as_user(lucia).get(f"/api/public/portal/{kfc.id}/posts/").json()["posts"]
+        assert [p["name"] for p in kfc_posts] == ["Reel KFC"]
+        # a post of one brand is not reachable through the other brand's portal
+        assert as_user(lucia).get(f"/api/public/portal/{wendys.id}/posts/{kfc_post.id}/").status_code == 404
+
+    @pytest.mark.django_db
+    def test_pausing_one_brand_leaves_the_other_open(self, workspace, emails):
+        self._two_brands(workspace)
+        turn_on(KFC)
+        turn_on(WENDYS)
+        lucia = self._signed_in()
+
+        self._two_brands(workspace, wendys_status="archived")
+
+        brands = {b["name"]: b["paused"] for b in as_user(lucia).get("/api/public/portal/").json()["brands"]}
+        assert brands == {"KFC": False, "Wendys": True}
+        assert as_user(lucia).get(f"/api/public/portal/{mapping_of(KFC).project_id}/posts/").status_code == 200
+        paused = as_user(lucia).get(f"/api/public/portal/{mapping_of(WENDYS).project_id}/posts/")
+        assert paused.status_code == 403 and paused.json()["paused"] is True
+
+    @pytest.mark.django_db
+    def test_removing_her_from_one_brand_keeps_the_other(self, workspace, emails):
+        self._two_brands(workspace)
+        turn_on(KFC)
+        turn_on(WENDYS)
+        lucia = self._signed_in()
+
+        self._two_brands(workspace, wendys_clients=())
+
+        assert [b["name"] for b in as_user(lucia).get("/api/public/portal/").json()["brands"]] == ["KFC"]
+        assert as_user(lucia).get(f"/api/public/portal/{mapping_of(WENDYS).project_id}/").status_code == 404
+        assert as_user(lucia).get(f"/api/public/portal/{mapping_of(KFC).project_id}/").status_code == 200
+        assert User.objects.get(email="lucia@x.test").is_active
+
+    @pytest.mark.django_db
+    def test_an_invite_per_brand_one_password_for_both(self, workspace, create_user, emails):
+        self._two_brands(workspace)
+        emails.reset_mock()
+        for brand_id in (KFC, WENDYS):
+            as_user(create_user).patch(
+                f"/api/workspaces/{workspace.slug}/projects/{mapping_of(brand_id).project_id}/zil-portal/",
+                {"enabled": True},
+                format="json",
+            )
+        kfc_token, wendys_token = tokens_sent(emails)
+        anon = APIClient()
+
+        assert anon.get(f"/api/public/portal/invite/{kfc_token}/").json()["brand"] == "KFC"
+        assert anon.get(f"/api/public/portal/invite/{wendys_token}/").json()["brand"] == "Wendys"
+        accepted = anon.post(
+            f"/api/public/portal/invite/{kfc_token}/", {"password": "Dos-Marcas-Una-Clave-26"}, format="json"
+        )
+        assert accepted.status_code == 200
+
+        # the other link is spent with it, and the session opens both brands
+        assert anon.get(f"/api/public/portal/invite/{wendys_token}/").status_code == 404
+        assert [b["name"] for b in anon.get("/api/public/portal/").json()["brands"]] == ["KFC", "Wendys"]
+        assert anon.get(f"/api/public/portal/{mapping_of(WENDYS).project_id}/").status_code == 200
+
+        # a new invite to Wendys now just sends her to sign in with the password she chose
+        wendys_row = ZilBrandClient.objects.get(email="lucia@x.test", brand_project__zil_brand_id=WENDYS)
+        emails.reset_mock()
+        as_user(create_user).post(
+            f"/api/workspaces/{workspace.slug}/projects/{mapping_of(WENDYS).project_id}/zil-portal/clients/{wendys_row.id}/invite/"
+        )
+        resent = APIClient().post(f"/api/public/portal/invite/{tokens_sent(emails)[0]}/", {}, format="json")
+        assert resent.json() == {"project_id": str(mapping_of(WENDYS).project_id), "sign_in": True}
+
+    @pytest.mark.django_db
+    def test_on_the_team_of_one_brand_and_client_of_another(self, workspace, emails):
+        team = User.objects.create(email="lucia@x.test", username="lucia-team")
+        WorkspaceMember.objects.create(workspace=workspace, member=team, role=15)
+        push(
+            workspace,
+            [
+                brand(KFC, "KFC", team=["lucia@x.test"]),
+                brand(WENDYS, "Wendys", clients=["lucia@x.test"]),
+            ],
+        )
+        turn_on(KFC)
+        turn_on(WENDYS)
+
+        # a client of Wendys (no membership there), a member of KFC's team (preview of its portal)
+        assert as_user(team).get(f"/api/public/portal/{mapping_of(WENDYS).project_id}/").json()["preview"] is False
+        assert as_user(team).get(f"/api/public/portal/{mapping_of(KFC).project_id}/").json()["preview"] is True
+        assert [b["name"] for b in as_user(team).get("/api/public/portal/").json()["brands"]] == ["Wendys"]
+        # signing in to Ops takes her to her workspace, not the portal (a team account is onboarded)
+        Profile.objects.update_or_create(user=team, defaults={"is_onboarded": True})
+        assert get_redirection_path(team) == workspace.slug
 
 
 @pytest.mark.contract
