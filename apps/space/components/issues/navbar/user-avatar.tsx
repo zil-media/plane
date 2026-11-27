@@ -27,9 +27,11 @@ const authService = new AuthService();
 type Props = {
   /** the sign-out item's text (the client portal shows it in Spanish) */
   signOutLabel?: string;
+  /** where to come back after signing in again (the portal keeps its whole query) */
+  nextPath?: string;
 };
 
-export const UserAvatar = observer(function UserAvatar({ signOutLabel = "Sign out" }: Props) {
+export const UserAvatar = observer(function UserAvatar({ signOutLabel = "Sign out", nextPath }: Props) {
   const pathName = usePathname();
   const searchParams = useSearchParams();
   // query params
@@ -106,7 +108,7 @@ export const UserAvatar = observer(function UserAvatar({ signOutLabel = "Sign ou
                   {csrfToken && (
                     <form method="POST" action={`${API_BASE_URL}/auth/spaces/sign-out/`} onSubmit={signOut}>
                       <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />
-                      <input type="hidden" name="next_path" value={`${pathName}?${queryParam}`} />
+                      <input type="hidden" name="next_path" value={nextPath ?? `${pathName}?${queryParam}`} />
                       <button
                         type="submit"
                         className="flex min-w-36 cursor-pointer items-center gap-2 rounded-sm p-2 text-13 whitespace-nowrap hover:bg-layer-transparent-hover"

@@ -5,7 +5,7 @@
  */
 
 import type { ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 // plane imports
 import type { TZilPortalBrand } from "@plane/types";
 import { getFileURL } from "@plane/utils";
@@ -22,6 +22,8 @@ type Props = {
 
 /** The portal's one screen: the brand's logo on top, nothing else to learn. */
 export function PortalShell({ brand, showMyBrands = false, children }: Props) {
+  // signing out from a document or a post comes back to it after signing in again
+  const location = useLocation();
   const logo = brand?.logo_url ? getFileURL(brand.logo_url) : undefined;
   return (
     <div className="min-h-screen bg-surface-1">
@@ -52,7 +54,7 @@ export function PortalShell({ brand, showMyBrands = false, children }: Props) {
                 Mis marcas
               </Link>
             )}
-            <UserAvatar signOutLabel="Cerrar sesión" />
+            <UserAvatar signOutLabel="Cerrar sesión" nextPath={`${location.pathname}${location.search}`} />
           </div>
         </div>
       </header>

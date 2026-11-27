@@ -19,7 +19,7 @@ import type { TFileSignedURLResponse, TIssueComment } from "@plane/types";
 import { CommentCreate } from "@/components/comments/comment-create";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
-import { useZilProjectPortal } from "@/hooks/use-zil-brands";
+import { useZilProjectBrandProject, useZilProjectPortal } from "@/hooks/use-zil-brands";
 // local imports
 import { IssueActivityCommentRoot } from "./activity-comment-root";
 import { useWorkItemCommentOperations } from "./helper";
@@ -78,7 +78,8 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
   const project = getProjectById(projectId);
   // a brand's client portal shows the external comments: the team picks internal or external, as on
   // a published project
-  const { portal: clientPortal } = useZilProjectPortal(workspaceSlug, projectId);
+  const brandProject = useZilProjectBrandProject(workspaceSlug, projectId);
+  const { portal: clientPortal } = useZilProjectPortal(brandProject ? workspaceSlug : undefined, projectId);
   const showAccessSpecifier = !!project?.anchor || !!clientPortal?.enabled;
   const renderCommentCreationBox = useMemo(
     () => (

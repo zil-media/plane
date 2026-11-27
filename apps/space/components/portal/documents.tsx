@@ -124,7 +124,7 @@ export function PortalDocuments({ projectId, documentId, preview, onOpen }: Prop
           </Loader>
         ) : (
           <>
-            <h1 className="text-[2rem] leading-[2.375rem] font-bold text-primary">{document.name}</h1>
+            <h1 className="text-24 font-bold text-primary">{document.name}</h1>
             <PortalContent id={document.id} projectId={projectId} html={document.description_html ?? ""} />
             {/* divider and conversation, as in a post */}
             <div className="my-5 h-[1] w-full border-t border-subtle" />

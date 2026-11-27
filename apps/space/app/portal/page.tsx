@@ -12,7 +12,6 @@ import useSWR from "swr";
 import { SitesPortalService } from "@plane/services";
 import { getFileURL } from "@plane/utils";
 // components
-import { UserLoggedIn } from "@/components/account/user-logged-in";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { PortalMessage, PortalShell } from "@/components/portal/portal-shell";
 import { usePortalGuard } from "@/components/portal/use-portal-guard";
@@ -44,8 +43,16 @@ const PortalHomePage = observer(function PortalHomePage() {
       </div>
     );
 
-  // someone with no brand portal (the team, or a client whose portals are off)
-  if (brands.length === 0) return <UserLoggedIn />;
+  // no active portal (a client whose portals are off, or someone of the team)
+  if (brands.length === 0)
+    return (
+      <PortalShell>
+        <PortalMessage
+          title="Todavía no tenés un portal activo"
+          text="Cuando el equipo lo active te llega un mail. Si creés que es un error, escribile a tu contacto en Zil."
+        />
+      </PortalShell>
+    );
 
   return (
     <PortalShell>

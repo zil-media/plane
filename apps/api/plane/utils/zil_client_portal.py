@@ -54,6 +54,8 @@ VISIBLE_LABEL = "Visible al cliente"
 REVIEW_STATE = "Aprobación cliente"
 SCHEDULED_STATE = "Programado"
 CLIENT_FOLDER = "Cliente"
+# marks the folder the seed made (Page.external_source), so a team's own "Cliente" folder is never adopted
+CLIENT_FOLDER_SOURCE = "zil_client_portal"
 CALENDAR_VIEW = "Calendario de contenidos"
 INVITE_DAYS = 7
 
@@ -177,15 +179,18 @@ def _is_live_folder(page_id, project):
 
 
 def _client_folder(project, user):
-    """The project's top-level "Cliente" folder: the one there is, or a new one."""
+    """The project's "Cliente" folder made for the portal: the one the seed made, or a new one.
+
+    A folder the team already had with that name is never adopted: what they kept in it would
+    become visible to the client the moment the portal is turned on.
+    """
     folder = (
         Page.objects.filter(
             project_pages__project=project,
             project_pages__deleted_at__isnull=True,
             kind=Page.FOLDER_KIND,
-            parent__isnull=True,
             archived_at__isnull=True,
-            name__iexact=CLIENT_FOLDER,
+            external_source=CLIENT_FOLDER_SOURCE,
         )
         .order_by("created_at")
         .first()
@@ -195,6 +200,8 @@ def _client_folder(project, user):
     folder = Page.objects.create(
         name=CLIENT_FOLDER,
         kind=Page.FOLDER_KIND,
+        external_source=CLIENT_FOLDER_SOURCE,
+        external_id=str(project.id),
         workspace_id=project.workspace_id,
         owned_by=user,
         access=Page.PUBLIC_ACCESS,
@@ -328,7 +335,12 @@ def _folder_ids(portal):
     seen = set(frontier)
     depth = 0
     while frontier and depth < Page.MAX_TREE_DEPTH:
-        children = list(Page.objects.filter(parent_id__in=frontier, archived_at__isnull=True).values_list("id", "kind"))
+        # a private page (or folder) is its owner's alone: never shown to the client, nor what is inside
+        children = list(
+            Page.objects.filter(parent_id__in=frontier, archived_at__isnull=True)
+            .exclude(access=Page.PRIVATE_ACCESS)
+            .values_list("id", "kind")
+        )
         frontier = []
         for page_id, kind in children:
             if page_id in seen:
@@ -347,6 +359,7 @@ def _in_project(portal, ids):
     return Page.objects.filter(
         pk__in=ids,
         archived_at__isnull=True,
+        access=Page.PUBLIC_ACCESS,
         project_pages__project_id=portal.project_id,
         project_pages__deleted_at__isnull=True,
     ).distinct()
@@ -706,23 +719,62 @@ def notify_page_comment(page, comment, author):
         )
 
 
-def dispatch_portal_events(type, issue_id, actor_id, issue_activities):
+def _json(raw):
+    import json
+
+    try:
+        return json.loads(raw) if isinstance(raw, str) else (raw or {})
+    except (TypeError, ValueError):
+        return {}
+
+
+def dispatch_portal_events(
+    type, issue_id, actor_id, issue_activities, project_id=None, requested_data=None, current_instance=None
+):
     """Called by the issue activity task after each change: the portal's notices, from any path."""
-    if issue_id is None or type not in ("issue.activity.updated", "comment.activity.created"):
+    if issue_id is None or type not in (
+        "issue.activity.updated",
+        "comment.activity.created",
+        "comment.activity.updated",
+    ):
+        return
+    # most activity is in projects without a portal: one cheap query and out
+    if project_id is not None and not ZilClientPortal.objects.filter(project_id=project_id, enabled=True).exists():
         return
     issue = Issue.issue_objects.filter(pk=issue_id).select_related("state", "project").first()
     if issue is None:
         return
+    in_review = issue.state is not None and issue.state.name.strip().lower() == REVIEW_STATE.lower()
     if type == "issue.activity.updated":
         to_review = any(
             activity.field == "state" and (activity.new_value or "").strip().lower() == REVIEW_STATE.lower()
             for activity in issue_activities
         )
-        if to_review and issue.state is not None and issue.state.name.strip().lower() == REVIEW_STATE.lower():
+        # shown to the client while it already waits for them: the same "para revisar"
+        shown_in_review = any(
+            activity.field == "labels"
+            and activity.verb == "updated"
+            and (activity.new_value or "").strip().lower() == VISIBLE_LABEL.lower()
+            for activity in issue_activities
+        )
+        if in_review and (to_review or shown_in_review):
             notify_clients_review(issue)
         return
     from plane.db.models import IssueComment, User
 
+    author = User.objects.filter(pk=actor_id).first()
+    if author is None:
+        return
+    is_member = ProjectMember.objects.filter(project_id=issue.project_id, member=author, is_active=True).exists()
+    if type == "comment.activity.updated":
+        # an internal comment the team made external: the client hears it like a new answer
+        before, after = _json(current_instance), _json(requested_data)
+        if not is_member or before.get("access") != "INTERNAL" or after.get("access") != "EXTERNAL":
+            return
+        comment = IssueComment.objects.filter(pk=before.get("id"), issue_id=issue.id, access="EXTERNAL").first()
+        if comment is not None:
+            notify_clients_reply(issue, comment)
+        return
     for activity in issue_activities:
         if activity.field != "comment" or activity.issue_comment_id is None:
             continue
@@ -731,10 +783,6 @@ def dispatch_portal_events(type, issue_id, actor_id, issue_activities):
         ).first()
         if comment is None:
             continue
-        author = User.objects.filter(pk=actor_id).first()
-        if author is None:
-            continue
-        is_member = ProjectMember.objects.filter(project_id=issue.project_id, member=author, is_active=True).exists()
         if is_member:
             notify_clients_reply(issue, comment)
         elif ZilBrandClient.objects.filter(brand_project__project_id=issue.project_id, user=author).exists():

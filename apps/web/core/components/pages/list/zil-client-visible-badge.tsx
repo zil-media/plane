@@ -9,10 +9,11 @@ import { useParams } from "next/navigation";
 import { Eye } from "lucide-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
+import { EPageAccess } from "@plane/types";
 // hooks
 import type { EPageStoreType } from "@/hooks/store";
 import { usePageStore } from "@/hooks/store";
-import { useZilProjectPortal } from "@/hooks/use-zil-brands";
+import { useZilProjectBrandProject, useZilProjectPortal } from "@/hooks/use-zil-brands";
 
 /**
  * Whether a page is inside its brand project's "Cliente" folder (the client portal shows it and its
@@ -20,11 +21,15 @@ import { useZilProjectPortal } from "@/hooks/use-zil-brands";
  */
 export const useIsInZilClientFolder = (pageId: string | undefined, storeType: EPageStoreType) => {
   const { workspaceSlug, projectId } = useParams<{ workspaceSlug?: string; projectId?: string }>();
-  const { portal } = useZilProjectPortal(workspaceSlug, projectId);
+  const brandProject = useZilProjectBrandProject(workspaceSlug, projectId);
+  const { portal } = useZilProjectPortal(brandProject ? workspaceSlug : undefined, projectId);
   const { getPageById } = usePageStore(storeType);
   const folderId = portal?.folder_id;
   if (!folderId || !pageId) return false;
-  let parentId = getPageById(pageId)?.parent ?? null;
+  const page = getPageById(pageId);
+  // a private page is its owner's alone: the portal never shows it
+  if (page?.access === EPageAccess.PRIVATE) return false;
+  let parentId = page?.parent ?? null;
   for (let depth = 0; parentId && depth < 8; depth++) {
     if (parentId === folderId) return true;
     parentId = getPageById(parentId)?.parent ?? null;

@@ -267,12 +267,13 @@ class PortalCommentsEndpoint(PortalBaseEndpoint):
         team_ids = set(
             ProjectMember.objects.filter(project=project, is_active=True).values_list("member_id", flat=True)
         )
-        comments = (
+        # the latest ones past the cap, shown oldest first
+        latest = (
             IssueComment.objects.filter(issue_id=issue.id, project_id=project.id, access="EXTERNAL")
             .select_related("actor")
-            .order_by("created_at")[:MAX_COMMENTS]
+            .order_by("-created_at")[:MAX_COMMENTS]
         )
-        return Response({"comments": [_comment(c, team_ids, request.user) for c in comments]})
+        return Response({"comments": [_comment(c, team_ids, request.user) for c in reversed(list(latest))]})
 
     def post(self, request, project_id, issue_id):
         try:
@@ -398,8 +399,8 @@ class PortalDocumentCommentsEndpoint(PortalBaseEndpoint):
         team_ids = set(
             ProjectMember.objects.filter(project=project, is_active=True).values_list("member_id", flat=True)
         )
-        comments = ZilPageComment.objects.filter(page=page).select_related("actor").order_by("created_at")
-        return Response({"comments": [_page_comment(c, team_ids, request.user) for c in comments[:MAX_COMMENTS]]})
+        latest = ZilPageComment.objects.filter(page=page).select_related("actor").order_by("-created_at")[:MAX_COMMENTS]
+        return Response({"comments": [_page_comment(c, team_ids, request.user) for c in reversed(list(latest))]})
 
     def post(self, request, project_id, page_id):
         try:

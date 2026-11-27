@@ -1604,7 +1604,15 @@ def issue_activity(
         try:
             from plane.utils.zil_client_portal import dispatch_portal_events
 
-            dispatch_portal_events(type, issue_id, actor_id, issue_activities_created)
+            dispatch_portal_events(
+                type,
+                issue_id,
+                actor_id,
+                issue_activities_created,
+                project_id=project_id,
+                requested_data=requested_data,
+                current_instance=current_instance,
+            )
         except Exception as e:
             log_exception(e)
 

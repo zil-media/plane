@@ -860,6 +860,101 @@ class TestClientWithSeveralBrands:
 
 
 @pytest.mark.contract
+class TestReviewFixes:
+    @pytest.mark.django_db
+    def test_a_private_page_or_folder_inside_the_client_folder_never_reaches_the_client(
+        self, kfc, cliente, create_user
+    ):
+        project = kfc.project
+        root = ZilClientPortal.objects.get(project=project).pages_folder
+        shared = folder_page(project, create_user, "Guion", root)
+        draft = folder_page(project, create_user, "Borrador interno", root)
+        draft.access = Page.PRIVATE_ACCESS
+        draft.save()
+        secret_folder = folder_page(project, create_user, "Privada", root, kind=Page.FOLDER_KIND)
+        secret_folder.access = Page.PRIVATE_ACCESS
+        secret_folder.save()
+        inside_secret = folder_page(project, create_user, "Dentro de privada", secret_folder)
+
+        body = as_user(cliente).get(f"/api/public/portal/{project.id}/documents/").json()
+
+        assert [d["name"] for d in body["documents"]] == ["Guion"]
+        assert body["folders"] == []
+        for page in (draft, inside_secret):
+            assert as_user(cliente).get(f"/api/public/portal/{project.id}/documents/{page.id}/").status_code == 404
+        assert as_user(cliente).get(f"/api/public/portal/{project.id}/documents/{shared.id}/").status_code == 200
+
+    @pytest.mark.django_db
+    def test_a_cliente_folder_the_team_already_had_is_not_adopted(self, workspace, create_user, emails):
+        push(workspace, [brand(KFC, "KFC")])
+        project = mapping_of(KFC).project
+        ZilClientPortal.objects.filter(project=project).delete(soft=False)
+        theirs = folder_page(project, create_user, "Cliente", None, kind=Page.FOLDER_KIND)
+
+        push(workspace, [brand(KFC, "KFC")])
+
+        portal = ZilClientPortal.objects.get(project=project)
+        assert portal.pages_folder_id != theirs.id
+        assert portal.pages_folder.external_source == "zil_client_portal"
+
+    @pytest.mark.django_db
+    def test_making_an_internal_comment_external_emails_the_client(self, kfc, cliente, create_user, emails):
+        issue = item(kfc.project, "Reel")
+        comment = IssueComment.objects.create(
+            issue=issue, project=kfc.project, comment_html="<p>Listo</p>", actor=create_user, access="EXTERNAL"
+        )
+        emails.reset_mock()
+
+        dispatch_portal_events(
+            "comment.activity.updated",
+            issue.id,
+            create_user.id,
+            [],
+            project_id=kfc.project_id,
+            requested_data='{"access": "EXTERNAL"}',
+            current_instance=f'{{"id": "{comment.id}", "access": "INTERNAL"}}',
+        )
+
+        assert [call.args[0] for call in emails.call_args_list] == [["cliente@kfc.test"]]
+
+    @pytest.mark.django_db
+    def test_showing_an_item_that_already_waits_for_review_emails_the_client(self, kfc, cliente, create_user, emails):
+        issue = item(kfc.project, "Carrusel", state_name=REVIEW_STATE)
+        emails.reset_mock()
+
+        dispatch_portal_events(
+            "issue.activity.updated",
+            issue.id,
+            create_user.id,
+            [mock.Mock(field="labels", verb="updated", new_value=VISIBLE_LABEL)],
+            project_id=kfc.project_id,
+        )
+
+        assert [call.args[0] for call in emails.call_args_list] == [["cliente@kfc.test"]]
+
+    @pytest.mark.django_db
+    def test_a_project_without_a_portal_costs_one_query_and_sends_nothing(self, workspace, create_user, emails):
+        push(workspace, [brand(KFC, "KFC")])
+        project = mapping_of(KFC).project
+        issue = item(project, "Reel", state_name=REVIEW_STATE)
+        emails.reset_mock()
+
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        with CaptureQueriesContext(connection) as queries:
+            dispatch_portal_events(
+                "issue.activity.updated",
+                issue.id,
+                create_user.id,
+                [mock.Mock(field="state", new_value=REVIEW_STATE)],
+                project_id=project.id,
+            )
+
+        assert len(queries) == 1 and not emails.called
+
+
+@pytest.mark.contract
 class TestRedirect:
     @pytest.mark.django_db
     def test_a_client_without_a_workspace_lands_on_the_portal_and_skips_onboarding(self, kfc, cliente):
