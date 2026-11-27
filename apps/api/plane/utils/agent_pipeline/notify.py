@@ -42,13 +42,17 @@ def support_url(workspace=None, item_id=None, kind="bug"):
     return f"{url}?{kind}={item_id}" if item_id else url
 
 
-def send(to, subject, heading, paragraphs, cta_label=None, cta_url=None):
+def send(to, subject, heading, paragraphs, cta_label=None, cta_url=None, signature=None):
+    """`signature`: the closing line (default "Equipo de Zil Support"); a brand's client reads its team."""
     recipients = [e for e in (to if isinstance(to, (list, tuple)) else [to]) if e]
     if not recipients:
         return
     from plane.bgtasks.agent_pipeline_task import send_support_email_task
 
-    send_support_email_task.delay(recipients, subject, heading, list(paragraphs), cta_label, cta_url)
+    if signature:
+        send_support_email_task.delay(recipients, subject, heading, list(paragraphs), cta_label, cta_url, signature)
+    else:
+        send_support_email_task.delay(recipients, subject, heading, list(paragraphs), cta_label, cta_url)
 
 
 # The spec's blast_radius, said like the board says it (helpdesk.impact.*).

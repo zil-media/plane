@@ -139,6 +139,8 @@ def seed_brand_content(project, user):
                 "show_empty_groups": True,
                 "layout": "calendar",
                 "calendar_date_range": "",
+                # posts go out on weekends too
+                "calendar": {"layout": "month", "show_weekends": True},
             },
             access=1,
             owned_by=user,
@@ -394,6 +396,7 @@ def invite_client(client):
         ],
         "Ver mi calendario",
         link,
+        signature=f"Equipo de {project.name}",
     )
     return True
 
@@ -609,6 +612,7 @@ def notify_clients_review(issue):
             ],
             "Ver la publicación",
             link,
+            signature=f"Equipo de {project.name}",
         )
 
 
@@ -633,6 +637,7 @@ def notify_clients_reply(issue, comment):
             ],
             "Ver la respuesta",
             link,
+            signature=f"Equipo de {project.name}",
         )
 
 

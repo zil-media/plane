@@ -13,8 +13,10 @@ from rest_framework.response import Response
 from plane.authentication.views.zil_sync import ZilServiceView
 
 
-# what this build accepts, so Zil can tell an Ops behind it apart (and keep the old pushes for it)
-ZIL_SYNC_FEATURES = ["brand-projects"]
+# what this build accepts, so Zil can tell an Ops behind it apart (and keep the old pushes for it).
+# "brand-clients": brand roster members with `role: "client"` (the client portal); an Ops without it
+# would take a client for a team member, so Zil leaves clients out until it sees this.
+ZIL_SYNC_FEATURES = ["brand-projects", "brand-clients"]
 
 
 class ZilVersionEndpoint(ZilServiceView):

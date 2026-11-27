@@ -161,8 +161,10 @@ def feature_run_sweep():
         if retried >= SPEC_RETRIES_PER_SWEEP:
             break
         over_cap = feature.spec_runs >= MAX_SPEC_RUNS
-        if over_cap and feature.spec_requested_at and now - feature.spec_requested_at < retry_wait(
-            feature.spec_runs - MAX_SPEC_RUNS
+        if (
+            over_cap
+            and feature.spec_requested_at
+            and now - feature.spec_requested_at < retry_wait(feature.spec_runs - MAX_SPEC_RUNS)
         ):
             continue
         queued, _ = features.request_spec(feature, "barrido periódico: análisis pendiente", force=over_cap)
@@ -184,7 +186,6 @@ def feature_run_sweep():
 
     drained = features.drain_feature_queue("barrido periódico")
     return {"released": released, "retried": retried, "asked": asked, "drained": drained}
-
 
 
 @shared_task
@@ -230,7 +231,7 @@ def _nothing_was_sent(error):
 
 
 @shared_task(bind=True, max_retries=SUPPORT_MAIL_RETRIES)
-def send_support_email_task(self, to, subject, heading, paragraphs, cta_label=None, cta_url=None):
+def send_support_email_task(self, to, subject, heading, paragraphs, cta_label=None, cta_url=None, signature=None):
     failed = []
     try:
         html_content = render_to_string(
@@ -240,6 +241,7 @@ def send_support_email_task(self, to, subject, heading, paragraphs, cta_label=No
                 "paragraphs": [p for p in paragraphs if p],
                 "cta_label": cta_label,
                 "cta_url": cta_url,
+                "signature": signature,
             },
         )
         # Production relays through Zil (ZilEmailBackend → /api/sso/mail), which re-renders the email

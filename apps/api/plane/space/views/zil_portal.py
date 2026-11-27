@@ -133,6 +133,7 @@ def _post(issue, labels, media):
         "name": issue.name,
         "publish_date": issue.target_date.isoformat() if issue.target_date else None,
         "status": simple_status(issue.state),
+        "status_color": issue.state.color if issue.state else None,
         "network": network,
         "labels": labels,
         "thumbnail": _media(issue.project_id, [thumb])[0] if thumb else None,

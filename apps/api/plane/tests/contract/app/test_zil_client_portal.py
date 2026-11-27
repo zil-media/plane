@@ -149,6 +149,7 @@ class TestSeed:
         assert {label["name"] for label in CONTENT_LABELS} <= labels
         view = IssueView.objects.get(project=project, name="Calendario de contenidos")
         assert view.display_filters["layout"] == "calendar"
+        assert view.display_filters["calendar"] == {"layout": "month", "show_weekends": True}
         project.refresh_from_db()
         assert project.issue_views_view
         portal = ZilClientPortal.objects.get(project=project)
@@ -278,7 +279,7 @@ class TestPosts:
 
         assert [p["name"] for p in body["posts"]] == ["Reel lanzamiento"]
         post = body["posts"][0]
-        assert set(post) == {"id", "name", "publish_date", "status", "network", "labels", "thumbnail"}
+        assert set(post) == {"id", "name", "publish_date", "status", "status_color", "network", "labels", "thumbnail"}
         assert post["network"] == "Instagram" and post["status"] == "En preparación"
         assert [label["name"] for label in post["labels"]] == ["Instagram"]
         assert body["to_review"] == []
