@@ -52,7 +52,7 @@ export function PortalShell({ brand, showMyBrands = false, children }: Props) {
                 Mis marcas
               </Link>
             )}
-            <UserAvatar />
+            <UserAvatar signOutLabel="Cerrar sesión" />
           </div>
         </div>
       </header>

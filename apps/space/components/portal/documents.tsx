@@ -48,7 +48,7 @@ export function PortalDocuments({ projectId, documentId, onOpen }: Props) {
           </Loader>
         ) : (
           <>
-            <h2 className="text-20 font-semibold text-primary">{document.name}</h2>
+            <h2 className="text-24 font-semibold text-primary">{document.name}</h2>
             <PortalContent id={document.id} projectId={projectId} html={document.description_html ?? ""} />
           </>
         )}

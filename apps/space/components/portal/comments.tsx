@@ -41,7 +41,7 @@ function CommentRow({ comment, projectId }: { comment: TZilPortalComment; projec
             className="grid size-7 place-items-center rounded-full border-2 border-strong-1"
           />
         ) : (
-          <div className="bg-gray-500 grid size-7 place-items-center rounded-full border-2 border-strong-1 text-on-color">
+          <div className="grid size-7 place-items-center rounded-full border-2 border-strong-1 bg-layer-3 text-11 text-secondary">
             {comment.author.charAt(0).toUpperCase()}
           </div>
         )}

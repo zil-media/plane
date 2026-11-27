@@ -24,7 +24,12 @@ import { useUser } from "@/hooks/store/use-user";
 
 const authService = new AuthService();
 
-export const UserAvatar = observer(function UserAvatar() {
+type Props = {
+  /** the sign-out item's text (the client portal shows it in Spanish) */
+  signOutLabel?: string;
+};
+
+export const UserAvatar = observer(function UserAvatar({ signOutLabel = "Sign out" }: Props) {
   const pathName = usePathname();
   const searchParams = useSearchParams();
   // query params
@@ -107,7 +112,7 @@ export const UserAvatar = observer(function UserAvatar() {
                         className="flex min-w-36 cursor-pointer items-center gap-2 rounded-sm p-2 text-13 whitespace-nowrap hover:bg-layer-transparent-hover"
                       >
                         <LogOut size={12} className="shrink-0 text-danger-primary" />
-                        <div>Sign out</div>
+                        <div>{signOutLabel}</div>
                       </button>
                     </form>
                   )}

@@ -33,10 +33,8 @@ const START_OF_WEEK = EStartOfTheWeek.MONDAY;
 const weeksOf = (month: Date): ICalendarWeek[] => {
   const payload = generateCalendarData(null, month, START_OF_WEEK);
   const weeks = payload[`y-${month.getFullYear()}`]?.[`m-${month.getMonth()}`] ?? {};
-  return Object.keys(weeks)
-    .map((key) => parseInt(key.replace("w-", "")))
-    .toSorted((a, b) => a - b)
-    .map((n) => weeks[`w-${n}`]);
+  // the generator keys weeks by sequential index (w-0, w-1, …)
+  return Object.keys(weeks).map((_, index) => weeks[`w-${index}`]);
 };
 
 /** The range of days the month shows, for the API. */

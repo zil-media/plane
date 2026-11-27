@@ -26,6 +26,8 @@ type TCommentCreate = {
   showToolbarInitially?: boolean;
   projectId?: string;
   onSubmitCallback?: (elementId: string) => void;
+  /** offer internal / external (public) for the new comment: a published project or a brand's client portal */
+  showAccessSpecifier?: boolean;
 };
 
 // services
@@ -39,6 +41,7 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
     showToolbarInitially = false,
     projectId,
     onSubmitCallback,
+    showAccessSpecifier = false,
   } = props;
   // states
   const [uploadedAssetIds, setUploadedAssetIds] = useState<string[]>([]);
@@ -92,6 +95,7 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
 
   return (
     <div
+      role="presentation"
       className={cn("sticky bottom-0 z-[4] bg-surface-1 sm:static")}
       onKeyDown={(e) => {
         if (
@@ -132,6 +136,7 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
                 onChange={(comment_json, comment_html) => onChange(comment_html)}
                 accessSpecifier={accessValue ?? EIssueCommentAccessSpecifier.INTERNAL}
                 handleAccessChange={onAccessChange}
+                showAccessSpecifier={showAccessSpecifier}
                 isSubmitting={isSubmitting}
                 uploadFile={async (blockId, file) => {
                   const { asset_id } = await activityOperations.uploadCommentAsset(blockId, file);
