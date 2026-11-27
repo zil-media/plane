@@ -10,10 +10,12 @@ import type {
   TZilPortalBrand,
   TZilPortalComment,
   TZilPortalDocument,
+  TZilPortalDraft,
   TZilPortalFolder,
   TZilPortalInvite,
   TZilPortalPost,
   TZilPortalPostDetail,
+  TZilPortalReview,
 } from "@plane/types";
 // api service
 import { APIService } from "../api.service";
@@ -60,14 +62,34 @@ export class SitesPortalService extends APIService {
     return this.read(this.get(`/api/public/portal/${projectId}/posts/${postId}/comments/`));
   }
 
-  /** `moment`: the second of one of the post's videos the comment is about */
-  async addComment(
+  /** The changes the client is writing on a post (theirs only, not sent yet). */
+  async drafts(projectId: string, postId: string): Promise<{ drafts: TZilPortalDraft[] }> {
+    return this.read(this.get(`/api/public/portal/${projectId}/posts/${postId}/drafts/`));
+  }
+
+  async addDraft(
     projectId: string,
     postId: string,
     text: string,
     moment?: { media: string; at: number }
-  ): Promise<TZilPortalComment> {
-    return this.read(this.post(`/api/public/portal/${projectId}/posts/${postId}/comments/`, { text, ...moment }));
+  ): Promise<TZilPortalDraft> {
+    return this.read(this.post(`/api/public/portal/${projectId}/posts/${postId}/drafts/`, { text, ...moment }));
+  }
+
+  async updateDraft(projectId: string, postId: string, draftId: string, text: string): Promise<TZilPortalDraft> {
+    return this.read(this.patch(`/api/public/portal/${projectId}/posts/${postId}/drafts/${draftId}/`, { text }));
+  }
+
+  async deleteDraft(projectId: string, postId: string, draftId: string): Promise<void> {
+    return this.read(this.delete(`/api/public/portal/${projectId}/posts/${postId}/drafts/${draftId}/`));
+  }
+
+  /** Send the client's drafts to the team as one round of changes (after they confirmed). */
+  async sendChanges(
+    projectId: string,
+    postId: string
+  ): Promise<{ comments: TZilPortalComment[]; review: TZilPortalReview }> {
+    return this.read(this.post(`/api/public/portal/${projectId}/posts/${postId}/send-changes/`, { confirm: true }));
   }
 
   async documents(projectId: string): Promise<{ folders: TZilPortalFolder[]; documents: TZilPortalDocument[] }> {

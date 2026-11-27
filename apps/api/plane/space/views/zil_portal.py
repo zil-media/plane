@@ -40,8 +40,10 @@ from plane.db.models import (
     IssueLabel,
     IssueLink,
     ProjectMember,
+    ZilChangeDraft,
     ZilCommentMoment,
     ZilPageComment,
+    ZilPostReview,
 )
 from plane.settings.storage import S3Storage
 from plane.utils.zil_client_portal import (
@@ -57,6 +59,8 @@ from plane.utils.zil_client_portal import (
     notify_page_comment,
     portal_for,
     portal_unit,
+    review_for,
+    review_status,
     simple_status,
     use_invite,
     visible_issues,
@@ -72,6 +76,7 @@ MAX_DOCUMENTS = 300
 MAX_COMMENT = 5000
 MEDIA_TYPES = ("image/", "video/")
 MAX_MOMENT = 24 * 60 * 60
+MAX_DRAFTS = 100
 STREAM_PIECE = 8 * 1024 * 1024
 
 
@@ -191,7 +196,7 @@ def _labels(issue_ids):
     return out
 
 
-def _post(issue, labels, media):
+def _post(issue, labels, media, review=None):
     network = next((label["name"] for label in labels if label["name"].lower() in NETWORKS), None)
     thumb = media[0] if media else None
     return {
@@ -203,6 +208,8 @@ def _post(issue, labels, media):
         "network": network,
         "labels": labels,
         "thumbnail": _media(issue.project_id, [thumb])[0] if thumb else None,
+        # rounds of changes left and until when (None where it isn't worked out: the calendar's dated posts)
+        "review": review,
     }
 
 
@@ -243,7 +250,7 @@ class PortalPostsEndpoint(PortalBaseEndpoint):
 
     def get(self, request, project_id):
         try:
-            _, project, _, _ = self.guard(request, project_id)
+            portal, project, _, _ = self.guard(request, project_id)
         except PortalDenied as exc:
             return _denied(exc)
         issues = visible_issues(project).select_related("state")
@@ -262,7 +269,10 @@ class PortalPostsEndpoint(PortalBaseEndpoint):
         return Response(
             {
                 "posts": [_post(i, labels.get(i.id, []), media.get(i.id, [])) for i in dated],
-                "to_review": [_post(i, labels.get(i.id, []), media.get(i.id, [])) for i in review],
+                "to_review": [
+                    _post(i, labels.get(i.id, []), media.get(i.id, []), review_status(portal, review_for(i)))
+                    for i in review
+                ],
             }
         )
 
@@ -272,7 +282,7 @@ class PortalPostEndpoint(PortalBaseEndpoint):
 
     def get(self, request, project_id, issue_id):
         try:
-            _, project, _, _ = self.guard(request, project_id)
+            portal, project, _, _ = self.guard(request, project_id)
         except PortalDenied as exc:
             return _denied(exc)
         issue = visible_issues(project).select_related("state").filter(pk=issue_id).first()
@@ -280,9 +290,10 @@ class PortalPostEndpoint(PortalBaseEndpoint):
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         labels = _labels([issue.id]).get(issue.id, [])
         rows = _link_rows(issue)
+        attachments = _attachments([issue.id]).get(issue.id, [])
         return Response(
             {
-                **_post(issue, labels, _attachments([issue.id]).get(issue.id, [])),
+                **_post(issue, labels, attachments, review_status(portal, review_for(issue))),
                 "description_html": issue.description_html or "<p></p>",
                 "media": _post_media(project.id, issue, rows),
                 # a Drive file is shown as the post's media, not as a link (it may not open for them)
@@ -349,66 +360,237 @@ class PortalCommentsEndpoint(PortalBaseEndpoint):
         return Response({"comments": [_comment(c, team_ids, request.user) for c in reversed(list(latest))]})
 
     def post(self, request, project_id, issue_id):
+        # the team answers from Ops (an external comment); a client's changes go as a round
+        # (drafts + "Enviar cambios", PortalSendChangesEndpoint), never one by one
+        return Response({"error": "Send your changes as a round"}, status=status.HTTP_403_FORBIDDEN)
+
+
+def _playable_video(project, issue, media_id):
+    """One of the post's videos the portal plays itself (an unavailable Drive file has no seconds)."""
+    return next(
+        (
+            m
+            for m in _post_media(project.id, issue, _link_rows(issue))
+            if m["id"] == media_id and m["kind"] in ("file", "drive") and m["type"].startswith("video/")
+        ),
+        None,
+    )
+
+
+def _clean_change(request):
+    """(text, media_id, seconds) of a change, or a 400 Response."""
+    text = str(request.data.get("text") or "").strip()
+    if not text:
+        return Response({"error": "Write the change"}, status=status.HTTP_400_BAD_REQUEST)
+    if len(text) > MAX_COMMENT:
+        return Response({"error": "Comment too long"}, status=status.HTTP_400_BAD_REQUEST)
+    media_id = str(request.data.get("media") or "")
+    seconds = None
+    if media_id:
         try:
-            project, issue, is_client = self._issue(request, project_id, issue_id)
+            seconds = int(request.data.get("at"))
+        except (TypeError, ValueError):
+            seconds = -1
+        if not 0 <= seconds <= MAX_MOMENT:
+            return Response({"error": "Unknown moment"}, status=status.HTTP_400_BAD_REQUEST)
+    return text, media_id, seconds
+
+
+def _draft(draft):
+    return {
+        "id": str(draft.id),
+        "text": draft.text,
+        "moment": (
+            {"media": draft.media, "at": draft.seconds, "label": clock(draft.seconds)}
+            if draft.media and draft.seconds is not None
+            else None
+        ),
+        "created_at": draft.created_at.isoformat(),
+    }
+
+
+class PortalRoundBaseEndpoint(PortalBaseEndpoint):
+    """A client's changes on a post they see, while its window is open."""
+
+    def _context(self, request, project_id, issue_id):
+        """(portal, project, issue, review) or a Response (404 / 403 for the team / 409 closed)."""
+        try:
+            portal, project, _, is_client = self.guard(request, project_id)
         except PortalDenied as exc:
             return _denied(exc)
+        issue = visible_issues(project).select_related("state").filter(pk=issue_id).first()
         if issue is None:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         if not is_client:
-            # the team answers from Ops (an external comment), where its notices and history live
             return Response({"error": "Answer from Zil Ops"}, status=status.HTTP_403_FORBIDDEN)
-        text = str(request.data.get("text") or "").strip()
-        if not text:
-            return Response({"error": "Write a comment"}, status=status.HTTP_400_BAD_REQUEST)
-        if len(text) > MAX_COMMENT:
-            return Response({"error": "Comment too long"}, status=status.HTTP_400_BAD_REQUEST)
-        # optionally, the second of one of the post's videos it is about
-        moment = None
-        media_id = str(request.data.get("media") or "")
-        if media_id:
-            try:
-                at = int(request.data.get("at"))
-            except (TypeError, ValueError):
-                at = -1
-            # one the portal plays itself (an unavailable Drive file has no seconds)
-            video = next(
-                (
-                    m
-                    for m in _post_media(project.id, issue, _link_rows(issue))
-                    if m["id"] == media_id and m["kind"] in ("file", "drive") and m["type"].startswith("video/")
-                ),
-                None,
-            )
-            if video is None or not 0 <= at <= MAX_MOMENT:
-                return Response({"error": "Unknown moment"}, status=status.HTTP_400_BAD_REQUEST)
-            label = f"<p><strong>{clock(at)}</strong> · {escape(video['name'] or media_id)}</p>"
-            moment = {"media": media_id, "seconds": at, "label_html": label}
-        comment = IssueComment(
+        review = review_for(issue)
+        return portal, project, issue, review
+
+    @staticmethod
+    def _closed(portal, review):
+        state = review_status(portal, review)
+        if state["open"]:
+            return None
+        return Response({"error": "Changes are closed", "review": state}, status=status.HTTP_409_CONFLICT)
+
+
+class PortalDraftsEndpoint(PortalRoundBaseEndpoint):
+    """GET: the changes the client is writing on a post (theirs only). POST {text, media?, at?}: one more."""
+
+    def get(self, request, project_id, issue_id):
+        context = self._context(request, project_id, issue_id)
+        if isinstance(context, Response):
+            return context
+        _, _, issue, _ = context
+        drafts = ZilChangeDraft.objects.filter(issue_id=issue.id, actor=request.user)
+        return Response({"drafts": [_draft(d) for d in drafts]})
+
+    def post(self, request, project_id, issue_id):
+        context = self._context(request, project_id, issue_id)
+        if isinstance(context, Response):
+            return context
+        portal, project, issue, review = context
+        closed = self._closed(portal, review)
+        if closed:
+            return closed
+        cleaned = _clean_change(request)
+        if isinstance(cleaned, Response):
+            return cleaned
+        text, media_id, seconds = cleaned
+        if media_id and _playable_video(project, issue, media_id) is None:
+            return Response({"error": "Unknown moment"}, status=status.HTTP_400_BAD_REQUEST)
+        if ZilChangeDraft.objects.filter(issue_id=issue.id, actor=request.user).count() >= MAX_DRAFTS:
+            return Response({"error": "Too many changes"}, status=status.HTTP_400_BAD_REQUEST)
+        draft = ZilChangeDraft.objects.create(
             issue_id=issue.id,
             project_id=project.id,
-            workspace_id=project.workspace_id,
             actor=request.user,
-            access="EXTERNAL",
-            comment_html=(moment["label_html"] if moment else "") + _text_to_html(text),
+            text=text,
+            media=media_id,
+            seconds=seconds if media_id else None,
             created_by_id=request.user.id,
         )
+        return Response(_draft(draft), status=status.HTTP_201_CREATED)
+
+
+class PortalDraftEndpoint(PortalRoundBaseEndpoint):
+    """PATCH {text}: change a draft's text. DELETE: drop it. Only the client's own, while open."""
+
+    def _mine(self, request, project_id, issue_id, draft_id):
+        context = self._context(request, project_id, issue_id)
+        if isinstance(context, Response):
+            return context
+        portal, _, issue, review = context
+        draft = ZilChangeDraft.objects.filter(pk=draft_id, issue_id=issue.id, actor=request.user).first()
+        if draft is None:
+            return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        return self._closed(portal, review) or draft
+
+    def patch(self, request, project_id, issue_id, draft_id):
+        draft = self._mine(request, project_id, issue_id, draft_id)
+        if isinstance(draft, Response):
+            return draft
+        text = str(request.data.get("text") or "").strip()
+        if not text:
+            return Response({"error": "Write the change"}, status=status.HTTP_400_BAD_REQUEST)
+        if len(text) > MAX_COMMENT:
+            return Response({"error": "Comment too long"}, status=status.HTTP_400_BAD_REQUEST)
+        draft.text = text
+        draft.save(update_fields=["text", "updated_at"])
+        return Response(_draft(draft))
+
+    def delete(self, request, project_id, issue_id, draft_id):
+        draft = self._mine(request, project_id, issue_id, draft_id)
+        if isinstance(draft, Response):
+            return draft
+        draft.delete(soft=False)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PortalSendChangesEndpoint(PortalRoundBaseEndpoint):
+    """POST {confirm: true}: send the client's drafts to the team as one round of changes.
+
+    Each draft becomes an external comment (with its second of the video, when it has one), the round
+    is counted, and the team hears it once. `confirm` is the client's yes to "you'll have N rounds
+    left" (or, on the last, "you won't be able to ask for more changes").
+    """
+
+    def post(self, request, project_id, issue_id):
+        context = self._context(request, project_id, issue_id)
+        if isinstance(context, Response):
+            return context
+        portal, project, issue, _ = context
+        if request.data.get("confirm") is not True:
+            return Response({"error": "Confirm the round"}, status=status.HTTP_400_BAD_REQUEST)
+        videos = {}
         with transaction.atomic():
-            comment.save(created_by_id=request.user.id)
-            if moment:
-                ZilCommentMoment.objects.create(comment=comment, created_by_id=request.user.id, **moment)
-        issue_activity.delay(
-            type="comment.activity.created",
-            requested_data=json.dumps(
-                {"id": str(comment.id), "comment_html": comment.comment_html}, cls=DjangoJSONEncoder
-            ),
-            actor_id=str(request.user.id),
-            issue_id=str(issue.id),
-            project_id=str(project.id),
-            current_instance=None,
-            epoch=int(timezone.now().timestamp()),
+            # one round at a time, even from two tabs
+            review = ZilPostReview.objects.select_for_update().filter(issue_id=issue.id).first()
+            closed = self._closed(portal, review)
+            if closed:
+                return closed
+            drafts = list(ZilChangeDraft.objects.filter(issue_id=issue.id, actor=request.user))
+            if not drafts:
+                return Response({"error": "Nothing to send"}, status=status.HTTP_400_BAD_REQUEST)
+            review.rounds_used += 1
+            review.save(update_fields=["rounds_used", "updated_at"])
+            comments = []
+            for draft in drafts:
+                label = ""
+                if draft.media and draft.seconds is not None:
+                    if draft.media not in videos:
+                        videos[draft.media] = _playable_video(project, issue, draft.media)
+                    video = videos[draft.media]
+                    if video is not None:
+                        label = (
+                            f"<p><strong>{clock(draft.seconds)}</strong> · {escape(video['name'] or draft.media)}</p>"
+                        )
+                comment = IssueComment(
+                    issue_id=issue.id,
+                    project_id=project.id,
+                    workspace_id=project.workspace_id,
+                    actor=request.user,
+                    access="EXTERNAL",
+                    comment_html=label + _text_to_html(draft.text),
+                    created_by_id=request.user.id,
+                )
+                comment.save(created_by_id=request.user.id)
+                if label:
+                    ZilCommentMoment.objects.create(
+                        comment=comment,
+                        media=draft.media,
+                        seconds=draft.seconds,
+                        label_html=label,
+                        created_by_id=request.user.id,
+                    )
+                comments.append(comment)
+            ZilChangeDraft.objects.filter(pk__in=[d.pk for d in drafts]).delete(soft=False)
+        ids = [str(c.id) for c in comments]
+        for index, comment in enumerate(comments):
+            issue_activity.delay(
+                type="comment.activity.created",
+                requested_data=json.dumps(
+                    {
+                        "id": str(comment.id),
+                        "comment_html": comment.comment_html,
+                        # the team hears the whole round once, with the first comment's activity
+                        "zil_round": {"round": review.rounds_used, "first": index == 0, "comments": ids},
+                    },
+                    cls=DjangoJSONEncoder,
+                ),
+                actor_id=str(request.user.id),
+                issue_id=str(issue.id),
+                project_id=str(project.id),
+                current_instance=None,
+                epoch=int(timezone.now().timestamp()),
+            )
+        return Response(
+            {
+                "comments": [_comment(c, set(), request.user) for c in comments],
+                "review": review_status(portal, review),
+            },
+            status=status.HTTP_201_CREATED,
         )
-        return Response(_comment(comment, set(), request.user), status=status.HTTP_201_CREATED)
 
 
 class PortalDocumentsEndpoint(PortalBaseEndpoint):

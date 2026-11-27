@@ -92,5 +92,7 @@ export function useZilProjectPortal(workspaceSlug: string | undefined, projectId
     workspaceSlug && projectId
       ? save(zilBrandService.resendPortalInvite(workspaceSlug, projectId, clientId))
       : undefined;
-  return { portal: data, isLoading, setEnabled, resendInvite };
+  const setLimits = (limits: Partial<Pick<TZilPortalSettings, "change_rounds" | "change_hours">>) =>
+    workspaceSlug && projectId ? save(zilBrandService.setPortalLimits(workspaceSlug, projectId, limits)) : undefined;
+  return { portal: data, isLoading, setEnabled, resendInvite, setLimits };
 }

@@ -27,3 +27,13 @@ export const clock = (seconds: number) => {
   const secs = String(total % 60).padStart(2, "0");
   return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${secs}` : `${minutes}:${secs}`;
 };
+
+/** Time left, short: "2 d 4 h", "3 h 12 min", "12 min". */
+export const remaining = (ms: number) => {
+  const minutes = Math.max(1, Math.ceil(ms / 60_000));
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  if (days) return `${days} d ${hours} h`;
+  if (hours) return `${hours} h ${minutes % 60} min`;
+  return `${minutes} min`;
+};

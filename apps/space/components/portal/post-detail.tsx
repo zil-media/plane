@@ -13,9 +13,10 @@ import { useTranslation } from "@plane/i18n";
 import { DueDatePropertyIcon, LabelPropertyIcon, StateGroupIcon, StatePropertyIcon } from "@plane/propel/icons";
 import { SitesPortalService } from "@plane/services";
 import { Loader } from "@plane/ui";
-import type { TZilPortalComment, TZilPortalMedia } from "@plane/types";
+import type { TZilPortalComment, TZilPortalDraft, TZilPortalMedia, TZilPortalPostDetail } from "@plane/types";
 import { getFileURL } from "@plane/utils";
 // local imports
+import { draftsKey } from "./changes";
 import { PortalComments } from "./comments";
 import type { TPortalPlayback } from "./comments";
 import { dateLocale, dayLabel, isVideo } from "./helpers";
@@ -31,16 +32,26 @@ const plainText = (html: string) =>
     ? ""
     : (new DOMParser().parseFromString(html, "text/html").body.textContent ?? "").trim();
 
-/** The marks of one video's timeline: the comments pinned to a second of it. */
-const markersOf = (comments: TZilPortalComment[] | undefined, media: string): TVideoMarker[] =>
-  (comments ?? [])
+/** The marks of one video's timeline: the comments pinned to a second of it, and the client's own
+ * changes not sent yet (drawn apart). */
+const markersOf = (
+  comments: TZilPortalComment[] | undefined,
+  drafts: TZilPortalDraft[] | undefined,
+  media: string,
+  draftLabel: string
+): TVideoMarker[] => [
+  ...(comments ?? [])
     .filter((comment) => comment.moment?.media === media)
     .map((comment) => ({
       id: comment.id,
       at: comment.moment?.at ?? 0,
       author: comment.author,
       text: plainText(comment.html),
-    }));
+    })),
+  ...(drafts ?? [])
+    .filter((draft) => draft.moment?.media === media)
+    .map((draft) => ({ id: draft.id, at: draft.moment?.at ?? 0, author: draftLabel, text: draft.text, draft: true })),
+];
 
 /** One image or video of the post: uploaded to Ops or a Drive file streamed by Ops, or, when Ops
  * can't play a Drive file right now, a "being processed" card (the team gets the warning in Ops). */
@@ -99,7 +110,11 @@ type Props = {
  */
 export function PortalPostDetail({ projectId, postId, preview, onClose }: Props) {
   const { t, currentLocale } = useTranslation();
-  const { data: post, error } = useSWR(postId ? `PORTAL_POST_${projectId}_${postId}` : null, () =>
+  const {
+    data: post,
+    error,
+    mutate: mutatePost,
+  } = useSWR(postId ? `PORTAL_POST_${projectId}_${postId}` : null, () =>
     portalService.retrievePost(projectId, postId as string)
   );
   // the post's players, and where the one last played is: a comment can point at that second
@@ -114,6 +129,10 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
   // the same conversation the comments below show (one request, shared): the timelines' marks
   const { data: conversation } = useSWR(postId ? `PORTAL_COMMENTS_${projectId}_${postId}` : null, () =>
     portalService.comments(projectId, postId as string)
+  );
+  // the client's own changes not sent yet (a team member previewing has none)
+  const { data: drafted } = useSWR(postId && !preview ? draftsKey(projectId, postId) : null, () =>
+    portalService.drafts(projectId, postId as string)
   );
 
   const track = (item: TZilPortalMedia) => (seconds: number) => {
@@ -193,7 +212,12 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
                             >
                               <PostMediaItem
                                 item={item}
-                                markers={markersOf(conversation?.comments, item.id)}
+                                markers={markersOf(
+                                  conversation?.comments,
+                                  drafted?.drafts,
+                                  item.id,
+                                  t("zil_portal.your_draft")
+                                )}
                                 activeMarker={focused}
                                 onPlayer={(element) => {
                                   players.current[item.id] = element;
@@ -285,6 +309,12 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
                         postId={post.id}
                         preview={preview}
                         playback={{ current, playable, seek, pause, focused }}
+                        review={post.review}
+                        onReview={(review) =>
+                          void mutatePost((now: TZilPortalPostDetail | undefined) => (now ? { ...now, review } : now), {
+                            revalidate: false,
+                          })
+                        }
                       />
                     </div>
                   </div>

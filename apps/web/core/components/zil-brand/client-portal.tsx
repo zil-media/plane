@@ -12,7 +12,7 @@ import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TZilPortalClientAccess } from "@plane/types";
-import { Loader, ToggleSwitch } from "@plane/ui";
+import { Input, Loader, ToggleSwitch } from "@plane/ui";
 import { copyTextToClipboard } from "@plane/utils";
 // hooks
 import { useZilProjectPortal } from "@/hooks/use-zil-brands";
@@ -30,6 +30,43 @@ const STATUS_KEY: Record<TZilPortalClientAccess["status"], string> = {
   never: "zil_brand.portal_status_never",
 };
 
+/** One of the client's limits on changes: a whole number, saved when it changes and the field is left. */
+function ChangeLimit(props: {
+  id: string;
+  label: string;
+  value: number;
+  max: number;
+  disabled: boolean;
+  onSave: (value: number) => Promise<void> | void;
+}) {
+  const { id, label, value, max, disabled, onSave } = props;
+  const [draft, setDraft] = useState(String(value));
+  const commit = () => {
+    const next = Number(draft);
+    if (!Number.isInteger(next) || next < 0 || next > max) {
+      setDraft(String(value));
+      return;
+    }
+    if (next !== value) void onSave(next);
+  };
+  return (
+    <label htmlFor={id} className="flex flex-col gap-1 text-13 text-secondary">
+      {label}
+      <Input
+        id={id}
+        type="number"
+        min={0}
+        max={max}
+        value={draft}
+        disabled={disabled}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        className="w-28"
+      />
+    </label>
+  );
+}
+
 /**
  * The brand's client portal: on/off, its link and the client accounts. The accounts come from Zil
  * Workspace (the brand's page invites them), so they are read-only here; only their link is resent.
@@ -37,7 +74,7 @@ const STATUS_KEY: Record<TZilPortalClientAccess["status"], string> = {
 export const ZilClientPortalSection = observer(function ZilClientPortalSection(props: Props) {
   const { workspaceSlug, projectId, isEditable } = props;
   const { t } = useTranslation();
-  const { portal, isLoading, setEnabled, resendInvite } = useZilProjectPortal(workspaceSlug, projectId);
+  const { portal, isLoading, setEnabled, resendInvite, setLimits } = useZilProjectPortal(workspaceSlug, projectId);
   const [busy, setBusy] = useState<string | null>(null);
 
   if (isLoading || !portal) return <Loader.Item height="96px" />;
@@ -96,6 +133,32 @@ export const ZilClientPortalSection = observer(function ZilClientPortalSection(p
       <p className="text-13 text-tertiary">
         {portal.paused ? t("zil_brand.portal_paused") : t("zil_brand.portal_hint")}
       </p>
+      {/* rounds of changes per post and the time to ask for them, from its first review */}
+      <div className="flex flex-wrap gap-4">
+        <ChangeLimit
+          key={`rounds-${portal.change_rounds}`}
+          id="portal-change-rounds"
+          label={t("zil_brand.portal_change_rounds")}
+          value={portal.change_rounds}
+          max={20}
+          disabled={!isEditable || busy === "limits"}
+          onSave={(value) =>
+            run("limits", () => setLimits({ change_rounds: value }), t("zil_brand.portal_limits_saved"))
+          }
+        />
+        <ChangeLimit
+          key={`hours-${portal.change_hours}`}
+          id="portal-change-hours"
+          label={t("zil_brand.portal_change_hours")}
+          value={portal.change_hours}
+          max={24 * 60}
+          disabled={!isEditable || busy === "limits"}
+          onSave={(value) =>
+            run("limits", () => setLimits({ change_hours: value }), t("zil_brand.portal_limits_saved"))
+          }
+        />
+      </div>
+      <p className="text-11 text-placeholder">{t("zil_brand.portal_limits_hint")}</p>
       {portal.clients.length === 0 ? (
         <p className="text-13 text-placeholder">{t("zil_brand.portal_no_clients")}</p>
       ) : (

@@ -20,6 +20,8 @@ export type TVideoMarker = {
   at: number;
   author: string;
   text: string;
+  /** the client's own change, not sent yet */
+  draft?: boolean;
 };
 
 type Props = {
@@ -139,6 +141,7 @@ export function PortalVideoPlayer({ src, name, markers, activeMarker, onPlayer, 
                 onClick={() => onMarker(marker)}
                 className={cn(
                   "absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-accent-strong bg-surface-1 shadow-raised-100 transition-transform hover:scale-125",
+                  marker.draft && "border-dashed",
                   activeMarker === marker.id && "scale-125 bg-accent-primary"
                 )}
                 style={{ left: percent(marker.at) }}

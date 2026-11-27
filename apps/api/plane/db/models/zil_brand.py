@@ -209,6 +209,10 @@ class ZilClientPortal(BaseModel):
     pages_folder = models.ForeignKey(
         "db.Page", on_delete=models.SET_NULL, null=True, blank=True, related_name="zil_client_portals"
     )
+    # how many rounds of changes the client has per post, and for how long from its first review
+    # (0: no limit), set in the "Marca" tab
+    change_rounds = models.PositiveSmallIntegerField(default=2)
+    change_hours = models.PositiveIntegerField(default=72)
 
     class Meta:
         verbose_name = "Zil Client Portal"
@@ -299,3 +303,43 @@ class ZilCommentMoment(BaseModel):
 
     def __str__(self):
         return f"{self.comment_id} at {self.seconds}s of {self.media}"
+
+
+class ZilPostReview(BaseModel):
+    """A post's changes window for its clients: it opens the first time the post goes to review
+    (Aprobación cliente) and lasts the brand's `change_hours`; each "Enviar cambios" uses a round."""
+
+    issue = models.OneToOneField("db.Issue", on_delete=models.CASCADE, related_name="zil_review")
+    project = models.ForeignKey("db.Project", on_delete=models.CASCADE, related_name="zil_post_reviews")
+    started_at = models.DateTimeField()
+    rounds_used = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Zil Post Review"
+        verbose_name_plural = "Zil Post Reviews"
+        db_table = "zil_post_reviews"
+
+    def __str__(self):
+        return f"review of {self.issue_id}: {self.rounds_used} rounds since {self.started_at:%Y-%m-%d}"
+
+
+class ZilChangeDraft(BaseModel):
+    """A change a client is writing on a post, not sent yet: only they see it, until "Enviar cambios"
+    turns their drafts into comments for the team (one round). Optionally at a second of a video."""
+
+    issue = models.ForeignKey("db.Issue", on_delete=models.CASCADE, related_name="zil_change_drafts")
+    project = models.ForeignKey("db.Project", on_delete=models.CASCADE, related_name="zil_change_drafts")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="zil_change_drafts")
+    text = models.TextField()
+    media = models.CharField(max_length=255, blank=True, default="")
+    seconds = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Zil Change Draft"
+        verbose_name_plural = "Zil Change Drafts"
+        db_table = "zil_change_drafts"
+        ordering = ("created_at",)
+        indexes = [models.Index(fields=["issue", "actor"], name="zil_change_draft_issue_idx")]
+
+    def __str__(self):
+        return f"draft on {self.issue_id} by {self.actor_id}"

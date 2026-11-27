@@ -4,9 +4,12 @@
  * See the LICENSE file for details.
  */
 
+import { Clock } from "lucide-react";
 // plane imports
 import type { TZilPortalPost } from "@plane/types";
 import { cn } from "@plane/utils";
+// local imports
+import { remaining } from "../helpers";
 
 type Props = {
   post: TZilPortalPost;
@@ -39,6 +42,13 @@ export function PortalCalendarIssueBlock({ post, onOpen, isOpen = false }: Props
           />
           <div className="truncate text-13 font-medium md:text-11 md:font-regular">{post.name}</div>
         </div>
+        {/* waiting for their changes: the time left to ask for them */}
+        {post.review?.open && post.review.deadline && (
+          <span className="flex flex-shrink-0 items-center gap-1 text-11 text-tertiary">
+            <Clock className="size-3" aria-hidden="true" />
+            {remaining(new Date(post.review.deadline).getTime() - Date.now())}
+          </span>
+        )}
       </div>
     </button>
   );

@@ -353,6 +353,9 @@ def serialize_portal(mapping, portal):
         "paused": is_paused(mapping.project, mapping),
         "url": portal_url(str(mapping.project_id)),
         "folder_id": str(portal.pages_folder_id) if portal and portal.pages_folder_id else None,
+        # rounds of changes per post and the hours to ask for them from its first review (0: no limit)
+        "change_rounds": portal.change_rounds if portal else 2,
+        "change_hours": portal.change_hours if portal else 72,
         "clients": [
             {
                 "id": str(client.id),
@@ -371,7 +374,8 @@ class ZilProjectPortalEndpoint(BaseAPIView):
     """The brand's client portal, from the Marca tab.
 
     GET → on/off, link, the "Cliente" folder and the client accounts (they come from Zil Workspace).
-    PATCH {enabled} → turn it on (every client never invited gets the invitation) or off.
+    PATCH {enabled?, change_rounds?, change_hours?} → turn it on (every client never invited gets the
+    invitation) or off; the rounds of changes per post and the hours to ask for them (0: no limit).
     """
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
@@ -392,13 +396,27 @@ class ZilProjectPortalEndpoint(BaseAPIView):
         if mapping is None:
             return Response({"error": "Not a brand project"}, status=status.HTTP_404_NOT_FOUND)
         enabled = request.data.get("enabled")
-        if not isinstance(enabled, bool):
+        if enabled is not None and not isinstance(enabled, bool):
             return Response({"enabled": "Must be true or false"}, status=status.HTTP_400_BAD_REQUEST)
+        limits = {}
+        for field, top in (("change_rounds", 20), ("change_hours", 24 * 60)):
+            if field in request.data:
+                value = request.data.get(field)
+                if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= top:
+                    return Response({field: f"A whole number from 0 to {top}"}, status=status.HTTP_400_BAD_REQUEST)
+                limits[field] = value
+        if enabled is None and not limits:
+            return Response({"enabled": "Nothing to change"}, status=status.HTTP_400_BAD_REQUEST)
         with transaction.atomic():
             portal = seed_brand_content(mapping.project, request.user)
-            if portal.enabled != enabled:
+            changed = [field for field, value in limits.items() if getattr(portal, field) != value]
+            for field in changed:
+                setattr(portal, field, limits[field])
+            if enabled is not None and portal.enabled != enabled:
                 portal.enabled = enabled
-                portal.save(update_fields=["enabled", "updated_at"])
+                changed.append("enabled")
+            if changed:
+                portal.save(update_fields=[*changed, "updated_at"])
         if enabled:
             invite_pending(portal)
         return Response(serialize_portal(mapping, portal), status=status.HTTP_200_OK)

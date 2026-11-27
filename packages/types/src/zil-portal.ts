@@ -39,6 +39,27 @@ export type TZilPortalMoment = {
   label: string;
 };
 
+/** What the client can still do on a post: rounds of changes left and until when. */
+export type TZilPortalReview = {
+  /** null: the brand sets no limit */
+  rounds: number | null;
+  used: number;
+  left: number | null;
+  /** ISO; null: no time limit */
+  deadline: string | null;
+  open: boolean;
+  /** why it is closed */
+  reason: "not_started" | "expired" | "rounds_used" | null;
+};
+
+/** A change the client is writing, not sent to the team yet. */
+export type TZilPortalDraft = {
+  id: string;
+  text: string;
+  moment: TZilPortalMoment | null;
+  created_at: string;
+};
+
 export type TZilPortalPost = {
   id: string;
   name: string;
@@ -49,6 +70,8 @@ export type TZilPortalPost = {
   network: string | null;
   labels: { name: string; color: string }[];
   thumbnail: TZilPortalMedia | null;
+  /** worked out for the posts to review and the one opened (null in the calendar's list) */
+  review?: TZilPortalReview | null;
 };
 
 export type TZilPortalPostDetail = TZilPortalPost & {
@@ -106,6 +129,9 @@ export type TZilPortalSettings = {
   paused: boolean;
   url: string;
   folder_id: string | null;
+  /** rounds of changes per post and hours to ask for them from its first review (0: no limit) */
+  change_rounds: number;
+  change_hours: number;
   clients: TZilPortalClientAccess[];
 };
 

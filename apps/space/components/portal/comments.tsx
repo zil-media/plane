@@ -11,11 +11,11 @@ import useSWR from "swr";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { SitesPortalService } from "@plane/services";
-import type { TZilPortalComment } from "@plane/types";
-import { Checkbox } from "@plane/ui";
+import type { TZilPortalComment, TZilPortalReview } from "@plane/types";
 import { cn, getFileURL } from "@plane/utils";
 // local imports
-import { ago, clock, dateLocale } from "./helpers";
+import { PortalChanges } from "./changes";
+import { ago, dateLocale } from "./helpers";
 import { PortalContent } from "./portal-content";
 
 const portalService = new SitesPortalService();
@@ -40,6 +40,9 @@ type Props = {
   /** a team member previewing: reads the conversation, answers from Ops */
   preview: boolean;
   playback?: TPortalPlayback;
+  /** a post's rounds of changes (the client writes them as a round, not one by one) */
+  review?: TZilPortalReview | null;
+  onReview?: (review: TZilPortalReview) => void;
 };
 
 /** A copy of the space app's comment card (peek-overview/comment/comment-detail-card.tsx), read-only. */
@@ -113,7 +116,7 @@ function CommentRow({
 }
 
 /** The conversation with the team, and the box to write in it. */
-export function PortalComments({ projectId, postId, documentId, preview, playback }: Props) {
+export function PortalComments({ projectId, postId, documentId, preview, playback, review, onReview }: Props) {
   const { t } = useTranslation();
   const key = documentId ? `PORTAL_DOC_COMMENTS_${projectId}_${documentId}` : `PORTAL_COMMENTS_${projectId}_${postId}`;
   const load = () =>
@@ -124,24 +127,15 @@ export function PortalComments({ projectId, postId, documentId, preview, playbac
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // pinned to where the video is, once one has played (the client can untick it)
-  const [atMoment, setAtMoment] = useState(true);
-  const moment = playback?.current && playback.playable.has(playback.current.media) ? playback.current : null;
 
+  // a document's comment goes at once; a post's changes go as a round (PortalChanges)
   const send = async () => {
     const value = text.trim();
-    if (!value || sending) return;
+    if (!value || sending || !documentId) return;
     setSending(true);
     setError(null);
     try {
-      const created = documentId
-        ? await portalService.addDocumentComment(projectId, documentId, value)
-        : await portalService.addComment(
-            projectId,
-            postId ?? "",
-            value,
-            moment && atMoment ? { media: moment.media, at: moment.at } : undefined
-          );
+      const created = await portalService.addDocumentComment(projectId, documentId, value);
       // on top of what is cached now (and fetched again), never a list that lost the others
       await mutate((current) => ({ comments: [...(current?.comments ?? []), created] }));
       setText("");
@@ -168,24 +162,29 @@ export function PortalComments({ projectId, postId, documentId, preview, playbac
       </div>
       {preview ? (
         <p className="rounded-md bg-layer-1 p-3 text-13 text-secondary">{t("zil_portal.preview_answer_from_ops")}</p>
+      ) : postId && !documentId ? (
+        review && (
+          <PortalChanges
+            projectId={projectId}
+            postId={postId}
+            review={review}
+            playback={playback}
+            onSent={async (created, next) => {
+              await mutate((current) => ({ comments: [...(current?.comments ?? []), ...created] }));
+              onReview?.(next);
+            }}
+          />
+        )
       ) : (
         <div className="space-y-2">
           <textarea
             value={text}
             onChange={(event) => setText(event.target.value)}
-            // writing about a moment: the video stops there
-            onFocus={() => playback?.pause()}
             placeholder={t("zil_portal.comment_placeholder")}
             rows={3}
             maxLength={5000}
             className="w-full resize-none rounded-md border border-subtle bg-surface-1 p-3 text-13 text-primary placeholder:text-placeholder focus:border-accent-strong focus:outline-none"
           />
-          {moment && (
-            <label className="flex cursor-pointer items-center gap-2 text-13 text-secondary">
-              <Checkbox checked={atMoment} onChange={(event) => setAtMoment(event.target.checked)} />
-              {t("zil_portal.comment_at", { time: clock(moment.at), name: moment.name })}
-            </label>
-          )}
           {error && <p className="text-13 text-danger-primary">{error}</p>}
           <div className="flex justify-end">
             <Button

@@ -46,6 +46,7 @@ from plane.db.models import (
     ZilBrandProject,
     ZilBrandResponsible,
     ZilClientPortal,
+    ZilPostReview,
 )
 
 logger = logging.getLogger("plane.api")
@@ -724,6 +725,118 @@ def notify_page_comment(page, comment, author):
         )
 
 
+# --- rounds of changes ---------------------------------------------------------------------------
+
+
+def in_review(issue):
+    return issue.state is not None and issue.state.name.strip().lower() == REVIEW_STATE.lower()
+
+
+def start_review(issue):
+    """Open the post's changes window the first time it goes to review (once: later reviews keep it)."""
+    review, _ = ZilPostReview.objects.get_or_create(
+        issue_id=issue.id, defaults={"project_id": issue.project_id, "started_at": timezone.now()}
+    )
+    return review
+
+
+def review_for(issue):
+    """The post's window, opened now if it is waiting for the client and has none yet."""
+    review = ZilPostReview.objects.filter(issue_id=issue.id).first()
+    if review is None and in_review(issue):
+        review = start_review(issue)
+    return review
+
+
+def review_status(portal, review, now=None):
+    """What the client can still do on a post: rounds left and until when.
+
+    {rounds, used, left, deadline, open, reason}: `rounds`/`left`/`deadline` are None when the brand
+    sets no limit; `reason` says why it is closed: "not_started" (never in review yet), "expired"
+    or "rounds_used".
+    """
+    now = now or timezone.now()
+    rounds = portal.change_rounds or None
+    used = review.rounds_used if review else 0
+    deadline = review.started_at + timedelta(hours=portal.change_hours) if review and portal.change_hours else None
+    reason = None
+    if review is None:
+        reason = "not_started"
+    elif deadline is not None and now >= deadline:
+        reason = "expired"
+    elif rounds is not None and used >= rounds:
+        reason = "rounds_used"
+    return {
+        "rounds": rounds,
+        "used": used,
+        "left": max(0, rounds - used) if rounds is not None else None,
+        "deadline": deadline.isoformat() if deadline else None,
+        "open": reason is None,
+        "reason": reason,
+    }
+
+
+def notify_team_of_client_round(issue, comments, author, round_number):
+    """A client sent a round of changes: one notice and one email for all of them."""
+    from plane.utils.agent_pipeline import notify
+
+    mapping = _portal_mapping(issue.project_id)
+    if mapping is None or not comments:
+        return
+    project = mapping.project
+    name = (author.display_name or author.first_name or author.email).strip()
+    title = f"{name} (cliente) pidió cambios en {issue.name} (ronda {round_number})"
+    url = _web_issue_url(project, issue)
+    lines = [(comment.comment_stripped or "").strip()[:300] for comment in comments]
+    first = comments[0]
+    for user in _team_to_notify(mapping):
+        Notification.objects.create(
+            workspace_id=project.workspace_id,
+            project_id=project.id,
+            entity_identifier=issue.id,
+            entity_name="issue",
+            title=title,
+            message_html="".join(comment.comment_html or "" for comment in comments),
+            message_stripped="\n".join(lines),
+            sender="in_app:issue_activities:comment",
+            triggered_by=author,
+            receiver=user,
+            data={
+                "issue": {
+                    "id": str(issue.id),
+                    "name": issue.name,
+                    "identifier": project.identifier,
+                    "sequence_id": issue.sequence_id,
+                    "state_name": issue.state.name if issue.state else None,
+                    "state_group": issue.state.group if issue.state else None,
+                },
+                "issue_activity": {
+                    "id": str(first.id),
+                    "verb": "created",
+                    "field": "comment",
+                    "actor": str(author.id),
+                    "new_value": first.comment_html,
+                    "old_value": None,
+                    "issue_comment": str(first.id),
+                },
+            },
+        )
+        notify.send(
+            user.email,
+            title,
+            f"Cambios del cliente en {project.name}",
+            [
+                notify.greeting(user),
+                f"{name} mandó {len(comments)} {'cambios' if len(comments) != 1 else 'cambio'} en «{issue.name}» "
+                f"(ronda {round_number}):",
+                *[f"• {line or '(sin texto)'}" for line in lines[:20]],
+                "Respondele desde Zil Ops marcando el comentario como externo, así le llega.",
+            ],
+            "Ver la publicación",
+            url,
+        )
+
+
 def _json(raw):
     import json
 
@@ -749,7 +862,7 @@ def dispatch_portal_events(
     issue = Issue.issue_objects.filter(pk=issue_id).select_related("state", "project").first()
     if issue is None:
         return
-    in_review = issue.state is not None and issue.state.name.strip().lower() == REVIEW_STATE.lower()
+    waiting = in_review(issue)
     if type == "issue.activity.updated":
         to_review = any(
             activity.field == "state" and (activity.new_value or "").strip().lower() == REVIEW_STATE.lower()
@@ -762,7 +875,9 @@ def dispatch_portal_events(
             and (activity.new_value or "").strip().lower() == VISIBLE_LABEL.lower()
             for activity in issue_activities
         )
-        if in_review and (to_review or shown_in_review):
+        if waiting and (to_review or shown_in_review):
+            # the client's window for changes opens the first time it waits for them
+            start_review(issue)
             notify_clients_review(issue)
         return
     from plane.db.models import IssueComment, User
@@ -780,6 +895,10 @@ def dispatch_portal_events(
         if comment is not None:
             notify_clients_reply(issue, comment)
         return
+    # a round of changes: its comments come one activity each, the team hears it once (the first)
+    round_info = _json(requested_data).get("zil_round") or {}
+    if round_info and not round_info.get("first"):
+        return
     for activity in issue_activities:
         if activity.field != "comment" or activity.issue_comment_id is None:
             continue
@@ -791,4 +910,11 @@ def dispatch_portal_events(
         if is_member:
             notify_clients_reply(issue, comment)
         elif ZilBrandClient.objects.filter(brand_project__project_id=issue.project_id, user=author).exists():
-            notify_team_of_client_comment(issue, comment, author)
+            if round_info:
+                ids = round_info.get("comments") or [str(comment.id)]
+                round_comments = sorted(
+                    IssueComment.objects.filter(pk__in=ids, issue_id=issue.id), key=lambda c: ids.index(str(c.id))
+                )
+                notify_team_of_client_round(issue, round_comments, author, round_info.get("round") or 1)
+            else:
+                notify_team_of_client_comment(issue, comment, author)

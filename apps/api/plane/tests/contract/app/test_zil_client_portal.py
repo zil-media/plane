@@ -36,9 +36,11 @@ from plane.db.models import (
     ZilBrandClient,
     ZilBrandOps,
     ZilBrandProject,
+    ZilChangeDraft,
     ZilClientPortal,
     ZilCommentMoment,
     ZilPageComment,
+    ZilPostReview,
 )
 from plane.utils.zil_client_portal import (
     CLIENT_FOLDER,
@@ -128,6 +130,15 @@ def item(project, name, visible=True, state_name="Diseño", target_date=None, **
             workspace_id=project.workspace_id,
         )
     return issue
+
+
+def send_round(client, project, issue, changes):
+    """The client's way to comment: drafts, then "Enviar cambios" (confirmed). The send's response."""
+    base = f"/api/public/portal/{project.id}/posts/{issue.id}"
+    for change in changes:
+        drafted = client.post(f"{base}/drafts/", change, format="json")
+        assert drafted.status_code == status.HTTP_201_CREATED, drafted.data
+    return client.post(f"{base}/send-changes/", {"confirm": True}, format="json")
 
 
 @pytest.fixture
@@ -292,7 +303,18 @@ class TestPosts:
 
         assert [p["name"] for p in body["posts"]] == ["Reel lanzamiento"]
         post = body["posts"][0]
-        assert set(post) == {"id", "name", "publish_date", "status", "status_color", "network", "labels", "thumbnail"}
+        assert set(post) == {
+            "id",
+            "name",
+            "publish_date",
+            "status",
+            "status_color",
+            "network",
+            "labels",
+            "thumbnail",
+            "review",
+        }
+        assert post["review"] is None  # worked out only for the posts to review
         assert post["network"] == "Instagram" and post["status"] == "preparing"
         assert [label["name"] for label in post["labels"]] == ["Instagram"]
         assert body["to_review"] == []
@@ -366,7 +388,7 @@ class TestComments:
     @pytest.mark.django_db
     def test_the_client_reads_only_external_comments_and_writes_external_ones(self, kfc, cliente, create_user):
         project = kfc.project
-        issue = item(project, "Reel")
+        issue = item(project, "Reel", state_name=REVIEW_STATE)
         IssueComment.objects.create(
             issue=issue, project=project, comment_html="<p>interno</p>", actor=create_user, access="INTERNAL"
         )
@@ -376,12 +398,15 @@ class TestComments:
         url = f"/api/public/portal/{project.id}/posts/{issue.id}/comments/"
 
         with mock.patch("plane.space.views.zil_portal.issue_activity.delay") as activity:
-            created = as_user(cliente).post(url, {"text": "Me encanta\n<b>sí</b>"}, format="json")
+            sent = send_round(as_user(cliente), project, issue, [{"text": "Me encanta\n<b>sí</b>"}])
+            one_by_one = as_user(cliente).post(url, {"text": "suelto"}, format="json")
         comments = as_user(cliente).get(url).json()["comments"]
 
-        assert created.status_code == status.HTTP_201_CREATED
+        assert sent.status_code == status.HTTP_201_CREATED
+        # a client's comment only goes as part of a round
+        assert one_by_one.status_code == status.HTTP_403_FORBIDDEN
         activity.assert_called_once()
-        stored = IssueComment.objects.get(pk=created.json()["id"])
+        stored = IssueComment.objects.get(pk=sent.json()["comments"][0]["id"])
         assert stored.access == "EXTERNAL" and stored.actor_id == cliente.id
         assert stored.comment_html == "<p>Me encanta</p><p>&lt;b&gt;sí&lt;/b&gt;</p>"
         assert [c["html"] for c in comments] == ["<p>¿te gusta?</p>", stored.comment_html]
@@ -1322,47 +1347,50 @@ class TestCommentMoments:
     @pytest.mark.django_db
     def test_a_comment_at_a_second_of_an_uploaded_video(self, kfc, cliente):
         project = kfc.project
-        issue = item(project, "Reel")
+        issue = item(project, "Reel", state_name=REVIEW_STATE)
         clip = video(issue, "reel <v2>.mp4")
         url = f"/api/public/portal/{project.id}/posts/{issue.id}/comments/"
 
         with mock.patch(ACTIVITY) as activity:
-            created = as_user(cliente).post(url, {"text": "Cortar acá", "media": str(clip.id), "at": 62}, format="json")
+            sent = send_round(
+                as_user(cliente), project, issue, [{"text": "Cortar acá", "media": str(clip.id), "at": 62}]
+            )
         comments = as_user(cliente).get(url).json()["comments"]
 
-        assert created.status_code == status.HTTP_201_CREATED
-        stored = IssueComment.objects.get(pk=created.json()["id"])
+        assert sent.status_code == status.HTTP_201_CREATED
+        created = sent.json()["comments"][0]
+        stored = IssueComment.objects.get(pk=created["id"])
         # Ops and its emails read the moment from the text
         assert stored.comment_html == "<p><strong>1:02</strong> · reel &lt;v2&gt;.mp4</p><p>Cortar acá</p>"
         assert "1:02" in json.loads(activity.call_args.kwargs["requested_data"])["comment_html"]
         # the portal gets it apart, as its button
-        assert created.json()["moment"] == {"media": str(clip.id), "at": 62, "label": "1:02"}
+        assert created["moment"] == {"media": str(clip.id), "at": 62, "label": "1:02"}
         assert comments[0]["html"] == "<p>Cortar acá</p>" and comments[0]["moment"]["at"] == 62
 
     @pytest.mark.django_db
     def test_a_comment_at_a_second_of_a_drive_video(self, kfc, cliente, cm, workspace_bridge):
         project = kfc.project
-        issue = item(project, "Reel")
+        issue = item(project, "Reel", state_name=REVIEW_STATE)
         drive_link(issue, cm)
-        url = f"/api/public/portal/{project.id}/posts/{issue.id}/comments/"
 
         with (
             mock.patch(WORKSPACE_POST, return_value=workspace_token()),
             mock.patch(DRIVE_GET, return_value=drive_meta()),
             mock.patch(ACTIVITY),
         ):
-            created = as_user(cliente).post(
-                url, {"text": "Más rápido", "media": f"drive:{DRIVE_ID}", "at": 3725}, format="json"
+            sent = send_round(
+                as_user(cliente), project, issue, [{"text": "Más rápido", "media": f"drive:{DRIVE_ID}", "at": 3725}]
             )
 
-        assert created.status_code == status.HTTP_201_CREATED
-        assert created.json()["moment"]["label"] == "1:02:05"
-        assert ZilCommentMoment.objects.get(comment_id=created.json()["id"]).media == f"drive:{DRIVE_ID}"
+        assert sent.status_code == status.HTTP_201_CREATED
+        created = sent.json()["comments"][0]
+        assert created["moment"]["label"] == "1:02:05"
+        assert ZilCommentMoment.objects.get(comment_id=created["id"]).media == f"drive:{DRIVE_ID}"
 
     @pytest.mark.django_db
     def test_a_moment_must_be_a_playable_video_of_this_post(self, kfc, cliente, cm, workspace_bridge):
         project = kfc.project
-        issue = item(project, "Reel")
+        issue = item(project, "Reel", state_name=REVIEW_STATE)
         other = item(project, "Otro")
         foreign = video(other, "otro.mp4")
         clip = video(issue)
@@ -1376,7 +1404,7 @@ class TestCommentMoments:
             is_uploaded=True,
         )
         drive_link(issue, cm)
-        url = f"/api/public/portal/{project.id}/posts/{issue.id}/comments/"
+        url = f"/api/public/portal/{project.id}/posts/{issue.id}/drafts/"
 
         bad = [
             {"media": str(foreign.id), "at": 1},  # another post's video
@@ -1397,7 +1425,178 @@ class TestCommentMoments:
 
         assert answers == [status.HTTP_400_BAD_REQUEST] * len(bad)
         activity.assert_not_called()
-        assert not IssueComment.objects.filter(issue=issue).exists()
+        assert not ZilChangeDraft.objects.filter(issue=issue).exists()
+
+
+@pytest.mark.contract
+class TestChangeRounds:
+    def _review_url(self, project, issue):
+        return f"/api/public/portal/{project.id}/posts/{issue.id}/"
+
+    @pytest.mark.django_db
+    def test_the_window_opens_the_first_time_the_post_goes_to_review_and_only_then(self, kfc, create_user):
+        project = kfc.project
+        issue = item(project, "Reel")
+        review_state = State.objects.get(project=project, name=REVIEW_STATE)
+        moved = [mock.Mock(field="state", verb="updated", new_value=REVIEW_STATE)]
+
+        assert not ZilPostReview.objects.filter(issue=issue).exists()
+        Issue.objects.filter(pk=issue.pk).update(state=review_state)
+        dispatch_portal_events("issue.activity.updated", issue.id, create_user.id, moved, project_id=project.id)
+        first = ZilPostReview.objects.get(issue=issue).started_at
+        # back to the team and to review again: the same window, not a new one
+        dispatch_portal_events("issue.activity.updated", issue.id, create_user.id, moved, project_id=project.id)
+
+        assert ZilPostReview.objects.get(issue=issue).started_at == first
+
+    @pytest.mark.django_db
+    def test_a_post_shows_its_rounds_and_deadline_and_each_send_uses_one(self, kfc, cliente):
+        project = kfc.project
+        issue = item(project, "Reel", state_name=REVIEW_STATE)
+        client = as_user(cliente)
+
+        before = client.get(self._review_url(project, issue)).json()["review"]
+        with mock.patch(ACTIVITY) as activity:
+            first = send_round(client, project, issue, [{"text": "Uno"}, {"text": "Dos"}])
+
+        started = ZilPostReview.objects.get(issue=issue).started_at
+        assert before == {
+            "rounds": 2,
+            "used": 0,
+            "left": 2,
+            "deadline": (started + timedelta(hours=72)).isoformat(),
+            "open": True,
+            "reason": None,
+        }
+        assert first.status_code == status.HTTP_201_CREATED
+        assert [c["html"] for c in first.json()["comments"]] == ["<p>Uno</p>", "<p>Dos</p>"]
+        assert first.json()["review"]["left"] == 1
+        assert not ZilChangeDraft.objects.filter(issue=issue).exists()
+        # one activity per comment; only the first carries the team's notice for the round
+        rounds = [json.loads(call.kwargs["requested_data"])["zil_round"] for call in activity.call_args_list]
+        assert [r["first"] for r in rounds] == [True, False] and rounds[0]["round"] == 1
+
+    @pytest.mark.django_db
+    def test_the_team_hears_a_round_once(self, kfc, cliente, create_user, emails):
+        project = kfc.project
+        ops = ZilBrandOps.objects.create(zil_brand_id=KFC)
+        ops.community_managers.add(create_user)
+        issue = item(project, "Reel", state_name=REVIEW_STATE)
+        with mock.patch(ACTIVITY) as activity:
+            send_round(as_user(cliente), project, issue, [{"text": "Uno"}, {"text": "Dos"}])
+        emails.reset_mock()
+
+        for call in activity.call_args_list:
+            data = json.loads(call.kwargs["requested_data"])
+            dispatch_portal_events(
+                "comment.activity.created",
+                issue.id,
+                cliente.id,
+                [mock.Mock(field="comment", issue_comment_id=data["id"])],
+                project_id=project.id,
+                requested_data=call.kwargs["requested_data"],
+            )
+
+        notice = Notification.objects.get(receiver=create_user)
+        assert "(ronda 1)" in notice.title and "Uno" in notice.message_stripped and "Dos" in notice.message_stripped
+        emails.assert_called_once()
+
+    @pytest.mark.django_db
+    def test_drafts_are_the_clients_own_until_sent(self, kfc, cliente, create_user):
+        project = kfc.project
+        issue = item(project, "Reel", state_name=REVIEW_STATE)
+        other = User.objects.create(email="socia@kfc.test", username="socia")
+        ZilBrandClient.objects.create(brand_project=kfc, email=other.email, user=other)
+        base = f"/api/public/portal/{project.id}/posts/{issue.id}"
+
+        draft = as_user(cliente).post(f"{base}/drafts/", {"text": "Borrador"}, format="json").json()
+        edited = as_user(cliente).patch(f"{base}/drafts/{draft['id']}/", {"text": "Mejor así"}, format="json")
+
+        assert edited.json()["text"] == "Mejor así"
+        assert as_user(other).get(f"{base}/drafts/").json()["drafts"] == []
+        assert as_user(other).delete(f"{base}/drafts/{draft['id']}/").status_code == 404
+        assert as_user(create_user).get(f"{base}/drafts/").status_code == 403
+        assert as_user(cliente).get(f"{base}/comments/").json()["comments"] == []
+        assert as_user(cliente).delete(f"{base}/drafts/{draft['id']}/").status_code == 204
+
+    @pytest.mark.django_db
+    def test_sending_needs_the_yes_and_something_to_send(self, kfc, cliente):
+        project = kfc.project
+        issue = item(project, "Reel", state_name=REVIEW_STATE)
+        base = f"/api/public/portal/{project.id}/posts/{issue.id}"
+        as_user(cliente).post(f"{base}/drafts/", {"text": "Uno"}, format="json")
+
+        unconfirmed = as_user(cliente).post(f"{base}/send-changes/", {}, format="json")
+        ZilChangeDraft.objects.all().delete(soft=False)
+        empty = as_user(cliente).post(f"{base}/send-changes/", {"confirm": True}, format="json")
+
+        assert unconfirmed.status_code == empty.status_code == status.HTTP_400_BAD_REQUEST
+        assert ZilPostReview.objects.get(issue=issue).rounds_used == 0
+
+    @pytest.mark.django_db
+    def test_changes_close_when_the_rounds_are_used_the_time_is_up_or_it_never_went_to_review(self, kfc, cliente):
+        project = kfc.project
+        used_up = item(project, "Usado", state_name=REVIEW_STATE)
+        late = item(project, "Tarde", state_name=REVIEW_STATE)
+        early = item(project, "Temprano")
+        client = as_user(cliente)
+        with mock.patch(ACTIVITY):
+            send_round(client, project, used_up, [{"text": "1"}])
+            send_round(client, project, used_up, [{"text": "2"}])
+        client.get(self._review_url(project, late))
+        ZilPostReview.objects.filter(issue=late).update(started_at=timezone.now() - timedelta(hours=73))
+
+        def answer(issue):
+            return client.post(
+                f"/api/public/portal/{project.id}/posts/{issue.id}/drafts/", {"text": "x"}, format="json"
+            )
+
+        closed = {issue.name: answer(issue) for issue in (used_up, late, early)}
+        assert {name: r.status_code for name, r in closed.items()} == {"Usado": 409, "Tarde": 409, "Temprano": 409}
+        assert {name: r.json()["review"]["reason"] for name, r in closed.items()} == {
+            "Usado": "rounds_used",
+            "Tarde": "expired",
+            "Temprano": "not_started",
+        }
+        assert client.get(self._review_url(project, early)).json()["review"]["open"] is False
+
+    @pytest.mark.django_db
+    def test_no_limits_when_the_brand_sets_none(self, kfc, cliente):
+        project = kfc.project
+        ZilClientPortal.objects.filter(project=project).update(change_rounds=0, change_hours=0)
+        issue = item(project, "Reel", state_name=REVIEW_STATE)
+        ZilPostReview.objects.create(issue=issue, project=project, started_at=timezone.now() - timedelta(days=90))
+        with mock.patch(ACTIVITY):
+            for text in ("1", "2", "3"):
+                assert send_round(as_user(cliente), project, issue, [{"text": text}]).status_code == 201
+
+        review = as_user(cliente).get(self._review_url(project, issue)).json()["review"]
+        assert review == {"rounds": None, "used": 3, "left": None, "deadline": None, "open": True, "reason": None}
+
+    @pytest.mark.django_db
+    def test_the_marca_tab_sets_the_rounds_and_hours(self, kfc, create_user):
+        project = kfc.project
+        ProjectMember.objects.update_or_create(
+            project=project, member=create_user, defaults={"workspace_id": project.workspace_id, "role": 20}
+        )
+        url = f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/zil-portal/"
+
+        saved = as_user(create_user).patch(url, {"change_rounds": 3, "change_hours": 48}, format="json")
+        bad = [
+            as_user(create_user).patch(url, body, format="json").status_code
+            for body in (
+                {"change_rounds": -1},
+                {"change_rounds": 21},
+                {"change_hours": "48"},
+                {"change_hours": True},
+                {},
+            )
+        ]
+
+        assert saved.status_code == 200
+        assert (saved.json()["change_rounds"], saved.json()["change_hours"]) == (3, 48)
+        assert saved.json()["enabled"] is True  # the switch stays as it was
+        assert bad == [400] * 5
 
 
 @pytest.mark.contract
