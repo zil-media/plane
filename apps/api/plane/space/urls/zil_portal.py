@@ -12,6 +12,7 @@ from plane.space.views.zil_portal import (
     PortalDocumentCommentsEndpoint,
     PortalDocumentEndpoint,
     PortalDocumentsEndpoint,
+    PortalDriveStreamEndpoint,
     PortalInviteEndpoint,
     PortalPostEndpoint,
     PortalPostsEndpoint,
@@ -38,6 +39,11 @@ urlpatterns = [
         "portal/<uuid:project_id>/documents/<uuid:page_id>/comments/",
         PortalDocumentCommentsEndpoint.as_view(),
         name="zil-portal-document-comments",
+    ),
+    path(
+        "portal/<uuid:project_id>/posts/<uuid:issue_id>/drive/<str:file_id>/",
+        PortalDriveStreamEndpoint.as_view(),
+        name="zil-portal-drive-stream",
     ),
     path(
         "portal/<uuid:project_id>/assets/<uuid:asset_id>/",

@@ -48,6 +48,7 @@ from plane.utils.zil_client_portal import (
     VISIBLE_LABEL,
     dispatch_portal_events,
 )
+from plane.utils.zil_client import ZilUnavailable
 from plane.utils.zil_drive import drive_file_id
 
 KFC = "0123456789abcdef0123c001"
@@ -1000,15 +1001,24 @@ class TestRedirect:
 
 DRIVE_ID = "1AbCdEfGhIjKlMnOpQrStUv"
 DRIVE_GET = "plane.utils.zil_drive.requests.get"
+WORKSPACE_POST = "plane.utils.zil_drive._post"
+ACTIVITY = "plane.space.views.zil_portal.issue_activity.delay"
 
 
-def drive_link(issue, url=f"https://drive.google.com/file/d/{DRIVE_ID}/view?usp=sharing", title="Reel final"):
-    return IssueLink.objects.create(
-        issue=issue, project=issue.project, workspace_id=issue.workspace_id, url=url, title=title
-    )
+def drive_link(issue, by, url=f"https://drive.google.com/file/d/{DRIVE_ID}/view?usp=sharing", title="Reel final"):
+    link = IssueLink(issue=issue, project=issue.project, workspace_id=issue.workspace_id, url=url, title=title)
+    link.save(created_by_id=by.id if by else None, disable_auto_set_user=by is None)
+    return link
 
 
-def drive_answer(status_code=200, mime="video/mp4", name="reel-final.mp4"):
+def workspace_token(status_code=200, token="ya29.drive-token"):
+    response = mock.Mock(status_code=status_code)
+    expires = (timezone.now() + timedelta(hours=1)).isoformat()
+    response.json.return_value = {"accessToken": token, "expiresAt": expires}
+    return response
+
+
+def drive_meta(status_code=200, mime="video/mp4", name="reel-final.mp4"):
     response = mock.Mock(status_code=status_code)
     response.json.return_value = {"name": name, "mimeType": mime}
     return response
@@ -1027,11 +1037,16 @@ def video(issue, name="reel.mp4"):
 
 
 @pytest.fixture
-def drive_key(settings):
-    settings.GOOGLE_DRIVE_API_KEY = "drive-key"
+def workspace_bridge(monkeypatch):
+    monkeypatch.setenv("ZIL_BASE_URL", "https://zil.test")
     cache.clear()
     yield
     cache.clear()
+
+
+@pytest.fixture
+def cm(db):
+    return User.objects.create(email="cm@zil.test", username="cm-zil")
 
 
 @pytest.mark.contract
@@ -1058,64 +1073,156 @@ class TestDriveFileIds:
 @pytest.mark.contract
 class TestDriveVideos:
     @pytest.mark.django_db
-    def test_a_shared_drive_video_plays_in_the_portal_after_the_uploaded_media(self, kfc, cliente, drive_key):
+    def test_a_drive_video_plays_through_ops_read_as_whoever_linked_it(self, kfc, cliente, cm, workspace_bridge):
         project = kfc.project
         issue = item(project, "Reel")
         uploaded = video(issue)
-        drive_link(issue)
-        drive_link(issue, url=f"https://drive.google.com/open?id={DRIVE_ID}", title="again")
+        drive_link(issue, cm)
+        drive_link(issue, cm, url=f"https://drive.google.com/open?id={DRIVE_ID}", title="again")
         url = f"/api/public/portal/{project.id}/posts/{issue.id}/"
 
-        with mock.patch(DRIVE_GET, return_value=drive_answer()) as google:
-            media = as_user(cliente).get(url).json()["media"]
+        with (
+            mock.patch(WORKSPACE_POST, return_value=workspace_token()) as workspace,
+            mock.patch(DRIVE_GET, return_value=drive_meta()) as google,
+        ):
+            response = as_user(cliente).get(url)
             as_user(cliente).get(url)
 
+        media = response.json()["media"]
         assert [m["id"] for m in media] == [str(uploaded.id), f"drive:{DRIVE_ID}"]
-        drive = media[1]
-        assert drive["kind"] == "drive" and drive["type"] == "video/mp4" and drive["name"] == "reel-final.mp4"
-        assert drive["url"] == (
-            f"https://www.googleapis.com/drive/v3/files/{DRIVE_ID}?alt=media&supportsAllDrives=true&key=drive-key"
-        )
-        # one lookup per file, cached
+        assert media[1] == {
+            "id": f"drive:{DRIVE_ID}",
+            "kind": "drive",
+            "name": "reel-final.mp4",
+            "type": "video/mp4",
+            "url": f"/api/public/portal/{project.id}/posts/{issue.id}/drive/{DRIVE_ID}/",
+        }
+        # read as the person who pasted the link, with a token Workspace mints; once each, cached
+        workspace.assert_called_once_with("/api/zil/drive-token", {"email": "cm@zil.test"})
         google.assert_called_once()
-        assert google.call_args.kwargs["params"]["key"] == "drive-key"
+        assert google.call_args.kwargs["headers"] == {"Authorization": "Bearer ya29.drive-token"}
+        # neither the token nor who pasted the link reach the client
+        assert "ya29" not in response.content.decode() and "cm@zil.test" not in response.content.decode()
 
     @pytest.mark.django_db
-    def test_a_private_file_or_no_key_falls_back_to_drives_preview(self, kfc, cliente, drive_key, settings):
+    def test_no_token_or_no_author_falls_back_to_drives_preview(self, kfc, cliente, cm, workspace_bridge):
         project = kfc.project
-        issue = item(project, "Reel")
-        drive_link(issue)
-        url = f"/api/public/portal/{project.id}/posts/{issue.id}/"
+        refused = item(project, "Reel")
+        drive_link(refused, cm)
+        orphan = item(project, "Otro")
+        drive_link(orphan, None)
 
-        with mock.patch(DRIVE_GET, return_value=drive_answer(status_code=404)):
-            private = as_user(cliente).get(url).json()["media"][0]
-        settings.GOOGLE_DRIVE_API_KEY = ""
-        cache.clear()
-        with mock.patch(DRIVE_GET) as google:
-            keyless = as_user(cliente).get(url).json()["media"][0]
+        with (
+            mock.patch(WORKSPACE_POST, return_value=workspace_token(status_code=404)) as workspace,
+            mock.patch(DRIVE_GET) as google,
+        ):
+            first = as_user(cliente).get(f"/api/public/portal/{project.id}/posts/{refused.id}/").json()["media"][0]
+            second = as_user(cliente).get(f"/api/public/portal/{project.id}/posts/{orphan.id}/").json()["media"][0]
 
         preview = f"https://drive.google.com/file/d/{DRIVE_ID}/preview"
-        assert private == {
+        assert first == {
             "id": f"drive:{DRIVE_ID}",
             "kind": "drive_preview",
             "name": "Reel final",
             "type": "",
             "url": preview,
         }
-        assert keyless["kind"] == "drive_preview" and keyless["url"] == preview
+        assert second["kind"] == "drive_preview"
+        workspace.assert_called_once()  # nobody to read the orphan link as
         google.assert_not_called()
 
     @pytest.mark.django_db
-    def test_google_down_does_not_break_the_post(self, kfc, cliente, drive_key):
+    def test_workspace_or_google_down_does_not_break_the_post(self, kfc, cliente, cm, workspace_bridge):
         project = kfc.project
         issue = item(project, "Reel")
-        drive_link(issue)
+        drive_link(issue, cm)
+        url = f"/api/public/portal/{project.id}/posts/{issue.id}/"
 
-        with mock.patch(DRIVE_GET, side_effect=requests.ConnectionError("down")):
-            response = as_user(cliente).get(f"/api/public/portal/{project.id}/posts/{issue.id}/")
+        with mock.patch(WORKSPACE_POST, side_effect=ZilUnavailable()):
+            down = as_user(cliente).get(url)
+        cache.clear()
+        with (
+            mock.patch(WORKSPACE_POST, return_value=workspace_token()),
+            mock.patch(DRIVE_GET, side_effect=requests.ConnectionError("down")),
+        ):
+            google_down = as_user(cliente).get(url)
 
-        assert response.status_code == 200
-        assert response.json()["media"][0]["kind"] == "drive_preview"
+        assert down.status_code == google_down.status_code == 200
+        assert down.json()["media"][0]["kind"] == google_down.json()["media"][0]["kind"] == "drive_preview"
+
+
+@pytest.mark.contract
+class TestDriveStream:
+    def _upstream(self, status_code=206, body=b"0123456789"):
+        upstream = mock.Mock(status_code=status_code)
+        upstream.headers = {"Content-Length": str(len(body)), "Content-Range": "bytes 100-109/5000"}
+        upstream.iter_content.return_value = iter([body])
+        return upstream
+
+    @pytest.mark.django_db
+    def test_the_player_gets_the_video_in_pieces_read_as_whoever_linked_it(self, kfc, cliente, cm, workspace_bridge):
+        project = kfc.project
+        issue = item(project, "Reel")
+        drive_link(issue, cm)
+        url = f"/api/public/portal/{project.id}/posts/{issue.id}/drive/{DRIVE_ID}/"
+        upstream = self._upstream()
+
+        with (
+            mock.patch(WORKSPACE_POST, return_value=workspace_token()),
+            mock.patch(DRIVE_GET, side_effect=[drive_meta(), upstream, self._upstream()]) as google,
+        ):
+            response = as_user(cliente).get(url, HTTP_RANGE="bytes=100-")
+            body = b"".join(response.streaming_content)
+            as_user(cliente).get(url)
+
+        assert response.status_code == 206 and body == b"0123456789"
+        assert response["Content-Type"] == "video/mp4" and response["Content-Range"] == "bytes 100-109/5000"
+        assert response["Accept-Ranges"] == "bytes"
+        stream_call = google.call_args_list[1]
+        assert stream_call.kwargs["params"]["alt"] == "media"
+        # at most 8 MiB per request: the player asks for the next piece
+        assert stream_call.kwargs["headers"] == {
+            "Authorization": "Bearer ya29.drive-token",
+            "Range": "bytes=100-8388707",
+        }
+        assert google.call_args_list[2].kwargs["headers"]["Range"] == "bytes=0-8388607"
+        upstream.close.assert_called_once()
+
+    @pytest.mark.django_db
+    def test_only_files_linked_on_a_post_the_client_sees(self, kfc, cliente, cm, create_user, workspace_bridge):
+        project = kfc.project
+        issue = item(project, "Reel")
+        hidden = item(project, "Interno", visible=False)
+        drive_link(issue, cm)
+        drive_link(hidden, cm, url="https://drive.google.com/file/d/1HiddenFileAbcdefghij/view")
+        stranger = User.objects.create(email="otro@cliente.test", username="otro")
+        base = f"/api/public/portal/{project.id}/posts"
+
+        with mock.patch(WORKSPACE_POST, return_value=workspace_token()) as workspace, mock.patch(DRIVE_GET) as google:
+            answers = [
+                as_user(cliente).get(f"{base}/{issue.id}/drive/1SomeOtherFileOfTheDrive/").status_code,
+                as_user(cliente).get(f"{base}/{hidden.id}/drive/1HiddenFileAbcdefghij/").status_code,
+                as_user(stranger).get(f"{base}/{issue.id}/drive/{DRIVE_ID}/").status_code,
+            ]
+
+        assert answers == [404, 404, 404]
+        workspace.assert_not_called()
+        google.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_a_file_that_is_not_a_video_or_an_image_is_not_streamed(self, kfc, cliente, cm, workspace_bridge):
+        project = kfc.project
+        issue = item(project, "Reel")
+        drive_link(issue, cm)
+
+        with (
+            mock.patch(WORKSPACE_POST, return_value=workspace_token()),
+            mock.patch(DRIVE_GET, return_value=drive_meta(mime="application/pdf", name="brief.pdf")) as google,
+        ):
+            response = as_user(cliente).get(f"/api/public/portal/{project.id}/posts/{issue.id}/drive/{DRIVE_ID}/")
+
+        assert response.status_code == 404
+        google.assert_called_once()  # the metadata only, never the bytes
 
 
 @pytest.mark.contract
@@ -1127,7 +1234,7 @@ class TestCommentMoments:
         clip = video(issue, "reel <v2>.mp4")
         url = f"/api/public/portal/{project.id}/posts/{issue.id}/comments/"
 
-        with mock.patch("plane.space.views.zil_portal.issue_activity.delay") as activity:
+        with mock.patch(ACTIVITY) as activity:
             created = as_user(cliente).post(url, {"text": "Cortar acá", "media": str(clip.id), "at": 62}, format="json")
         comments = as_user(cliente).get(url).json()["comments"]
 
@@ -1141,15 +1248,16 @@ class TestCommentMoments:
         assert comments[0]["html"] == "<p>Cortar acá</p>" and comments[0]["moment"]["at"] == 62
 
     @pytest.mark.django_db
-    def test_a_comment_at_a_second_of_a_drive_video(self, kfc, cliente, drive_key):
+    def test_a_comment_at_a_second_of_a_drive_video(self, kfc, cliente, cm, workspace_bridge):
         project = kfc.project
         issue = item(project, "Reel")
-        drive_link(issue)
+        drive_link(issue, cm)
         url = f"/api/public/portal/{project.id}/posts/{issue.id}/comments/"
 
         with (
-            mock.patch(DRIVE_GET, return_value=drive_answer()),
-            mock.patch("plane.space.views.zil_portal.issue_activity.delay"),
+            mock.patch(WORKSPACE_POST, return_value=workspace_token()),
+            mock.patch(DRIVE_GET, return_value=drive_meta()),
+            mock.patch(ACTIVITY),
         ):
             created = as_user(cliente).post(
                 url, {"text": "Más rápido", "media": f"drive:{DRIVE_ID}", "at": 3725}, format="json"
@@ -1160,7 +1268,7 @@ class TestCommentMoments:
         assert ZilCommentMoment.objects.get(comment_id=created.json()["id"]).media == f"drive:{DRIVE_ID}"
 
     @pytest.mark.django_db
-    def test_a_moment_must_be_a_playable_video_of_this_post(self, kfc, cliente, drive_key):
+    def test_a_moment_must_be_a_playable_video_of_this_post(self, kfc, cliente, cm, workspace_bridge):
         project = kfc.project
         issue = item(project, "Reel")
         other = item(project, "Otro")
@@ -1175,13 +1283,13 @@ class TestCommentMoments:
             workspace_id=project.workspace_id,
             is_uploaded=True,
         )
-        drive_link(issue)
+        drive_link(issue, cm)
         url = f"/api/public/portal/{project.id}/posts/{issue.id}/comments/"
 
         bad = [
             {"media": str(foreign.id), "at": 1},  # another post's video
             {"media": str(image.id), "at": 1},  # not a video
-            {"media": f"drive:{DRIVE_ID}", "at": 1},  # only Drive's preview (private file)
+            {"media": f"drive:{DRIVE_ID}", "at": 1},  # only Drive's preview (the link's author can't open it)
             {"media": "drive:9ZzZzZzZzZzZzZz", "at": 1},  # not linked on the post
             {"media": str(clip.id), "at": -1},
             {"media": str(clip.id), "at": 24 * 60 * 60 + 1},
@@ -1189,8 +1297,9 @@ class TestCommentMoments:
             {"media": str(clip.id)},
         ]
         with (
-            mock.patch(DRIVE_GET, return_value=drive_answer(status_code=403)),
-            mock.patch("plane.space.views.zil_portal.issue_activity.delay") as activity,
+            mock.patch(WORKSPACE_POST, return_value=workspace_token()),
+            mock.patch(DRIVE_GET, return_value=drive_meta(status_code=404)),
+            mock.patch(ACTIVITY) as activity,
         ):
             answers = [as_user(cliente).post(url, {"text": "x", **body}, format="json").status_code for body in bad]
 

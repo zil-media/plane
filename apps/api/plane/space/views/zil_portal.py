@@ -13,6 +13,7 @@ modules, sub-items, relations, activity or internal comments.
 
 # Python imports
 import json
+import re
 from datetime import date
 
 # Django imports
@@ -20,7 +21,7 @@ from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.db.models import Q
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.html import escape
 
@@ -61,7 +62,7 @@ from plane.utils.zil_client_portal import (
     visible_issues,
 )
 
-from plane.utils.zil_drive import drive_file_id, drive_media
+from plane.utils.zil_drive import drive_file_id, drive_media, open_stream, playable
 
 from .base import BaseAPIView
 
@@ -71,6 +72,7 @@ MAX_DOCUMENTS = 300
 MAX_COMMENT = 5000
 MEDIA_TYPES = ("image/", "video/")
 MAX_MOMENT = 24 * 60 * 60
+STREAM_PIECE = 8 * 1024 * 1024
 
 
 def _denied(exc, project=None):
@@ -113,23 +115,39 @@ def _media(project_id, assets):
     ]
 
 
-def _links(issue):
+def _link_rows(issue):
+    """The post's web links, each with who pasted it (kept here: the client never sees emails)."""
     return [
-        {"title": link.title or link.url, "url": link.url}
-        for link in IssueLink.objects.filter(issue_id=issue.id).order_by("created_at")
+        {
+            "title": link.title or link.url,
+            "url": link.url,
+            "by": (link.created_by.email if link.created_by else "") or "",
+        }
+        for link in IssueLink.objects.filter(issue_id=issue.id).select_related("created_by").order_by("created_at")
         if str(link.url or "").startswith(("https://", "http://"))
     ]
 
 
-def _post_media(project_id, issue, links):
-    """A post's media: its uploaded images and videos, then the Drive files linked on it."""
+def _drive_links(rows):
+    """{file_id: row} of the Drive files linked on the post, the first link of each."""
+    out = {}
+    for row in rows:
+        file_id = drive_file_id(row["url"])
+        if file_id and file_id not in out:
+            out[file_id] = row
+    return out
+
+
+def _drive_url(project_id, issue_id, file_id):
+    return f"/api/public/portal/{project_id}/posts/{issue_id}/drive/{file_id}/"
+
+
+def _post_media(project_id, issue, rows):
+    """A post's media: its uploaded images and videos, then the Drive files linked on it, each read
+    as the person who pasted the link."""
     media = _media(project_id, _attachments([issue.id]).get(issue.id, []))
-    seen = set()
-    for link in links:
-        file_id = drive_file_id(link["url"])
-        if file_id and file_id not in seen:
-            seen.add(file_id)
-            media.append(drive_media(file_id, link["title"]))
+    for file_id, row in _drive_links(rows).items():
+        media.append(drive_media(file_id, row["title"], row["by"], _drive_url(project_id, issue.id, file_id)))
     return media
 
 
@@ -258,13 +276,13 @@ class PortalPostEndpoint(PortalBaseEndpoint):
         if issue is None:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         labels = _labels([issue.id]).get(issue.id, [])
-        links = _links(issue)
+        rows = _link_rows(issue)
         return Response(
             {
                 **_post(issue, labels, _attachments([issue.id]).get(issue.id, [])),
                 "description_html": issue.description_html or "<p></p>",
-                "media": _post_media(project.id, issue, links),
-                "links": links,
+                "media": _post_media(project.id, issue, rows),
+                "links": [{"title": row["title"], "url": row["url"]} for row in rows],
             }
         )
 
@@ -353,7 +371,7 @@ class PortalCommentsEndpoint(PortalBaseEndpoint):
             video = next(
                 (
                     m
-                    for m in _post_media(project.id, issue, _links(issue))
+                    for m in _post_media(project.id, issue, _link_rows(issue))
                     if m["id"] == media_id and m["kind"] in ("file", "drive") and m["type"].startswith("video/")
                 ),
                 None,
@@ -501,6 +519,52 @@ class PortalDocumentCommentsEndpoint(PortalBaseEndpoint):
         comment.save(created_by_id=request.user.id)
         notify_page_comment(page, comment, request.user)
         return Response(_page_comment(comment, set(), request.user), status=status.HTTP_201_CREATED)
+
+
+class PortalDriveStreamEndpoint(PortalBaseEndpoint):
+    """GET: the bytes of a Drive video (or image) linked on a visible post, read as whoever pasted
+    the link, in pieces (HTTP Range) so the player can jump to any second. Nothing else of Drive
+    goes through here: a file not linked on this post is a 404."""
+
+    def get(self, request, project_id, issue_id, file_id):
+        try:
+            _, project, _, _ = self.guard(request, project_id)
+        except PortalDenied as exc:
+            return _denied(exc)
+        issue = visible_issues(project).filter(pk=issue_id).first()
+        row = _drive_links(_link_rows(issue)).get(file_id) if issue else None
+        meta = playable(file_id, row["by"]) if row else None
+        if meta is None:
+            return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        upstream = open_stream(file_id, row["by"], _bounded_range(request.headers.get("Range")))
+        if upstream is None:
+            return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        def chunks():
+            try:
+                yield from upstream.iter_content(chunk_size=64 * 1024)
+            finally:
+                upstream.close()
+
+        response = StreamingHttpResponse(chunks(), status=upstream.status_code, content_type=meta["mimeType"])
+        for header in ("Content-Length", "Content-Range"):
+            if upstream.headers.get(header):
+                response[header] = upstream.headers[header]
+        response["Accept-Ranges"] = "bytes"
+        response["Cache-Control"] = "private, max-age=300"
+        response["X-Content-Type-Options"] = "nosniff"
+        return response
+
+
+def _bounded_range(raw):
+    """The player's Range, at most STREAM_PIECE bytes at a time: a request never holds a worker for a
+    whole video (the player asks for the next piece). The first request gets the first piece."""
+    match = re.fullmatch(r"bytes=(\d+)-(\d*)", str(raw or "").strip())
+    start = int(match.group(1)) if match else 0
+    end = start + STREAM_PIECE - 1
+    if match and match.group(2):
+        end = min(end, int(match.group(2)))
+    return f"bytes={start}-{end}"
 
 
 class PortalAssetEndpoint(PortalBaseEndpoint):

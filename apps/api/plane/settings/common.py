@@ -375,9 +375,6 @@ FILE_SIZE_LIMIT = int(os.environ.get("FILE_SIZE_LIMIT", 5242880))
 # the ~100 MB a single upload can be through Cloudflare. The proxy lets bucket uploads up to this;
 # each presigned upload still carries its own file's cap.
 VIDEO_FILE_SIZE_LIMIT = int(os.environ.get("VIDEO_FILE_SIZE_LIMIT", 99614720))
-# Google Drive videos in the client portal (plane/utils/zil_drive.py): a key restricted to the
-# Drive API and Ops' domain. Without it the portal shows Drive's own preview.
-GOOGLE_DRIVE_API_KEY = os.environ.get("GOOGLE_DRIVE_API_KEY", "")
 
 # Unsplash Access key
 UNSPLASH_ACCESS_KEY = os.environ.get("UNSPLASH_ACCESS_KEY")

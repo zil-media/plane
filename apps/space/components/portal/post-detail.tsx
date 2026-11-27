@@ -25,7 +25,7 @@ const portalService = new SitesPortalService();
 
 const DRIVE_PREVIEW = "https://drive.google.com/file/d/";
 
-/** One image or video of the post: uploaded to Ops, played from Drive, or Drive's own preview. */
+/** One image or video of the post: uploaded to Ops, a Drive file streamed by Ops, or Drive's own preview. */
 function PostMediaItem({
   item,
   onPlayer,
@@ -50,7 +50,8 @@ function PostMediaItem({
       />
     );
   }
-  const src = item.kind === "drive" ? item.url : getFileURL(item.url);
+  // uploaded to Ops or a Drive file, both come through Ops' own portal API
+  const src = getFileURL(item.url);
   if (isVideo(item.type))
     return (
       <video
