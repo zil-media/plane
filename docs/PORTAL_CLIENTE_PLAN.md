@@ -193,3 +193,67 @@ zil_seed_brand_content` lo hace para todas de una vez. Los portales quedan apaga
    asume marcados).
 2. ¿El cliente puede aprobar (mover a "Programado") o solo comentar? (el plan asume solo comentar).
 3. ¿Comentarios también en las páginas de la carpeta Cliente, o solo lectura? (el plan asume lectura).
+
+## 7. Auditoría (2026-11-27) y próximos pasos
+
+### Lo que ya existe en Ops y no usé
+
+| Pieza                                                                                                                                                                                          | Dónde está                                                                                                                                                                          | Qué hice en su lugar                                                                                                                                                        |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Modo calendario de elementos** (header con mes, encabezado de semana, filas de semana, celda de día, bloque de elemento con barra de color del estado; en el celular, lista del día elegido) | `apps/web/core/components/issues/issue-layouts/calendar/` (`calendar.tsx`, `header.tsx`, `week-header.tsx`, `week-days.tsx`, `day-tile.tsx`, `issue-block.tsx`, `issue-blocks.tsx`) | Un calendario nuevo (`apps/space/components/portal/calendar.tsx`, `post-card.tsx`) que no se parece al del equipo. **Está mal: hay que copiar el de Ops.**                  |
+| **Vista "Calendario de contenidos"** del equipo (modo calendario)                                                                                                                              | la vista guardada que siembra `seed_brand_content`                                                                                                                                  | En la prueba mostré la lista de elementos, nunca la vista en modo calendario. **Sin verificar que abre en calendario.**                                                     |
+| **Detalle de un elemento en `space`** (peek modal: título, descripción, comentarios con tarjeta y caja para comentar)                                                                          | `apps/space/components/issues/peek-overview/` (`full-screen-peek-view.tsx`, `issue-details.tsx`, `comment/comment-detail-card.tsx`, `comment/add-comment.tsx`)                      | Un Dialog nuevo (`post-detail.tsx`, `comments.tsx`). **Hay que copiar el peek de `space`.**                                                                                 |
+| Login de `space`                                                                                                                                                                               | `apps/space/components/account/auth-forms/`                                                                                                                                         | Una página nueva en castellano con solo email y contraseña (copia sus clases). Queda, porque el de `space` ofrece registro, código y OAuth que el cliente no tiene que ver. |
+
+Por qué no se puede usar el calendario del web tal cual: depende de los stores del web (vista de
+calendario, issues del proyecto, arrastrar y soltar, alta rápida, permisos). `space` solo tiene
+lista y kanban. La salida es **copiar esos componentes a `space` en versión de solo lectura**,
+mismo markup y mismas clases, alimentados por la API del portal.
+
+### Lo que hice y está bien (verificado)
+
+- Backend (`e8d309c086`, `517479b163`): cuentas de cliente desde el roster, pausa por marca
+  archivada, guardia del portal, lista blanca de campos, comentarios externos, documentos de la
+  carpeta Cliente, assets, invitación de un solo uso, avisos, estado del acceso en la respuesta del
+  roster. 79 tests de contrato pasan.
+- Redirección del cliente sin workspace al portal; hoja Marca (activar, link, estado, reenviar);
+  acción "Mostrar al cliente"; marca "Visible al cliente" en páginas.
+- Zil Workspace (`leads`, rama `feat/brand-client-portal`): invitar desde la ficha, roster con
+  `role: client`, estado del acceso.
+- Prueba de punta a punta con la caja de arena de `leads` y Ops local: crear marca → invitar a
+  Lucía en Workspace → roster → cuenta en Ops → activar portal → invitación.
+
+### Lo que encontró el debug y está arreglado sin commitear
+
+- Ops anuncia `brand-clients` en `/api/zil/sync/version/` y `leads` solo manda clientes cuando lo
+  ve: un Ops viejo tomaría al cliente por alguien del equipo.
+- Front del portal: estados de error (antes quedaba cargando para siempre), comentarios por el
+  editor de solo lectura en vez de HTML crudo, borrador que no pasa de una publicación a otra,
+  login sin bucle.
+- El mail al cliente firma "Equipo de <marca>", no "Equipo de Zil Support".
+
+### Abierto para decidir
+
+- Una marca que trabajan dos unidades (Meraki y Zil) tiene dos proyectos en Ops: el cliente vería
+  la marca dos veces en "Mis marcas" y recibiría dos invitaciones. ¿Una sola entrada por marca
+  (juntando los calendarios de las unidades) o una por unidad?
+
+### Próximos pasos
+
+1. **Calendario del portal = copia del modo calendario de Ops.** Portar a `space` (solo lectura)
+   `header`, `week-header`, `week-days`, `day-tile`, `issue-block` e `issue-blocks`, con el mismo
+   markup y clases, sin arrastrar, alta rápida ni menús. El bloque muestra el nombre y la barra de
+   color del estado; en el celular, como en Ops, la lista del día elegido. Borrar `calendar.tsx` y
+   `post-card.tsx`.
+2. **"Para revisar"** arriba del calendario, con los mismos bloques de `issue-block` (no tarjetas nuevas).
+3. **Detalle = copia del peek de `space`** (`full-screen-peek-view` / `issue-details` /
+   `comment-detail-card` / `add-comment`), solo con lo que ve el cliente. Borrar `post-detail.tsx`
+   y rehacer `comments.tsx` sobre esas piezas.
+4. **Equipo:** abrir la vista "Calendario de contenidos" y confirmar que abre en modo calendario
+   con las publicaciones; si no, corregir la siembra.
+5. Commitear lo del debug (Ops y `leads`) con sus tests.
+6. **Repetir la prueba de punta a punta** (caja de arena de `leads` + Ops local, cuentas demo) y
+   juntar las capturas del recorrido: ficha de la marca en Workspace → invitar → hoja Marca en Ops
+   → activar → mail → elegir contraseña → calendario → publicación → comentar → aviso al CM →
+   respuesta del equipo → documentos → marca pausada.
+7. Deploy con tu OK: Ops primero, después Zil Workspace.

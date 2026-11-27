@@ -37,7 +37,7 @@ export function PortalShell({ brand, showMyBrands = false, children }: Props) {
                     className="grid size-9 flex-shrink-0 place-items-center rounded-md text-14 font-semibold text-on-color"
                     style={{ backgroundColor: brand.color ?? undefined }}
                   >
-                    {brand.name.charAt(0)}
+                    {(brand.name || "?").charAt(0)}
                   </span>
                 )}
                 <span className="truncate text-16 font-semibold text-primary">{brand.name}</span>

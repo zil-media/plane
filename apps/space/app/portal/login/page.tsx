@@ -27,11 +27,16 @@ const PortalLoginPage = observer(function PortalLoginPage() {
   const { data: currentUser, isAuthenticated } = useUser();
   const formRef = useRef<HTMLFormElement>(null);
   const requested = searchParams.get("next_path") ?? "";
-  const nextPath = requested.startsWith("/portal") && isValidNextPath(requested) ? requested : "/portal";
+  // back into the portal, never to this page again (a loop once signed in)
+  const nextPath =
+    requested.startsWith("/portal") && !requested.startsWith("/portal/login") && isValidNextPath(requested)
+      ? requested
+      : "/portal";
   const failed = !!searchParams.get("error_code");
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [unreachable, setUnreachable] = useState(false);
 
   useEffect(() => {
     if (currentUser && isAuthenticated) router.replace(nextPath);
@@ -42,7 +47,12 @@ const PortalLoginPage = observer(function PortalLoginPage() {
     if (!formRef.current || submitting) return;
     setSubmitting(true);
     const token = await authService.requestCSRFToken().catch(() => undefined);
-    formRef.current.querySelector("input[name=csrfmiddlewaretoken]")?.setAttribute("value", token?.csrf_token ?? "");
+    if (!token?.csrf_token) {
+      setUnreachable(true);
+      setSubmitting(false);
+      return;
+    }
+    formRef.current.querySelector("input[name=csrfmiddlewaretoken]")?.setAttribute("value", token.csrf_token);
     formRef.current.submit();
   };
 
@@ -54,6 +64,11 @@ const PortalLoginPage = observer(function PortalLoginPage() {
           <h1 className="text-20 font-semibold text-primary">Entrá a tu calendario</h1>
           <p className="text-14 text-secondary">Con el email y la contraseña que elegiste.</p>
         </div>
+        {unreachable && (
+          <p className="rounded-md border border-danger-strong bg-danger-subtle px-3 py-2 text-13 text-danger-primary">
+            No pudimos conectarnos. Probá de nuevo en un momento.
+          </p>
+        )}
         {failed && (
           <p className="rounded-md border border-danger-strong bg-danger-subtle px-3 py-2 text-13 text-danger-primary">
             El email o la contraseña no son correctos.

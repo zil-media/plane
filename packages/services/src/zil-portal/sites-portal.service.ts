@@ -31,7 +31,8 @@ export class SitesPortalService extends APIService {
     return request
       .then((response) => response?.data)
       .catch((error) => {
-        throw error?.response;
+        // a network failure has no response: still an error the screens can show
+        throw error?.response ?? { status: 0 };
       });
   }
 

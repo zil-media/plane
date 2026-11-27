@@ -23,8 +23,8 @@ type Props = {
 
 /** The documents the team shares (the brand's "Cliente" folder): a flat list, read full screen. */
 export function PortalDocuments({ projectId, documentId, onOpen }: Props) {
-  const { data } = useSWR(`PORTAL_DOCUMENTS_${projectId}`, () => portalService.documents(projectId));
-  const { data: document, error } = useSWR(documentId ? `PORTAL_DOCUMENT_${documentId}` : null, () =>
+  const { data, error: listError } = useSWR(`PORTAL_DOCUMENTS_${projectId}`, () => portalService.documents(projectId));
+  const { data: document, error } = useSWR(documentId ? `PORTAL_DOCUMENT_${projectId}_${documentId}` : null, () =>
     portalService.document(projectId, documentId as string)
   );
 
@@ -53,6 +53,13 @@ export function PortalDocuments({ projectId, documentId, onOpen }: Props) {
           </>
         )}
       </article>
+    );
+
+  if (listError)
+    return (
+      <p className="rounded-md border border-subtle p-6 text-center text-13 text-tertiary">
+        No pudimos cargar los documentos. Probá de nuevo en un momento.
+      </p>
     );
 
   if (!data)

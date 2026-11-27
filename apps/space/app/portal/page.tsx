@@ -23,12 +23,19 @@ const portalService = new SitesPortalService();
 const PortalHomePage = observer(function PortalHomePage() {
   const ready = usePortalGuard();
   const router = useRouter();
-  const { data } = useSWR(ready ? "PORTAL_BRANDS" : null, () => portalService.brands());
+  const { data, error } = useSWR(ready ? "PORTAL_BRANDS" : null, () => portalService.brands());
   const brands = useMemo(() => data?.brands ?? [], [data]);
 
   useEffect(() => {
     if (brands.length === 1) router.replace(`/portal/${brands[0].id}`);
   }, [brands, router]);
+
+  if (error)
+    return (
+      <PortalShell>
+        <PortalMessage title="No pudimos cargar tus marcas" text="Probá de nuevo en un momento." />
+      </PortalShell>
+    );
 
   if (!ready || !data || brands.length === 1)
     return (
@@ -60,7 +67,7 @@ const PortalHomePage = observer(function PortalHomePage() {
                   className="grid size-10 place-items-center rounded-md text-14 font-semibold text-on-color"
                   style={{ backgroundColor: brand.color ?? undefined }}
                 >
-                  {brand.name.charAt(0)}
+                  {(brand.name || "?").charAt(0)}
                 </span>
               )}
               <span className="min-w-0 flex-1">

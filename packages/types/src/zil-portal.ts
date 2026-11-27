@@ -31,6 +31,8 @@ export type TZilPortalPost = {
   name: string;
   publish_date: string | null;
   status: TZilPortalStatus;
+  /** the Ops state's color: the calendar block's bar, as in Ops' calendar */
+  status_color: string | null;
   network: string | null;
   labels: { name: string; color: string }[];
   thumbnail: TZilPortalMedia | null;

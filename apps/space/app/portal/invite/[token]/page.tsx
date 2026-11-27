@@ -48,6 +48,7 @@ const PortalInvitePage = observer(function PortalInvitePage() {
       const { project_id, sign_in } = await portalService.acceptInvite(token, password);
       if (sign_in && invite) {
         const next = encodeURIComponent(`/portal/${project_id}`);
+        setSubmitting(false);
         router.replace(`/portal/login?email=${encodeURIComponent(invite.email)}&next_path=${next}`);
         return;
       }

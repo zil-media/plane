@@ -14,7 +14,7 @@ import { SitesPortalService } from "@plane/services";
 import { cn } from "@plane/utils";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
-import { PortalCalendar, monthRange } from "@/components/portal/calendar";
+import { PortalCalendar, monthRange } from "@/components/portal/calendar/calendar";
 import { PortalDocuments } from "@/components/portal/documents";
 import { PortalMessage, PortalShell } from "@/components/portal/portal-shell";
 import { PortalPostDetail } from "@/components/portal/post-detail";
@@ -41,11 +41,13 @@ const PortalBrandPage = observer(function PortalBrandPage() {
     portalService.brand(projectId)
   );
   const { data: brands } = useSWR(ready ? "PORTAL_BRANDS" : null, () => portalService.brands());
-  const { data: posts, isLoading } = useSWR(
-    brand ? `PORTAL_POSTS_${projectId}_${range.start}` : null,
-    () => portalService.posts(projectId, range),
-    { keepPreviousData: true }
-  );
+  const {
+    data: posts,
+    isLoading,
+    error: postsError,
+  } = useSWR(brand ? `PORTAL_POSTS_${projectId}_${range.start}` : null, () => portalService.posts(projectId, range), {
+    keepPreviousData: true,
+  });
 
   const go = (params: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams.toString());
@@ -107,6 +109,11 @@ const PortalBrandPage = observer(function PortalBrandPage() {
 
       {tab === "calendar" ? (
         <>
+          {postsError && (
+            <p className="rounded-md bg-layer-1 px-3 py-2 text-13 text-danger-primary">
+              No pudimos cargar el calendario. Probá de nuevo en un momento.
+            </p>
+          )}
           <PortalReviewStrip posts={posts?.to_review ?? []} onOpen={(id) => go({ post: id })} />
           <PortalCalendar
             month={month}
@@ -114,6 +121,7 @@ const PortalBrandPage = observer(function PortalBrandPage() {
             loading={isLoading}
             onMonthChange={setMonth}
             onOpen={(id) => go({ post: id })}
+            openPostId={postId}
           />
         </>
       ) : (
