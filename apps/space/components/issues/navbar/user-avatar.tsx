@@ -16,7 +16,7 @@ import { API_BASE_URL } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { AuthService } from "@plane/services";
 import { Avatar } from "@plane/ui";
-import { getFileURL } from "@plane/utils";
+import { cn, getFileURL } from "@plane/utils";
 // helpers
 import { queryParamGenerator } from "@/helpers/query-param-generator";
 // hooks
@@ -29,9 +29,15 @@ type Props = {
   signOutLabel?: string;
   /** where to come back after signing in again (the portal keeps its whole query) */
   nextPath?: string;
+  /** only the avatar on phones (the portal's top bar needs the room for the brand) */
+  compact?: boolean;
 };
 
-export const UserAvatar = observer(function UserAvatar({ signOutLabel = "Sign out", nextPath }: Props) {
+export const UserAvatar = observer(function UserAvatar({
+  signOutLabel = "Sign out",
+  nextPath,
+  compact = false,
+}: Props) {
   const pathName = usePathname();
   const searchParams = useSearchParams();
   // query params
@@ -81,7 +87,7 @@ export const UserAvatar = observer(function UserAvatar({ signOutLabel = "Sign ou
                   size="sm"
                   showTooltip={false}
                 />
-                <h6 className="text-11 font-medium text-secondary">
+                <h6 className={cn("text-11 font-medium text-secondary", compact && "hidden sm:block")}>
                   {currentUser?.display_name ||
                     `${currentUser?.first_name} ${currentUser?.first_name}` ||
                     currentUser?.email ||

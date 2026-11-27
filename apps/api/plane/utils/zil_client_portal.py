@@ -224,6 +224,11 @@ class PortalDenied(Exception):
         self.paused = paused
 
 
+def portal_unit(workspace_slug):
+    """Whose brand the portal wears: Meraki's for its units' brands, Zil's for the rest."""
+    return "meraki" if str(workspace_slug or "").lower().startswith("meraki") else "zil"
+
+
 def is_paused(project, mapping):
     return project.archived_at is not None or mapping.status == ZilBrandProject.ARCHIVED
 
@@ -241,7 +246,7 @@ def portal_for(user, project_id):
             kind=ZilBrandProject.BRAND_KIND,
             project__deleted_at__isnull=True,
         )
-        .select_related("project")
+        .select_related("project", "workspace")
         .first()
     )
     if mapping is None:
@@ -271,7 +276,7 @@ def client_brands(user):
             brand_project__project__deleted_at__isnull=True,
             brand_project__project__zil_client_portal__enabled=True,
         )
-        .select_related("brand_project__project")
+        .select_related("brand_project__project", "brand_project__workspace")
         .order_by("brand_project__project__name")
     )
     seen = set()
@@ -453,7 +458,7 @@ def client_for_token(token):
         return None
     client = (
         ZilBrandClient.objects.filter(invite_token_hash=_hash(token), user__isnull=False)
-        .select_related("user", "brand_project__project")
+        .select_related("user", "brand_project__project", "brand_project__workspace")
         .first()
     )
     if client is None or client.invited_at is None:

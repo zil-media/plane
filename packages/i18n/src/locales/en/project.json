@@ -518,6 +518,7 @@
   },
   "zil_portal": {
     "my_brands": "My brands",
+    "my_brands_description": "The brands Zil works on with you.",
     "calendar": "Calendar",
     "documents": "Documents",
     "to_review": "To review",

@@ -9,6 +9,7 @@ import { ArrowLeft, ChevronRight, Folder, FolderOpen } from "lucide-react";
 import useSWR from "swr";
 // plane imports
 import { useTranslation } from "@plane/i18n";
+import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { PageIcon } from "@plane/propel/icons";
 import { SitesPortalService } from "@plane/services";
 import type { TZilPortalDocument, TZilPortalFolder } from "@plane/types";
@@ -156,7 +157,9 @@ export function PortalDocuments({ projectId, documentId, preview, onOpen }: Prop
 
   if (data.documents.length === 0)
     return (
-      <p className="rounded-md border border-subtle p-6 text-center text-13 text-tertiary">{t("zil_portal.no_docs")}</p>
+      <div className="grid place-items-center py-10">
+        <EmptyStateDetailed assetKey="page" title={t("zil_portal.no_docs")} />
+      </div>
     );
 
   return (

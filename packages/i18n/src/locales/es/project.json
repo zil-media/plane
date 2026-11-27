@@ -518,6 +518,7 @@
   },
   "zil_portal": {
     "my_brands": "Mis marcas",
+    "my_brands_description": "Las marcas que Zil trabaja con vos.",
     "calendar": "Calendario",
     "documents": "Documentos",
     "to_review": "Para revisar",

@@ -46,6 +46,7 @@ from plane.utils.zil_client_portal import (
     needs_password,
     notify_page_comment,
     portal_for,
+    portal_unit,
     simple_status,
     use_invite,
     visible_issues,
@@ -78,6 +79,8 @@ def _brand(mapping, paused=False):
         "logo_url": mapping.logo_url or image.get("url") or None,
         "color": mapping.color or None,
         "paused": paused,
+        # Zil's or Meraki's look, by the business unit that works the brand
+        "unit": portal_unit(mapping.workspace.slug),
     }
 
 
@@ -477,6 +480,7 @@ class PortalInviteEndpoint(BaseAPIView):
                 "brand": client.brand_project.project.name,
                 "project_id": str(client.brand_project.project_id),
                 "needs_password": needs_password(client.user),
+                "unit": portal_unit(client.brand_project.workspace.slug),
             }
         )
 

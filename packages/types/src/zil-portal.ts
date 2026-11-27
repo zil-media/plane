@@ -12,6 +12,8 @@ export type TZilPortalBrand = {
   logo_url: string | null;
   color: string | null;
   paused: boolean;
+  /** whose look the portal wears: the business unit that works the brand */
+  unit?: "zil" | "meraki";
   /** a team member looking at what the client sees */
   preview?: boolean;
 };
@@ -74,6 +76,7 @@ export type TZilPortalInvite = {
   brand: string;
   project_id: string;
   needs_password: boolean;
+  unit?: "zil" | "meraki";
 };
 
 /** The "Portal del cliente" section of the Marca tab. */

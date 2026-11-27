@@ -15,7 +15,10 @@ import { AuthService } from "@plane/services";
 import { Input } from "@plane/ui";
 import { isValidNextPath } from "@plane/utils";
 // components
-import { ZilLogo } from "@/components/common/zil-logo";
+import { AuthBanner } from "@/components/account/auth-forms/auth-banner";
+import { PortalAuthLayout } from "@/components/portal/auth-layout";
+import { EErrorAlertType } from "@/helpers/authentication.helper";
+import type { EAuthenticationErrorCodes } from "@/helpers/authentication.helper";
 // hooks
 import { useUser } from "@/hooks/store/use-user";
 
@@ -39,6 +42,7 @@ const PortalLoginPage = observer(function PortalLoginPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [unreachable, setUnreachable] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     if (currentUser && isAuthenticated) router.replace(nextPath);
@@ -58,23 +62,33 @@ const PortalLoginPage = observer(function PortalLoginPage() {
     formRef.current.submit();
   };
 
+  const banner = unreachable
+    ? t("zil_portal.login.unreachable")
+    : failed && !dismissed
+      ? t("zil_portal.login.wrong_credentials")
+      : undefined;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-1 px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <ZilLogo className="h-6 w-auto text-primary" />
-        <div className="space-y-1">
-          <h1 className="text-20 font-semibold text-primary">{t("zil_portal.login.title")}</h1>
-          <p className="text-14 text-secondary">{t("zil_portal.login.subtitle")}</p>
+    <PortalAuthLayout unit="zil">
+      <div className="flex flex-col gap-6">
+        {/* Ops' sign-in copy: centered title and subtitle */}
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-primary">{t("zil_portal.login.title")}</h1>
+          <p className="text-sm mt-1 text-secondary">{t("zil_portal.login.subtitle")}</p>
         </div>
-        {unreachable && (
-          <p className="rounded-md border border-danger-strong bg-danger-subtle px-3 py-2 text-13 text-danger-primary">
-            {t("zil_portal.login.unreachable")}
-          </p>
-        )}
-        {failed && (
-          <p className="rounded-md border border-danger-strong bg-danger-subtle px-3 py-2 text-13 text-danger-primary">
-            {t("zil_portal.login.wrong_credentials")}
-          </p>
+        {banner && (
+          <AuthBanner
+            bannerData={{
+              type: EErrorAlertType.BANNER_ALERT,
+              code: (searchParams.get("error_code") ?? "") as EAuthenticationErrorCodes,
+              title: "",
+              message: banner,
+            }}
+            handleBannerData={() => {
+              setUnreachable(false);
+              setDismissed(true);
+            }}
+          />
         )}
         <form
           ref={formRef}
@@ -132,7 +146,7 @@ const PortalLoginPage = observer(function PortalLoginPage() {
           {t("zil_portal.login.forgot")}
         </a>
       </div>
-    </div>
+    </PortalAuthLayout>
   );
 });
 

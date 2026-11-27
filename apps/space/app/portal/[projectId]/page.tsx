@@ -67,9 +67,13 @@ const PortalBrandPage = observer(function PortalBrandPage() {
     return (
       <PortalShell showMyBrands={showMyBrands}>
         {brandError?.status === 403 ? (
-          <PortalMessage title={t("zil_portal.paused_title")} text={t("zil_portal.paused_text")} />
+          <PortalMessage assetKey="no-access" title={t("zil_portal.paused_title")} text={t("zil_portal.paused_text")} />
         ) : (
-          <PortalMessage title={t("zil_portal.not_found_title")} text={t("zil_portal.not_found_text")} />
+          <PortalMessage
+            assetKey="invalid-link"
+            title={t("zil_portal.not_found_title")}
+            text={t("zil_portal.not_found_text")}
+          />
         )}
       </PortalShell>
     );

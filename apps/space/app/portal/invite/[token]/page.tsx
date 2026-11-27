@@ -15,9 +15,13 @@ import { Button } from "@plane/propel/button";
 import { SitesPortalService } from "@plane/services";
 import { Input } from "@plane/ui";
 // components
+import { AuthBanner } from "@/components/account/auth-forms/auth-banner";
 import { LogoSpinner } from "@/components/common/logo-spinner";
-import { ZilLogo } from "@/components/common/zil-logo";
+import { PortalAuthLayout } from "@/components/portal/auth-layout";
+import { portalUnit } from "@/components/portal/brand-theme";
 // hooks
+import { EErrorAlertType } from "@/helpers/authentication.helper";
+import type { EAuthenticationErrorCodes } from "@/helpers/authentication.helper";
 import { useUser } from "@/hooks/store/use-user";
 
 const portalService = new SitesPortalService();
@@ -71,13 +75,12 @@ const PortalInvitePage = observer(function PortalInvitePage() {
     );
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-1 px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <ZilLogo className="h-6 w-auto text-primary" />
+    <PortalAuthLayout unit={portalUnit(invite?.unit)}>
+      <div className="flex flex-col gap-6">
         {error || !invite ? (
-          <div className="space-y-2">
-            <h1 className="text-20 font-semibold text-primary">{t("zil_portal.invite.expired_title")}</h1>
-            <p className="text-14 text-secondary">
+          <div className="text-center">
+            <h1 className="text-2xl font-semibold text-primary">{t("zil_portal.invite.expired_title")}</h1>
+            <p className="text-sm mt-1 text-secondary">
               {t("zil_portal.invite.expired_text")}{" "}
               <Link to="/portal/login" className="text-accent-primary hover:underline">
                 {t("zil_portal.invite.sign_in_link")}
@@ -87,11 +90,12 @@ const PortalInvitePage = observer(function PortalInvitePage() {
           </div>
         ) : (
           <form onSubmit={accept} className="space-y-4">
-            <div className="space-y-1">
-              <h1 className="text-20 font-semibold text-primary">
+            {/* Ops' sign-in copy: centered title and subtitle */}
+            <div className="mb-2 text-center">
+              <h1 className="text-2xl font-semibold text-primary">
                 {t("zil_portal.invite.title", { brand: invite.brand })}
               </h1>
-              <p className="text-14 text-secondary">
+              <p className="text-sm mt-1 text-secondary">
                 {invite.needs_password
                   ? t("zil_portal.invite.choose_password", { email: invite.email })
                   : t("zil_portal.invite.enter_as", { email: invite.email })}
@@ -129,7 +133,17 @@ const PortalInvitePage = observer(function PortalInvitePage() {
                 </div>
               </>
             )}
-            {failure && <p className="text-13 text-danger-primary">{failure}</p>}
+            {failure && (
+              <AuthBanner
+                bannerData={{
+                  type: EErrorAlertType.BANNER_ALERT,
+                  code: "" as EAuthenticationErrorCodes,
+                  title: "",
+                  message: failure,
+                }}
+                handleBannerData={() => setFailure(null)}
+              />
+            )}
             <Button
               type="submit"
               variant="primary"
@@ -142,7 +156,7 @@ const PortalInvitePage = observer(function PortalInvitePage() {
           </form>
         )}
       </div>
-    </div>
+    </PortalAuthLayout>
   );
 });
 

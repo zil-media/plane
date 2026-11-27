@@ -201,6 +201,7 @@ class TestAccess:
                 "logo_url": f"https://zil.test/logos/{KFC}.png",
                 "color": "#E2231A",
                 "paused": False,
+                "unit": "zil",
             }
         ]
         assert header["name"] == "KFC" and header["preview"] is False
@@ -624,6 +625,7 @@ class TestInvites:
             "brand": "KFC",
             "project_id": str(kfc.project_id),
             "needs_password": True,
+            "unit": "zil",
         }
         assert weak.status_code == 400
         assert good.status_code == 200 and good.json() == {"project_id": str(kfc.project_id)}
@@ -952,6 +954,24 @@ class TestReviewFixes:
             )
 
         assert len(queries) == 1 and not emails.called
+
+
+@pytest.mark.contract
+class TestPortalUnit:
+    @pytest.mark.django_db
+    def test_a_meraki_unit_brand_wears_meraki_and_the_rest_zil(self, create_user, emails):
+        from plane.utils.zil_client_portal import portal_unit
+
+        assert portal_unit("meraki") == "meraki" and portal_unit("meraki-studio") == "meraki"
+        assert portal_unit("zil") == "zil" and portal_unit("marketwise") == "zil"
+        meraki = Workspace.objects.create(name="Meraki", slug="meraki", owner=create_user)
+        WorkspaceMember.objects.create(workspace=meraki, member=create_user, role=20)
+        push(meraki, [brand(KFC, "KFC", clients=["cliente@kfc.test"])])
+        turn_on(KFC)
+        lucia = User.objects.get(email="cliente@kfc.test")
+
+        assert as_user(lucia).get("/api/public/portal/").json()["brands"][0]["unit"] == "meraki"
+        assert as_user(lucia).get(f"/api/public/portal/{mapping_of(KFC).project_id}/").json()["unit"] == "meraki"
 
 
 @pytest.mark.contract
