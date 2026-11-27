@@ -116,7 +116,7 @@ def turn_on(brand_id):
     return portal
 
 
-def item(project, name, visible=True, state_name="Diseño", target_date=None, **fields):
+def item(project, name, visible=True, state_name="Diseño", target_date=None, published=True, **fields):
     state = State.objects.get(project=project, name=state_name)
     issue = Issue.objects.create(
         name=name,
@@ -134,6 +134,9 @@ def item(project, name, visible=True, state_name="Diseño", target_date=None, **
             project=project,
             workspace_id=project.workspace_id,
         )
+        if published:
+            # what the team does in Ops ("Publicar al cliente"): only then the client sees it
+            ZilPostReview.objects.create(issue=issue, project=project, started_at=timezone.now())
     return issue
 
 
@@ -323,14 +326,19 @@ class TestPosts:
         assert post["review"] is None  # worked out only for the posts to review
         assert post["network"] == "Instagram" and post["status"] == "preparing"
         assert [label["name"] for label in post["labels"]] == ["Instagram"]
-        assert body["to_review"] == []
+        # just published: it waits for the client's changes
+        assert [p["name"] for p in body["to_review"]] == ["Reel lanzamiento"]
 
     @pytest.mark.django_db
     def test_the_review_strip_and_the_four_plain_statuses(self, kfc, cliente):
         project = kfc.project
         review = item(project, "Carrusel", state_name=REVIEW_STATE)
-        item(project, "scheduled", state_name="Programado", target_date=timezone.now().date())
-        item(project, "Salió", state_name="Publicado", target_date=timezone.now().date())
+        done = [
+            item(project, "scheduled", state_name="Programado", target_date=timezone.now().date()),
+            item(project, "Salió", state_name="Publicado", target_date=timezone.now().date()),
+        ]
+        # published long ago: their time for changes is over, so they no longer wait for the client
+        ZilPostReview.objects.filter(issue__in=done).update(started_at=timezone.now() - timedelta(days=30))
 
         body = as_user(cliente).get(f"/api/public/portal/{project.id}/posts/").json()
 
@@ -465,12 +473,9 @@ class TestComments:
             create_user.id,
             [mock.Mock(field="comment", issue_comment_id=answer.id)],
         )
-        dispatch_portal_events(
-            "issue.activity.updated", issue.id, create_user.id, [mock.Mock(field="state", new_value=REVIEW_STATE)]
-        )
 
         recipients = [call.args[0] for call in emails.call_args_list]
-        assert recipients == [["cliente@kfc.test"], ["cliente@kfc.test"]]
+        assert recipients == [["cliente@kfc.test"]]
         assert f"?post={issue.id}" in emails.call_args.args[5]
 
     @pytest.mark.django_db
@@ -961,19 +966,22 @@ class TestReviewFixes:
         assert [call.args[0] for call in emails.call_args_list] == [["cliente@kfc.test"]]
 
     @pytest.mark.django_db
-    def test_showing_an_item_that_already_waits_for_review_emails_the_client(self, kfc, cliente, create_user, emails):
-        issue = item(kfc.project, "Carrusel", state_name=REVIEW_STATE)
+    def test_moving_a_post_to_review_tells_the_client_nothing(self, kfc, cliente, create_user, emails):
+        issue = item(kfc.project, "Carrusel", state_name=REVIEW_STATE, published=False)
         emails.reset_mock()
 
         dispatch_portal_events(
             "issue.activity.updated",
             issue.id,
             create_user.id,
-            [mock.Mock(field="labels", verb="updated", new_value=VISIBLE_LABEL)],
+            [mock.Mock(field="state", verb="updated", new_value=REVIEW_STATE)],
             project_id=kfc.project_id,
         )
 
-        assert [call.args[0] for call in emails.call_args_list] == [["cliente@kfc.test"]]
+        # the client hears of it when the team publishes it, and sees nothing before
+        assert not emails.called
+        assert not ZilPostReview.objects.filter(issue=issue).exists()
+        assert as_user(cliente).get(f"/api/public/portal/{kfc.project_id}/posts/{issue.id}/").status_code == 404
 
     @pytest.mark.django_db
     def test_a_project_without_a_portal_costs_one_query_and_sends_nothing(self, workspace, create_user, emails):
@@ -985,7 +993,7 @@ class TestReviewFixes:
         from django.db import connection
         from django.test.utils import CaptureQueriesContext
 
-        with CaptureQueriesContext(connection) as queries:
+        with CaptureQueriesContext(connection) as moved:
             dispatch_portal_events(
                 "issue.activity.updated",
                 issue.id,
@@ -993,8 +1001,16 @@ class TestReviewFixes:
                 [mock.Mock(field="state", new_value=REVIEW_STATE)],
                 project_id=project.id,
             )
+        with CaptureQueriesContext(connection) as commented:
+            dispatch_portal_events(
+                "comment.activity.created",
+                issue.id,
+                create_user.id,
+                [mock.Mock(field="comment", issue_comment_id=None)],
+                project_id=project.id,
+            )
 
-        assert len(queries) == 1 and not emails.called
+        assert len(moved) == 0 and len(commented) == 1 and not emails.called
 
 
 @pytest.mark.contract
@@ -1451,20 +1467,57 @@ class TestChangeRounds:
         assert add_business_days(datetime(2026, 11, 27, 23, 0, tzinfo=ZoneInfo("UTC")), 1, tz).day == 30
 
     @pytest.mark.django_db
-    def test_the_window_opens_the_first_time_the_post_goes_to_review_and_only_then(self, kfc, create_user):
+    def test_the_team_publishes_chosen_posts_and_the_client_hears_once(self, kfc, cliente, create_user, emails):
         project = kfc.project
-        issue = item(project, "Reel")
-        review_state = State.objects.get(project=project, name=REVIEW_STATE)
-        moved = [mock.Mock(field="state", verb="updated", new_value=REVIEW_STATE)]
+        ProjectMember.objects.update_or_create(
+            project=project, member=create_user, defaults={"workspace_id": project.workspace_id, "role": 15}
+        )
+        reel = item(project, "Reel", published=False)
+        carrusel = item(project, "Carrusel", published=False)
+        later = item(project, "Próximo mes", published=False)
+        video(reel)
+        url = f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/zil-portal/publish/"
+        emails.reset_mock()
 
-        assert not ZilPostReview.objects.filter(issue=issue).exists()
-        Issue.objects.filter(pk=issue.pk).update(state=review_state)
-        dispatch_portal_events("issue.activity.updated", issue.id, create_user.id, moved, project_id=project.id)
-        first = ZilPostReview.objects.get(issue=issue).started_at
-        # back to the team and to review again: the same window, not a new one
-        dispatch_portal_events("issue.activity.updated", issue.id, create_user.id, moved, project_id=project.id)
+        listed = {p["name"]: p for p in as_user(create_user).get(url).json()["posts"]}
+        before = as_user(cliente).get(f"/api/public/portal/{project.id}/posts/{reel.id}/")
+        published = as_user(create_user).post(url, {"issue_ids": [str(reel.id), str(carrusel.id)]}, format="json")
+        again = as_user(create_user).post(url, {"issue_ids": [str(reel.id)]}, format="json")
 
-        assert ZilPostReview.objects.get(issue=issue).started_at == first
+        assert (listed["Reel"]["has_media"], listed["Carrusel"]["has_media"]) == (True, False)
+        assert listed["Reel"]["published_at"] is None
+        assert before.status_code == 404  # hidden until published
+        assert published.json() == {"published": 2} and again.json() == {"published": 0}
+        # one email for the publication, listing both, with the rounds and days the client has
+        emails.assert_called_once()
+        lines = emails.call_args.args[3]
+        assert any("Reel" in line for line in lines) and any("Carrusel" in line for line in lines)
+        assert any("1 ronda de cambios" in line and "7 días hábiles" in line for line in lines)
+        seen = as_user(cliente).get(f"/api/public/portal/{project.id}/posts/").json()
+        assert sorted(p["name"] for p in seen["to_review"]) == ["Carrusel", "Reel"]
+        assert as_user(cliente).get(f"/api/public/portal/{project.id}/posts/{later.id}/").status_code == 404
+        assert ZilPostReview.objects.get(issue=reel).published_by_id == create_user.id
+
+    @pytest.mark.django_db
+    def test_publishing_needs_a_portal_that_is_on_and_posts_of_the_brand(self, kfc, create_user):
+        project = kfc.project
+        ProjectMember.objects.update_or_create(
+            project=project, member=create_user, defaults={"workspace_id": project.workspace_id, "role": 15}
+        )
+        hidden = item(project, "Interno", visible=False)
+        url = f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/zil-portal/publish/"
+
+        not_marked = as_user(create_user).post(url, {"issue_ids": [str(hidden.id)]}, format="json")
+        bad = [
+            as_user(create_user).post(url, body, format="json").status_code
+            for body in ({}, {"issue_ids": []}, {"issue_ids": ["nope"]})
+        ]
+        ZilClientPortal.objects.filter(project=project).update(enabled=False)
+        off = as_user(create_user).post(url, {"issue_ids": [str(hidden.id)]}, format="json")
+
+        assert not_marked.json() == {"published": 0}  # not marked "Visible al cliente": nothing goes out
+        assert bad == [400, 400, 400]
+        assert off.status_code == 409
 
     @pytest.mark.django_db
     def test_a_post_shows_its_rounds_and_deadline_and_each_send_uses_one(self, kfc, cliente):
@@ -1552,11 +1605,11 @@ class TestChangeRounds:
         assert ZilPostReview.objects.get(issue=issue).rounds_used == 0
 
     @pytest.mark.django_db
-    def test_changes_close_when_the_rounds_are_used_the_time_is_up_or_it_never_went_to_review(self, kfc, cliente):
+    def test_changes_close_when_the_rounds_are_used_or_the_time_is_up(self, kfc, cliente):
         project = kfc.project
         used_up = item(project, "Usado", state_name=REVIEW_STATE)
         late = item(project, "Tarde", state_name=REVIEW_STATE)
-        early = item(project, "Temprano")
+        early = item(project, "Temprano", published=False)
         client = as_user(cliente)
         with mock.patch(ACTIVITY):
             send_round(client, project, used_up, [{"text": "1"}])
@@ -1568,21 +1621,21 @@ class TestChangeRounds:
                 f"/api/public/portal/{project.id}/posts/{issue.id}/drafts/", {"text": "x"}, format="json"
             )
 
-        closed = {issue.name: answer(issue) for issue in (used_up, late, early)}
-        assert {name: r.status_code for name, r in closed.items()} == {"Usado": 409, "Tarde": 409, "Temprano": 409}
+        closed = {issue.name: answer(issue) for issue in (used_up, late)}
+        assert {name: r.status_code for name, r in closed.items()} == {"Usado": 409, "Tarde": 409}
         assert {name: r.json()["review"]["reason"] for name, r in closed.items()} == {
             "Usado": "rounds_used",
             "Tarde": "expired",
-            "Temprano": "not_started",
         }
-        assert client.get(self._review_url(project, early)).json()["review"]["open"] is False
+        # not published yet: the client doesn't even see it
+        assert answer(early).status_code == 404
 
     @pytest.mark.django_db
     def test_no_limits_when_the_brand_sets_none(self, kfc, cliente):
         project = kfc.project
         ZilClientPortal.objects.filter(project=project).update(change_rounds=0, change_days=0)
         issue = item(project, "Reel", state_name=REVIEW_STATE)
-        ZilPostReview.objects.create(issue=issue, project=project, started_at=timezone.now() - timedelta(days=90))
+        ZilPostReview.objects.filter(issue=issue).update(started_at=timezone.now() - timedelta(days=90))
         with mock.patch(ACTIVITY):
             for text in ("1", "2", "3"):
                 assert send_round(as_user(cliente), project, issue, [{"text": text}]).status_code == 201

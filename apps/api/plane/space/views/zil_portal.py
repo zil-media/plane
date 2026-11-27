@@ -47,7 +47,6 @@ from plane.db.models import (
 )
 from plane.settings.storage import S3Storage
 from plane.utils.zil_client_portal import (
-    REVIEW_STATE,
     VISIBLE_LABEL,
     NETWORKS,
     PortalDenied,
@@ -266,17 +265,20 @@ class PortalPostsEndpoint(PortalBaseEndpoint):
         # by day, then by hour (the ones without an hour last), as they go out
         by_time = ("target_date", F("target_time").asc(nulls_last=True), "sequence_id")
         dated = list(dated.order_by(*by_time)[:MAX_POSTS])
-        review = list(issues.filter(state__name__iexact=REVIEW_STATE).order_by(*by_time)[:50])
-        ids = {issue.id for issue in dated} | {issue.id for issue in review}
+        # waiting for the client: published, with its window for changes still open
+        waiting = []
+        for issue in issues.select_related("zil_review").order_by(*by_time)[:MAX_POSTS]:
+            state = review_status(portal, issue.zil_review)
+            if state["open"]:
+                waiting.append((issue, state))
+        waiting = waiting[:50]
+        ids = {issue.id for issue in dated} | {issue.id for issue, _ in waiting}
         labels = _labels(ids)
         media = _attachments(ids)
         return Response(
             {
                 "posts": [_post(i, labels.get(i.id, []), media.get(i.id, [])) for i in dated],
-                "to_review": [
-                    _post(i, labels.get(i.id, []), media.get(i.id, []), review_status(portal, review_for(i)))
-                    for i in review
-                ],
+                "to_review": [_post(i, labels.get(i.id, []), media.get(i.id, []), state) for i, state in waiting],
             }
         )
 

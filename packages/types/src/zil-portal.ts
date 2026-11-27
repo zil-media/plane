@@ -141,3 +141,18 @@ export type TZilPortalSettings = {
 export type TZilVideoAlerts = {
   issues: Record<string, { link_id: string; title: string; url: string }[]>;
 };
+
+/** A post the team can publish to the brand's clients (Ops' "Publicar al cliente"). */
+export type TZilPublishablePost = {
+  id: string;
+  name: string;
+  sequence_id: number;
+  target_date: string | null;
+  target_time: string | null;
+  state: string | null;
+  state_color: string | null;
+  /** has a video or an image (uploaded or a Drive link) */
+  has_media: boolean;
+  /** when it went out to the client; null: not yet */
+  published_at: string | null;
+};

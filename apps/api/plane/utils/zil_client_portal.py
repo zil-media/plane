@@ -298,11 +298,16 @@ def is_portal_client(user):
     ).exists()
 
 
-def visible_issues(project):
-    """The project's items the client sees: labelled "Visible al cliente", live, not cancelled."""
+def client_candidates(project):
+    """The items the team can publish to the client: labelled "Visible al cliente", live, not cancelled."""
     return Issue.issue_objects.filter(project=project, pk__in=_visible_ids(project.id)).exclude(
         state__group="cancelled"
     )
+
+
+def visible_issues(project):
+    """The items the client sees: candidates the team already published to them."""
+    return client_candidates(project).filter(zil_review__isnull=False)
 
 
 def _visible_ids(project_id):
@@ -326,9 +331,12 @@ def simple_status(state):
 
 
 def is_visible(issue):
-    return IssueLabel.objects.filter(
-        issue_id=issue.id, label__name__iexact=VISIBLE_LABEL, label__deleted_at__isnull=True
-    ).exists()
+    return (
+        IssueLabel.objects.filter(
+            issue_id=issue.id, label__name__iexact=VISIBLE_LABEL, label__deleted_at__isnull=True
+        ).exists()
+        and ZilPostReview.objects.filter(issue_id=issue.id).exists()
+    )
 
 
 def _folder_ids(portal):
@@ -632,29 +640,64 @@ def notify_team_of_client_comment(issue, comment, author):
         )
 
 
-def notify_clients_review(issue):
-    """An item the client sees went to "Aprobación cliente": its clients get an email."""
+def notify_clients_published(project, issues, portal):
+    """The team published posts to the client: its clients get one email with all of them, the
+    rounds of changes they have and until when."""
     from plane.utils.agent_pipeline import notify
 
-    mapping = _portal_mapping(issue.project_id)
-    if mapping is None or not is_visible(issue):
+    mapping = _portal_mapping(project.id)
+    if mapping is None or not issues:
         return
-    project = mapping.project
-    link = portal_url(f"{project.id}?post={issue.id}")
+    days = portal.change_days
+    rounds = portal.change_rounds
+    terms = []
+    if rounds:
+        terms.append(f"{rounds} {'ronda' if rounds == 1 else 'rondas'} de cambios")
+    if days:
+        terms.append(f"{days} {'día hábil' if days == 1 else 'días hábiles'}")
+    link = portal_url(f"{project.id}" if len(issues) > 1 else f"{project.id}?post={issues[0].id}")
+    count = len(issues)
     for email in _clients_of(mapping):
         notify.send(
             email,
-            f"Tenés una publicación para revisar en {project.name}",
-            "Tenés una publicación para revisar",
+            f"Tenés {count} {'publicación' if count == 1 else 'publicaciones'} para revisar en {project.name}",
+            "Tenés publicaciones para revisar" if count > 1 else "Tenés una publicación para revisar",
             [
                 "Hola,",
-                f"«{issue.name}» está lista para que la veas.",
-                "Contanos qué te parece dejando un comentario.",
+                f"El equipo publicó en tu calendario de {project.name}:",
+                *[f"• {issue.name}" for issue in issues[:30]],
+                (
+                    f"Tenés {' y '.join(terms)} para pedir cambios."
+                    if terms
+                    else "Contanos qué te parece dejando tus cambios."
+                ),
             ],
-            "Ver la publicación",
+            "Ver el calendario" if count > 1 else "Ver la publicación",
             link,
             signature=f"Equipo de {project.name}",
         )
+
+
+def publish_posts(portal, issue_ids, user):
+    """Publish the chosen items to the client: each opens its window for changes now (an item already
+    published keeps the one it has). Their clients get one email. Returns the newly published items."""
+    project = portal.project
+    chosen = list(client_candidates(project).filter(pk__in=issue_ids).order_by("target_date", "sequence_id"))
+    already = set(ZilPostReview.objects.filter(issue__in=chosen).values_list("issue_id", flat=True))
+    fresh = [issue for issue in chosen if issue.id not in already]
+    now = timezone.now()
+    ZilPostReview.objects.bulk_create(
+        [
+            ZilPostReview(
+                issue=issue, project=project, started_at=now, published_by=user, created_by=user, updated_by=user
+            )
+            for issue in fresh
+        ],
+        ignore_conflicts=True,
+    )
+    if portal.enabled:
+        notify_clients_published(project, fresh, portal)
+    return fresh
 
 
 def notify_clients_reply(issue, comment):
@@ -728,24 +771,9 @@ def notify_page_comment(page, comment, author):
 # --- rounds of changes ---------------------------------------------------------------------------
 
 
-def in_review(issue):
-    return issue.state is not None and issue.state.name.strip().lower() == REVIEW_STATE.lower()
-
-
-def start_review(issue):
-    """Open the post's changes window the first time it goes to review (once: later reviews keep it)."""
-    review, _ = ZilPostReview.objects.get_or_create(
-        issue_id=issue.id, defaults={"project_id": issue.project_id, "started_at": timezone.now()}
-    )
-    return review
-
-
 def review_for(issue):
-    """The post's window, opened now if it is waiting for the client and has none yet."""
-    review = ZilPostReview.objects.filter(issue_id=issue.id).first()
-    if review is None and in_review(issue):
-        review = start_review(issue)
-    return review
+    """The post's publication to the client (its window for changes), or None if not published."""
+    return ZilPostReview.objects.filter(issue_id=issue.id).first()
 
 
 # Zil works from Argentina: the business days of a workspace still on the default UTC are Buenos Aires'
@@ -779,7 +807,7 @@ def review_status(portal, review, now=None):
 
     {rounds, used, left, deadline, open, reason}: `deadline` counts the brand's business days from the
     first review; `rounds`/`left`/`deadline` are None when the brand
-    sets no limit; `reason` says why it is closed: "not_started" (never in review yet), "expired"
+    sets no limit; `reason` says why it is closed: "not_started" (not published yet), "expired"
     or "rounds_used".
     """
     now = now or timezone.now()
@@ -882,7 +910,7 @@ def dispatch_portal_events(
 ):
     """Called by the issue activity task after each change: the portal's notices, from any path."""
     if issue_id is None or type not in (
-        "issue.activity.updated",
+        # (the client hears of a post when the team publishes it, publish_posts, not by its state)
         "comment.activity.created",
         "comment.activity.updated",
     ):
@@ -892,24 +920,6 @@ def dispatch_portal_events(
         return
     issue = Issue.issue_objects.filter(pk=issue_id).select_related("state", "project").first()
     if issue is None:
-        return
-    waiting = in_review(issue)
-    if type == "issue.activity.updated":
-        to_review = any(
-            activity.field == "state" and (activity.new_value or "").strip().lower() == REVIEW_STATE.lower()
-            for activity in issue_activities
-        )
-        # shown to the client while it already waits for them: the same "para revisar"
-        shown_in_review = any(
-            activity.field == "labels"
-            and activity.verb == "updated"
-            and (activity.new_value or "").strip().lower() == VISIBLE_LABEL.lower()
-            for activity in issue_activities
-        )
-        if waiting and (to_review or shown_in_review):
-            # the client's window for changes opens the first time it waits for them
-            start_review(issue)
-            notify_clients_review(issue)
         return
     from plane.db.models import IssueComment, User
 

@@ -40,6 +40,16 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("started_at", models.DateTimeField()),
+                (
+                    "published_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="zil_published_posts",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
                 ("rounds_used", models.PositiveSmallIntegerField(default=0)),
                 (
                     "created_by",

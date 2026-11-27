@@ -5,9 +5,12 @@
 """The brands (Marcas) a person works on, and a brand's live sheet from Zil Workspace."""
 
 # Django imports
+import uuid
+
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
+from django.db.models import Q
 
 # Third party imports
 from rest_framework import status
@@ -420,6 +423,87 @@ class ZilProjectPortalEndpoint(BaseAPIView):
         if enabled:
             invite_pending(portal)
         return Response(serialize_portal(mapping, portal), status=status.HTTP_200_OK)
+
+
+class ZilProjectPublishEndpoint(BaseAPIView):
+    """Publish posts to the brand's clients, from the Marca tab ("Publicar al cliente").
+
+    GET → {"posts": [...]}: the items marked "Visible al cliente", whether each is published (and
+    when) and whether it has a video or an image to show. POST {issue_ids} → publishes the chosen
+    ones (the client sees them from then on, their window for changes opens, and the clients get one
+    email) → {"published": n}.
+    """
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def get(self, request, slug, project_id):
+        from plane.db.models import FileAsset, IssueLink, ZilClientPortal, ZilPostReview
+        from plane.utils.zil_client_portal import client_candidates
+
+        mapping = brand_mapping(slug, project_id)
+        if mapping is None or not ZilClientPortal.objects.filter(project_id=project_id).exists():
+            return Response({"error": "Not a brand portal"}, status=status.HTTP_404_NOT_FOUND)
+        issues = list(
+            client_candidates(mapping.project)
+            .select_related("state")
+            .order_by("target_date", "target_time", "sequence_id")[:500]
+        )
+        ids = [issue.id for issue in issues]
+        published = dict(ZilPostReview.objects.filter(issue_id__in=ids).values_list("issue_id", "started_at"))
+        with_files = set(
+            FileAsset.objects.filter(
+                issue_id__in=ids,
+                entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+                is_uploaded=True,
+                is_deleted=False,
+            )
+            .filter(Q(attributes__type__startswith="video/") | Q(attributes__type__startswith="image/"))
+            .values_list("issue_id", flat=True)
+        )
+        with_drive = set(
+            IssueLink.objects.filter(issue_id__in=ids, url__contains="drive.google.com").values_list(
+                "issue_id", flat=True
+            )
+        )
+        return Response(
+            {
+                "posts": [
+                    {
+                        "id": str(issue.id),
+                        "name": issue.name,
+                        "sequence_id": issue.sequence_id,
+                        "target_date": issue.target_date,
+                        "target_time": issue.target_time.strftime("%H:%M") if issue.target_time else None,
+                        "state": issue.state.name if issue.state else None,
+                        "state_color": issue.state.color if issue.state else None,
+                        "has_media": issue.id in with_files or issue.id in with_drive,
+                        "published_at": published.get(issue.id),
+                    }
+                    for issue in issues
+                ]
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def post(self, request, slug, project_id):
+        from plane.db.models import ZilClientPortal
+        from plane.utils.zil_client_portal import publish_posts
+
+        mapping = brand_mapping(slug, project_id)
+        portal = ZilClientPortal.objects.filter(project_id=project_id).select_related("project__workspace").first()
+        if mapping is None or portal is None:
+            return Response({"error": "Not a brand portal"}, status=status.HTTP_404_NOT_FOUND)
+        if not portal.enabled:
+            return Response({"error": "Turn the portal on first"}, status=status.HTTP_409_CONFLICT)
+        raw = request.data.get("issue_ids")
+        if not isinstance(raw, list) or not raw or len(raw) > 200:
+            return Response({"issue_ids": "Pick the posts to publish"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            issue_ids = [uuid.UUID(str(value)) for value in raw]
+        except ValueError:
+            return Response({"issue_ids": "Unknown posts"}, status=status.HTTP_400_BAD_REQUEST)
+        fresh = publish_posts(portal, issue_ids, request.user)
+        return Response({"published": len(fresh)}, status=status.HTTP_200_OK)
 
 
 class ZilProjectVideoAlertsEndpoint(BaseAPIView):

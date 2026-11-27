@@ -306,13 +306,16 @@ class ZilCommentMoment(BaseModel):
 
 
 class ZilPostReview(BaseModel):
-    """A post's changes window for its clients: it opens the first time the post goes to review
-    (Aprobación cliente) and lasts the brand's `change_days` business days; each "Enviar cambios"
-    uses a round."""
+    """A post published to its clients: the team picks posts in Ops and publishes them (the clients
+    get one email); only then the client sees it. Its window for changes opens then (`started_at`)
+    and lasts the brand's `change_days` business days; each "Enviar cambios" uses a round."""
 
     issue = models.OneToOneField("db.Issue", on_delete=models.CASCADE, related_name="zil_review")
     project = models.ForeignKey("db.Project", on_delete=models.CASCADE, related_name="zil_post_reviews")
     started_at = models.DateTimeField()
+    published_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="zil_published_posts"
+    )
     rounds_used = models.PositiveSmallIntegerField(default=0)
 
     class Meta:

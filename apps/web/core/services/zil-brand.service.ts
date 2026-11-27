@@ -5,7 +5,7 @@
  */
 
 import { API_BASE_URL } from "@plane/constants";
-import type { TIssueComment, TZilPortalSettings, TZilVideoAlerts } from "@plane/types";
+import type { TIssueComment, TZilPortalSettings, TZilPublishablePost, TZilVideoAlerts } from "@plane/types";
 // services
 import { APIService } from "@/services/api.service";
 
@@ -103,6 +103,26 @@ export class ZilBrandService extends APIService {
 
   async getProjectBrand(workspaceSlug: string, projectId: string): Promise<TZilProjectBrand> {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-brand/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /** The posts marked "Visible al cliente", published or not (for "Publicar al cliente"). */
+  async getPublishable(workspaceSlug: string, projectId: string): Promise<{ posts: TZilPublishablePost[] }> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-portal/publish/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /** Publish the chosen posts to the brand's clients (they get one email). */
+  async publishPosts(workspaceSlug: string, projectId: string, issueIds: string[]): Promise<{ published: number }> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-portal/publish/`, {
+      issue_ids: issueIds,
+    })
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

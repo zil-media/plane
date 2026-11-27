@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { Copy, ExternalLink, Mail } from "lucide-react";
+import { Copy, ExternalLink, Mail, Send } from "lucide-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
@@ -16,6 +16,8 @@ import { Input, Loader, ToggleSwitch } from "@plane/ui";
 import { copyTextToClipboard } from "@plane/utils";
 // hooks
 import { useZilProjectPortal } from "@/hooks/use-zil-brands";
+// local imports
+import { ZilPublishModal } from "./publish-modal";
 
 type Props = {
   workspaceSlug: string;
@@ -76,6 +78,7 @@ export const ZilClientPortalSection = observer(function ZilClientPortalSection(p
   const { t } = useTranslation();
   const { portal, isLoading, setEnabled, resendInvite, setLimits } = useZilProjectPortal(workspaceSlug, projectId);
   const [busy, setBusy] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
 
   if (isLoading || !portal) return <Loader.Item height="96px" />;
 
@@ -105,6 +108,16 @@ export const ZilClientPortalSection = observer(function ZilClientPortalSection(p
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {isEditable && portal.enabled && !portal.paused && (
+            <Button
+              variant="primary"
+              size="sm"
+              prependIcon={<Send className="size-3.5" />}
+              onClick={() => setPublishing(true)}
+            >
+              {t("zil_brand.publish_open")}
+            </Button>
+          )}
           <Button
             variant="secondary"
             size="sm"
@@ -157,6 +170,14 @@ export const ZilClientPortalSection = observer(function ZilClientPortalSection(p
         />
       </div>
       <p className="text-11 text-placeholder">{t("zil_brand.portal_limits_hint")}</p>
+      <ZilPublishModal
+        workspaceSlug={workspaceSlug}
+        projectId={projectId}
+        isOpen={publishing}
+        changeRounds={portal.change_rounds}
+        changeDays={portal.change_days}
+        onClose={() => setPublishing(false)}
+      />
       {portal.clients.length === 0 ? (
         <p className="text-13 text-placeholder">{t("zil_brand.portal_no_clients")}</p>
       ) : (
