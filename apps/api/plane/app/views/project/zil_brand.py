@@ -353,9 +353,9 @@ def serialize_portal(mapping, portal):
         "paused": is_paused(mapping.project, mapping),
         "url": portal_url(str(mapping.project_id)),
         "folder_id": str(portal.pages_folder_id) if portal and portal.pages_folder_id else None,
-        # rounds of changes per post and the hours to ask for them from its first review (0: no limit)
-        "change_rounds": portal.change_rounds if portal else 2,
-        "change_hours": portal.change_hours if portal else 72,
+        # rounds of changes per post and the business days to ask for them from its first review (0: no limit)
+        "change_rounds": portal.change_rounds if portal else 1,
+        "change_days": portal.change_days if portal else 7,
         "clients": [
             {
                 "id": str(client.id),
@@ -374,8 +374,8 @@ class ZilProjectPortalEndpoint(BaseAPIView):
     """The brand's client portal, from the Marca tab.
 
     GET → on/off, link, the "Cliente" folder and the client accounts (they come from Zil Workspace).
-    PATCH {enabled?, change_rounds?, change_hours?} → turn it on (every client never invited gets the
-    invitation) or off; the rounds of changes per post and the hours to ask for them (0: no limit).
+    PATCH {enabled?, change_rounds?, change_days?} → turn it on (every client never invited gets the
+    invitation) or off; the rounds of changes per post and the business days to ask for them (0: no limit).
     """
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
@@ -399,7 +399,7 @@ class ZilProjectPortalEndpoint(BaseAPIView):
         if enabled is not None and not isinstance(enabled, bool):
             return Response({"enabled": "Must be true or false"}, status=status.HTTP_400_BAD_REQUEST)
         limits = {}
-        for field, top in (("change_rounds", 20), ("change_hours", 24 * 60)):
+        for field, top in (("change_rounds", 20), ("change_days", 60)):
             if field in request.data:
                 value = request.data.get(field)
                 if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= top:

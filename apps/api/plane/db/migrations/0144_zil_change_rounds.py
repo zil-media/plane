@@ -14,13 +14,13 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="zilclientportal",
-            name="change_hours",
-            field=models.PositiveIntegerField(default=72),
+            name="change_days",
+            field=models.PositiveSmallIntegerField(default=7),
         ),
         migrations.AddField(
             model_name="zilclientportal",
             name="change_rounds",
-            field=models.PositiveSmallIntegerField(default=2),
+            field=models.PositiveSmallIntegerField(default=1),
         ),
         migrations.CreateModel(
             name="ZilPostReview",

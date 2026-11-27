@@ -3,9 +3,11 @@
 # See the LICENSE file for details.
 
 import json
+from datetime import datetime
 from datetime import time as datetime_time
 from datetime import timedelta
 from unittest import mock
+from zoneinfo import ZoneInfo
 
 import pytest
 import requests
@@ -49,6 +51,8 @@ from plane.utils.zil_client_portal import (
     CONTENT_STATES,
     REVIEW_STATE,
     VISIBLE_LABEL,
+    ZIL_TIMEZONE,
+    add_business_days,
     dispatch_portal_events,
 )
 from plane.bgtasks.work_item_link_task import crawl_work_item_link_title
@@ -1435,6 +1439,17 @@ class TestChangeRounds:
     def _review_url(self, project, issue):
         return f"/api/public/portal/{project.id}/posts/{issue.id}/"
 
+    def test_business_days_skip_the_weekend_in_the_brands_time(self):
+        tz = ZoneInfo(ZIL_TIMEZONE)
+        friday = datetime(2026, 11, 27, 18, 0, tzinfo=tz)
+        saturday = datetime(2026, 11, 28, 10, 0, tzinfo=tz)
+
+        assert add_business_days(friday, 1, tz) == datetime(2026, 11, 30, 18, 0, tzinfo=tz)
+        assert add_business_days(friday, 7, tz) == datetime(2026, 12, 8, 18, 0, tzinfo=tz)
+        assert add_business_days(saturday, 1, tz) == datetime(2026, 11, 30, 10, 0, tzinfo=tz)
+        # 23:00 UTC on Friday is still Friday in Buenos Aires
+        assert add_business_days(datetime(2026, 11, 27, 23, 0, tzinfo=ZoneInfo("UTC")), 1, tz).day == 30
+
     @pytest.mark.django_db
     def test_the_window_opens_the_first_time_the_post_goes_to_review_and_only_then(self, kfc, create_user):
         project = kfc.project
@@ -1462,17 +1477,18 @@ class TestChangeRounds:
             first = send_round(client, project, issue, [{"text": "Uno"}, {"text": "Dos"}])
 
         started = ZilPostReview.objects.get(issue=issue).started_at
+        # by default: 1 round, 7 business days
         assert before == {
-            "rounds": 2,
+            "rounds": 1,
             "used": 0,
-            "left": 2,
-            "deadline": (started + timedelta(hours=72)).isoformat(),
+            "left": 1,
+            "deadline": add_business_days(started, 7, ZoneInfo(ZIL_TIMEZONE)).isoformat(),
             "open": True,
             "reason": None,
         }
         assert first.status_code == status.HTTP_201_CREATED
         assert [c["html"] for c in first.json()["comments"]] == ["<p>Uno</p>", "<p>Dos</p>"]
-        assert first.json()["review"]["left"] == 1
+        assert first.json()["review"] == {**before, "used": 1, "left": 0, "open": False, "reason": "rounds_used"}
         assert not ZilChangeDraft.objects.filter(issue=issue).exists()
         # one activity per comment; only the first carries the team's notice for the round
         rounds = [json.loads(call.kwargs["requested_data"])["zil_round"] for call in activity.call_args_list]
@@ -1544,9 +1560,8 @@ class TestChangeRounds:
         client = as_user(cliente)
         with mock.patch(ACTIVITY):
             send_round(client, project, used_up, [{"text": "1"}])
-            send_round(client, project, used_up, [{"text": "2"}])
         client.get(self._review_url(project, late))
-        ZilPostReview.objects.filter(issue=late).update(started_at=timezone.now() - timedelta(hours=73))
+        ZilPostReview.objects.filter(issue=late).update(started_at=timezone.now() - timedelta(days=12))
 
         def answer(issue):
             return client.post(
@@ -1565,7 +1580,7 @@ class TestChangeRounds:
     @pytest.mark.django_db
     def test_no_limits_when_the_brand_sets_none(self, kfc, cliente):
         project = kfc.project
-        ZilClientPortal.objects.filter(project=project).update(change_rounds=0, change_hours=0)
+        ZilClientPortal.objects.filter(project=project).update(change_rounds=0, change_days=0)
         issue = item(project, "Reel", state_name=REVIEW_STATE)
         ZilPostReview.objects.create(issue=issue, project=project, started_at=timezone.now() - timedelta(days=90))
         with mock.patch(ACTIVITY):
@@ -1583,20 +1598,20 @@ class TestChangeRounds:
         )
         url = f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/zil-portal/"
 
-        saved = as_user(create_user).patch(url, {"change_rounds": 3, "change_hours": 48}, format="json")
+        saved = as_user(create_user).patch(url, {"change_rounds": 3, "change_days": 10}, format="json")
         bad = [
             as_user(create_user).patch(url, body, format="json").status_code
             for body in (
                 {"change_rounds": -1},
                 {"change_rounds": 21},
-                {"change_hours": "48"},
-                {"change_hours": True},
+                {"change_days": "10"},
+                {"change_days": 61},
                 {},
             )
         ]
 
         assert saved.status_code == 200
-        assert (saved.json()["change_rounds"], saved.json()["change_hours"]) == (3, 48)
+        assert (saved.json()["change_rounds"], saved.json()["change_days"]) == (3, 10)
         assert saved.json()["enabled"] is True  # the switch stays as it was
         assert bad == [400] * 5
 

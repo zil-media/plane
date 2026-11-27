@@ -457,8 +457,8 @@
   },
   "zil_brand": {
     "portal_change_rounds": "Rondas de cambios por publicación",
-    "portal_change_hours": "Horas para pedir cambios",
-    "portal_limits_hint": "Las horas corren desde la primera vez que la publicación pasa a Aprobación cliente. 0 = sin límite.",
+    "portal_change_days": "Días hábiles para pedir cambios",
+    "portal_limits_hint": "Los días hábiles (lunes a viernes) corren desde la primera vez que la publicación pasa a Aprobación cliente. 0 = sin límite.",
     "portal_limits_saved": "Guardado",
     "drive_down_calendar": "El video de Drive no se puede abrir: el cliente ve «procesando».",
     "drive_down_link": "El cliente no puede ver este archivo: se borró o quien pegó el link no tiene acceso. Corregilo y tocá actualizar.",

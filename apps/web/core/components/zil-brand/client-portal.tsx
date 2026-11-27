@@ -147,15 +147,13 @@ export const ZilClientPortalSection = observer(function ZilClientPortalSection(p
           }
         />
         <ChangeLimit
-          key={`hours-${portal.change_hours}`}
-          id="portal-change-hours"
-          label={t("zil_brand.portal_change_hours")}
-          value={portal.change_hours}
-          max={24 * 60}
+          key={`days-${portal.change_days}`}
+          id="portal-change-days"
+          label={t("zil_brand.portal_change_days")}
+          value={portal.change_days}
+          max={60}
           disabled={!isEditable || busy === "limits"}
-          onSave={(value) =>
-            run("limits", () => setLimits({ change_hours: value }), t("zil_brand.portal_limits_saved"))
-          }
+          onSave={(value) => run("limits", () => setLimits({ change_days: value }), t("zil_brand.portal_limits_saved"))}
         />
       </div>
       <p className="text-11 text-placeholder">{t("zil_brand.portal_limits_hint")}</p>

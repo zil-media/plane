@@ -131,9 +131,9 @@ export type TZilPortalSettings = {
   paused: boolean;
   url: string;
   folder_id: string | null;
-  /** rounds of changes per post and hours to ask for them from its first review (0: no limit) */
+  /** rounds of changes per post and business days to ask for them from its first review (0: no limit) */
   change_rounds: number;
-  change_hours: number;
+  change_days: number;
   clients: TZilPortalClientAccess[];
 };
 

@@ -48,10 +48,10 @@ const samplePost = (id: string, name: string, offset: number, status: TZilPortal
 });
 
 const SAMPLE_REVIEW: TZilPortalReview = {
-  rounds: 2,
+  rounds: 1,
   used: 0,
-  left: 2,
-  deadline: new Date(Date.now() + 2 * DAY + 4 * 60 * 60 * 1000).toISOString(),
+  left: 1,
+  deadline: new Date(Date.now() + 9 * DAY + 4 * 60 * 60 * 1000).toISOString(),
   open: true,
   reason: null,
 };

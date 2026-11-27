@@ -209,10 +209,10 @@ class ZilClientPortal(BaseModel):
     pages_folder = models.ForeignKey(
         "db.Page", on_delete=models.SET_NULL, null=True, blank=True, related_name="zil_client_portals"
     )
-    # how many rounds of changes the client has per post, and for how long from its first review
-    # (0: no limit), set in the "Marca" tab
-    change_rounds = models.PositiveSmallIntegerField(default=2)
-    change_hours = models.PositiveIntegerField(default=72)
+    # how many rounds of changes the client has per post, and how many business days (Monday to
+    # Friday) from its first review to ask for them (0: no limit), set in the "Marca" tab
+    change_rounds = models.PositiveSmallIntegerField(default=1)
+    change_days = models.PositiveSmallIntegerField(default=7)
 
     class Meta:
         verbose_name = "Zil Client Portal"
@@ -307,7 +307,8 @@ class ZilCommentMoment(BaseModel):
 
 class ZilPostReview(BaseModel):
     """A post's changes window for its clients: it opens the first time the post goes to review
-    (Aprobación cliente) and lasts the brand's `change_hours`; each "Enviar cambios" uses a round."""
+    (Aprobación cliente) and lasts the brand's `change_days` business days; each "Enviar cambios"
+    uses a round."""
 
     issue = models.OneToOneField("db.Issue", on_delete=models.CASCADE, related_name="zil_review")
     project = models.ForeignKey("db.Project", on_delete=models.CASCADE, related_name="zil_post_reviews")

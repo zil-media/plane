@@ -457,8 +457,8 @@
   },
   "zil_brand": {
     "portal_change_rounds": "Rounds of changes per post",
-    "portal_change_hours": "Hours to ask for changes",
-    "portal_limits_hint": "The hours count from the first time the post goes to client approval. 0 = no limit.",
+    "portal_change_days": "Business days to ask for changes",
+    "portal_limits_hint": "Business days (Monday to Friday) count from the first time the post goes to client approval. 0 = no limit.",
     "portal_limits_saved": "Saved",
     "drive_down_calendar": "The Drive video can't be opened: the client sees 'being processed'.",
     "drive_down_link": "The client can't see this file: it was deleted or whoever pasted the link has no access. Fix it and press refresh.",

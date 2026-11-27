@@ -748,17 +748,48 @@ def review_for(issue):
     return review
 
 
+# Zil works from Argentina: the business days of a workspace still on the default UTC are Buenos Aires'
+ZIL_TIMEZONE = "America/Argentina/Buenos_Aires"
+
+
+def _brand_timezone(portal):
+    from zoneinfo import ZoneInfo
+
+    name = getattr(portal.project.workspace, "timezone", "") or "UTC"
+    try:
+        return ZoneInfo(ZIL_TIMEZONE if name == "UTC" else name)
+    except (KeyError, ValueError):
+        return ZoneInfo(ZIL_TIMEZONE)
+
+
+def add_business_days(start, days, tz):
+    """`start` plus `days` business days (Monday to Friday) in `tz`, at the same time of day: a review
+    opened on Friday 18:00 with 1 day ends Monday 18:00; one opened on Saturday, Monday too."""
+    current = start.astimezone(tz)
+    added = 0
+    while added < days:
+        current += timedelta(days=1)
+        if current.weekday() < 5:
+            added += 1
+    return current
+
+
 def review_status(portal, review, now=None):
     """What the client can still do on a post: rounds left and until when.
 
-    {rounds, used, left, deadline, open, reason}: `rounds`/`left`/`deadline` are None when the brand
+    {rounds, used, left, deadline, open, reason}: `deadline` counts the brand's business days from the
+    first review; `rounds`/`left`/`deadline` are None when the brand
     sets no limit; `reason` says why it is closed: "not_started" (never in review yet), "expired"
     or "rounds_used".
     """
     now = now or timezone.now()
     rounds = portal.change_rounds or None
     used = review.rounds_used if review else 0
-    deadline = review.started_at + timedelta(hours=portal.change_hours) if review and portal.change_hours else None
+    deadline = (
+        add_business_days(review.started_at, portal.change_days, _brand_timezone(portal))
+        if review and portal.change_days
+        else None
+    )
     reason = None
     if review is None:
         reason = "not_started"

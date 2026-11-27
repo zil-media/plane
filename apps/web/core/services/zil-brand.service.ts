@@ -127,11 +127,11 @@ export class ZilBrandService extends APIService {
       });
   }
 
-  /** The rounds of changes per post and the hours to ask for them (0: no limit). */
+  /** The rounds of changes per post and the business days to ask for them (0: no limit). */
   async setPortalLimits(
     workspaceSlug: string,
     projectId: string,
-    limits: Partial<Pick<TZilPortalSettings, "change_rounds" | "change_hours">>
+    limits: Partial<Pick<TZilPortalSettings, "change_rounds" | "change_days">>
   ): Promise<TZilPortalSettings> {
     return this.patch(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-portal/`, limits)
       .then((response) => response?.data)
