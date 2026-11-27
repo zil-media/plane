@@ -19,7 +19,7 @@ import { cn, generateWorkItemLink } from "@plane/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
-import { useZilVideoAlerts } from "@/hooks/use-zil-brands";
+import { useZilProjectBrandProject, useZilVideoAlerts } from "@/hooks/use-zil-brands";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
@@ -54,6 +54,8 @@ export const CalendarIssueBlock = observer(
     // a brand portal's post whose Drive video its clients can't open
     const videoAlerts = useZilVideoAlerts(workspaceSlug?.toString(), issue?.project_id ?? undefined);
     const videoDown = issue ? (videoAlerts[issue.id] ?? []).length > 0 : false;
+    // a brand's post shows the hour it goes out (its due time)
+    const isBrand = !!useZilProjectBrandProject(workspaceSlug?.toString(), issue?.project_id ?? undefined);
     const { getProjectStates } = useProjectState();
     const { getIsIssuePeeked } = useIssueDetail();
     const { handleRedirection } = useIssuePeekOverviewRedirection(isEpic);
@@ -150,6 +152,11 @@ export const CalendarIssueBlock = observer(
                         variant="tertiary"
                         displayProperties={issuesFilter?.issueFilters?.displayProperties}
                       />
+                    )}
+                    {isBrand && issue.target_time && (
+                      <span className="flex-shrink-0 text-11 text-tertiary tabular-nums">
+                        {issue.target_time.slice(0, 5)}
+                      </span>
                     )}
                     <div className="truncate text-13 font-medium md:text-11 md:font-regular">{issue.name}</div>
                     {videoDown && (

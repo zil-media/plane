@@ -20,7 +20,7 @@ from datetime import date
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import HttpResponseRedirect, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.html import escape
@@ -203,6 +203,8 @@ def _post(issue, labels, media, review=None):
         "id": str(issue.id),
         "name": issue.name,
         "publish_date": issue.target_date.isoformat() if issue.target_date else None,
+        # the hour it goes out (Ops' due time), "HH:MM"; None when the team set none
+        "publish_time": issue.target_time.strftime("%H:%M") if issue.target_time else None,
         "status": simple_status(issue.state),
         "status_color": issue.state.color if issue.state else None,
         "network": network,
@@ -261,8 +263,10 @@ class PortalPostsEndpoint(PortalBaseEndpoint):
             dated = dated.filter(target_date__gte=start)
         if end:
             dated = dated.filter(target_date__lte=end)
-        dated = list(dated.order_by("target_date", "sequence_id")[:MAX_POSTS])
-        review = list(issues.filter(state__name__iexact=REVIEW_STATE).order_by("target_date", "sequence_id")[:50])
+        # by day, then by hour (the ones without an hour last), as they go out
+        by_time = ("target_date", F("target_time").asc(nulls_last=True), "sequence_id")
+        dated = list(dated.order_by(*by_time)[:MAX_POSTS])
+        review = list(issues.filter(state__name__iexact=REVIEW_STATE).order_by(*by_time)[:50])
         ids = {issue.id for issue in dated} | {issue.id for issue in review}
         labels = _labels(ids)
         media = _attachments(ids)

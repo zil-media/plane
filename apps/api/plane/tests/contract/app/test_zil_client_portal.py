@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 import json
+from datetime import time as datetime_time
 from datetime import timedelta
 from unittest import mock
 
@@ -307,6 +308,7 @@ class TestPosts:
             "id",
             "name",
             "publish_date",
+            "publish_time",
             "status",
             "status_color",
             "network",
@@ -1597,6 +1599,31 @@ class TestChangeRounds:
         assert (saved.json()["change_rounds"], saved.json()["change_hours"]) == (3, 48)
         assert saved.json()["enabled"] is True  # the switch stays as it was
         assert bad == [400] * 5
+
+
+@pytest.mark.contract
+class TestPublishTime:
+    @pytest.mark.django_db
+    def test_posts_carry_their_hour_and_go_by_day_then_hour(self, kfc, cliente):
+        project = kfc.project
+        day = timezone.now().date() + timedelta(days=2)
+        late = item(project, "Tarde", target_date=day, target_time=datetime_time(19, 30))
+        item(project, "Sin hora", target_date=day)
+        item(project, "Mañana", target_date=day, target_time=datetime_time(9, 0))
+
+        body = (
+            as_user(cliente)
+            .get(f"/api/public/portal/{project.id}/posts/", {"start": day.isoformat(), "end": day.isoformat()})
+            .json()
+        )
+        detail = as_user(cliente).get(f"/api/public/portal/{project.id}/posts/{late.id}/").json()
+
+        assert [(p["name"], p["publish_time"]) for p in body["posts"]] == [
+            ("Mañana", "09:00"),
+            ("Tarde", "19:30"),
+            ("Sin hora", None),
+        ]
+        assert detail["publish_time"] == "19:30"
 
 
 @pytest.mark.contract

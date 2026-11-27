@@ -40,6 +40,9 @@ export function PortalCalendarIssueBlock({ post, onOpen, isOpen = false }: Props
             className="h-full w-0.5 flex-shrink-0 rounded-sm"
             style={{ backgroundColor: post.status_color ?? undefined }}
           />
+          {post.publish_time && (
+            <span className="flex-shrink-0 text-11 text-tertiary tabular-nums">{post.publish_time}</span>
+          )}
           <div className="truncate text-13 font-medium md:text-11 md:font-regular">{post.name}</div>
         </div>
         {/* waiting for their changes: the time left to ask for them */}

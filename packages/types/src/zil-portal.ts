@@ -64,6 +64,8 @@ export type TZilPortalPost = {
   id: string;
   name: string;
   publish_date: string | null;
+  /** the hour it goes out, "HH:MM" (Ops' due time); null when none was set */
+  publish_time?: string | null;
   status: TZilPortalStatus;
   /** the Ops state's color: the calendar block's bar, as in Ops' calendar */
   status_color: string | null;

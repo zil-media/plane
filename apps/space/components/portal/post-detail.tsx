@@ -273,7 +273,7 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
                         </div>
                         <div className="min-w-0 flex-1 text-13 first-letter:uppercase">
                           {post.publish_date ? (
-                            dayLabel(post.publish_date, dateLocale(currentLocale))
+                            `${dayLabel(post.publish_date, dateLocale(currentLocale))}${post.publish_time ? ` · ${post.publish_time}` : ""}`
                           ) : (
                             <span className="text-secondary">{t("zil_portal.to_define")}</span>
                           )}
