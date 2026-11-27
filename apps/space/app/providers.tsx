@@ -5,6 +5,7 @@
  */
 
 import { ThemeProvider } from "next-themes";
+import { useLocation } from "react-router";
 // components
 import { TranslationProvider } from "@plane/i18n";
 import { AppProgressBar } from "@/lib/b-progress";
@@ -13,8 +14,11 @@ import { StoreProvider } from "@/lib/store-provider";
 import { ToastProvider } from "@/lib/toast-provider";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
+  // the brand client portal is always light (Zil brand)
+  const { pathname } = useLocation();
+  const forcedTheme = pathname.startsWith("/portal") ? "light" : undefined;
   return (
-    <ThemeProvider themes={["light", "dark"]} defaultTheme="system" enableSystem>
+    <ThemeProvider themes={["light", "dark"]} defaultTheme="system" enableSystem forcedTheme={forcedTheme}>
       <StoreProvider>
         <AppProgressBar />
         <TranslationProvider>

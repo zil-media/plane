@@ -102,6 +102,8 @@ export interface IUserSettings {
     pinned_workspace_id: string | undefined;
     pinned_workspace_slug: string | undefined;
     invites: number | undefined;
+    /** a brand's client contact with no workspace: their place is the brand portal */
+    zil_portal_client?: boolean;
   };
 }
 

@@ -82,6 +82,8 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     );
 
     if (isCurrentWorkspaceValid >= 0) redirectionRoute = `/${currentWorkspaceSlug}`;
+    // a brand's client contact has no workspace: their place is the brand portal (the space app)
+    else if (currentUserSettings?.workspace?.zil_portal_client) redirectionRoute = "/spaces/portal";
 
     return redirectionRoute;
   };
@@ -101,7 +103,8 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
       if (currentUserProfile?.id && isUserOnboard) {
         const currentRedirectRoute = getWorkspaceRedirectionUrl();
         // server-rendered pages (e.g. the MCP connect consent at /auth/mcp/…) are outside the app router
-        if (currentRedirectRoute.startsWith("/auth/")) window.location.assign(currentRedirectRoute);
+        if (currentRedirectRoute.startsWith("/auth/") || currentRedirectRoute.startsWith("/spaces/"))
+          window.location.assign(currentRedirectRoute);
         else router.push(currentRedirectRoute);
         return <></>;
       } else {
@@ -118,7 +121,8 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     } else {
       if (currentUser && currentUserProfile?.id && isUserOnboard) {
         const currentRedirectRoute = getWorkspaceRedirectionUrl();
-        router.replace(currentRedirectRoute);
+        if (currentRedirectRoute.startsWith("/spaces/")) window.location.assign(currentRedirectRoute);
+        else router.replace(currentRedirectRoute);
         return <></>;
       } else return <>{children}</>;
     }
@@ -132,7 +136,8 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
       if (currentUser && !currentUser?.is_password_autoset && currentUserProfile?.id && isUserOnboard) {
         const currentRedirectRoute = getWorkspaceRedirectionUrl();
         // server-rendered pages (e.g. the MCP connect consent at /auth/mcp/…) are outside the app router
-        if (currentRedirectRoute.startsWith("/auth/")) window.location.assign(currentRedirectRoute);
+        if (currentRedirectRoute.startsWith("/auth/") || currentRedirectRoute.startsWith("/spaces/"))
+          window.location.assign(currentRedirectRoute);
         else router.push(currentRedirectRoute);
         return <></>;
       } else return <>{children}</>;

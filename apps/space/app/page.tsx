@@ -10,7 +10,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 // plane imports
 import { isValidNextPath } from "@plane/utils";
 // components
-import { UserLoggedIn } from "@/components/account/user-logged-in";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { AuthView } from "@/components/views";
 // hooks
@@ -27,11 +26,19 @@ const HomePage = observer(function HomePage() {
   const router = useRouter();
   const nextPath = searchParams.get("next_path");
 
+  // the brand client portal has its own sign-in (a failed one comes back here with error_code)
+  const toPortal = !!nextPath && nextPath.startsWith("/portal") && isValidNextPath(nextPath);
+
   useEffect(() => {
-    if (currentUser && isAuthenticated && nextPath && isValidNextPath(nextPath)) {
-      router.replace(nextPath);
+    if (isInitializing) return;
+    if (currentUser && isAuthenticated) {
+      if (nextPath && isValidNextPath(nextPath)) router.replace(nextPath);
+      // signed in with nothing to open: the brand portal (or "one more step" for the team)
+      else router.replace("/portal");
+    } else if (toPortal) {
+      router.replace(`/portal/login?${searchParams.toString()}`);
     }
-  }, [currentUser, isAuthenticated, nextPath, router]);
+  }, [currentUser, isAuthenticated, isInitializing, nextPath, toPortal, searchParams, router]);
 
   if (isInitializing)
     return (
@@ -40,16 +47,12 @@ const HomePage = observer(function HomePage() {
       </div>
     );
 
-  if (currentUser && isAuthenticated) {
-    if (nextPath && isValidNextPath(nextPath)) {
-      return (
-        <div className="flex h-screen min-h-[500px] w-full items-center justify-center bg-surface-1">
-          <LogoSpinner />
-        </div>
-      );
-    }
-    return <UserLoggedIn />;
-  }
+  if ((currentUser && isAuthenticated) || toPortal)
+    return (
+      <div className="flex h-screen min-h-[500px] w-full items-center justify-center bg-surface-1">
+        <LogoSpinner />
+      </div>
+    );
 
   return <AuthView />;
 });

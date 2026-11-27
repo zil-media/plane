@@ -14,6 +14,7 @@ import type { EIssuesStoreType, TIssue } from "@plane/types";
 import type { TContextMenuItem } from "@plane/ui";
 import { copyUrlToClipboard, generateWorkItemLink } from "@plane/utils";
 import { createCopyMenuWithDuplication } from "./copy-menu-helper";
+import { useZilClientVisibilityMenuItem } from "./zil-client-visibility";
 
 // Generic helper function to handle optional function calls gracefully
 // Overload for functions without parameters
@@ -268,6 +269,7 @@ export const useMenuItemFactory = (props: MenuItemFactoryProps) => {
 // Predefined menu item sets for different contexts
 export const useProjectIssueMenuItems = (props: MenuItemFactoryProps): TContextMenuItem[] => {
   const factory = useMenuItemFactory(props);
+  const clientVisibility = useZilClientVisibilityMenuItem(props.issue, props.workspaceSlug, props.isEditingAllowed);
 
   return useMemo(
     () => [
@@ -275,26 +277,29 @@ export const useProjectIssueMenuItems = (props: MenuItemFactoryProps): TContextM
       factory.createCopyMenuItem(),
       factory.createOpenInNewTabMenuItem(),
       factory.createCopyLinkMenuItem(),
+      clientVisibility,
       factory.createArchiveMenuItem(),
       factory.createDeleteMenuItem(),
     ],
-    [factory]
+    [factory, clientVisibility]
   );
 };
 
 export const useWorkItemDetailMenuItems = (props: MenuItemFactoryProps): TContextMenuItem[] => {
   const factory = useMenuItemFactory(props);
+  const clientVisibility = useZilClientVisibilityMenuItem(props.issue, props.workspaceSlug, props.isEditingAllowed);
 
   return useMemo(
     () => [
       factory.createCopyMenuItem(props.workspaceSlug),
       factory.createOpenInNewTabMenuItem(),
+      clientVisibility,
       factory.createArchiveMenuItem(),
       factory.createRestoreMenuItem(),
       factory.createDeleteMenuItem(),
     ],
     // oxlint-disable-next-line eslint-plugin-react-hooks/exhaustive-deps
-    [factory]
+    [factory, clientVisibility]
   );
 };
 

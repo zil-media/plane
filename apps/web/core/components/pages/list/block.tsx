@@ -16,6 +16,7 @@ import { cn, getPageName } from "@plane/utils";
 import { ListItem } from "@/components/core/list";
 import { ZilClientBadge } from "@/components/pages/folder/zil-client-badge";
 import { BlockItemAction } from "@/components/pages/list/block-item-action";
+import { ZilClientVisibleBadge } from "@/components/pages/list/zil-client-visible-badge";
 // hooks
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web hooks
@@ -86,7 +87,13 @@ export const PageListBlock = observer(function PageListBlock(props: TPageListBlo
         </span>
       }
       title={getPageName(name)}
-      appendTitleElement={isFolder && zil_client ? <ZilClientBadge client={zil_client} /> : undefined}
+      appendTitleElement={
+        isFolder && zil_client ? (
+          <ZilClientBadge client={zil_client} />
+        ) : !isFolder ? (
+          <ZilClientVisibleBadge pageId={pageId} storeType={storeType} />
+        ) : undefined
+      }
       itemLink={getRedirectionLink()}
       actionableItems={<BlockItemAction page={page} parentRef={parentRef} storeType={storeType} />}
       isMobile={isMobile}

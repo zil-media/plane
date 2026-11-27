@@ -492,6 +492,26 @@
     "no_links": "No links yet",
     "add_link": "Add link",
     "link_name_placeholder": "Name (optional)",
-    "remove_link": "Remove link"
+    "remove_link": "Remove link",
+    "portal": "Client portal",
+    "portal_enabled": "Portal on",
+    "portal_disabled": "Portal off",
+    "portal_copy_link": "Copy link",
+    "portal_link_copied": "Link copied",
+    "portal_preview": "View as client",
+    "portal_hint": "The client sees the posts marked \"Visible al cliente\" and the pages in the Cliente folder. Turning it on emails each client their invitation.",
+    "portal_paused": "The brand is archived in Zil Workspace: its clients' access is paused.",
+    "portal_no_clients": "No clients yet. They are invited from the brand's page in Zil Workspace.",
+    "portal_status_active": "Active",
+    "portal_status_invited": "Invited",
+    "portal_status_expired": "Invitation expired",
+    "portal_status_never": "Not invited",
+    "portal_last_login": "last sign-in",
+    "portal_resend": "Resend invitation",
+    "portal_resent": "Invitation sent",
+    "portal_error": "Couldn't save the portal.",
+    "show_to_client": "Show to client",
+    "hide_from_client": "Hide from client",
+    "visible_to_client": "Visible to client"
   }
 }

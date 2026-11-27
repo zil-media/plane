@@ -5,6 +5,7 @@
  */
 
 import { API_BASE_URL } from "@plane/constants";
+import type { TZilPortalSettings } from "@plane/types";
 // services
 import { APIService } from "@/services/api.service";
 
@@ -102,6 +103,31 @@ export class ZilBrandService extends APIService {
 
   async getProjectBrand(workspaceSlug: string, projectId: string): Promise<TZilProjectBrand> {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-brand/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /** The brand's client portal: on/off, its link and the client accounts (from Zil Workspace). */
+  async getProjectPortal(workspaceSlug: string, projectId: string): Promise<TZilPortalSettings> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-portal/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async setProjectPortal(workspaceSlug: string, projectId: string, enabled: boolean): Promise<TZilPortalSettings> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-portal/`, { enabled })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async resendPortalInvite(workspaceSlug: string, projectId: string, clientId: string): Promise<TZilPortalSettings> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-portal/clients/${clientId}/invite/`)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

@@ -6,6 +6,7 @@
 
 import useSWR from "swr";
 // services
+import type { TZilPortalSettings } from "@plane/types";
 import type { TZilBrandOps, TZilBrandOpsChanges } from "@/services/zil-brand.service";
 import { ZilBrandService } from "@/services/zil-brand.service";
 
@@ -60,4 +61,25 @@ export function useZilProjectBrand(workspaceSlug: string | undefined, projectId:
     }
   };
   return { data, isLoading, error, updateOps };
+}
+
+/** The brand's client portal, from the Marca tab: turning it on invites the clients; resend one's link. */
+export function useZilProjectPortal(workspaceSlug: string | undefined, projectId: string | undefined) {
+  const { data, isLoading, mutate } = useSWR(
+    workspaceSlug && projectId ? `ZIL_PROJECT_PORTAL_${projectId}` : null,
+    workspaceSlug && projectId ? () => zilBrandService.getProjectPortal(workspaceSlug, projectId) : null,
+    { revalidateOnFocus: false, shouldRetryOnError: false }
+  );
+  const save = async (request: Promise<TZilPortalSettings>) => {
+    const portal = await request;
+    await mutate(portal, { revalidate: false });
+    return portal;
+  };
+  const setEnabled = (enabled: boolean) =>
+    workspaceSlug && projectId ? save(zilBrandService.setProjectPortal(workspaceSlug, projectId, enabled)) : undefined;
+  const resendInvite = (clientId: string) =>
+    workspaceSlug && projectId
+      ? save(zilBrandService.resendPortalInvite(workspaceSlug, projectId, clientId))
+      : undefined;
+  return { portal: data, isLoading, setEnabled, resendInvite };
 }

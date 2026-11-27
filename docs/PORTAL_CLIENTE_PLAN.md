@@ -87,14 +87,14 @@ trabajo", "estado", "proyecto" no aparecen).
 8. Estado del acceso para la página de la marca en Zil Workspace (invitado / nunca entró / activo,
    último ingreso): Ops lo devuelve por cliente en la respuesta del roster (paso 4, con la invitación).
 
-### Paso 2. Login y redirección del cliente
+### Paso 2. Login y redirección del cliente (hecho)
 
 1. `get_redirection_path`: un usuario sin workspace que es `ZilBrandClient` va al portal en vez de
    onboarding/crear workspace.
 2. Su perfil se marca onboarded al aprovisionarlo (no ve el onboarding del equipo).
 3. Raíz del portal: "Mis marcas" si tiene más de una; directo al calendario si tiene una.
 
-### Paso 3. Calendario de contenidos para el equipo (web)
+### Paso 3. Calendario de contenidos para el equipo (web) (hecho)
 
 1. Al crear o adoptar un proyecto de marca, sembrar (como `seed_studio_defaults`):
    - estados de contenido: Idea, Guion, Diseño, Aprobación cliente, Programado, Publicado;
@@ -105,7 +105,7 @@ trabajo", "estado", "proyecto" no aparecen).
 2. Fecha de publicación = `target_date` (lo que el calendario ya usa).
 3. Backfill con un comando para las marcas existentes (idempotente).
 
-### Paso 4. Portal: acceso y datos (API `space`)
+### Paso 4. Portal: acceso y datos (API `space`) (hecho)
 
 1. Nuevo modelo `ZilClientPortal(project 1:1, deploy_board, pages_folder → Page, enabled)`.
    Al habilitarlo se crea el `DeployBoard` del proyecto con comentarios activos, actividad apagada,
@@ -125,7 +125,7 @@ trabajo", "estado", "proyecto" no aparecen).
    elige su contraseña; reenviar invalida el anterior. Se manda al habilitar el portal y a cada cliente
    que se sume después; `invited_at` y el token hasheado en `ZilBrandClient`.
 
-### Paso 5. Portal: calendario (front `apps/space`)
+### Paso 5. Portal: calendario (front `apps/space`) (hecho)
 
 1. Construir la pantalla de la sección 3: franja "Para revisar", calendario mes (escritorio) y lista
    por día (celular), tarjetas con miniatura, detalle tipo publicación con comentarios (el componente
@@ -133,7 +133,7 @@ trabajo", "estado", "proyecto" no aparecen).
 2. Sacar de `space` para el portal: barra de filtros, selector de diseño, votos, reacciones e intake.
 3. Marca Zil Ops según `docs/ZIL_OPS_REBRAND.md`, modo claro, logo y color de la marca del cliente.
 
-### Paso 6. Comentarios del cliente
+### Paso 6. Comentarios del cliente (hecho)
 
 1. El cliente comenta en el portal (queda `EXTERNAL`).
 2. En el web el equipo lo ve con su marca de externo; responde marcando el comentario como externo.
@@ -142,7 +142,7 @@ trabajo", "estado", "proyecto" no aparecen).
 4. Mail al cliente cuando una publicación pasa a "Aprobación cliente" o el equipo le responde con un
    comentario externo, con link directo a la publicación.
 
-### Paso 7. Carpeta del cliente en Páginas
+### Paso 7. Carpeta del cliente en Páginas (hecho)
 
 1. Sembrar en cada proyecto de marca una carpeta **"Cliente"** (`FOLDER_KIND`) y apuntarla en
    `ZilClientPortal.pages_folder`. Compartir = mover la página adentro; dejar de compartir = sacarla.
@@ -151,21 +151,43 @@ trabajo", "estado", "proyecto" no aparecen).
 3. Confirmar que `apps/live` deja `description_html` al día al guardar; si no, generarlo al leer.
 4. Front `space`: pestaña "Documentos" con el árbol y lector de solo lectura de `@plane/editor`.
 
-### Paso 8. Control del equipo en la hoja "Marca"
+### Paso 8. Control del equipo en la hoja "Marca" (hecho)
 
 1. Sección "Portal del cliente" en `brand-sheet.tsx`: activar/desactivar, copiar link, lista de
    cuentas de cliente (de solo lectura, vienen de Zil Workspace).
 2. En el item: acción rápida "Mostrar al cliente" (pone/quita la etiqueta). En la página: indicador
    cuando está dentro de la carpeta Cliente.
 
-### Paso 9. Verificación y salida
+### Paso 9. Verificación y salida (falta el deploy)
 
 1. Tests de contrato del backend (pasos 1, 2, 4, 6, 7) y unitarios del front tocado.
 2. Pasada real: una marca piloto, una cuenta de cliente de prueba, ver calendario, comentar, leer
    página, y comprobar que con otra cuenta no entra.
 3. Deploy (necesita OK): primero Ops, después Zil Workspace con `role: "client"`.
 
-## 5. Lo que hay que decidir antes de construir
+## 5. Cómo quedó construido (difiere del plan en esto)
+
+1. **Sin `DeployBoard`.** El portal tiene su propia API (`/api/public/portal/…`,
+   `plane/space/views/zil_portal.py`) con la guardia `portal_for` en cada endpoint. Un proyecto de
+   marca nunca se publica, así que las vistas públicas de `space` (por `anchor`) no lo exponen y no
+   hizo falta tocarlas. `ZilClientPortal` queda con `project`, `enabled` y `pages_folder`.
+2. **Entrada propia.** `/spaces/portal/login` (email y contraseña, en castellano) y
+   `/spaces/portal/invite/<token>`; el login genérico de `space` manda ahí cuando el destino es el
+   portal. Una cuenta que ya tiene su propia contraseña no entra por el link: el link la lleva al login.
+3. **La vista "Calendario de contenidos" va sin filtro** (diseño calendario y nada más): el filtro
+   por estados de contenido dependía del formato de `rich_filters`, que no quedó confirmado.
+4. **Estados del cliente:** "Publicada" = grupo completado; "Programada" = estado "Programado";
+   "Para revisar" = estado "Aprobación cliente"; el resto "En preparación". Lo cancelado no se ve.
+5. **Avisos** desde la tarea de actividad (`dispatch_portal_events`), así salen sin importar por dónde
+   se hizo el cambio (web, API, MCP): comentario de cliente → notificación y mail a CMs y Responsable;
+   comentario externo del equipo o paso a "Aprobación cliente" → mail a los clientes que ya entraron.
+6. **Backfill:** cada marca recibe el contenido en su próximo roster; `manage.py
+zil_seed_brand_content` lo hace para todas de una vez. Los portales quedan apagados hasta que el
+   equipo los activa en la hoja Marca (al activarlo se invita a cada cliente).
+7. **Zil Workspace:** el roster devuelve `clients: [{email, status, invitedAt, lastLogin}]` por
+   marca; la invitación y el `role: "client"` están en la rama `feat/brand-client-portal` de `leads`.
+
+## 6. Lo que hay que decidir antes de construir
 
 1. ¿El cliente ve todos los items del calendario o solo los marcados "Visible al cliente"? (el plan
    asume marcados).

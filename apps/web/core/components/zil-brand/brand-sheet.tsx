@@ -28,6 +28,7 @@ import type {
 } from "@/services/zil-brand.service";
 // local imports
 import { ZilBrandLogo } from "./brand-logo";
+import { ZilClientPortalSection } from "./client-portal";
 
 type Props = {
   workspaceSlug: string;
@@ -556,6 +557,10 @@ export const ZilBrandSheet = observer(function ZilBrandSheet({ workspaceSlug, pr
         communityManagerIds={ops.community_manager_ids}
         responsibleIds={ops.responsibles.flatMap((unit) => (unit.member_id ? [unit.member_id] : []))}
       />
+
+      <Section title={t("zil_brand.portal")}>
+        <ZilClientPortalSection workspaceSlug={workspaceSlug} projectId={projectId} isEditable={isEditable} />
+      </Section>
 
       {unavailable && <Notice>{t("zil_brand.unavailable")}</Notice>}
       {!unavailable && !sheet && <Notice>{t("zil_brand.no_sheet")}</Notice>}

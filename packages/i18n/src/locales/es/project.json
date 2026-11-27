@@ -492,6 +492,26 @@
     "no_links": "Sin links todavía",
     "add_link": "Agregar link",
     "link_name_placeholder": "Nombre (opcional)",
-    "remove_link": "Quitar link"
+    "remove_link": "Quitar link",
+    "portal": "Portal del cliente",
+    "portal_enabled": "Portal activo",
+    "portal_disabled": "Portal apagado",
+    "portal_copy_link": "Copiar link",
+    "portal_link_copied": "Link copiado",
+    "portal_preview": "Ver como cliente",
+    "portal_hint": "El cliente ve las publicaciones marcadas \"Visible al cliente\" y las páginas de la carpeta Cliente. Al activarlo, cada cliente recibe su invitación por mail.",
+    "portal_paused": "La marca está archivada en Zil Workspace: el acceso de sus clientes está en pausa.",
+    "portal_no_clients": "Todavía no hay clientes. Se invitan desde la página de la marca en Zil Workspace.",
+    "portal_status_active": "Activo",
+    "portal_status_invited": "Invitado",
+    "portal_status_expired": "Invitación vencida",
+    "portal_status_never": "Sin invitar",
+    "portal_last_login": "último ingreso",
+    "portal_resend": "Reenviar invitación",
+    "portal_resent": "Invitación enviada",
+    "portal_error": "No se pudo guardar el portal.",
+    "show_to_client": "Mostrar al cliente",
+    "hide_from_client": "Ocultar al cliente",
+    "visible_to_client": "Visible al cliente"
   }
 }
