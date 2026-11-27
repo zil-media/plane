@@ -66,7 +66,7 @@ export function ReviewBanner({ review }: { review: TZilPortalReview }) {
 }
 
 /** One change the client is writing: its moment of the video, its text, and edit / delete. */
-function DraftRow({
+export function DraftRow({
   draft,
   playback,
   onSave,

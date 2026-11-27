@@ -1600,6 +1600,21 @@ class TestChangeRounds:
 
 
 @pytest.mark.contract
+class TestWelcomeTour:
+    @pytest.mark.django_db
+    def test_a_client_sees_the_tour_once_and_its_end_is_kept(self, cliente):
+        Profile.objects.get_or_create(user=cliente)
+        client = as_user(cliente)
+
+        before = client.get("/api/users/me/profile/").json()["is_tour_completed"]
+        saved = client.patch("/api/users/me/profile/", {"is_tour_completed": True}, format="json")
+
+        assert before is False
+        assert saved.status_code == 200
+        assert Profile.objects.get(user=cliente).is_tour_completed is True
+
+
+@pytest.mark.contract
 class TestVideoUploadCap:
     @pytest.mark.django_db
     def test_a_video_attachment_gets_the_video_cap_and_other_files_keep_theirs(self, kfc, create_user, settings):

@@ -5,6 +5,7 @@
  */
 
 import type { ReactNode } from "react";
+import { CircleHelp } from "lucide-react";
 import { Link, useLocation } from "react-router";
 // plane imports
 import { useTranslation } from "@plane/i18n";
@@ -22,6 +23,8 @@ type Props = {
   unit?: string;
   /** "Mis marcas" only shows when the client has more than one */
   showMyBrands?: boolean;
+  /** the welcome tour, to watch it again */
+  onTour?: () => void;
   children: ReactNode;
 };
 
@@ -30,7 +33,7 @@ type Props = {
  * the top bar on the canvas with the unit's logo, a divider and the brand, and the content in Ops'
  * rounded panel. In the unit's brand (Zil's or Meraki's).
  */
-export function PortalShell({ brand, unit, showMyBrands = false, children }: Props) {
+export function PortalShell({ brand, unit, showMyBrands = false, onTour, children }: Props) {
   // signing out from a document or a post comes back to it after signing in again
   const location = useLocation();
   const { t } = useTranslation();
@@ -54,6 +57,17 @@ export function PortalShell({ brand, unit, showMyBrands = false, children }: Pro
             )}
           </div>
           <div className="flex shrink-0 items-center gap-3">
+            {onTour && (
+              <button
+                type="button"
+                onClick={onTour}
+                aria-label={t("zil_portal.tour.replay")}
+                className="flex items-center gap-1 text-13 whitespace-nowrap text-secondary hover:text-primary"
+              >
+                <CircleHelp className="size-4" aria-hidden="true" />
+                <span className="hidden sm:inline">{t("zil_portal.tour.replay")}</span>
+              </button>
+            )}
             {showMyBrands && (
               <Link
                 to="/portal"

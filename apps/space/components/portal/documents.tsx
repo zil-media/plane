@@ -42,7 +42,7 @@ type TTreeProps = {
  * The "Cliente" folder as a tree, row by row like Ops' page list (pages/list/block.tsx): indentation,
  * chevron and folder icon for a sub-folder, page icon for a document. Folders open in place.
  */
-function DocumentTree({ parentId, depth, folders, documents, onOpen }: TTreeProps) {
+export function DocumentTree({ parentId, depth, folders, documents, onOpen }: TTreeProps) {
   const { t, currentLocale } = useTranslation();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const childFolders = folders.filter((f) => (f.parent_id ?? null) === parentId);

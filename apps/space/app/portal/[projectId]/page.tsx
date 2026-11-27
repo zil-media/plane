@@ -20,7 +20,9 @@ import { PortalDocuments } from "@/components/portal/documents";
 import { PortalMessage, PortalShell } from "@/components/portal/portal-shell";
 import { PortalPostDetail } from "@/components/portal/post-detail";
 import { PortalReviewStrip } from "@/components/portal/review-strip";
+import { PortalTour } from "@/components/portal/tour";
 import { usePortalGuard } from "@/components/portal/use-portal-guard";
+import { useUserProfile } from "@/hooks/store/use-user-profile";
 
 const portalService = new SitesPortalService();
 
@@ -37,6 +39,9 @@ const PortalBrandPage = observer(function PortalBrandPage() {
   const documentId = searchParams.get("doc");
   const tab: TTab = searchParams.get("tab") === "documents" || documentId ? "documents" : "calendar";
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
+  // the welcome tour: once on a client's first visit (skippable), and again from "Guía"
+  const profile = useUserProfile();
+  const [touring, setTouring] = useState(false);
   const range = monthRange(month);
 
   const { data: brand, error: brandError } = useSWR(ready ? `PORTAL_BRAND_${projectId}` : null, () =>
@@ -85,8 +90,19 @@ const PortalBrandPage = observer(function PortalBrandPage() {
       </div>
     );
 
+  const firstVisit = !brand.preview && !!profile.data?.id && !profile.data.is_tour_completed;
+  const endTour = () => {
+    setTouring(false);
+    if (!profile.data?.is_tour_completed) void profile.updateUserProfile({ is_tour_completed: true });
+  };
+
   return (
-    <PortalShell brand={brand} showMyBrands={showMyBrands}>
+    <PortalShell brand={brand} showMyBrands={showMyBrands} onTour={brand.preview ? undefined : () => setTouring(true)}>
+      {(touring || firstVisit) && (
+        <div className="fixed top-0 left-0 z-30 grid h-full w-full place-items-center overflow-y-auto bg-backdrop transition-opacity">
+          <PortalTour brandName={brand.name} onComplete={endTour} />
+        </div>
+      )}
       {brand.preview && (
         <p className="rounded-md bg-layer-1 px-3 py-2 text-13 text-secondary">{t("zil_portal.preview_notice")}</p>
       )}
