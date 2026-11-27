@@ -5,7 +5,7 @@
  */
 
 import { API_BASE_URL } from "@plane/constants";
-import type { TZilPortalSettings } from "@plane/types";
+import type { TIssueComment, TZilPortalSettings } from "@plane/types";
 // services
 import { APIService } from "@/services/api.service";
 
@@ -132,6 +132,56 @@ export class ZilBrandService extends APIService {
       .catch((error) => {
         throw error?.response?.data;
       });
+  }
+
+  /** The conversation with the brand's clients on a page of the "Cliente" folder. */
+  async listPageClientComments(workspaceSlug: string, projectId: string, pageId: string): Promise<TIssueComment[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/zil-client-comments/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async createPageClientComment(
+    workspaceSlug: string,
+    projectId: string,
+    pageId: string,
+    data: Partial<TIssueComment>
+  ): Promise<TIssueComment> {
+    return this.post(
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/zil-client-comments/`,
+      data
+    )
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async updatePageClientComment(
+    workspaceSlug: string,
+    projectId: string,
+    pageId: string,
+    commentId: string,
+    data: Partial<TIssueComment>
+  ): Promise<TIssueComment> {
+    return this.patch(
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/zil-client-comments/${commentId}/`,
+      data
+    )
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async deletePageClientComment(workspaceSlug: string, projectId: string, pageId: string, commentId: string) {
+    return this.delete(
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/zil-client-comments/${commentId}/`
+    ).catch((error) => {
+      throw error?.response?.data;
+    });
   }
 
   async updateProjectBrandOps(

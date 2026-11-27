@@ -32,7 +32,7 @@ from zxcvbn import zxcvbn
 # Module imports
 from plane.authentication.utils.login import user_login
 from plane.bgtasks.issue_activities_task import issue_activity
-from plane.db.models import FileAsset, IssueComment, IssueLabel, IssueLink, ProjectMember
+from plane.db.models import FileAsset, IssueComment, IssueLabel, IssueLink, ProjectMember, ZilPageComment
 from plane.settings.storage import S3Storage
 from plane.utils.zil_client_portal import (
     REVIEW_STATE,
@@ -42,7 +42,9 @@ from plane.utils.zil_client_portal import (
     client_brands,
     client_for_token,
     folder_pages,
+    folder_tree,
     needs_password,
+    notify_page_comment,
     portal_for,
     simple_status,
     use_invite,
@@ -312,20 +314,35 @@ class PortalCommentsEndpoint(PortalBaseEndpoint):
 
 
 class PortalDocumentsEndpoint(PortalBaseEndpoint):
-    """GET: the pages the team put in the brand's "Cliente" folder (flat, newest first)."""
+    """GET: what the team put in the brand's "Cliente" folder: its sub-folders and pages, each with its
+    parent (the folder itself is the root), so the portal shows the same tree."""
 
     def get(self, request, project_id):
         try:
             portal, _, _, _ = self.guard(request, project_id)
         except PortalDenied as exc:
             return _denied(exc)
-        pages = folder_pages(portal).order_by("-updated_at")[:MAX_DOCUMENTS]
+        folders, pages = folder_tree(portal)
+        root = str(portal.pages_folder_id)
+
+        def parent_of(page):
+            return None if str(page.parent_id) == root else str(page.parent_id)
+
         return Response(
             {
+                "folders": [
+                    {"id": str(f.id), "name": f.name or "Sin título", "parent_id": parent_of(f)}
+                    for f in folders.order_by("sort_order", "name")[:MAX_DOCUMENTS]
+                ],
                 "documents": [
-                    {"id": str(page.id), "name": page.name or "Sin título", "updated_at": page.updated_at.isoformat()}
-                    for page in pages
-                ]
+                    {
+                        "id": str(page.id),
+                        "name": page.name or "Sin título",
+                        "updated_at": page.updated_at.isoformat(),
+                        "parent_id": parent_of(page),
+                    }
+                    for page in pages.order_by("-updated_at")[:MAX_DOCUMENTS]
+                ],
             }
         )
 
@@ -349,6 +366,65 @@ class PortalDocumentEndpoint(PortalBaseEndpoint):
                 "description_html": page.description_html or "<p></p>",
             }
         )
+
+
+def _page_comment(comment, team_ids, user):
+    actor = comment.actor
+    return {
+        "id": str(comment.id),
+        "html": comment.comment_html or "",
+        "created_at": comment.created_at.isoformat(),
+        "author": (actor.display_name or actor.first_name or actor.email.split("@")[0]) if actor else "",
+        "avatar_url": actor.avatar_url if actor else None,
+        "is_team": bool(actor and actor.id in team_ids),
+        "is_mine": bool(actor and actor.id == user.id),
+    }
+
+
+class PortalDocumentCommentsEndpoint(PortalBaseEndpoint):
+    """GET: the conversation on a document of the "Cliente" folder. POST {text}: the client's comment."""
+
+    def _page(self, request, project_id, page_id):
+        portal, project, _, is_client = self.guard(request, project_id)
+        return project, folder_pages(portal).filter(pk=page_id).first(), is_client
+
+    def get(self, request, project_id, page_id):
+        try:
+            project, page, _ = self._page(request, project_id, page_id)
+        except PortalDenied as exc:
+            return _denied(exc)
+        if page is None:
+            return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        team_ids = set(
+            ProjectMember.objects.filter(project=project, is_active=True).values_list("member_id", flat=True)
+        )
+        comments = ZilPageComment.objects.filter(page=page).select_related("actor").order_by("created_at")
+        return Response({"comments": [_page_comment(c, team_ids, request.user) for c in comments[:MAX_COMMENTS]]})
+
+    def post(self, request, project_id, page_id):
+        try:
+            project, page, is_client = self._page(request, project_id, page_id)
+        except PortalDenied as exc:
+            return _denied(exc)
+        if page is None:
+            return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        if not is_client:
+            return Response({"error": "Answer from Zil Ops"}, status=status.HTTP_403_FORBIDDEN)
+        text = str(request.data.get("text") or "").strip()
+        if not text:
+            return Response({"error": "Write a comment"}, status=status.HTTP_400_BAD_REQUEST)
+        if len(text) > MAX_COMMENT:
+            return Response({"error": "Comment too long"}, status=status.HTTP_400_BAD_REQUEST)
+        comment = ZilPageComment(
+            page=page,
+            project_id=project.id,
+            workspace_id=project.workspace_id,
+            actor=request.user,
+            comment_html=_text_to_html(text),
+        )
+        comment.save(created_by_id=request.user.id)
+        notify_page_comment(page, comment, request.user)
+        return Response(_page_comment(comment, set(), request.user), status=status.HTTP_201_CREATED)
 
 
 class PortalAssetEndpoint(PortalBaseEndpoint):

@@ -318,12 +318,12 @@ def is_visible(issue):
     ).exists()
 
 
-def folder_pages(portal):
-    """The pages inside the portal's "Cliente" folder, at any depth (folders themselves left out)."""
-    # an archived (or unlinked) folder hides everything inside it
+def _folder_ids(portal):
+    """([sub-folder ids], [page ids]) inside the portal's "Cliente" folder, at any depth; ([], []) when
+    the folder is archived or unlinked (it hides everything inside it)."""
     if portal.pages_folder_id is None or not _is_live_folder(portal.pages_folder_id, portal.project):
-        return Page.objects.none()
-    ids = []
+        return [], []
+    folders, pages = [], []
     frontier = [portal.pages_folder_id]
     seen = set(frontier)
     depth = 0
@@ -336,15 +336,37 @@ def folder_pages(portal):
             seen.add(page_id)
             if kind == Page.FOLDER_KIND:
                 frontier.append(page_id)
+                folders.append(page_id)
             else:
-                ids.append(page_id)
+                pages.append(page_id)
         depth += 1
+    return folders, pages
+
+
+def _in_project(portal, ids):
     return Page.objects.filter(
         pk__in=ids,
         archived_at__isnull=True,
         project_pages__project_id=portal.project_id,
         project_pages__deleted_at__isnull=True,
     ).distinct()
+
+
+def folder_pages(portal):
+    """The pages inside the portal's "Cliente" folder, at any depth (folders themselves left out)."""
+    return _in_project(portal, _folder_ids(portal)[1])
+
+
+def folder_tree(portal):
+    """(sub-folders, pages) inside the "Cliente" folder, for the portal's Documentos tab."""
+    folders, pages = _folder_ids(portal)
+    return _in_project(portal, folders), _in_project(portal, pages)
+
+
+def is_in_client_folder(page):
+    """Whether a page is inside its project's "Cliente" folder (the portal shows it and its comments)."""
+    portal = ZilClientPortal.objects.filter(project__project_pages__page=page).select_related("project").first()
+    return portal is not None and folder_pages(portal).filter(pk=page.pk).exists()
 
 
 # ---------------------------------------------------------------------------
@@ -635,6 +657,49 @@ def notify_clients_reply(issue, comment):
                 f"Hay una respuesta nueva en «{issue.name}»:",
                 (comment.comment_stripped or "").strip()[:600] or "(sin texto)",
             ],
+            "Ver la respuesta",
+            link,
+            signature=f"Equipo de {project.name}",
+        )
+
+
+def _web_page_url(project, page):
+    base = (settings.WEB_URL or settings.APP_BASE_URL or "").rstrip("/")
+    return f"{base}/{project.workspace.slug}/projects/{project.id}/pages/{page.id}/?paneTab=client"
+
+
+def notify_page_comment(page, comment, author):
+    """A comment on a "Cliente" folder page: from a client, the CMs and Responsable get an email; from
+    the team, the brand's clients do. Sent once the comment is saved."""
+    from plane.utils.agent_pipeline import notify
+
+    project_id = comment.project_id
+    mapping = _portal_mapping(project_id)
+    if mapping is None:
+        return
+    project = mapping.project
+    text = (comment.comment_stripped or "").strip()[:600] or "(sin texto)"
+    is_member = ProjectMember.objects.filter(project_id=project_id, member=author, is_active=True).exists()
+    if not is_member:
+        name = (author.display_name or author.first_name or author.email).strip()
+        title = f"{name} (cliente) comentó en «{page.name or 'Sin título'}»"
+        for user in _team_to_notify(mapping):
+            notify.send(
+                user.email,
+                title,
+                f"Comentario del cliente en {project.name}",
+                [notify.greeting(user), f"{name} dejó un comentario en el documento «{page.name}»:", text],
+                "Ver el documento",
+                _web_page_url(project, page),
+            )
+        return
+    link = portal_url(f"{project.id}?tab=documents&doc={page.id}")
+    for email in _clients_of(mapping):
+        notify.send(
+            email,
+            f"Te respondieron en {project.name}",
+            "El equipo te respondió",
+            ["Hola,", f"Hay una respuesta nueva en el documento «{page.name}»:", text],
             "Ver la respuesta",
             link,
             signature=f"Equipo de {project.name}",

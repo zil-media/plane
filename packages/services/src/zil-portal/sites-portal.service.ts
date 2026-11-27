@@ -10,6 +10,7 @@ import type {
   TZilPortalBrand,
   TZilPortalComment,
   TZilPortalDocument,
+  TZilPortalFolder,
   TZilPortalInvite,
   TZilPortalPost,
   TZilPortalPostDetail,
@@ -63,12 +64,20 @@ export class SitesPortalService extends APIService {
     return this.read(this.post(`/api/public/portal/${projectId}/posts/${postId}/comments/`, { text }));
   }
 
-  async documents(projectId: string): Promise<{ documents: TZilPortalDocument[] }> {
+  async documents(projectId: string): Promise<{ folders: TZilPortalFolder[]; documents: TZilPortalDocument[] }> {
     return this.read(this.get(`/api/public/portal/${projectId}/documents/`));
   }
 
   async document(projectId: string, documentId: string): Promise<TZilPortalDocument> {
     return this.read(this.get(`/api/public/portal/${projectId}/documents/${documentId}/`));
+  }
+
+  async documentComments(projectId: string, documentId: string): Promise<{ comments: TZilPortalComment[] }> {
+    return this.read(this.get(`/api/public/portal/${projectId}/documents/${documentId}/comments/`));
+  }
+
+  async addDocumentComment(projectId: string, documentId: string, text: string): Promise<TZilPortalComment> {
+    return this.read(this.post(`/api/public/portal/${projectId}/documents/${documentId}/comments/`, { text }));
   }
 
   async invite(token: string): Promise<TZilPortalInvite> {

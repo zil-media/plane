@@ -128,6 +128,7 @@ const PortalBrandPage = observer(function PortalBrandPage() {
         <PortalDocuments
           projectId={projectId}
           documentId={documentId}
+          preview={!!brand.preview}
           onOpen={(id) => go({ doc: id, tab: "documents" })}
         />
       )}

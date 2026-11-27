@@ -14,6 +14,24 @@ import type { EPageStoreType } from "@/hooks/store";
 import { usePageStore } from "@/hooks/store";
 import { useZilProjectPortal } from "@/hooks/use-zil-brands";
 
+/**
+ * Whether a page is inside its brand project's "Cliente" folder (the client portal shows it and its
+ * conversation): it walks up the page tree to the folder the portal points at.
+ */
+export const useIsInZilClientFolder = (pageId: string | undefined, storeType: EPageStoreType) => {
+  const { workspaceSlug, projectId } = useParams<{ workspaceSlug?: string; projectId?: string }>();
+  const { portal } = useZilProjectPortal(workspaceSlug, projectId);
+  const { getPageById } = usePageStore(storeType);
+  const folderId = portal?.folder_id;
+  if (!folderId || !pageId) return false;
+  let parentId = getPageById(pageId)?.parent ?? null;
+  for (let depth = 0; parentId && depth < 8; depth++) {
+    if (parentId === folderId) return true;
+    parentId = getPageById(parentId)?.parent ?? null;
+  }
+  return false;
+};
+
 type Props = {
   pageId: string;
   storeType: EPageStoreType;
@@ -22,23 +40,11 @@ type Props = {
 /** "Visible al cliente" on a page inside the brand's "Cliente" folder (shown in the client portal). */
 export const ZilClientVisibleBadge = observer(function ZilClientVisibleBadge({ pageId, storeType }: Props) {
   const { t } = useTranslation();
-  const { workspaceSlug, projectId } = useParams<{ workspaceSlug?: string; projectId?: string }>();
-  const { portal } = useZilProjectPortal(workspaceSlug, projectId);
-  const { getPageById } = usePageStore(storeType);
-  const folderId = portal?.folder_id;
-  if (!folderId) return null;
-
-  // walk up the tree: a page anywhere inside the folder is shown
-  let parentId = getPageById(pageId)?.parent ?? null;
-  for (let depth = 0; parentId && depth < 8; depth++) {
-    if (parentId === folderId)
-      return (
-        <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-sm border border-subtle px-1.5 py-0.5 text-11 text-secondary">
-          <Eye className="size-3" />
-          {t("zil_brand.visible_to_client")}
-        </span>
-      );
-    parentId = getPageById(parentId)?.parent ?? null;
-  }
-  return null;
+  if (!useIsInZilClientFolder(pageId, storeType)) return null;
+  return (
+    <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-sm border border-subtle px-1.5 py-0.5 text-11 text-secondary">
+      <Eye className="size-3" />
+      {t("zil_brand.visible_to_client")}
+    </span>
+  );
 });

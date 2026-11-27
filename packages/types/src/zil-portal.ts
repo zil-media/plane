@@ -58,7 +58,15 @@ export type TZilPortalDocument = {
   id: string;
   name: string;
   updated_at: string;
+  /** the sub-folder it is in; null at the top of the "Cliente" folder */
+  parent_id?: string | null;
   description_html?: string;
+};
+
+export type TZilPortalFolder = {
+  id: string;
+  name: string;
+  parent_id: string | null;
 };
 
 export type TZilPortalInvite = {

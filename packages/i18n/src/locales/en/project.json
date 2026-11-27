@@ -512,6 +512,8 @@
     "portal_error": "Couldn't save the portal.",
     "show_to_client": "Show to client",
     "hide_from_client": "Hide from client",
-    "visible_to_client": "Visible to client"
+    "visible_to_client": "Visible to client",
+    "client_tab": "Client",
+    "client_tab_hint": "The conversation with the client about this document. Everything here is seen by the client in their portal."
   }
 }

@@ -24,6 +24,8 @@ from plane.app.views.project.zil_brand import (
     ZilProjectBrandEndpoint,
     ZilProjectPortalEndpoint,
     ZilProjectPortalInviteEndpoint,
+    ZilPageClientCommentsEndpoint,
+    ZilPageClientCommentDetailEndpoint,
 )
 
 
@@ -44,6 +46,16 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/zil-portal/clients/<uuid:client_id>/invite/",
         ZilProjectPortalInviteEndpoint.as_view(),
         name="zil-project-portal-invite",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-client-comments/",
+        ZilPageClientCommentsEndpoint.as_view(),
+        name="zil-page-client-comments",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/zil-client-comments/<uuid:pk>/",
+        ZilPageClientCommentDetailEndpoint.as_view(),
+        name="zil-page-client-comment",
     ),
     path(
         "workspaces/<str:slug>/projects/",

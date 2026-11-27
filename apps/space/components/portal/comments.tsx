@@ -20,7 +20,9 @@ const portalService = new SitesPortalService();
 
 type Props = {
   projectId: string;
-  postId: string;
+  /** the conversation of a post, or of a document of the "Cliente" folder */
+  postId?: string;
+  documentId?: string;
   /** a team member previewing: reads the conversation, answers from Ops */
   preview: boolean;
 };
@@ -67,9 +69,13 @@ function CommentRow({ comment, projectId }: { comment: TZilPortalComment; projec
 }
 
 /** The conversation with the team, and the box to write in it. */
-export function PortalComments({ projectId, postId, preview }: Props) {
-  const key = `PORTAL_COMMENTS_${projectId}_${postId}`;
-  const { data, error: loadError, mutate } = useSWR(key, () => portalService.comments(projectId, postId));
+export function PortalComments({ projectId, postId, documentId, preview }: Props) {
+  const key = documentId ? `PORTAL_DOC_COMMENTS_${projectId}_${documentId}` : `PORTAL_COMMENTS_${projectId}_${postId}`;
+  const load = () =>
+    documentId
+      ? portalService.documentComments(projectId, documentId)
+      : portalService.comments(projectId, postId ?? "");
+  const { data, error: loadError, mutate } = useSWR(key, load);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +86,9 @@ export function PortalComments({ projectId, postId, preview }: Props) {
     setSending(true);
     setError(null);
     try {
-      const created = await portalService.addComment(projectId, postId, value);
+      const created = documentId
+        ? await portalService.addDocumentComment(projectId, documentId, value)
+        : await portalService.addComment(projectId, postId ?? "", value);
       // on top of what is cached now (and fetched again), never a list that lost the others
       await mutate((current) => ({ comments: [...(current?.comments ?? []), created] }));
       setText("");

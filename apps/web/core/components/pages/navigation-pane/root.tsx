@@ -13,6 +13,7 @@ import { useTranslation } from "@plane/i18n";
 import { Tabs } from "@plane/propel/tabs";
 import { Tooltip } from "@plane/propel/tooltip";
 // hooks
+import { useIsInZilClientFolder } from "@/components/pages/list/zil-client-visible-badge";
 import { useQueryParams } from "@/hooks/use-query-params";
 // plane web components
 import type { TPageNavigationPaneTab } from "@/components/pages/navigation-pane/tab-panels";
@@ -53,7 +54,10 @@ export const PageNavigationPaneRoot = observer(function PageNavigationPaneRoot(p
   const navigationPaneQueryParam = searchParams.get(
     PAGE_NAVIGATION_PANE_TABS_QUERY_PARAM
   ) as TPageNavigationPaneTab | null;
-  const activeTab: TPageNavigationPaneTab = navigationPaneQueryParam || "outline";
+  // the client conversation only on pages of the brand's "Cliente" folder
+  const isClientPage = useIsInZilClientFolder(page.id, storeType);
+  const activeTab: TPageNavigationPaneTab =
+    navigationPaneQueryParam === "client" && !isClientPage ? "outline" : navigationPaneQueryParam || "outline";
 
   // Check if any extension is currently active based on query parameters
   const ActiveExtension = extensions.find((extension) => {
@@ -111,7 +115,7 @@ export const PageNavigationPaneRoot = observer(function PageNavigationPaneRoot(p
           <ActiveExtension.component page={page} extensionData={ActiveExtension.data} storeType={storeType} />
         ) : showNavigationTabs ? (
           <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <PageNavigationPaneTabsList />
+            <PageNavigationPaneTabsList hiddenTabs={isClientPage ? [] : ["client"]} />
             <PageNavigationPaneTabPanelsRoot page={page} versionHistory={versionHistory} />
           </Tabs>
         ) : null}

@@ -425,3 +425,123 @@ class ZilProjectPortalInviteEndpoint(BaseAPIView):
             )
         portal = ZilClientPortal.objects.filter(project_id=project_id).first()
         return Response(serialize_portal(mapping, portal), status=status.HTTP_200_OK)
+
+
+def serialize_page_comment(comment):
+    """A page comment in the shape Ops' comment components read (TIssueComment), always external."""
+    actor = comment.actor
+    return {
+        "id": str(comment.id),
+        "workspace": str(comment.workspace_id),
+        "project": str(comment.project_id),
+        "issue": str(comment.page_id),
+        "actor": str(comment.actor_id),
+        "actor_detail": {
+            "id": str(actor.id),
+            "display_name": actor.display_name,
+            "first_name": actor.first_name,
+            "last_name": actor.last_name,
+            "avatar_url": actor.avatar_url,
+            "is_bot": actor.is_bot,
+        },
+        "comment_html": comment.comment_html,
+        "comment_stripped": comment.comment_stripped,
+        "created_at": comment.created_at,
+        "updated_at": comment.updated_at,
+        "edited_at": comment.edited_at,
+        "created_by": str(comment.created_by_id) if comment.created_by_id else None,
+        "access": "EXTERNAL",
+        "attachments": [],
+        "comment_reactions": [],
+    }
+
+
+def client_folder_page(slug, project_id, page_id):
+    """The page when it is inside its brand project's "Cliente" folder, else None."""
+    from plane.db.models import Page
+    from plane.utils.zil_client_portal import is_in_client_folder
+
+    page = Page.objects.filter(
+        pk=page_id,
+        workspace__slug=slug,
+        project_pages__project_id=project_id,
+        project_pages__deleted_at__isnull=True,
+    ).first()
+    return page if page is not None and is_in_client_folder(page) else None
+
+
+class ZilPageClientCommentsEndpoint(BaseAPIView):
+    """The conversation with the brand's clients on a page of the "Cliente" folder (the client sees it
+    in the portal). GET → the comments. POST {comment_html} → the team's answer (the client gets an
+    email). PATCH / DELETE on one → only its author."""
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    def get(self, request, slug, project_id, page_id):
+        from plane.db.models import ZilPageComment
+
+        page = client_folder_page(slug, project_id, page_id)
+        if page is None:
+            return Response({"error": "Not a page of the client folder"}, status=status.HTTP_404_NOT_FOUND)
+        comments = ZilPageComment.objects.filter(page=page).select_related("actor").order_by("created_at")
+        return Response([serialize_page_comment(c) for c in comments], status=status.HTTP_200_OK)
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def post(self, request, slug, project_id, page_id):
+        from plane.db.models import ZilPageComment
+        from plane.utils.content_validator import validate_html_content
+        from plane.utils.zil_client_portal import notify_page_comment
+
+        page = client_folder_page(slug, project_id, page_id)
+        if page is None:
+            return Response({"error": "Not a page of the client folder"}, status=status.HTTP_404_NOT_FOUND)
+        html = str(request.data.get("comment_html") or "").strip()
+        is_valid, error, sanitized = validate_html_content(html)
+        if not is_valid or not html or html == "<p></p>":
+            return Response({"comment_html": error or "Write a comment"}, status=status.HTTP_400_BAD_REQUEST)
+        comment = ZilPageComment(
+            page=page,
+            project_id=project_id,
+            workspace_id=page.workspace_id,
+            actor=request.user,
+            comment_html=sanitized or html,
+        )
+        comment.save(created_by_id=request.user.id)
+        transaction.on_commit(lambda: notify_page_comment(page, comment, request.user))
+        return Response(serialize_page_comment(comment), status=status.HTTP_201_CREATED)
+
+
+class ZilPageClientCommentDetailEndpoint(BaseAPIView):
+    """PATCH {comment_html} / DELETE one comment of the client conversation: only its author."""
+
+    def _comment(self, request, slug, project_id, page_id, pk):
+        from plane.db.models import ZilPageComment
+
+        if client_folder_page(slug, project_id, page_id) is None:
+            return None
+        return ZilPageComment.objects.filter(pk=pk, page_id=page_id, actor=request.user).first()
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def patch(self, request, slug, project_id, page_id, pk):
+        from django.utils import timezone
+
+        from plane.utils.content_validator import validate_html_content
+
+        comment = self._comment(request, slug, project_id, page_id, pk)
+        if comment is None:
+            return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        html = str(request.data.get("comment_html") or "").strip()
+        is_valid, error, sanitized = validate_html_content(html)
+        if not is_valid or not html:
+            return Response({"comment_html": error or "Write a comment"}, status=status.HTTP_400_BAD_REQUEST)
+        comment.comment_html = sanitized or html
+        comment.edited_at = timezone.now()
+        comment.save(update_fields=["comment_html", "comment_stripped", "edited_at", "updated_at"])
+        return Response(serialize_page_comment(comment), status=status.HTTP_200_OK)
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def delete(self, request, slug, project_id, page_id, pk):
+        comment = self._comment(request, slug, project_id, page_id, pk)
+        if comment is None:
+            return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        comment.delete(soft=False)
+        return Response(status=status.HTTP_204_NO_CONTENT)

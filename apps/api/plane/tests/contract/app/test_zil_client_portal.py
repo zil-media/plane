@@ -31,6 +31,7 @@ from plane.db.models import (
     ZilBrandOps,
     ZilBrandProject,
     ZilClientPortal,
+    ZilPageComment,
 )
 from plane.utils.zil_client_portal import (
     CLIENT_FOLDER,
@@ -482,6 +483,94 @@ class TestDocuments:
         folder.save()
         assert client.get(f"/api/public/portal/{project.id}/documents/").json()["documents"] == []
         assert client.get(f"/api/public/portal/{project.id}/documents/{guion.id}/").status_code == 404
+
+
+def folder_page(project, owner, name, parent, kind=Page.PAGE_KIND):
+    created = Page.objects.create(
+        name=name,
+        parent=parent,
+        kind=kind,
+        workspace_id=project.workspace_id,
+        owned_by=owner,
+        description_html=f"<p>{name}</p>",
+    )
+    ProjectPage.objects.create(project=project, page=created, workspace_id=project.workspace_id)
+    return created
+
+
+@pytest.mark.contract
+class TestDocumentTreeAndComments:
+    @pytest.mark.django_db
+    def test_the_documents_keep_the_folder_tree(self, kfc, cliente, create_user):
+        project = kfc.project
+        root = ZilClientPortal.objects.get(project=project).pages_folder
+        mayo = folder_page(project, create_user, "Mayo", root, kind=Page.FOLDER_KIND)
+        brief = folder_page(project, create_user, "Brief", mayo)
+        guion = folder_page(project, create_user, "Guion", root)
+
+        body = as_user(cliente).get(f"/api/public/portal/{project.id}/documents/").json()
+
+        assert body["folders"] == [{"id": str(mayo.id), "name": "Mayo", "parent_id": None}]
+        parents = {d["name"]: d["parent_id"] for d in body["documents"]}
+        assert parents == {"Brief": str(mayo.id), "Guion": None}
+        assert str(brief.id) and str(guion.id)
+
+    @pytest.mark.django_db
+    def test_client_and_team_talk_on_a_document_and_each_side_hears_by_email(
+        self, workspace, kfc, cliente, create_user, emails, django_capture_on_commit_callbacks
+    ):
+        project = kfc.project
+        ZilBrandOps.objects.create(zil_brand_id=KFC).community_managers.add(create_user)
+        root = ZilClientPortal.objects.get(project=project).pages_folder
+        guion = folder_page(project, create_user, "Guion", root)
+        portal_url = f"/api/public/portal/{project.id}/documents/{guion.id}/comments/"
+        team_url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/pages/{guion.id}/zil-client-comments/"
+        emails.reset_mock()
+
+        asked = as_user(cliente).post(portal_url, {"text": "¿Podemos cambiar la escena 2?"}, format="json")
+        assert asked.status_code == 201
+        assert emails.call_args.args[0] == [create_user.email]
+
+        team_view = as_user(create_user).get(team_url).json()
+        assert [c["comment_html"] for c in team_view] == ["<p>¿Podemos cambiar la escena 2?</p>"]
+        assert team_view[0]["access"] == "EXTERNAL" and team_view[0]["actor"] == str(cliente.id)
+
+        emails.reset_mock()
+        with django_capture_on_commit_callbacks(execute=True):
+            answered = as_user(create_user).post(team_url, {"comment_html": "<p>Sí, va <b>hoy</b></p>"}, format="json")
+        assert answered.status_code == 201
+        assert emails.call_args.args[0] == ["cliente@kfc.test"]
+
+        conversation = as_user(cliente).get(portal_url).json()["comments"]
+        assert [c["is_team"] for c in conversation] == [False, True]
+        assert conversation[1]["html"] == "<p>Sí, va <b>hoy</b></p>"
+
+    @pytest.mark.django_db
+    def test_only_pages_of_the_folder_have_the_conversation_and_only_the_author_edits(
+        self, workspace, kfc, cliente, create_user
+    ):
+        project = kfc.project
+        root = ZilClientPortal.objects.get(project=project).pages_folder
+        outside = folder_page(project, create_user, "Interno", None)
+        guion = folder_page(project, create_user, "Guion", root)
+        base = f"/api/workspaces/{workspace.slug}/projects/{project.id}/pages"
+
+        assert as_user(create_user).get(f"{base}/{outside.id}/zil-client-comments/").status_code == 404
+        assert (
+            as_user(cliente)
+            .post(f"/api/public/portal/{project.id}/documents/{outside.id}/comments/", {"text": "x"}, format="json")
+            .status_code
+            == 404
+        )
+        theirs = ZilPageComment.objects.create(
+            page=guion, project=project, workspace_id=project.workspace_id, actor=cliente, comment_html="<p>a</p>"
+        )
+        assert (
+            as_user(create_user)
+            .patch(f"{base}/{guion.id}/zil-client-comments/{theirs.id}/", {"comment_html": "<p>b</p>"}, format="json")
+            .status_code
+            == 404
+        )
 
 
 @pytest.mark.contract

@@ -10,6 +10,7 @@ import type { TPageRootHandlers } from "@/components/pages/editor/page-root";
 import type { TPageInstance } from "@/store/pages/base-page";
 // local imports
 import { PageNavigationPaneAssetsTabPanel } from "./assets";
+import { PageNavigationPaneClientTabPanel } from "./client-comments";
 import { PageNavigationPaneInfoTabPanel } from "./info/root";
 import { PageNavigationPaneOutlineTabPanel } from "./outline";
 import { Tabs } from "@plane/propel/tabs";
@@ -30,6 +31,7 @@ export function PageNavigationPaneTabPanelsRoot(props: Props) {
           {tab.key === "outline" && <PageNavigationPaneOutlineTabPanel page={page} />}
           {tab.key === "info" && <PageNavigationPaneInfoTabPanel page={page} versionHistory={versionHistory} />}
           {tab.key === "assets" && <PageNavigationPaneAssetsTabPanel page={page} />}
+          {tab.key === "client" && <PageNavigationPaneClientTabPanel page={page} />}
         </Tabs.Content>
       ))}
     </>

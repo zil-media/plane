@@ -220,6 +220,38 @@ class ZilClientPortal(BaseModel):
         return f"portal {self.project_id} ({'on' if self.enabled else 'off'})"
 
 
+class ZilPageComment(BaseModel):
+    """A comment on a page of a brand's "Cliente" folder: the client and the team talk about a document.
+
+    Every one is seen by the brand's clients (the folder is what the portal shows), like an external
+    comment on a work item. Plane has no page comments; these exist only for the client portal.
+    """
+
+    page = models.ForeignKey("db.Page", on_delete=models.CASCADE, related_name="zil_client_comments")
+    project = models.ForeignKey("db.Project", on_delete=models.CASCADE, related_name="zil_page_comments")
+    workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="zil_page_comments")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="zil_page_comments")
+    comment_html = models.TextField(blank=True, default="<p></p>")
+    comment_stripped = models.TextField(blank=True, default="")
+    edited_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Zil Page Comment"
+        verbose_name_plural = "Zil Page Comments"
+        db_table = "zil_page_comments"
+        ordering = ("created_at",)
+        indexes = [models.Index(fields=["page", "created_at"], name="zil_page_comment_page_idx")]
+
+    def save(self, *args, **kwargs):
+        from django.utils.html import strip_tags
+
+        self.comment_stripped = strip_tags(self.comment_html or "").strip()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"comment on {self.page_id} by {self.actor_id}"
+
+
 class ZilBrandRoster(BaseModel):
     """The `computed_at` of the last brand roster a workspace applied (the ordering stamp).
 

@@ -512,6 +512,8 @@
     "portal_error": "No se pudo guardar el portal.",
     "show_to_client": "Mostrar al cliente",
     "hide_from_client": "Ocultar al cliente",
-    "visible_to_client": "Visible al cliente"
+    "visible_to_client": "Visible al cliente",
+    "client_tab": "Cliente",
+    "client_tab_hint": "La conversación con el cliente sobre este documento. Todo lo que escribas acá lo ve el cliente en su portal."
   }
 }
