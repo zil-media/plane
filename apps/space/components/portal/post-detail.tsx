@@ -9,13 +9,14 @@ import { Dialog, Transition } from "@headlessui/react";
 import { ExternalLink, MoveRight } from "lucide-react";
 import useSWR from "swr";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { DueDatePropertyIcon, LabelPropertyIcon, StateGroupIcon, StatePropertyIcon } from "@plane/propel/icons";
 import { SitesPortalService } from "@plane/services";
 import { Loader } from "@plane/ui";
 import { getFileURL } from "@plane/utils";
 // local imports
 import { PortalComments } from "./comments";
-import { dayLabel, isVideo } from "./helpers";
+import { dateLocale, dayLabel, isVideo } from "./helpers";
 import { PortalContent } from "./portal-content";
 
 const portalService = new SitesPortalService();
@@ -33,6 +34,7 @@ type Props = {
  * properties rows (estado, fecha, red/formato), divider, comments. Media go above the copy, big.
  */
 export function PortalPostDetail({ projectId, postId, preview, onClose }: Props) {
+  const { t, currentLocale } = useTranslation();
   const { data: post, error } = useSWR(postId ? `PORTAL_POST_${projectId}_${postId}` : null, () =>
     portalService.retrievePost(projectId, postId as string)
   );
@@ -70,7 +72,7 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
                     <button
                       type="button"
                       onClick={onClose}
-                      aria-label="Cerrar"
+                      aria-label={t("zil_portal.close")}
                       className="text-tertiary hover:text-secondary"
                     >
                       <MoveRight className="size-4" />
@@ -78,7 +80,7 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
                   </div>
                 </div>
                 {error ? (
-                  <p className="px-6 text-13 text-tertiary">Esta publicación ya no está disponible.</p>
+                  <p className="px-6 text-13 text-tertiary">{t("zil_portal.post_unavailable")}</p>
                 ) : post ? (
                   <div className="size-full overflow-y-auto px-6">
                     {/* title and copy (PeekOverviewIssueDetails) */}
@@ -129,38 +131,38 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
                     {/* properties (PeekOverviewIssueProperties) */}
                     <div className="mt-6 w-full space-y-2">
                       <div className="flex h-8 items-center gap-3">
-                        <div className="flex w-1/4 flex-shrink-0 items-center gap-1 text-13 text-tertiary">
+                        <div className="flex w-2/5 flex-shrink-0 items-center gap-1 text-13 text-tertiary sm:w-1/4">
                           <StatePropertyIcon className="size-4 flex-shrink-0" />
-                          <span>Estado</span>
+                          <span>{t("common.state")}</span>
                         </div>
-                        <div className="flex w-3/4 items-center gap-1.5 py-0.5 text-13">
+                        <div className="flex min-w-0 flex-1 items-center gap-1.5 py-0.5 text-13">
                           <StateGroupIcon
-                            stateGroup={post.status === "Publicada" ? "completed" : "started"}
+                            stateGroup={post.status === "published" ? "completed" : "started"}
                             color={post.status_color ?? undefined}
                           />
-                          {post.status}
+                          {t(`zil_portal.status.${post.status}`)}
                         </div>
                       </div>
                       <div className="flex h-8 items-center gap-3">
-                        <div className="flex w-1/4 flex-shrink-0 items-center gap-1 text-13 text-tertiary">
+                        <div className="flex w-2/5 flex-shrink-0 items-center gap-1 text-13 text-tertiary sm:w-1/4">
                           <DueDatePropertyIcon className="size-4 flex-shrink-0" />
-                          <span>Publicación</span>
+                          <span>{t("zil_portal.publish_date")}</span>
                         </div>
-                        <div className="w-3/4 text-13 first-letter:uppercase">
+                        <div className="min-w-0 flex-1 text-13 first-letter:uppercase">
                           {post.publish_date ? (
-                            dayLabel(post.publish_date)
+                            dayLabel(post.publish_date, dateLocale(currentLocale))
                           ) : (
-                            <span className="text-secondary">A definir</span>
+                            <span className="text-secondary">{t("zil_portal.to_define")}</span>
                           )}
                         </div>
                       </div>
                       {post.labels.length > 0 && (
                         <div className="flex min-h-8 items-start gap-3">
-                          <div className="flex h-8 w-1/4 flex-shrink-0 items-center gap-1 text-13 text-tertiary">
+                          <div className="flex h-8 w-2/5 flex-shrink-0 items-center gap-1 text-13 text-tertiary sm:w-1/4">
                             <LabelPropertyIcon className="size-4 flex-shrink-0" />
-                            <span>Red y formato</span>
+                            <span>{t("zil_portal.network_format")}</span>
                           </div>
-                          <div className="flex w-3/4 flex-wrap gap-1 py-1.5">
+                          <div className="flex min-w-0 flex-1 flex-wrap gap-1 py-1.5">
                             {post.labels.map((label) => (
                               <span
                                 key={label.name}

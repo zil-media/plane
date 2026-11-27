@@ -9,6 +9,7 @@ import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { SitesPortalService } from "@plane/services";
 import { getFileURL } from "@plane/utils";
 // components
@@ -20,6 +21,7 @@ const portalService = new SitesPortalService();
 
 /** "Mis marcas": straight to the calendar when there is one brand. */
 const PortalHomePage = observer(function PortalHomePage() {
+  const { t } = useTranslation();
   const ready = usePortalGuard();
   const router = useRouter();
   const { data, error } = useSWR(ready ? "PORTAL_BRANDS" : null, () => portalService.brands());
@@ -32,7 +34,7 @@ const PortalHomePage = observer(function PortalHomePage() {
   if (error)
     return (
       <PortalShell>
-        <PortalMessage title="No pudimos cargar tus marcas" text="Probá de nuevo en un momento." />
+        <PortalMessage title={t("zil_portal.brands_error_title")} text={t("zil_portal.try_again")} />
       </PortalShell>
     );
 
@@ -47,16 +49,13 @@ const PortalHomePage = observer(function PortalHomePage() {
   if (brands.length === 0)
     return (
       <PortalShell>
-        <PortalMessage
-          title="Todavía no tenés un portal activo"
-          text="Cuando el equipo lo active te llega un mail. Si creés que es un error, escribile a tu contacto en Zil."
-        />
+        <PortalMessage title={t("zil_portal.no_portal_title")} text={t("zil_portal.no_portal_text")} />
       </PortalShell>
     );
 
   return (
     <PortalShell>
-      <h1 className="text-18 font-semibold text-primary">Mis marcas</h1>
+      <h1 className="text-18 font-semibold text-primary">{t("zil_portal.my_brands")}</h1>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {brands.map((brand) => {
           const logo = brand.logo_url ? getFileURL(brand.logo_url) : undefined;
@@ -79,14 +78,14 @@ const PortalHomePage = observer(function PortalHomePage() {
               )}
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-14 font-medium text-primary">{brand.name}</span>
-                {brand.paused && <span className="text-11 text-tertiary">Acceso en pausa</span>}
+                {brand.paused && <span className="text-11 text-tertiary">{t("zil_portal.paused_title")}</span>}
               </span>
             </button>
           );
         })}
       </div>
       {brands.every((brand) => brand.paused) && (
-        <PortalMessage title="Acceso en pausa" text="Tu acceso está en pausa. Escribile a tu contacto en Zil." />
+        <PortalMessage title={t("zil_portal.paused_title")} text={t("zil_portal.paused_text")} />
       )}
     </PortalShell>
   );

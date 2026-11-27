@@ -10,6 +10,7 @@ import { observer } from "mobx-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { SitesPortalService } from "@plane/services";
 import { cn } from "@plane/utils";
 // components
@@ -27,6 +28,7 @@ type TTab = "calendar" | "documents";
 
 /** The brand's one screen: Calendario and Documentos. */
 const PortalBrandPage = observer(function PortalBrandPage() {
+  const { t } = useTranslation();
   const ready = usePortalGuard();
   const { projectId } = useParams<{ projectId: string }>();
   const searchParams = useSearchParams();
@@ -65,9 +67,9 @@ const PortalBrandPage = observer(function PortalBrandPage() {
     return (
       <PortalShell showMyBrands={showMyBrands}>
         {brandError?.status === 403 ? (
-          <PortalMessage title="Acceso en pausa" text="Tu acceso está en pausa. Escribile a tu contacto en Zil." />
+          <PortalMessage title={t("zil_portal.paused_title")} text={t("zil_portal.paused_text")} />
         ) : (
-          <PortalMessage title="No encontramos esta marca" text="Revisá el link o volvé a Mis marcas." />
+          <PortalMessage title={t("zil_portal.not_found_title")} text={t("zil_portal.not_found_text")} />
         )}
       </PortalShell>
     );
@@ -82,15 +84,13 @@ const PortalBrandPage = observer(function PortalBrandPage() {
   return (
     <PortalShell brand={brand} showMyBrands={showMyBrands}>
       {brand.preview && (
-        <p className="rounded-md bg-layer-1 px-3 py-2 text-13 text-secondary">
-          Vista previa: así ve el cliente su portal.
-        </p>
+        <p className="rounded-md bg-layer-1 px-3 py-2 text-13 text-secondary">{t("zil_portal.preview_notice")}</p>
       )}
       <nav className="flex gap-1 border-b border-subtle">
         {(
           [
-            ["calendar", "Calendario"],
-            ["documents", "Documentos"],
+            ["calendar", t("zil_portal.calendar")],
+            ["documents", t("zil_portal.documents")],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -111,7 +111,7 @@ const PortalBrandPage = observer(function PortalBrandPage() {
         <>
           {postsError && (
             <p className="rounded-md bg-layer-1 px-3 py-2 text-13 text-danger-primary">
-              No pudimos cargar el calendario. Probá de nuevo en un momento.
+              {t("zil_portal.calendar_load_error")}
             </p>
           )}
           <PortalReviewStrip posts={posts?.to_review ?? []} onOpen={(id) => go({ post: id })} />

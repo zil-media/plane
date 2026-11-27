@@ -7,6 +7,8 @@
 import { set } from "lodash-es";
 import { action, makeObservable, observable, runInAction } from "mobx";
 // plane imports
+import { setLanguage } from "@plane/i18n";
+import type { TLanguage } from "@plane/i18n";
 import { UserService } from "@plane/services";
 import type { TUserProfile } from "@plane/types";
 import { EStartOfTheWeek } from "@plane/types";
@@ -95,6 +97,8 @@ export class ProfileStore implements IProfileStore {
         this.isLoading = false;
         this.data = userProfile;
       });
+      // the interface follows the profile's language, as in the web app (store/user/profile.store.ts)
+      if (userProfile?.language) void setLanguage(userProfile.language as TLanguage);
       return userProfile;
     } catch (_error) {
       runInAction(() => {

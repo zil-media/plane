@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useRouter, useSearchParams } from "next/navigation";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { API_BASE_URL, WEB_URL } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { AuthService } from "@plane/services";
@@ -22,6 +23,7 @@ const authService = new AuthService();
 
 /** The portal's sign-in: email and password, nothing else. */
 const PortalLoginPage = observer(function PortalLoginPage() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: currentUser, isAuthenticated } = useUser();
@@ -61,17 +63,17 @@ const PortalLoginPage = observer(function PortalLoginPage() {
       <div className="w-full max-w-sm space-y-6">
         <ZilLogo className="h-6 w-auto text-primary" />
         <div className="space-y-1">
-          <h1 className="text-20 font-semibold text-primary">Entrá a tu calendario</h1>
-          <p className="text-14 text-secondary">Con el email y la contraseña que elegiste.</p>
+          <h1 className="text-20 font-semibold text-primary">{t("zil_portal.login.title")}</h1>
+          <p className="text-14 text-secondary">{t("zil_portal.login.subtitle")}</p>
         </div>
         {unreachable && (
           <p className="rounded-md border border-danger-strong bg-danger-subtle px-3 py-2 text-13 text-danger-primary">
-            No pudimos conectarnos. Probá de nuevo en un momento.
+            {t("zil_portal.login.unreachable")}
           </p>
         )}
         {failed && (
           <p className="rounded-md border border-danger-strong bg-danger-subtle px-3 py-2 text-13 text-danger-primary">
-            El email o la contraseña no son correctos.
+            {t("zil_portal.login.wrong_credentials")}
           </p>
         )}
         <form
@@ -85,7 +87,7 @@ const PortalLoginPage = observer(function PortalLoginPage() {
           <input type="hidden" name="next_path" value={nextPath} />
           <div className="space-y-1">
             <label className="text-13 font-medium text-tertiary" htmlFor="email">
-              Email
+              {t("email")}
             </label>
             <Input
               id="email"
@@ -100,7 +102,7 @@ const PortalLoginPage = observer(function PortalLoginPage() {
           </div>
           <div className="space-y-1">
             <label className="text-13 font-medium text-tertiary" htmlFor="password">
-              Contraseña
+              {t("password")}
             </label>
             <Input
               id="password"
@@ -120,14 +122,14 @@ const PortalLoginPage = observer(function PortalLoginPage() {
             className="w-full"
             disabled={!email || !password || submitting}
           >
-            {submitting ? "Entrando…" : "Entrar"}
+            {submitting ? t("zil_portal.login.submitting") : t("zil_portal.login.submit")}
           </Button>
         </form>
         <a
           href={`${WEB_URL}/accounts/forgot-password`}
           className="block text-center text-13 text-secondary hover:text-primary"
         >
-          ¿Olvidaste tu contraseña?
+          {t("zil_portal.login.forgot")}
         </a>
       </div>
     </div>

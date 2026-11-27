@@ -8,12 +8,13 @@ import { useState } from "react";
 import { MessageSquare } from "lucide-react";
 import useSWR from "swr";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { SitesPortalService } from "@plane/services";
 import type { TZilPortalComment } from "@plane/types";
 import { cn, getFileURL } from "@plane/utils";
 // local imports
-import { ago } from "./helpers";
+import { ago, dateLocale } from "./helpers";
 import { PortalContent } from "./portal-content";
 
 const portalService = new SitesPortalService();
@@ -29,8 +30,9 @@ type Props = {
 
 /** A copy of the space app's comment card (peek-overview/comment/comment-detail-card.tsx), read-only. */
 function CommentRow({ comment, projectId }: { comment: TZilPortalComment; projectId: string }) {
+  const { t, currentLocale } = useTranslation();
   const avatar = comment.avatar_url ? getFileURL(comment.avatar_url) : undefined;
-  const author = comment.is_mine ? "Vos" : comment.author;
+  const author = comment.is_mine ? t("zil_portal.you") : comment.author;
   return (
     <div className="relative flex items-start space-x-3">
       <div className="relative px-1">
@@ -55,9 +57,11 @@ function CommentRow({ comment, projectId }: { comment: TZilPortalComment; projec
         <div>
           <div className="text-11">
             {author}
-            {comment.is_team && <span className="text-tertiary"> · Equipo</span>}
+            {comment.is_team && <span className="text-tertiary"> · {t("zil_portal.team")}</span>}
           </div>
-          <p className="mt-0.5 text-11 text-secondary">comentó {ago(comment.created_at)}</p>
+          <p className="mt-0.5 text-11 text-secondary">
+            {t("zil_portal.commented_ago", { ago: ago(comment.created_at, dateLocale(currentLocale)) })}
+          </p>
         </div>
         <div className="issue-comments-section p-0">
           {/* through the read-only editor (its schema drops anything that is not content), never raw HTML */}
@@ -70,6 +74,7 @@ function CommentRow({ comment, projectId }: { comment: TZilPortalComment; projec
 
 /** The conversation with the team, and the box to write in it. */
 export function PortalComments({ projectId, postId, documentId, preview }: Props) {
+  const { t } = useTranslation();
   const key = documentId ? `PORTAL_DOC_COMMENTS_${projectId}_${documentId}` : `PORTAL_COMMENTS_${projectId}_${postId}`;
   const load = () =>
     documentId
@@ -93,7 +98,7 @@ export function PortalComments({ projectId, postId, documentId, preview }: Props
       await mutate((current) => ({ comments: [...(current?.comments ?? []), created] }));
       setText("");
     } catch {
-      setError("No pudimos enviar tu comentario. Probá de nuevo.");
+      setError(t("zil_portal.send_error"));
     } finally {
       setSending(false);
     }
@@ -102,11 +107,11 @@ export function PortalComments({ projectId, postId, documentId, preview }: Props
   const comments = data?.comments ?? [];
   return (
     <section className="space-y-4">
-      <h4 className="font-medium">Comentarios</h4>
+      <h4 className="font-medium">{t("zil_portal.comments")}</h4>
       {loadError ? (
-        <p className="text-13 text-danger-primary">No pudimos cargar los comentarios.</p>
+        <p className="text-13 text-danger-primary">{t("zil_portal.comments_load_error")}</p>
       ) : (
-        data && comments.length === 0 && <p className="text-13 text-tertiary">Todavía no hay comentarios.</p>
+        data && comments.length === 0 && <p className="text-13 text-tertiary">{t("zil_portal.no_comments")}</p>
       )}
       <div className="space-y-4">
         {comments.map((comment) => (
@@ -114,15 +119,13 @@ export function PortalComments({ projectId, postId, documentId, preview }: Props
         ))}
       </div>
       {preview ? (
-        <p className="rounded-md bg-layer-1 p-3 text-13 text-secondary">
-          Estás viendo lo que ve el cliente. Respondé desde Zil Ops con un comentario externo.
-        </p>
+        <p className="rounded-md bg-layer-1 p-3 text-13 text-secondary">{t("zil_portal.preview_answer_from_ops")}</p>
       ) : (
         <div className="space-y-2">
           <textarea
             value={text}
             onChange={(event) => setText(event.target.value)}
-            placeholder="Escribí tu comentario"
+            placeholder={t("zil_portal.comment_placeholder")}
             rows={3}
             maxLength={5000}
             className="w-full resize-none rounded-md border border-subtle bg-surface-1 p-3 text-13 text-primary placeholder:text-placeholder focus:border-accent-strong focus:outline-none"
@@ -135,7 +138,7 @@ export function PortalComments({ projectId, postId, documentId, preview }: Props
               disabled={!text.trim() || sending}
               className={cn(sending && "opacity-70")}
             >
-              {sending ? "Enviando…" : "Enviar"}
+              {sending ? t("zil_portal.sending") : t("zil_portal.send")}
             </Button>
           </div>
         </div>

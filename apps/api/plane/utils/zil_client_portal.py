@@ -84,11 +84,11 @@ FORMAT_LABELS = [
 CONTENT_LABELS = [*NETWORK_LABELS, *FORMAT_LABELS, {"name": VISIBLE_LABEL, "color": "#16A34A"}]
 NETWORKS = {label["name"].lower() for label in NETWORK_LABELS}
 
-# what the client reads instead of Ops' state names
-STATUS_PREPARING = "En preparación"
-STATUS_REVIEW = "Para revisar"
-STATUS_SCHEDULED = "Programada"
-STATUS_PUBLISHED = "Publicada"
+# the four statuses the client reads instead of Ops' state names (the portal translates them)
+STATUS_PREPARING = "preparing"
+STATUS_REVIEW = "review"
+STATUS_SCHEDULED = "scheduled"
+STATUS_PUBLISHED = "published"
 
 
 # ---------------------------------------------------------------------------
@@ -306,7 +306,7 @@ def _visible_ids(project_id):
 
 
 def simple_status(state):
-    """One of the four words the client reads."""
+    """One of the four statuses the client reads (a code: the portal shows it in their language)."""
     if state is None:
         return STATUS_PREPARING
     name = (state.name or "").strip().lower()

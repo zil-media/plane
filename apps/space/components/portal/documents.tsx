@@ -8,6 +8,7 @@ import { useState } from "react";
 import { ArrowLeft, ChevronRight, Folder, FolderOpen } from "lucide-react";
 import useSWR from "swr";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { PageIcon } from "@plane/propel/icons";
 import { SitesPortalService } from "@plane/services";
 import type { TZilPortalDocument, TZilPortalFolder } from "@plane/types";
@@ -15,7 +16,7 @@ import { Loader } from "@plane/ui";
 import { cn } from "@plane/utils";
 // local imports
 import { PortalComments } from "./comments";
-import { shortDate } from "./helpers";
+import { dateLocale, shortDate } from "./helpers";
 import { PortalContent } from "./portal-content";
 
 const portalService = new SitesPortalService();
@@ -41,6 +42,7 @@ type TTreeProps = {
  * chevron and folder icon for a sub-folder, page icon for a document. Folders open in place.
  */
 function DocumentTree({ parentId, depth, folders, documents, onOpen }: TTreeProps) {
+  const { t, currentLocale } = useTranslation();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const childFolders = folders.filter((f) => (f.parent_id ?? null) === parentId);
   const childDocs = documents.filter((d) => (d.parent_id ?? null) === parentId);
@@ -61,7 +63,9 @@ function DocumentTree({ parentId, depth, folders, documents, onOpen }: TTreeProp
                 <ChevronRight className={cn("size-3.5 text-tertiary transition-transform", { "rotate-90": isOpen })} />
                 <Icon className="h-4 w-4 text-tertiary" />
               </span>
-              <span className="min-w-0 flex-1 truncate text-13 text-primary">{folder.name}</span>
+              <span className="min-w-0 flex-1 truncate text-13 text-primary">
+                {folder.name || t("zil_portal.untitled")}
+              </span>
             </button>
             {isOpen && (
               <ul className="divide-y divide-subtle-1 border-t border-subtle">
@@ -88,8 +92,8 @@ function DocumentTree({ parentId, depth, folders, documents, onOpen }: TTreeProp
               <span className="size-3.5" aria-hidden />
               <PageIcon className="h-4 w-4 text-tertiary" />
             </span>
-            <span className="min-w-0 flex-1 truncate text-13 text-primary">{doc.name}</span>
-            <span className="text-11 text-tertiary">{shortDate(doc.updated_at)}</span>
+            <span className="min-w-0 flex-1 truncate text-13 text-primary">{doc.name || t("zil_portal.untitled")}</span>
+            <span className="text-11 text-tertiary">{shortDate(doc.updated_at, dateLocale(currentLocale))}</span>
           </button>
         </li>
       ))}
@@ -99,6 +103,7 @@ function DocumentTree({ parentId, depth, folders, documents, onOpen }: TTreeProp
 
 /** The documents the team shares (the brand's "Cliente" folder): its tree, a reader and the conversation. */
 export function PortalDocuments({ projectId, documentId, preview, onOpen }: Props) {
+  const { t } = useTranslation();
   const { data, error: listError } = useSWR(`PORTAL_DOCUMENTS_${projectId}`, () => portalService.documents(projectId));
   const { data: document, error } = useSWR(documentId ? `PORTAL_DOCUMENT_${projectId}_${documentId}` : null, () =>
     portalService.document(projectId, documentId as string)
@@ -113,10 +118,10 @@ export function PortalDocuments({ projectId, documentId, preview, onOpen }: Prop
           className="inline-flex items-center gap-1 text-13 text-secondary hover:text-primary"
         >
           <ArrowLeft className="size-4" />
-          Documentos
+          {t("zil_portal.documents")}
         </button>
         {error ? (
-          <p className="text-13 text-tertiary">Este documento ya no está disponible.</p>
+          <p className="text-13 text-tertiary">{t("zil_portal.doc_unavailable")}</p>
         ) : !document ? (
           <Loader className="space-y-3">
             <Loader.Item height="28px" width="50%" />
@@ -124,7 +129,7 @@ export function PortalDocuments({ projectId, documentId, preview, onOpen }: Prop
           </Loader>
         ) : (
           <>
-            <h1 className="text-24 font-bold text-primary">{document.name}</h1>
+            <h1 className="text-24 font-bold text-primary">{document.name || t("zil_portal.untitled")}</h1>
             <PortalContent id={document.id} projectId={projectId} html={document.description_html ?? ""} />
             {/* divider and conversation, as in a post */}
             <div className="my-5 h-[1] w-full border-t border-subtle" />
@@ -137,7 +142,7 @@ export function PortalDocuments({ projectId, documentId, preview, onOpen }: Prop
   if (listError)
     return (
       <p className="rounded-md border border-subtle p-6 text-center text-13 text-tertiary">
-        No pudimos cargar los documentos. Probá de nuevo en un momento.
+        {t("zil_portal.docs_load_error")}
       </p>
     );
 
@@ -151,9 +156,7 @@ export function PortalDocuments({ projectId, documentId, preview, onOpen }: Prop
 
   if (data.documents.length === 0)
     return (
-      <p className="rounded-md border border-subtle p-6 text-center text-13 text-tertiary">
-        Todavía no hay documentos compartidos.
-      </p>
+      <p className="rounded-md border border-subtle p-6 text-center text-13 text-tertiary">{t("zil_portal.no_docs")}</p>
     );
 
   return (

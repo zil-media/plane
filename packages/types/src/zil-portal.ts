@@ -16,8 +16,8 @@ export type TZilPortalBrand = {
   preview?: boolean;
 };
 
-/** The four plain words the client reads instead of Ops' states. */
-export type TZilPortalStatus = "En preparación" | "Para revisar" | "Programada" | "Publicada";
+/** The four statuses the client reads instead of Ops' states (translated in the portal). */
+export type TZilPortalStatus = "preparing" | "review" | "scheduled" | "published";
 
 export type TZilPortalMedia = {
   id: string;

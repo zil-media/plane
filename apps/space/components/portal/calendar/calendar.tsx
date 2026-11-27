@@ -6,14 +6,15 @@
 
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { ChevronLeftIcon, ChevronRightIcon } from "@plane/propel/icons";
 import type { ICalendarDate, ICalendarWeek, TZilPortalPost } from "@plane/types";
 import { EStartOfTheWeek } from "@plane/types";
 import { Row } from "@plane/ui";
 import { cn, generateCalendarData, getOrderedDays, renderFormattedPayloadDate } from "@plane/utils";
 // local imports
+import { dateLocale, dayLabel } from "../helpers";
 import { PortalCalendarDayTile } from "./day-tile";
 import { PortalCalendarIssueBlocks } from "./issue-blocks";
 
@@ -51,6 +52,8 @@ export const monthRange = (month: Date) => {
  * week rows and day tiles; on a phone, the list of the day picked, as in Ops.
  */
 export function PortalCalendar({ month, posts, loading, onMonthChange, onOpen, openPostId }: Props) {
+  const { t, currentLocale } = useTranslation();
+  const locale = dateLocale(currentLocale);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const weeks = useMemo(() => weeksOf(month), [month]);
   const postsByDay = useMemo(() => {
@@ -82,7 +85,7 @@ export function PortalCalendar({ month, posts, loading, onMonthChange, onOpen, o
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            aria-label="Mes anterior"
+            aria-label={t("zil_portal.previous_month")}
             className="grid place-items-center"
             onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
           >
@@ -90,22 +93,20 @@ export function PortalCalendar({ month, posts, loading, onMonthChange, onOpen, o
           </button>
           <button
             type="button"
-            aria-label="Mes siguiente"
+            aria-label={t("zil_portal.next_month")}
             className="grid place-items-center"
             onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
           >
             <ChevronRightIcon height={16} width={16} strokeWidth={2} />
           </button>
-          <span className="text-18 font-semibold first-letter:uppercase">
-            {format(month, "MMMM yyyy", { locale: es })}
-          </span>
+          <span className="text-18 font-semibold first-letter:uppercase">{format(month, "MMMM yyyy", { locale })}</span>
         </div>
         <button
           type="button"
           className="rounded-sm bg-layer-transparent px-2.5 py-1 text-11 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
           onClick={handleToday}
         >
-          Hoy
+          {t("common.today")}
         </button>
       </Row>
 
@@ -120,7 +121,7 @@ export function PortalCalendar({ month, posts, loading, onMonthChange, onOpen, o
               key={day.date.getDay()}
               className="flex h-11 items-center justify-center bg-layer-1 px-4 capitalize md:justify-end"
             >
-              {format(day.date, "EEE", { locale: es })}
+              {format(day.date, "EEE", { locale })}
             </div>
           ))}
         </div>
@@ -150,10 +151,10 @@ export function PortalCalendar({ month, posts, loading, onMonthChange, onOpen, o
       {/* mobile view: the day picked */}
       <div className={cn("md:hidden", loading && "opacity-60")}>
         <p className="p-4 text-18 font-semibold first-letter:uppercase">
-          {format(selectedDate, "EEEE d 'de' MMMM", { locale: es })}
+          {dayLabel(renderFormattedPayloadDate(selectedDate) ?? "", locale)}
         </p>
         {selectedPosts.length === 0 ? (
-          <p className="px-4 text-13 text-tertiary">No hay publicaciones este día.</p>
+          <p className="px-4 text-13 text-tertiary">{t("zil_portal.no_posts_day")}</p>
         ) : (
           <PortalCalendarIssueBlocks posts={selectedPosts} onOpen={onOpen} openPostId={openPostId} />
         )}

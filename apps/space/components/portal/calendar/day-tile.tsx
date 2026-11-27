@@ -5,11 +5,12 @@
  */
 
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import type { ICalendarDate, TZilPortalPost } from "@plane/types";
 import { cn, renderFormattedPayloadDate } from "@plane/utils";
 // local imports
+import { dateLocale } from "../helpers";
 import { PortalCalendarIssueBlocks } from "./issue-blocks";
 
 type Props = {
@@ -24,6 +25,7 @@ type Props = {
 /** A copy of Ops' CalendarDayTile (month layout), read-only: no drag and drop, no quick add. */
 export function PortalCalendarDayTile(props: Props) {
   const { date, postsByDay, selectedDate, setSelectedDate, onOpen, openPostId } = props;
+  const { currentLocale } = useTranslation();
   const formattedDatePayload = renderFormattedPayloadDate(date.date);
   if (!formattedDatePayload) return null;
   const posts = postsByDay.get(formattedDatePayload) ?? [];
@@ -41,7 +43,7 @@ export function PortalCalendarDayTile(props: Props) {
           date.is_current_month ? "font-medium" : "text-tertiary"
         } ${isWeekend ? "bg-layer-1" : "bg-layer-transparent"} `}
       >
-        {date.date.getDate() === 1 && format(date.date, "MMM", { locale: es }) + " "}
+        {date.date.getDate() === 1 && format(date.date, "MMM", { locale: dateLocale(currentLocale) }) + " "}
         {isToday ? (
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-primary text-on-color">
             {date.date.getDate()}

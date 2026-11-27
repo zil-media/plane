@@ -332,13 +332,13 @@ class PortalDocumentsEndpoint(PortalBaseEndpoint):
         return Response(
             {
                 "folders": [
-                    {"id": str(f.id), "name": f.name or "Sin título", "parent_id": parent_of(f)}
+                    {"id": str(f.id), "name": f.name or "", "parent_id": parent_of(f)}
                     for f in folders.order_by("sort_order", "name")[:MAX_DOCUMENTS]
                 ],
                 "documents": [
                     {
                         "id": str(page.id),
-                        "name": page.name or "Sin título",
+                        "name": page.name or "",
                         "updated_at": page.updated_at.isoformat(),
                         "parent_id": parent_of(page),
                     }
@@ -362,7 +362,7 @@ class PortalDocumentEndpoint(PortalBaseEndpoint):
         return Response(
             {
                 "id": str(page.id),
-                "name": page.name or "Sin título",
+                "name": page.name or "",
                 "updated_at": page.updated_at.isoformat(),
                 "description_html": page.description_html or "<p></p>",
             }

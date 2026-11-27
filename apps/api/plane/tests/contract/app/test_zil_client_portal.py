@@ -282,7 +282,7 @@ class TestPosts:
         assert [p["name"] for p in body["posts"]] == ["Reel lanzamiento"]
         post = body["posts"][0]
         assert set(post) == {"id", "name", "publish_date", "status", "status_color", "network", "labels", "thumbnail"}
-        assert post["network"] == "Instagram" and post["status"] == "En preparación"
+        assert post["network"] == "Instagram" and post["status"] == "preparing"
         assert [label["name"] for label in post["labels"]] == ["Instagram"]
         assert body["to_review"] == []
 
@@ -290,14 +290,14 @@ class TestPosts:
     def test_the_review_strip_and_the_four_plain_statuses(self, kfc, cliente):
         project = kfc.project
         review = item(project, "Carrusel", state_name=REVIEW_STATE)
-        item(project, "Programada", state_name="Programado", target_date=timezone.now().date())
+        item(project, "scheduled", state_name="Programado", target_date=timezone.now().date())
         item(project, "Salió", state_name="Publicado", target_date=timezone.now().date())
 
         body = as_user(cliente).get(f"/api/public/portal/{project.id}/posts/").json()
 
         assert [p["id"] for p in body["to_review"]] == [str(review.id)]
-        assert body["to_review"][0]["status"] == "Para revisar"
-        assert sorted(p["status"] for p in body["posts"]) == ["Programada", "Publicada"]
+        assert body["to_review"][0]["status"] == "review"
+        assert sorted(p["status"] for p in body["posts"]) == ["published", "scheduled"]
 
     @pytest.mark.django_db
     def test_a_post_detail_has_the_copy_and_media_and_a_hidden_one_is_not_found(self, kfc, cliente):

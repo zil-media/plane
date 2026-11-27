@@ -10,6 +10,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Link } from "react-router";
 import useSWR from "swr";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { SitesPortalService } from "@plane/services";
 import { Input } from "@plane/ui";
@@ -23,6 +24,7 @@ const portalService = new SitesPortalService();
 
 /** The invitation link: choose a password once, then straight to the calendar. */
 const PortalInvitePage = observer(function PortalInvitePage() {
+  const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
   const router = useRouter();
   const { fetchCurrentUser } = useUser();
@@ -39,7 +41,7 @@ const PortalInvitePage = observer(function PortalInvitePage() {
     event.preventDefault();
     if (submitting) return;
     if (invite?.needs_password && password !== confirm) {
-      setFailure("Las contraseñas no coinciden.");
+      setFailure(t("zil_portal.invite.mismatch"));
       return;
     }
     setSubmitting(true);
@@ -56,11 +58,7 @@ const PortalInvitePage = observer(function PortalInvitePage() {
       router.replace(`/portal/${project_id}`);
     } catch (err) {
       const status = (err as { status?: number } | undefined)?.status;
-      setFailure(
-        status === 400
-          ? "Elegí una contraseña más segura: más larga, mezclando palabras, números o símbolos."
-          : "Este link ya no funciona. Pedile a tu contacto en Zil que te lo reenvíe."
-      );
+      setFailure(status === 400 ? t("zil_portal.invite.weak") : t("zil_portal.invite.invalid"));
       setSubmitting(false);
     }
   };
@@ -78,11 +76,11 @@ const PortalInvitePage = observer(function PortalInvitePage() {
         <ZilLogo className="h-6 w-auto text-primary" />
         {error || !invite ? (
           <div className="space-y-2">
-            <h1 className="text-20 font-semibold text-primary">Este link ya no funciona</h1>
+            <h1 className="text-20 font-semibold text-primary">{t("zil_portal.invite.expired_title")}</h1>
             <p className="text-14 text-secondary">
-              Los links vencen a los 7 días y sirven una sola vez. Pedile a tu contacto en Zil que te lo reenvíe, o{" "}
+              {t("zil_portal.invite.expired_text")}{" "}
               <Link to="/portal/login" className="text-accent-primary hover:underline">
-                entrá con tu contraseña
+                {t("zil_portal.invite.sign_in_link")}
               </Link>
               .
             </p>
@@ -90,18 +88,20 @@ const PortalInvitePage = observer(function PortalInvitePage() {
         ) : (
           <form onSubmit={accept} className="space-y-4">
             <div className="space-y-1">
-              <h1 className="text-20 font-semibold text-primary">Tu calendario de {invite.brand}</h1>
+              <h1 className="text-20 font-semibold text-primary">
+                {t("zil_portal.invite.title", { brand: invite.brand })}
+              </h1>
               <p className="text-14 text-secondary">
                 {invite.needs_password
-                  ? `Elegí una contraseña para ${invite.email}. La vas a usar para volver a entrar.`
-                  : `Entrá como ${invite.email}.`}
+                  ? t("zil_portal.invite.choose_password", { email: invite.email })
+                  : t("zil_portal.invite.enter_as", { email: invite.email })}
               </p>
             </div>
             {invite.needs_password && (
               <>
                 <div className="space-y-1">
                   <label className="text-13 font-medium text-tertiary" htmlFor="password">
-                    Contraseña
+                    {t("password")}
                   </label>
                   <Input
                     id="password"
@@ -115,7 +115,7 @@ const PortalInvitePage = observer(function PortalInvitePage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-13 font-medium text-tertiary" htmlFor="confirm">
-                    Repetí la contraseña
+                    {t("zil_portal.invite.repeat_password")}
                   </label>
                   <Input
                     id="confirm"
@@ -137,7 +137,7 @@ const PortalInvitePage = observer(function PortalInvitePage() {
               className="w-full"
               disabled={submitting || (invite.needs_password && (!password || !confirm))}
             >
-              {submitting ? "Entrando…" : "Ver mi calendario"}
+              {submitting ? t("zil_portal.invite.submitting") : t("zil_portal.invite.submit")}
             </Button>
           </form>
         )}

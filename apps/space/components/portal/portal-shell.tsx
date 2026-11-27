@@ -7,6 +7,7 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import type { TZilPortalBrand } from "@plane/types";
 import { getFileURL } from "@plane/utils";
 // components
@@ -24,6 +25,7 @@ type Props = {
 export function PortalShell({ brand, showMyBrands = false, children }: Props) {
   // signing out from a document or a post comes back to it after signing in again
   const location = useLocation();
+  const { t } = useTranslation();
   const logo = brand?.logo_url ? getFileURL(brand.logo_url) : undefined;
   return (
     <div className="min-h-screen bg-surface-1">
@@ -51,10 +53,10 @@ export function PortalShell({ brand, showMyBrands = false, children }: Props) {
           <div className="flex items-center gap-3">
             {showMyBrands && (
               <Link to="/portal" className="text-13 whitespace-nowrap text-secondary hover:text-primary">
-                Mis marcas
+                {t("zil_portal.my_brands")}
               </Link>
             )}
-            <UserAvatar signOutLabel="Cerrar sesión" nextPath={`${location.pathname}${location.search}`} />
+            <UserAvatar signOutLabel={t("sign_out")} nextPath={`${location.pathname}${location.search}`} />
           </div>
         </div>
       </header>
