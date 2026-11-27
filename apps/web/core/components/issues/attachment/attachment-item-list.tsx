@@ -57,7 +57,7 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
   const { create: createAttachment } = attachmentOperations;
   const { uploadStatus } = attachmentSnapshot;
   // file size
-  const { maxFileSize } = useFileSize();
+  const { maxDropSize, sizeValidator, limitMbFor } = useFileSize();
   // derived values
   const issueAttachments = getAttachmentsByIssueId(issueId);
 
@@ -96,16 +96,17 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
         message:
           totalAttachedFiles > 1
             ? t("attachment.only_one_file_allowed")
-            : t("attachment.file_size_limit", { size: maxFileSize / 1024 / 1024 }),
+            : t("attachment.file_size_limit", { size: Math.round(limitMbFor(rejectedFiles[0]?.file)) }),
       });
       return;
     },
-    [createAttachment, maxFileSize, workspaceSlug, handleFetchPropertyActivities, t]
+    [createAttachment, limitMbFor, workspaceSlug, handleFetchPropertyActivities, t]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    maxSize: maxFileSize,
+    maxSize: maxDropSize,
+    validator: sizeValidator,
     multiple: false,
     disabled: isUploading || disabled,
   });

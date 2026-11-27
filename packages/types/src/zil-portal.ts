@@ -22,10 +22,21 @@ export type TZilPortalBrand = {
 export type TZilPortalStatus = "preparing" | "review" | "scheduled" | "published";
 
 export type TZilPortalMedia = {
+  /** an attachment's id, or "drive:<file id>" */
   id: string;
   name: string;
   type: string;
   url: string;
+  /** uploaded to Ops, a Drive file the portal plays, or Drive's own preview (when it can't) */
+  kind?: "file" | "drive" | "drive_preview";
+};
+
+/** The second of a post's video a comment points at. */
+export type TZilPortalMoment = {
+  media: string;
+  at: number;
+  /** 0:42 */
+  label: string;
 };
 
 export type TZilPortalPost = {
@@ -54,6 +65,7 @@ export type TZilPortalComment = {
   avatar_url: string | null;
   is_team: boolean;
   is_mine: boolean;
+  moment?: TZilPortalMoment | null;
 };
 
 export type TZilPortalDocument = {

@@ -2,10 +2,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+import json
 from datetime import timedelta
 from unittest import mock
 
 import pytest
+import requests
+from django.core.cache import cache
 from django.core.management import call_command
 from django.utils import timezone
 from rest_framework import status
@@ -18,11 +21,13 @@ from plane.db.models import (
     IssueAssignee,
     IssueComment,
     IssueLabel,
+    IssueLink,
     IssueView,
     Label,
     Notification,
     Page,
     Profile,
+    ProjectMember,
     ProjectPage,
     State,
     User,
@@ -32,6 +37,7 @@ from plane.db.models import (
     ZilBrandOps,
     ZilBrandProject,
     ZilClientPortal,
+    ZilCommentMoment,
     ZilPageComment,
 )
 from plane.utils.zil_client_portal import (
@@ -42,6 +48,7 @@ from plane.utils.zil_client_portal import (
     VISIBLE_LABEL,
     dispatch_portal_events,
 )
+from plane.utils.zil_drive import drive_file_id
 
 KFC = "0123456789abcdef0123c001"
 WENDYS = "0123456789abcdef0123c002"
@@ -989,3 +996,236 @@ class TestRedirect:
         WorkspaceMember.objects.create(workspace=other, member=cliente, role=15)
 
         assert get_redirection_path(cliente) == "otra"
+
+
+DRIVE_ID = "1AbCdEfGhIjKlMnOpQrStUv"
+DRIVE_GET = "plane.utils.zil_drive.requests.get"
+
+
+def drive_link(issue, url=f"https://drive.google.com/file/d/{DRIVE_ID}/view?usp=sharing", title="Reel final"):
+    return IssueLink.objects.create(
+        issue=issue, project=issue.project, workspace_id=issue.workspace_id, url=url, title=title
+    )
+
+
+def drive_answer(status_code=200, mime="video/mp4", name="reel-final.mp4"):
+    response = mock.Mock(status_code=status_code)
+    response.json.return_value = {"name": name, "mimeType": mime}
+    return response
+
+
+def video(issue, name="reel.mp4"):
+    return FileAsset.objects.create(
+        asset=f"kfc/{name}",
+        attributes={"name": name, "type": "video/mp4", "size": 10},
+        entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+        issue=issue,
+        project=issue.project,
+        workspace_id=issue.workspace_id,
+        is_uploaded=True,
+    )
+
+
+@pytest.fixture
+def drive_key(settings):
+    settings.GOOGLE_DRIVE_API_KEY = "drive-key"
+    cache.clear()
+    yield
+    cache.clear()
+
+
+@pytest.mark.contract
+class TestDriveFileIds:
+    @pytest.mark.parametrize(
+        "url,expected",
+        [
+            (f"https://drive.google.com/file/d/{DRIVE_ID}/view?usp=sharing", DRIVE_ID),
+            (f"https://drive.google.com/file/d/{DRIVE_ID}", DRIVE_ID),
+            (f"https://drive.google.com/open?id={DRIVE_ID}", DRIVE_ID),
+            (f"https://drive.google.com/uc?export=download&id={DRIVE_ID}", DRIVE_ID),
+            (f"http://drive.google.com/file/d/{DRIVE_ID}/view", None),
+            (f"https://drive.google.com.evil.test/file/d/{DRIVE_ID}/view", None),
+            (f"https://evil.test/?u=https://drive.google.com/file/d/{DRIVE_ID}", None),
+            ("https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOp", None),
+            ("https://drive.google.com/file/d/short/view", None),
+            ('https://drive.google.com/file/d/bad"id<script>xx/view', None),
+        ],
+    )
+    def test_only_drive_file_links_give_a_file_id(self, url, expected):
+        assert drive_file_id(url) == expected
+
+
+@pytest.mark.contract
+class TestDriveVideos:
+    @pytest.mark.django_db
+    def test_a_shared_drive_video_plays_in_the_portal_after_the_uploaded_media(self, kfc, cliente, drive_key):
+        project = kfc.project
+        issue = item(project, "Reel")
+        uploaded = video(issue)
+        drive_link(issue)
+        drive_link(issue, url=f"https://drive.google.com/open?id={DRIVE_ID}", title="again")
+        url = f"/api/public/portal/{project.id}/posts/{issue.id}/"
+
+        with mock.patch(DRIVE_GET, return_value=drive_answer()) as google:
+            media = as_user(cliente).get(url).json()["media"]
+            as_user(cliente).get(url)
+
+        assert [m["id"] for m in media] == [str(uploaded.id), f"drive:{DRIVE_ID}"]
+        drive = media[1]
+        assert drive["kind"] == "drive" and drive["type"] == "video/mp4" and drive["name"] == "reel-final.mp4"
+        assert drive["url"] == (
+            f"https://www.googleapis.com/drive/v3/files/{DRIVE_ID}?alt=media&supportsAllDrives=true&key=drive-key"
+        )
+        # one lookup per file, cached
+        google.assert_called_once()
+        assert google.call_args.kwargs["params"]["key"] == "drive-key"
+
+    @pytest.mark.django_db
+    def test_a_private_file_or_no_key_falls_back_to_drives_preview(self, kfc, cliente, drive_key, settings):
+        project = kfc.project
+        issue = item(project, "Reel")
+        drive_link(issue)
+        url = f"/api/public/portal/{project.id}/posts/{issue.id}/"
+
+        with mock.patch(DRIVE_GET, return_value=drive_answer(status_code=404)):
+            private = as_user(cliente).get(url).json()["media"][0]
+        settings.GOOGLE_DRIVE_API_KEY = ""
+        cache.clear()
+        with mock.patch(DRIVE_GET) as google:
+            keyless = as_user(cliente).get(url).json()["media"][0]
+
+        preview = f"https://drive.google.com/file/d/{DRIVE_ID}/preview"
+        assert private == {
+            "id": f"drive:{DRIVE_ID}",
+            "kind": "drive_preview",
+            "name": "Reel final",
+            "type": "",
+            "url": preview,
+        }
+        assert keyless["kind"] == "drive_preview" and keyless["url"] == preview
+        google.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_google_down_does_not_break_the_post(self, kfc, cliente, drive_key):
+        project = kfc.project
+        issue = item(project, "Reel")
+        drive_link(issue)
+
+        with mock.patch(DRIVE_GET, side_effect=requests.ConnectionError("down")):
+            response = as_user(cliente).get(f"/api/public/portal/{project.id}/posts/{issue.id}/")
+
+        assert response.status_code == 200
+        assert response.json()["media"][0]["kind"] == "drive_preview"
+
+
+@pytest.mark.contract
+class TestCommentMoments:
+    @pytest.mark.django_db
+    def test_a_comment_at_a_second_of_an_uploaded_video(self, kfc, cliente):
+        project = kfc.project
+        issue = item(project, "Reel")
+        clip = video(issue, "reel <v2>.mp4")
+        url = f"/api/public/portal/{project.id}/posts/{issue.id}/comments/"
+
+        with mock.patch("plane.space.views.zil_portal.issue_activity.delay") as activity:
+            created = as_user(cliente).post(url, {"text": "Cortar acá", "media": str(clip.id), "at": 62}, format="json")
+        comments = as_user(cliente).get(url).json()["comments"]
+
+        assert created.status_code == status.HTTP_201_CREATED
+        stored = IssueComment.objects.get(pk=created.json()["id"])
+        # Ops and its emails read the moment from the text
+        assert stored.comment_html == "<p><strong>1:02</strong> · reel &lt;v2&gt;.mp4</p><p>Cortar acá</p>"
+        assert "1:02" in json.loads(activity.call_args.kwargs["requested_data"])["comment_html"]
+        # the portal gets it apart, as its button
+        assert created.json()["moment"] == {"media": str(clip.id), "at": 62, "label": "1:02"}
+        assert comments[0]["html"] == "<p>Cortar acá</p>" and comments[0]["moment"]["at"] == 62
+
+    @pytest.mark.django_db
+    def test_a_comment_at_a_second_of_a_drive_video(self, kfc, cliente, drive_key):
+        project = kfc.project
+        issue = item(project, "Reel")
+        drive_link(issue)
+        url = f"/api/public/portal/{project.id}/posts/{issue.id}/comments/"
+
+        with (
+            mock.patch(DRIVE_GET, return_value=drive_answer()),
+            mock.patch("plane.space.views.zil_portal.issue_activity.delay"),
+        ):
+            created = as_user(cliente).post(
+                url, {"text": "Más rápido", "media": f"drive:{DRIVE_ID}", "at": 3725}, format="json"
+            )
+
+        assert created.status_code == status.HTTP_201_CREATED
+        assert created.json()["moment"]["label"] == "1:02:05"
+        assert ZilCommentMoment.objects.get(comment_id=created.json()["id"]).media == f"drive:{DRIVE_ID}"
+
+    @pytest.mark.django_db
+    def test_a_moment_must_be_a_playable_video_of_this_post(self, kfc, cliente, drive_key):
+        project = kfc.project
+        issue = item(project, "Reel")
+        other = item(project, "Otro")
+        foreign = video(other, "otro.mp4")
+        clip = video(issue)
+        image = FileAsset.objects.create(
+            asset="kfc/foto.jpg",
+            attributes={"name": "foto.jpg", "type": "image/jpeg"},
+            entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+            issue=issue,
+            project=project,
+            workspace_id=project.workspace_id,
+            is_uploaded=True,
+        )
+        drive_link(issue)
+        url = f"/api/public/portal/{project.id}/posts/{issue.id}/comments/"
+
+        bad = [
+            {"media": str(foreign.id), "at": 1},  # another post's video
+            {"media": str(image.id), "at": 1},  # not a video
+            {"media": f"drive:{DRIVE_ID}", "at": 1},  # only Drive's preview (private file)
+            {"media": "drive:9ZzZzZzZzZzZzZz", "at": 1},  # not linked on the post
+            {"media": str(clip.id), "at": -1},
+            {"media": str(clip.id), "at": 24 * 60 * 60 + 1},
+            {"media": str(clip.id), "at": "soon"},
+            {"media": str(clip.id)},
+        ]
+        with (
+            mock.patch(DRIVE_GET, return_value=drive_answer(status_code=403)),
+            mock.patch("plane.space.views.zil_portal.issue_activity.delay") as activity,
+        ):
+            answers = [as_user(cliente).post(url, {"text": "x", **body}, format="json").status_code for body in bad]
+
+        assert answers == [status.HTTP_400_BAD_REQUEST] * len(bad)
+        activity.assert_not_called()
+        assert not IssueComment.objects.filter(issue=issue).exists()
+
+
+@pytest.mark.contract
+class TestVideoUploadCap:
+    @pytest.mark.django_db
+    def test_a_video_attachment_gets_the_video_cap_and_other_files_keep_theirs(self, kfc, create_user, settings):
+        settings.FILE_SIZE_LIMIT = 5 * 1024 * 1024
+        settings.VIDEO_FILE_SIZE_LIMIT = 95 * 1024 * 1024
+        project = kfc.project
+        ProjectMember.objects.update_or_create(
+            project=project,
+            member=create_user,
+            defaults={"workspace_id": project.workspace_id, "role": 20, "is_active": True},
+        )
+        issue = item(project, "Reel")
+        url = f"/api/assets/v2/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue.id}/attachments/"
+
+        with mock.patch("plane.app.views.issue.attachment.S3Storage") as storage:
+            storage.return_value.generate_presigned_post.return_value = {"url": "x", "fields": {}}
+            film = as_user(create_user).post(
+                url, {"name": "reel.mp4", "type": "video/mp4", "size": 80 * 1024 * 1024}, format="json"
+            )
+            huge = as_user(create_user).post(
+                url, {"name": "big.mp4", "type": "video/mp4", "size": 500 * 1024 * 1024}, format="json"
+            )
+            pdf = as_user(create_user).post(
+                url, {"name": "brief.pdf", "type": "application/pdf", "size": 80 * 1024 * 1024}, format="json"
+            )
+        caps = [call.kwargs["file_size"] for call in storage.return_value.generate_presigned_post.call_args_list]
+
+        assert [film.status_code, huge.status_code, pdf.status_code] == [200, 200, 200]
+        assert caps == [80 * 1024 * 1024, 95 * 1024 * 1024, 5 * 1024 * 1024]

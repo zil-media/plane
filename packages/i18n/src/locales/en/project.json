@@ -539,6 +539,8 @@
     "post_unavailable": "This post is no longer available.",
     "comments": "Comments",
     "no_comments": "No comments yet.",
+    "comment_at": "Comment at {time} of {name}",
+    "go_to_moment": "Go to {time} in the video",
     "comments_load_error": "We couldn't load the comments.",
     "comment_placeholder": "Write your comment",
     "send": "Send",

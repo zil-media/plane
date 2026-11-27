@@ -60,6 +60,8 @@ export interface IInstanceConfig {
   has_unsplash_configured: boolean;
   has_llm_configured: boolean;
   file_size_limit: number | undefined;
+  /** a video attached to a work item (the client portal plays it) */
+  video_file_size_limit?: number | undefined;
   is_smtp_configured: boolean;
   app_base_url: string | undefined;
   space_base_url: string | undefined;

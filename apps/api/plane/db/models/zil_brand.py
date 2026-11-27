@@ -277,3 +277,25 @@ class ZilBrandRoster(BaseModel):
 
     def __str__(self):
         return f"{self.workspace_id} @ {self.synced_at}"
+
+
+class ZilCommentMoment(BaseModel):
+    """The second of a post's video a client's comment points at ("at 0:42 of Reel.mp4").
+
+    The comment itself is an ordinary external comment of the work item, so Ops, its notices and
+    its emails show it; its text starts with `label_html` ("0:42 · Reel.mp4") for whoever reads it
+    there. `media` is the portal's id of the video: an attachment's id, or "drive:<file id>".
+    """
+
+    comment = models.OneToOneField("db.IssueComment", on_delete=models.CASCADE, related_name="zil_moment")
+    media = models.CharField(max_length=255)
+    seconds = models.PositiveIntegerField()
+    label_html = models.TextField()
+
+    class Meta:
+        verbose_name = "Zil Comment Moment"
+        verbose_name_plural = "Zil Comment Moments"
+        db_table = "zil_comment_moments"
+
+    def __str__(self):
+        return f"{self.comment_id} at {self.seconds}s of {self.media}"

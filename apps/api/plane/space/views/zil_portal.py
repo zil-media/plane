@@ -18,6 +18,7 @@ from datetime import date
 # Django imports
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.utils import timezone
@@ -32,7 +33,15 @@ from zxcvbn import zxcvbn
 # Module imports
 from plane.authentication.utils.login import user_login
 from plane.bgtasks.issue_activities_task import issue_activity
-from plane.db.models import FileAsset, IssueComment, IssueLabel, IssueLink, ProjectMember, ZilPageComment
+from plane.db.models import (
+    FileAsset,
+    IssueComment,
+    IssueLabel,
+    IssueLink,
+    ProjectMember,
+    ZilCommentMoment,
+    ZilPageComment,
+)
 from plane.settings.storage import S3Storage
 from plane.utils.zil_client_portal import (
     REVIEW_STATE,
@@ -52,6 +61,8 @@ from plane.utils.zil_client_portal import (
     visible_issues,
 )
 
+from plane.utils.zil_drive import drive_file_id, drive_media
+
 from .base import BaseAPIView
 
 MAX_POSTS = 500
@@ -59,6 +70,7 @@ MAX_COMMENTS = 500
 MAX_DOCUMENTS = 300
 MAX_COMMENT = 5000
 MEDIA_TYPES = ("image/", "video/")
+MAX_MOMENT = 24 * 60 * 60
 
 
 def _denied(exc, project=None):
@@ -95,9 +107,37 @@ def _media(project_id, assets):
             "name": (asset.attributes or {}).get("name") or "",
             "type": (asset.attributes or {}).get("type") or "",
             "url": _asset_url(project_id, asset.id),
+            "kind": "file",
         }
         for asset in assets
     ]
+
+
+def _links(issue):
+    return [
+        {"title": link.title or link.url, "url": link.url}
+        for link in IssueLink.objects.filter(issue_id=issue.id).order_by("created_at")
+        if str(link.url or "").startswith(("https://", "http://"))
+    ]
+
+
+def _post_media(project_id, issue, links):
+    """A post's media: its uploaded images and videos, then the Drive files linked on it."""
+    media = _media(project_id, _attachments([issue.id]).get(issue.id, []))
+    seen = set()
+    for link in links:
+        file_id = drive_file_id(link["url"])
+        if file_id and file_id not in seen:
+            seen.add(file_id)
+            media.append(drive_media(file_id, link["title"]))
+    return media
+
+
+def clock(seconds):
+    """0:42, 12:05, 1:02:03."""
+    hours, rest = divmod(int(seconds), 3600)
+    minutes, secs = divmod(rest, 60)
+    return f"{hours}:{minutes:02d}:{secs:02d}" if hours else f"{minutes}:{secs:02d}"
 
 
 def _attachments(issue_ids):
@@ -218,27 +258,35 @@ class PortalPostEndpoint(PortalBaseEndpoint):
         if issue is None:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         labels = _labels([issue.id]).get(issue.id, [])
-        media = _attachments([issue.id]).get(issue.id, [])
-        links = [
-            {"title": link.title or link.url, "url": link.url}
-            for link in IssueLink.objects.filter(issue_id=issue.id).order_by("created_at")
-            if str(link.url or "").startswith(("https://", "http://"))
-        ]
+        links = _links(issue)
         return Response(
             {
-                **_post(issue, labels, media),
+                **_post(issue, labels, _attachments([issue.id]).get(issue.id, [])),
                 "description_html": issue.description_html or "<p></p>",
-                "media": _media(project.id, media),
+                "media": _post_media(project.id, issue, links),
                 "links": links,
             }
         )
 
 
+def _moment(comment):
+    try:
+        return comment.zil_moment
+    except ZilCommentMoment.DoesNotExist:
+        return None
+
+
 def _comment(comment, team_ids, user):
     actor = comment.actor
+    html = comment.comment_html or ""
+    moment = _moment(comment)
+    if moment and html.startswith(moment.label_html):
+        # the portal shows the moment as its own button; Ops reads it from the text
+        html = html[len(moment.label_html) :] or "<p></p>"
     return {
         "id": str(comment.id),
-        "html": comment.comment_html or "",
+        "html": html,
+        "moment": ({"media": moment.media, "at": moment.seconds, "label": clock(moment.seconds)} if moment else None),
         "created_at": comment.created_at.isoformat(),
         "author": (actor.display_name or actor.first_name or actor.email.split("@")[0]) if actor else "",
         "avatar_url": actor.avatar_url if actor else None,
@@ -273,7 +321,7 @@ class PortalCommentsEndpoint(PortalBaseEndpoint):
         # the latest ones past the cap, shown oldest first
         latest = (
             IssueComment.objects.filter(issue_id=issue.id, project_id=project.id, access="EXTERNAL")
-            .select_related("actor")
+            .select_related("actor", "zil_moment")
             .order_by("-created_at")[:MAX_COMMENTS]
         )
         return Response({"comments": [_comment(c, team_ids, request.user) for c in reversed(list(latest))]})
@@ -293,16 +341,40 @@ class PortalCommentsEndpoint(PortalBaseEndpoint):
             return Response({"error": "Write a comment"}, status=status.HTTP_400_BAD_REQUEST)
         if len(text) > MAX_COMMENT:
             return Response({"error": "Comment too long"}, status=status.HTTP_400_BAD_REQUEST)
+        # optionally, the second of one of the post's videos it is about
+        moment = None
+        media_id = str(request.data.get("media") or "")
+        if media_id:
+            try:
+                at = int(request.data.get("at"))
+            except (TypeError, ValueError):
+                at = -1
+            # one the portal plays itself (Drive's own preview can't say where it is)
+            video = next(
+                (
+                    m
+                    for m in _post_media(project.id, issue, _links(issue))
+                    if m["id"] == media_id and m["kind"] in ("file", "drive") and m["type"].startswith("video/")
+                ),
+                None,
+            )
+            if video is None or not 0 <= at <= MAX_MOMENT:
+                return Response({"error": "Unknown moment"}, status=status.HTTP_400_BAD_REQUEST)
+            label = f"<p><strong>{clock(at)}</strong> · {escape(video['name'] or media_id)}</p>"
+            moment = {"media": media_id, "seconds": at, "label_html": label}
         comment = IssueComment(
             issue_id=issue.id,
             project_id=project.id,
             workspace_id=project.workspace_id,
             actor=request.user,
             access="EXTERNAL",
-            comment_html=_text_to_html(text),
+            comment_html=(moment["label_html"] if moment else "") + _text_to_html(text),
             created_by_id=request.user.id,
         )
-        comment.save(created_by_id=request.user.id)
+        with transaction.atomic():
+            comment.save(created_by_id=request.user.id)
+            if moment:
+                ZilCommentMoment.objects.create(comment=comment, created_by_id=request.user.id, **moment)
         issue_activity.delay(
             type="comment.activity.created",
             requested_data=json.dumps(

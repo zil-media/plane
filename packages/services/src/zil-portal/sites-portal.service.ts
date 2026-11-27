@@ -60,8 +60,14 @@ export class SitesPortalService extends APIService {
     return this.read(this.get(`/api/public/portal/${projectId}/posts/${postId}/comments/`));
   }
 
-  async addComment(projectId: string, postId: string, text: string): Promise<TZilPortalComment> {
-    return this.read(this.post(`/api/public/portal/${projectId}/posts/${postId}/comments/`, { text }));
+  /** `moment`: the second of one of the post's videos the comment is about */
+  async addComment(
+    projectId: string,
+    postId: string,
+    text: string,
+    moment?: { media: string; at: number }
+  ): Promise<TZilPortalComment> {
+    return this.read(this.post(`/api/public/portal/${projectId}/posts/${postId}/comments/`, { text, ...moment }));
   }
 
   async documents(projectId: string): Promise<{ folders: TZilPortalFolder[]; documents: TZilPortalDocument[] }> {

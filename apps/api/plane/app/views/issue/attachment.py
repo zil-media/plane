@@ -114,8 +114,9 @@ class IssueAttachmentV2Endpoint(BaseAPIView):
         # asset key
         asset_key = f"{workspace.id}/{uuid.uuid4().hex}-{name}"
 
-        # Get the size limit
-        size_limit = min(size, settings.FILE_SIZE_LIMIT)
+        # Get the size limit (a video has its own: the client portal plays it)
+        cap = settings.VIDEO_FILE_SIZE_LIMIT if str(type).startswith("video/") else settings.FILE_SIZE_LIMIT
+        size_limit = min(size, cap)
 
         # Create a File Asset
         asset = FileAsset.objects.create(

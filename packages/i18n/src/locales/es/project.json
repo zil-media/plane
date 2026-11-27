@@ -539,6 +539,8 @@
     "post_unavailable": "Esta publicación ya no está disponible.",
     "comments": "Comentarios",
     "no_comments": "Todavía no hay comentarios.",
+    "comment_at": "Comentar en {time} de {name}",
+    "go_to_moment": "Ir a {time} del video",
     "comments_load_error": "No pudimos cargar los comentarios.",
     "comment_placeholder": "Escribí tu comentario",
     "send": "Enviar",

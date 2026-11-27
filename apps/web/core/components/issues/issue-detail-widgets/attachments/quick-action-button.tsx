@@ -35,7 +35,7 @@ export const IssueAttachmentActionButton = observer(function IssueAttachmentActi
   // store hooks
   const { setLastWidgetAction, fetchActivities } = useIssueDetail(issueServiceType);
   // file size
-  const { maxFileSize } = useFileSize();
+  const { maxDropSize, sizeValidator, limitMbFor } = useFileSize();
   // operations
   const { operations: attachmentOperations } = useAttachmentOperations(
     workspaceSlug,
@@ -80,22 +80,24 @@ export const IssueAttachmentActionButton = observer(function IssueAttachmentActi
         message:
           totalAttachedFiles > 1
             ? "Only one file can be uploaded at a time."
-            : `File must be of ${maxFileSize / 1024 / 1024}MB or less in size.`,
+            : `File must be of ${Math.round(limitMbFor(rejectedFiles[0]?.file))}MB or less in size.`,
       });
       return;
     },
-    [attachmentOperations, maxFileSize, workspaceSlug, handleFetchPropertyActivities, setLastWidgetAction]
+    [attachmentOperations, limitMbFor, workspaceSlug, handleFetchPropertyActivities, setLastWidgetAction]
   );
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
-    maxSize: maxFileSize,
+    maxSize: maxDropSize,
+    validator: sizeValidator,
     multiple: false,
     disabled: isLoading || disabled,
   });
 
   return (
     <div
+      role="presentation"
       onClick={(e) => {
         // TODO: Remove extra div and move event propagation to button
         e.stopPropagation();

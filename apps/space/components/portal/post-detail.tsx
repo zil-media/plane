@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Fragment } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { ExternalLink, MoveRight } from "lucide-react";
 import useSWR from "swr";
@@ -13,13 +13,60 @@ import { useTranslation } from "@plane/i18n";
 import { DueDatePropertyIcon, LabelPropertyIcon, StateGroupIcon, StatePropertyIcon } from "@plane/propel/icons";
 import { SitesPortalService } from "@plane/services";
 import { Loader } from "@plane/ui";
+import type { TZilPortalMedia } from "@plane/types";
 import { getFileURL } from "@plane/utils";
 // local imports
 import { PortalComments } from "./comments";
+import type { TPortalPlayback } from "./comments";
 import { dateLocale, dayLabel, isVideo } from "./helpers";
 import { PortalContent } from "./portal-content";
 
 const portalService = new SitesPortalService();
+
+const DRIVE_PREVIEW = "https://drive.google.com/file/d/";
+
+/** One image or video of the post: uploaded to Ops, played from Drive, or Drive's own preview. */
+function PostMediaItem({
+  item,
+  onPlayer,
+  onTime,
+}: {
+  item: TZilPortalMedia;
+  onPlayer: (element: HTMLVideoElement | null) => void;
+  onTime: (seconds: number) => void;
+}) {
+  if (item.kind === "drive_preview") {
+    // Drive's player (it asks for access when the file isn't shared); only Drive's own address
+    if (!item.url.startsWith(DRIVE_PREVIEW)) return null;
+    return (
+      <iframe
+        src={item.url}
+        title={item.name}
+        allow="autoplay; fullscreen"
+        allowFullScreen
+        /* oxlint-disable-next-line react/iframe-missing-sandbox -- Drive's own origin, not ours: its player needs its scripts and its sign-in */
+        sandbox="allow-scripts allow-same-origin allow-popups allow-presentation"
+        className="aspect-video w-full border-0"
+      />
+    );
+  }
+  const src = item.kind === "drive" ? item.url : getFileURL(item.url);
+  if (isVideo(item.type))
+    return (
+      <video
+        ref={onPlayer}
+        src={src}
+        controls
+        preload="metadata"
+        onTimeUpdate={(event) => onTime(event.currentTarget.currentTime)}
+        onSeeked={(event) => onTime(event.currentTarget.currentTime)}
+        className="max-h-[60vh] w-full object-contain"
+      >
+        <track kind="captions" />
+      </video>
+    );
+  return <img src={src} alt={item.name} className="max-h-[60vh] w-full object-contain" />;
+}
 
 type Props = {
   projectId: string;
@@ -37,6 +84,29 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
   const { t, currentLocale } = useTranslation();
   const { data: post, error } = useSWR(postId ? `PORTAL_POST_${projectId}_${postId}` : null, () =>
     portalService.retrievePost(projectId, postId as string)
+  );
+  // the post's players, and where the one last played is: a comment can point at that second
+  const players = useRef<Record<string, HTMLVideoElement | null>>({});
+  const [current, setCurrent] = useState<TPortalPlayback["current"]>(null);
+  useEffect(() => setCurrent(null), [postId]);
+
+  const track = (item: TZilPortalMedia) => (seconds: number) => {
+    const at = Math.floor(seconds);
+    setCurrent((now) => (now?.media === item.id && now.at === at ? now : { media: item.id, name: item.name, at }));
+  };
+  const seek = useCallback((media: string, at: number) => {
+    const player = players.current[media];
+    if (!player) return;
+    player.currentTime = at;
+    player.scrollIntoView({ behavior: "smooth", block: "center" });
+    void player.play().catch(() => undefined);
+  }, []);
+  const pause = useCallback(() => {
+    if (current) players.current[current.media]?.pause();
+  }, [current]);
+  // the videos the portal plays itself (Drive's preview can't jump to a second)
+  const playable = new Set(
+    (post?.media ?? []).filter((item) => item.kind !== "drive_preview" && isVideo(item.type)).map((item) => item.id)
   );
 
   return (
@@ -90,23 +160,20 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
                       </Dialog.Title>
                       {post.media.length > 0 && (
                         <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto py-2">
-                          {post.media.map((item) => {
-                            const src = getFileURL(item.url);
-                            return (
-                              <div
-                                key={item.id}
-                                className="w-full flex-shrink-0 snap-center overflow-hidden rounded-md bg-layer-1"
-                              >
-                                {isVideo(item.type) ? (
-                                  <video src={src} controls className="max-h-[60vh] w-full object-contain">
-                                    <track kind="captions" />
-                                  </video>
-                                ) : (
-                                  <img src={src} alt={item.name} className="max-h-[60vh] w-full object-contain" />
-                                )}
-                              </div>
-                            );
-                          })}
+                          {post.media.map((item) => (
+                            <div
+                              key={item.id}
+                              className="w-full flex-shrink-0 snap-center overflow-hidden rounded-md bg-layer-1"
+                            >
+                              <PostMediaItem
+                                item={item}
+                                onPlayer={(element) => {
+                                  players.current[item.id] = element;
+                                }}
+                                onTime={track(item)}
+                              />
+                            </div>
+                          ))}
                         </div>
                       )}
                       <PortalContent id={post.id} projectId={projectId} html={post.description_html} />
@@ -180,7 +247,13 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
                     <div className="my-5 h-[1] w-full border-t border-subtle" />
                     {/* comments (PeekOverviewIssueActivity) */}
                     <div className="w-full pb-5">
-                      <PortalComments key={post.id} projectId={projectId} postId={post.id} preview={preview} />
+                      <PortalComments
+                        key={post.id}
+                        projectId={projectId}
+                        postId={post.id}
+                        preview={preview}
+                        playback={{ current, playable, seek, pause }}
+                      />
                     </div>
                   </div>
                 ) : (

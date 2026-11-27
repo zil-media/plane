@@ -18,3 +18,12 @@ export const shortDate = (iso: string, locale: Locale) => format(parseISO(iso), 
 export const ago = (iso: string, locale: Locale) => formatDistanceToNow(parseISO(iso), { addSuffix: true, locale });
 
 export const isVideo = (type: string | undefined) => !!type && type.toLowerCase().startsWith("video/");
+
+/** 0:42, 12:05, 1:02:03 (as the API labels a comment's moment). */
+export const clock = (seconds: number) => {
+  const total = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = String(total % 60).padStart(2, "0");
+  return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${secs}` : `${minutes}:${secs}`;
+};

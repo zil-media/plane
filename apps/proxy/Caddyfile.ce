@@ -17,15 +17,30 @@
 		header Content-Type multipart/form-data*
 		path_regexp ^/api/workspaces/[^/]+/projects/[^/]+/pages/[^/]+/zil-client/brand-files/$
 	}
-	@not_brand_file_upload not {
+	# A presigned upload straight to the bucket can be a work item's video (VIDEO_FILE_SIZE_LIMIT,
+	# the client portal plays it): the bucket's own policy still holds each file to its cap.
+	@bucket_upload {
 		method POST
-		header Content-Type multipart/form-data*
-		path_regexp ^/api/workspaces/[^/]+/projects/[^/]+/pages/[^/]+/zil-client/brand-files/$
+		path /{$BUCKET_NAME} /{$BUCKET_NAME}/*
+	}
+	@other_body {
+		not {
+			method POST
+			header Content-Type multipart/form-data*
+			path_regexp ^/api/workspaces/[^/]+/projects/[^/]+/pages/[^/]+/zil-client/brand-files/$
+		}
+		not {
+			method POST
+			path /{$BUCKET_NAME} /{$BUCKET_NAME}/*
+		}
 	}
 	request_body @brand_file_upload {
 		max_size 21MiB
 	}
-	request_body @not_brand_file_upload {
+	request_body @bucket_upload {
+		max_size {$VIDEO_FILE_SIZE_LIMIT:99614720}
+	}
+	request_body @other_body {
 		max_size {$FILE_SIZE_LIMIT}
 	}
 

@@ -25,7 +25,7 @@ export const IssueAttachmentUpload = observer(function IssueAttachmentUpload(pro
   // states
   const [isLoading, setIsLoading] = useState(false);
   // file size
-  const { maxFileSize } = useFileSize();
+  const { maxDropSize, sizeValidator, limitMbFor } = useFileSize();
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -40,13 +40,16 @@ export const IssueAttachmentUpload = observer(function IssueAttachmentUpload(pro
 
   const { getRootProps, getInputProps, isDragActive, isDragReject, fileRejections } = useDropzone({
     onDrop,
-    maxSize: maxFileSize,
+    maxSize: maxDropSize,
+    validator: sizeValidator,
     multiple: false,
     disabled: isLoading || disabled,
   });
 
   const fileError =
-    fileRejections.length > 0 ? `Invalid file type or size (max ${maxFileSize / 1024 / 1024} MB)` : null;
+    fileRejections.length > 0
+      ? `Invalid file type or size (max ${Math.round(limitMbFor(fileRejections[0]?.file))} MB)`
+      : null;
 
   return (
     <div
