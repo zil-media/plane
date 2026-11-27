@@ -99,6 +99,7 @@ class TestBrandProjectCreation:
             "identifier": "KFC",
             "status": "created",
             "error": None,
+            "clients": [],
         }
         assert project.network == 0 and project.name == "KFC" and project.identifier == "KFC"
         assert project.logo_props["icon"]["color"] == "#E2231A"

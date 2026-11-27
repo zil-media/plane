@@ -19,7 +19,12 @@ from plane.app.views import (
     ProjectArchiveUnarchiveEndpoint,
     ProjectMemberPreferenceEndpoint,
 )
-from plane.app.views.project.zil_brand import ZilMyBrandsEndpoint, ZilProjectBrandEndpoint
+from plane.app.views.project.zil_brand import (
+    ZilMyBrandsEndpoint,
+    ZilProjectBrandEndpoint,
+    ZilProjectPortalEndpoint,
+    ZilProjectPortalInviteEndpoint,
+)
 
 
 urlpatterns = [
@@ -29,6 +34,16 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/zil-brand/",
         ZilProjectBrandEndpoint.as_view(),
         name="zil-project-brand",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/zil-portal/",
+        ZilProjectPortalEndpoint.as_view(),
+        name="zil-project-portal",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/zil-portal/clients/<uuid:client_id>/invite/",
+        ZilProjectPortalInviteEndpoint.as_view(),
+        name="zil-project-portal-invite",
     ),
     path(
         "workspaces/<str:slug>/projects/",

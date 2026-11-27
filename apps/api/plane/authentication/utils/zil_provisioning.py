@@ -224,12 +224,12 @@ def _upsert_membership(workspace, user, role, authoritative=False):
     return wm
 
 
-def _make_stand_in_user(email):
+def _make_stand_in_user(email, onboarded=False):
     """The account someone's first sign-in would make: no local password, email verified upstream, Spanish."""
     user = User(email=email, username=uuid.uuid4().hex, is_password_autoset=True, is_email_verified=True)
     user.set_password(uuid.uuid4().hex)
     user.save()
-    Profile.objects.create(user=user, language=ZIL_DEFAULT_LANGUAGE)
+    Profile.objects.create(user=user, language=ZIL_DEFAULT_LANGUAGE, is_onboarded=onboarded)
     return user
 
 
@@ -249,7 +249,8 @@ def provision_brand_client_user(email):
         return None if user.is_bot or not user.is_active else (user.id, False)
     try:
         with transaction.atomic():
-            user = _make_stand_in_user(email)
+            # onboarded: a client never sees the team's onboarding, only their portal
+            user = _make_stand_in_user(email, onboarded=True)
     except IntegrityError:
         # made at the same time by their own sign-in: that one wins
         user = User.objects.filter(email=email).first()

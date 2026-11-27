@@ -64,11 +64,13 @@ from plane.db.models import (
     ZilBrandMember,
     ZilBrandProject,
     ZilBrandRoster,
+    ZilClientPortal,
 )
 from plane.db.models.project import ProjectNetwork
 from plane.db.models.state import DEFAULT_STATES
 from plane.utils.studio_defaults import seed_studio_defaults
 from plane.utils.zil_client import is_valid_client_id
+from plane.utils.zil_client_portal import client_access, invite_client, seed_brand_content
 from plane.utils.zil_managed import ZIL_PROJECT_NAME_FORBIDDEN
 
 logger = logging.getLogger("plane.zil.brand_projects")
@@ -283,20 +285,39 @@ def apply_clients(mapping, clients, team, authoritative, stats):
             stats["users_provisioned"] += int(created)
         row = stored.get(email)
         if row is None:
-            ZilBrandClient(brand_project=mapping, email=email, user_id=user_id).save(disable_auto_set_user=True)
+            row = ZilBrandClient(brand_project=mapping, email=email, user_id=user_id)
+            row.save(disable_auto_set_user=True)
             stats["clients_added"] += 1
             changed = True
+            _invite_when_kept(row)
         elif row.user_id != user_id:
             # an account made since, or one deactivated since (it loses the portal)
             row.user_id = user_id
             row.save(update_fields=["user", "updated_at"])
             changed = True
+            if row.invited_at is None:
+                _invite_when_kept(row)
     gone = [row.pk for email, row in stored.items() if email not in clients and (authoritative or email in team)]
     if gone:
         ZilBrandClient.objects.filter(pk__in=gone).delete(soft=False)
         stats["clients_removed"] += len(gone)
         changed = True
     return changed
+
+
+def _invite_when_kept(row):
+    """A new client of a brand whose portal is on gets its invitation once the roster is kept (a dry
+    run sends nothing). With the portal off, turning it on invites them (zil_client_portal)."""
+    if row.user_id is None:
+        return
+    pk = row.pk
+
+    def send():
+        client = ZilBrandClient.objects.filter(pk=pk).select_related("brand_project__project").first()
+        if client is not None and client.invited_at is None:
+            invite_client(client)
+
+    transaction.on_commit(send)
 
 
 def apply_members(mapping, raw_members, members_authoritative, stats, ws_roles=None):
@@ -419,6 +440,10 @@ def _apply_brand(workspace, brand, mapping, owner, template, stats, ws_roles, wi
 
     project = mapping.project
     fields = set()
+
+    # the content calendar and the client portal's folder (also for brands made before them)
+    if status != "unchanged" or not ZilClientPortal.objects.filter(project=project).exists():
+        seed_brand_content(project, owner)
 
     new_name = _unique_name(workspace.id, name, brand_id, project.id)
     if new_name != mapping.auto_name and project.name == mapping.auto_name:
@@ -609,6 +634,8 @@ def _apply_roster(workspace_id, brands_by_id, authoritative, computed_at, force,
                 "identifier": mapping.identifier,
                 "status": status,
                 "error": None,
+                # each client's portal access, for the brand's page in Zil Workspace
+                "clients": client_access(mapping),
             }
         except Exception as e:  # one brand never stops the others (their revocations included)
             logger.exception("zil brand project %s failed in workspace %s", brand_id, workspace_id)

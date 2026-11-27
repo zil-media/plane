@@ -1600,6 +1600,14 @@ def issue_activity(
         except Exception as e:
             log_exception(e)
 
+        # the brand client portal's notices (plane.utils.zil_client_portal)
+        try:
+            from plane.utils.zil_client_portal import dispatch_portal_events
+
+            dispatch_portal_events(type, issue_id, actor_id, issue_activities_created)
+        except Exception as e:
+            log_exception(e)
+
         if notification:
             notifications.delay(
                 type=type,

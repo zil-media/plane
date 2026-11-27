@@ -15,7 +15,7 @@ from rest_framework.response import Response
 
 # Module imports
 from plane.app.permissions import ROLE, allow_permission
-from plane.db.models import ProjectMember, ZilBrandOps, ZilBrandProject, ZilBrandResponsible
+from plane.db.models import ProjectMember, ZilBrandClient, ZilBrandOps, ZilBrandProject, ZilBrandResponsible
 from plane.utils.zil_client import ZilUnavailable, get_zil_brand, zil_enabled
 from ..base import BaseAPIView
 
@@ -341,3 +341,87 @@ class ZilProjectBrandEndpoint(BaseAPIView):
                         zil_brand_id=mapping.zil_brand_id, workspace_id=unit_id, defaults={"member_id": member_id}
                     )
         return Response({"ops": serialize_brand_ops(mapping, ops)}, status=status.HTTP_200_OK)
+
+
+def serialize_portal(mapping, portal):
+    """The "Portal del cliente" section of the Marca tab: on/off, its link and the client accounts."""
+    from plane.utils.zil_client_portal import access_status, is_paused, portal_url
+
+    clients = ZilBrandClient.objects.filter(brand_project=mapping).select_related("user").order_by("email")
+    return {
+        "enabled": bool(portal and portal.enabled),
+        "paused": is_paused(mapping.project, mapping),
+        "url": portal_url(str(mapping.project_id)),
+        "folder_id": str(portal.pages_folder_id) if portal and portal.pages_folder_id else None,
+        "clients": [
+            {
+                "id": str(client.id),
+                "email": client.email,
+                "status": access_status(client),
+                "has_account": client.user_id is not None,
+                "invited_at": client.invited_at,
+                "last_login": client.user.last_login_time if client.user_id else None,
+            }
+            for client in clients
+        ],
+    }
+
+
+class ZilProjectPortalEndpoint(BaseAPIView):
+    """The brand's client portal, from the Marca tab.
+
+    GET → on/off, link, the "Cliente" folder and the client accounts (they come from Zil Workspace).
+    PATCH {enabled} → turn it on (every client never invited gets the invitation) or off.
+    """
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    def get(self, request, slug, project_id):
+        from plane.db.models import ZilClientPortal
+
+        mapping = brand_mapping(slug, project_id)
+        if mapping is None:
+            return Response({"error": "Not a brand project"}, status=status.HTTP_404_NOT_FOUND)
+        portal = ZilClientPortal.objects.filter(project_id=project_id).first()
+        return Response(serialize_portal(mapping, portal), status=status.HTTP_200_OK)
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def patch(self, request, slug, project_id):
+        from plane.utils.zil_client_portal import invite_pending, seed_brand_content
+
+        mapping = brand_mapping(slug, project_id)
+        if mapping is None:
+            return Response({"error": "Not a brand project"}, status=status.HTTP_404_NOT_FOUND)
+        enabled = request.data.get("enabled")
+        if not isinstance(enabled, bool):
+            return Response({"enabled": "Must be true or false"}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            portal = seed_brand_content(mapping.project, request.user)
+            if portal.enabled != enabled:
+                portal.enabled = enabled
+                portal.save(update_fields=["enabled", "updated_at"])
+        if enabled:
+            invite_pending(portal)
+        return Response(serialize_portal(mapping, portal), status=status.HTTP_200_OK)
+
+
+class ZilProjectPortalInviteEndpoint(BaseAPIView):
+    """POST → send a client a new invitation link (the previous one stops working)."""
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def post(self, request, slug, project_id, client_id):
+        from plane.db.models import ZilClientPortal
+        from plane.utils.zil_client_portal import invite_client
+
+        mapping = brand_mapping(slug, project_id)
+        if mapping is None:
+            return Response({"error": "Not a brand project"}, status=status.HTTP_404_NOT_FOUND)
+        client = ZilBrandClient.objects.filter(brand_project=mapping, pk=client_id).first()
+        if client is None:
+            return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        if not invite_client(client):
+            return Response(
+                {"error": "The portal is off or paused, or the client has no account"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        portal = ZilClientPortal.objects.filter(project_id=project_id).first()
+        return Response(serialize_portal(mapping, portal), status=status.HTTP_200_OK)

@@ -20,8 +20,9 @@ class ZilBrandProjectsSyncEndpoint(ZilServiceView):
     membersAuthoritative}], authoritative, computed_at, force?, dry_run?, template?}. `role` is
     member, guest or client (a brand's client contact: an Ops account and the brand's portal, no
     membership). No ERP client data travels here. Answers the counters and one
-    `{brandId, projectId, identifier, status, error}` per brand, so Zil can link the brand to its
-    project. See plane.utils.zil_brand_projects.
+    `{brandId, projectId, identifier, status, error, clients}` per brand, so Zil can link the brand
+    to its project and show each client's portal access (`clients: [{email, status: active|invited|
+    expired|never, invitedAt, lastLogin}]`). See plane.utils.zil_brand_projects.
     """
 
     def post(self, request):

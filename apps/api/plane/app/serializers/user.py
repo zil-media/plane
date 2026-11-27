@@ -167,12 +167,16 @@ class UserMeSettingsSerializer(BaseSerializer):
                 .order_by("created_at")
                 .first()
             )
+            # a brand's client contact has no workspace: the app sends them to their brand portal
+            from plane.utils.zil_client_portal import is_portal_client
+
             return {
                 "last_workspace_id": None,
                 "last_workspace_slug": None,
                 "fallback_workspace_id": (fallback_workspace.id if fallback_workspace is not None else None),
                 "fallback_workspace_slug": (fallback_workspace.slug if fallback_workspace is not None else None),
                 "invites": workspace_invites,
+                "zil_portal_client": fallback_workspace is None and is_portal_client(obj),
                 **pinned_workspace_data,
             }
 

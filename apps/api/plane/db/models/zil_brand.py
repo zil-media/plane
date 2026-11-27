@@ -174,6 +174,10 @@ class ZilBrandClient(BaseModel):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="zil_brand_client_of"
     )
+    # the portal invitation (plane.utils.zil_client_portal): sha256 of the single-use link's token,
+    # emptied once used; a new invitation replaces the old one
+    invite_token_hash = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    invited_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Zil Brand Client"
@@ -191,6 +195,29 @@ class ZilBrandClient(BaseModel):
 
     def __str__(self):
         return f"{self.email} -> {self.brand_project_id} (client)"
+
+
+class ZilClientPortal(BaseModel):
+    """A brand project's client portal: its calendar and its "Cliente" pages folder, for its clients.
+
+    Off until the team turns it on in the "Marca" tab. While the brand is archived (suspended or
+    dropped in Zil) its clients are paused, whatever `enabled` says.
+    """
+
+    project = models.OneToOneField("db.Project", on_delete=models.CASCADE, related_name="zil_client_portal")
+    enabled = models.BooleanField(default=False)
+    pages_folder = models.ForeignKey(
+        "db.Page", on_delete=models.SET_NULL, null=True, blank=True, related_name="zil_client_portals"
+    )
+
+    class Meta:
+        verbose_name = "Zil Client Portal"
+        verbose_name_plural = "Zil Client Portals"
+        db_table = "zil_client_portals"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"portal {self.project_id} ({'on' if self.enabled else 'off'})"
 
 
 class ZilBrandRoster(BaseModel):

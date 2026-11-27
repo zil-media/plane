@@ -2,12 +2,20 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-from plane.db.models import Profile, Workspace, WorkspaceMemberInvite
+from plane.db.models import Profile, Workspace, WorkspaceMember, WorkspaceMemberInvite
 
 
 def get_redirection_path(user):
     # Handle redirections
     profile, _ = Profile.objects.get_or_create(user=user)
+
+    # A brand's client contact belongs to no workspace: their place is the brand portal
+    # (plane.utils.zil_client_portal), never the team's onboarding or "create workspace"
+    if not WorkspaceMember.objects.filter(member=user, is_active=True).exists():
+        from plane.utils.zil_client_portal import is_portal_client
+
+        if is_portal_client(user):
+            return "spaces/portal"
 
     # Redirect to onboarding if the user is not onboarded yet
     if not profile.is_onboarded:

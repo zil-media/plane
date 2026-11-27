@@ -95,4 +95,12 @@ from .description import Description, DescriptionVersion
 from .mcp_oauth import McpOAuthClient, McpOAuthCode, McpOAuthGrant, McpOAuthRequest
 
 from .usage import UsageDay
-from .zil_brand import ZilBrandClient, ZilBrandMember, ZilBrandOps, ZilBrandProject, ZilBrandResponsible, ZilBrandRoster
+from .zil_brand import (
+    ZilBrandClient,
+    ZilBrandMember,
+    ZilBrandOps,
+    ZilBrandProject,
+    ZilBrandResponsible,
+    ZilBrandRoster,
+    ZilClientPortal,
+)
