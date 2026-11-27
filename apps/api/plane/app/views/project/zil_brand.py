@@ -374,7 +374,7 @@ class ZilProjectPortalEndpoint(BaseAPIView):
     PATCH {enabled} → turn it on (every client never invited gets the invitation) or off.
     """
 
-    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def get(self, request, slug, project_id):
         from plane.db.models import ZilClientPortal
 

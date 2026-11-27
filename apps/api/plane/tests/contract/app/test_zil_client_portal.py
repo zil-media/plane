@@ -476,6 +476,12 @@ class TestDocuments:
         assert client.get(f"/api/public/portal/{project.id}/documents/{secret.id}/").status_code == 404
         assert client.get(f"/api/public/portal/{project.id}/documents/{guion.id}/").status_code == 200
 
+        # an archived "Cliente" folder hides everything inside it
+        folder.archived_at = timezone.now().date()
+        folder.save()
+        assert client.get(f"/api/public/portal/{project.id}/documents/").json()["documents"] == []
+        assert client.get(f"/api/public/portal/{project.id}/documents/{guion.id}/").status_code == 404
+
 
 @pytest.mark.contract
 class TestInvites:
@@ -569,6 +575,57 @@ class TestInvites:
         )
 
         assert response.status_code == 400 and not emails.called
+
+
+@pytest.mark.contract
+class TestInviteHardening:
+    def _token(self, workspace, kfc, create_user, emails):
+        client_row = ZilBrandClient.objects.get(email="cliente@kfc.test")
+        emails.reset_mock()
+        as_user(create_user).post(
+            f"/api/workspaces/{workspace.slug}/projects/{kfc.project_id}/zil-portal/clients/{client_row.id}/invite/"
+        )
+        return emails.call_args.args[5].rsplit("/invite/", 1)[1]
+
+    @pytest.mark.django_db
+    def test_a_link_stops_working_when_the_portal_is_turned_off(self, workspace, kfc, create_user, emails):
+        token = self._token(workspace, kfc, create_user, emails)
+        ZilClientPortal.objects.filter(project_id=kfc.project_id).update(enabled=False)
+
+        assert APIClient().get(f"/api/public/portal/invite/{token}/").status_code == 404
+        response = APIClient().post(
+            f"/api/public/portal/invite/{token}/", {"password": "Calendario-KFC-2026!"}, format="json"
+        )
+        assert response.status_code == 404
+
+    @pytest.mark.django_db
+    def test_an_account_with_its_own_password_is_sent_to_sign_in_not_signed_in(
+        self, workspace, kfc, create_user, emails
+    ):
+        user = User.objects.get(email="cliente@kfc.test")
+        user.set_password("Su-propia-clave-2026")
+        user.is_password_autoset = False
+        user.save()
+        token = self._token(workspace, kfc, create_user, emails)
+        anon = APIClient()
+
+        response = anon.post(f"/api/public/portal/invite/{token}/", {}, format="json")
+
+        assert response.json() == {"project_id": str(kfc.project_id), "sign_in": True}
+        assert anon.get(f"/api/public/portal/{kfc.project_id}/").status_code in (401, 403)
+        user.refresh_from_db()
+        assert user.check_password("Su-propia-clave-2026")
+        assert anon.post(f"/api/public/portal/invite/{token}/", {}, format="json").status_code == 404
+
+    @pytest.mark.django_db
+    def test_a_link_is_spent_once_even_by_two_requests_at_the_same_time(self, workspace, kfc, create_user, emails):
+        from plane.utils.zil_client_portal import client_for_token, use_invite
+
+        token = self._token(workspace, kfc, create_user, emails)
+        first, second = client_for_token(token), client_for_token(token)
+
+        assert use_invite(first) is True
+        assert use_invite(second) is False
 
 
 @pytest.mark.contract

@@ -166,7 +166,11 @@ def seed_brand_content(project, user):
 
 def _is_live_folder(page_id, project):
     return Page.objects.filter(
-        pk=page_id, kind=Page.FOLDER_KIND, archived_at__isnull=True, project_pages__project=project
+        pk=page_id,
+        kind=Page.FOLDER_KIND,
+        archived_at__isnull=True,
+        project_pages__project=project,
+        project_pages__deleted_at__isnull=True,
     ).exists()
 
 
@@ -314,7 +318,8 @@ def is_visible(issue):
 
 def folder_pages(portal):
     """The pages inside the portal's "Cliente" folder, at any depth (folders themselves left out)."""
-    if portal.pages_folder_id is None:
+    # an archived (or unlinked) folder hides everything inside it
+    if portal.pages_folder_id is None or not _is_live_folder(portal.pages_folder_id, portal.project):
         return Page.objects.none()
     ids = []
     frontier = [portal.pages_folder_id]
@@ -419,14 +424,27 @@ def client_for_token(token):
         return None
     if not client.user.is_active or client.user.is_bot:
         return None
+    # a portal turned off, or a brand paused or gone, since the invitation: the link stops working
+    mapping = client.brand_project
+    if mapping.deleted_at is not None or mapping.project.deleted_at is not None or is_paused(mapping.project, mapping):
+        return None
+    if not ZilClientPortal.objects.filter(project_id=mapping.project_id, enabled=True).exists():
+        return None
     return client
 
 
 def use_invite(client):
-    """The link works once: every live invitation of the same account is spent with it."""
+    """Spend the link: True for the one request that does (two at once never both get in). Every
+    other live invitation of the same account is spent with it."""
+    spent = ZilBrandClient.objects.filter(pk=client.pk, invite_token_hash=client.invite_token_hash).update(
+        invite_token_hash="", updated_at=timezone.now()
+    )
+    if spent != 1:
+        return False
     ZilBrandClient.objects.filter(user_id=client.user_id).exclude(invite_token_hash="").update(
         invite_token_hash="", updated_at=timezone.now()
     )
+    return True
 
 
 def access_status(client):
@@ -638,7 +656,9 @@ def dispatch_portal_events(type, issue_id, actor_id, issue_activities):
     for activity in issue_activities:
         if activity.field != "comment" or activity.issue_comment_id is None:
             continue
-        comment = IssueComment.objects.filter(pk=activity.issue_comment_id, access="EXTERNAL").first()
+        comment = IssueComment.objects.filter(
+            pk=activity.issue_comment_id, issue_id=issue.id, access="EXTERNAL"
+        ).first()
         if comment is None:
             continue
         author = User.objects.filter(pk=actor_id).first()

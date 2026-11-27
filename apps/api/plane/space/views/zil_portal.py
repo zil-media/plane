@@ -52,6 +52,8 @@ from plane.utils.zil_client_portal import (
 from .base import BaseAPIView
 
 MAX_POSTS = 500
+MAX_COMMENTS = 500
+MAX_DOCUMENTS = 300
 MAX_COMMENT = 5000
 MEDIA_TYPES = ("image/", "video/")
 
@@ -265,7 +267,7 @@ class PortalCommentsEndpoint(PortalBaseEndpoint):
         comments = (
             IssueComment.objects.filter(issue_id=issue.id, project_id=project.id, access="EXTERNAL")
             .select_related("actor")
-            .order_by("created_at")
+            .order_by("created_at")[:MAX_COMMENTS]
         )
         return Response({"comments": [_comment(c, team_ids, request.user) for c in comments]})
 
@@ -316,7 +318,7 @@ class PortalDocumentsEndpoint(PortalBaseEndpoint):
             portal, _, _, _ = self.guard(request, project_id)
         except PortalDenied as exc:
             return _denied(exc)
-        pages = folder_pages(portal).order_by("-updated_at")
+        pages = folder_pages(portal).order_by("-updated_at")[:MAX_DOCUMENTS]
         return Response(
             {
                 "documents": [
@@ -405,19 +407,24 @@ class PortalInviteEndpoint(BaseAPIView):
         if client is None:
             return Response({"error": "invalid"}, status=status.HTTP_404_NOT_FOUND)
         user = client.user
-        fields = ["last_login_time", "last_active", "last_login_medium"]
-        if needs_password(user):
-            password = str(request.data.get("password") or "")
-            if len(password) < 8 or zxcvbn(password)["score"] < 3:
-                return Response({"error": "weak_password"}, status=status.HTTP_400_BAD_REQUEST)
-            user.set_password(password)
-            user.is_password_autoset = False
-            fields += ["password", "is_password_autoset"]
+        project_id = str(client.brand_project.project_id)
+        if not needs_password(user):
+            # an account with its own password signs in with it: the link only takes them there
+            if not use_invite(client):
+                return Response({"error": "invalid"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"project_id": project_id, "sign_in": True})
+        password = str(request.data.get("password") or "")
+        if len(password) < 8 or zxcvbn(password)["score"] < 3:
+            return Response({"error": "weak_password"}, status=status.HTTP_400_BAD_REQUEST)
+        if not use_invite(client):
+            return Response({"error": "invalid"}, status=status.HTTP_404_NOT_FOUND)
+        user.set_password(password)
+        user.is_password_autoset = False
+        fields = ["password", "is_password_autoset", "last_login_time", "last_active", "last_login_medium"]
         now = timezone.now()
         user.last_login_time = now
         user.last_active = now
         user.last_login_medium = "email"
         user.save(update_fields=fields)
-        use_invite(client)
         user_login(request=request, user=user, is_space=True)
-        return Response({"project_id": str(client.brand_project.project_id)})
+        return Response({"project_id": project_id})
