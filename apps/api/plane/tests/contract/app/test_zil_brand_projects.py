@@ -811,3 +811,36 @@ class TestBrandClients:
 
         assert response["refused"] == "archive_fuse" and response["clients_removed"] == 0
         assert set(client_rows(KFC)) == {"cliente@kfc.test"}
+
+
+@pytest.mark.contract
+class TestBrandClientNames:
+    @pytest.mark.django_db
+    def test_a_client_account_takes_the_contact_name_from_zil(self, workspace):
+        push(
+            workspace,
+            [brand(KFC, "KFC", members=[{"email": "lucia@kfc.test", "role": "client", "name": "Lucía Andina"}])],
+        )
+
+        user = User.objects.get(email="lucia@kfc.test")
+        assert (user.first_name, user.last_name, user.display_name) == ("Lucía", "Andina", "Lucía Andina")
+
+    @pytest.mark.django_db
+    def test_an_account_without_a_name_gets_it_later_and_a_name_someone_set_is_kept(self, workspace):
+        push(workspace, [brand(KFC, "KFC", members=[{"email": "lucia@kfc.test", "role": "client"}])])
+        assert User.objects.get(email="lucia@kfc.test").display_name == "lucia"
+
+        push(
+            workspace,
+            [brand(KFC, "KFC", members=[{"email": "lucia@kfc.test", "role": "client", "name": "Lucía Andina"}])],
+        )
+        user = User.objects.get(email="lucia@kfc.test")
+        assert user.display_name == "Lucía Andina"
+
+        user.first_name, user.last_name, user.display_name = "Lu", "", "Lu"
+        user.save()
+        push(
+            workspace,
+            [brand(KFC, "KFC", members=[{"email": "lucia@kfc.test", "role": "client", "name": "Otra Persona"}])],
+        )
+        assert User.objects.get(email="lucia@kfc.test").display_name == "Lu"

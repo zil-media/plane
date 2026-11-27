@@ -219,9 +219,9 @@ def _restore(project):
 
 
 def _parse_members(raw_members):
-    """({email: team role}, {client emails}). Someone both on the team and a client is team only."""
+    """({email: team role}, {client email: name}). Someone both on the team and a client is team only."""
     desired = {}
-    clients = set()
+    clients = {}
     for member in raw_members or []:
         if not isinstance(member, dict):
             continue
@@ -230,12 +230,13 @@ def _parse_members(raw_members):
             continue
         role_name = str(member.get("role") or "member").strip().lower()
         if role_name == CLIENT_ROLE:
-            clients.add(email)
+            # the contact's name in Zil Workspace names their account (nothing else of the client travels)
+            clients[email] = str(member.get("name") or "").strip()[:255] or clients.get(email, "")
             continue
         role = BRAND_ROLES.get(role_name, MEMBER_ROLE)
         # the same person twice keeps the higher role
         desired[email] = max(role, desired.get(email, 0))
-    return desired, clients - desired.keys()
+    return desired, {email: name for email, name in clients.items() if email not in desired}
 
 
 def _workspace_roles(workspace_id):
@@ -279,7 +280,7 @@ def apply_clients(mapping, clients, team, authoritative, stats):
     stored = {row.email: row for row in ZilBrandClient.objects.filter(brand_project=mapping)}
     for email in sorted(clients):
         user_id = None
-        provisioned = provision_brand_client_user(email)
+        provisioned = provision_brand_client_user(email, clients[email])
         if provisioned is not None:
             user_id, created = provisioned
             stats["users_provisioned"] += int(created)

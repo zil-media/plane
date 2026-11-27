@@ -205,9 +205,7 @@ def _upsert_membership(workspace, user, role, authoritative=False):
         wm.role = role
         update_fields.append("role")
     if not wm.is_active:
-        workspace_deactivated = not WorkspaceMember.objects.filter(
-            workspace=workspace, is_active=True
-        ).exists()
+        workspace_deactivated = not WorkspaceMember.objects.filter(workspace=workspace, is_active=True).exists()
         if workspace_deactivated and not authoritative:
             logger.warning(
                 "Zil provisioning: refusing to reactivate membership for %s in "
@@ -233,11 +231,25 @@ def _make_stand_in_user(email, onboarded=False):
     return user
 
 
-def provision_brand_client_user(email):
+def _name_client(user, name):
+    """Give a client's account the name of their contact in Zil, unless the account already has one."""
+    name = " ".join(str(name or "").split())[:255]
+    custom_display = user.display_name and user.display_name != User.get_display_name(user.email)
+    if not name or user.first_name or user.last_name or custom_display:
+        return
+    first, _, last = name.partition(" ")
+    user.first_name, user.last_name = first[:255], last[:255]
+    user.display_name = User.build_display_name(user.first_name, user.last_name, user.email)
+    user.save(update_fields=["first_name", "last_name", "display_name"])
+
+
+def provision_brand_client_user(email, name=""):
     """The Ops account of a brand's client contact: made when they have none, never touched otherwise.
 
     A client joins no workspace (their way in is the brand's portal), so an existing account,
     signed in or not, is only looked up. A deactivated account or a bot is never given access.
+    `name` (the contact's name in Zil) names an account that has no name yet; a name someone set is
+    never changed.
 
     Returns (user_id, created) or None.
     """
@@ -246,11 +258,15 @@ def provision_brand_client_user(email):
         return None
     user = User.objects.filter(email=email).first()
     if user is not None:
-        return None if user.is_bot or not user.is_active else (user.id, False)
+        if user.is_bot or not user.is_active:
+            return None
+        _name_client(user, name)
+        return user.id, False
     try:
         with transaction.atomic():
             # onboarded: a client never sees the team's onboarding, only their portal
             user = _make_stand_in_user(email, onboarded=True)
+            _name_client(user, name)
     except IntegrityError:
         # made at the same time by their own sign-in: that one wins
         user = User.objects.filter(email=email).first()
@@ -416,9 +432,9 @@ def provision_user_workspaces(user, workspaces, authoritative=False):
             getattr(user, "email", user.pk),
         )
     if authoritative and desired_ws_ids:
-        WorkspaceMember.objects.filter(member=user, is_active=True).exclude(
-            workspace_id__in=desired_ws_ids
-        ).update(is_active=False)
+        WorkspaceMember.objects.filter(member=user, is_active=True).exclude(workspace_id__in=desired_ws_ids).update(
+            is_active=False
+        )
 
         # Hand off ownership of any workspace this user owns but no longer has an
         # active membership in (a director who left the BU). Give it to another
@@ -499,9 +515,7 @@ def provision_user_from_zil(user, request=None):
         return deactivate_user(user.email)
     # provision-context always reflects Zil's computed state (200 with the
     # user's current BUs), so it is authoritative.
-    return provision_user_workspaces(
-        user, data.get("workspaces") or [], authoritative=bool(data.get("authoritative"))
-    )
+    return provision_user_workspaces(user, data.get("workspaces") or [], authoritative=bool(data.get("authoritative")))
 
 
 def deactivate_workspace(slug):
