@@ -28,6 +28,8 @@ export type TPortalPlayback = {
   playable: Set<string>;
   seek: (media: string, at: number) => void;
   pause: () => void;
+  /** the comment whose mark on a timeline was picked */
+  focused?: string | null;
 };
 
 type Props = {
@@ -54,7 +56,13 @@ function CommentRow({
   const avatar = comment.avatar_url ? getFileURL(comment.avatar_url) : undefined;
   const author = comment.is_mine ? t("zil_portal.you") : comment.author;
   return (
-    <div className="relative flex items-start space-x-3">
+    <div
+      id={`portal-comment-${comment.id}`}
+      className={cn(
+        "relative flex items-start space-x-3 rounded-md transition-colors",
+        playback?.focused === comment.id && "bg-accent-subtle"
+      )}
+    >
       <div className="relative px-1">
         {avatar ? (
           <img

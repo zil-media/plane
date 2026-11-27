@@ -456,6 +456,8 @@
     }
   },
   "zil_brand": {
+    "drive_down_calendar": "The Drive video can't be opened: the client sees 'being processed'.",
+    "drive_down_link": "The client can't see this file: it was deleted or whoever pasted the link has no access. Fix it and press refresh.",
     "clients_group": "Clients",
     "my_brands": "My brands",
     "my_brands_description": "The brands you work on in this workspace.",
@@ -541,6 +543,13 @@
     "no_comments": "No comments yet.",
     "comment_at": "Comment at {time} of {name}",
     "go_to_moment": "Go to {time} in the video",
+    "play": "Play",
+    "pause": "Pause",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "fullscreen": "Full screen",
+    "video_processing_title": "This video is being processed",
+    "video_processing_text": "It will be available in a while.",
     "comments_load_error": "We couldn't load the comments.",
     "comment_placeholder": "Write your comment",
     "send": "Send",

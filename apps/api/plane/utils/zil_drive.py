@@ -11,13 +11,14 @@ with a short-lived read-only Drive token Zil Workspace mints from its service ac
 and the token never leaves Ops (the video goes through Ops' own streaming endpoint).
 
 When it can't (Workspace or Google down, a person without a Zil Workspace account, a file they
-can't open), the portal shows Drive's own preview instead.
+can't open), the client reads that the video is being processed, and the team sees the warning on
+the work item in Ops (`check_drive_link`).
 """
 
 import logging
 import re
 from datetime import datetime, timezone
-from urllib.parse import parse_qs, quote, urlparse
+from urllib.parse import parse_qs, urlparse
 
 import requests
 from django.core.cache import cache
@@ -31,6 +32,7 @@ FILE_ID = re.compile(r"^[A-Za-z0-9_-]{10,200}$")
 FILE_PATH = re.compile(r"^/file/d/([A-Za-z0-9_-]{10,200})(?:/|$)")
 META_SECONDS = 60 * 60
 FAILED_SECONDS = 2 * 60
+BROKEN_SECONDS = 10 * 60
 # a token is reused until a minute before it expires
 TOKEN_MARGIN = 60
 
@@ -52,16 +54,18 @@ def drive_file_id(url):
     return None
 
 
-def drive_token(email):
-    """A read-only Drive token acting as `email` (a Zil Workspace account), or None. Cached."""
+def _token_state(email):
+    """("ok", token) | ("refused", None) when Workspace says no for that person | ("unknown", None)."""
     email = str(email or "").strip().lower()
-    if not email or not zil_enabled():
-        return None
+    if not email:
+        return "refused", None
+    if not zil_enabled():
+        return "unknown", None
     key = f"zil_drive_token:{email}"
     cached = cache.get(key)
     if cached is not None:
-        return cached or None
-    token, ttl = "", FAILED_SECONDS
+        return cached
+    state, ttl = ("unknown", None), FAILED_SECONDS
     try:
         response = _post("/api/zil/drive-token", {"email": email})
         if response.status_code == 200:
@@ -69,24 +73,40 @@ def drive_token(email):
             token = str(body.get("accessToken") or "")
             expires = datetime.fromisoformat(str(body.get("expiresAt")).replace("Z", "+00:00"))
             ttl = int((expires - datetime.now(timezone.utc)).total_seconds()) - TOKEN_MARGIN
-            if not token or ttl <= 0:
-                token, ttl = "", FAILED_SECONDS
+            if token and ttl > 0:
+                state = ("ok", token)
+            else:
+                ttl = FAILED_SECONDS
+        elif response.status_code == 404:
+            # not an active person of the team: nobody can read the file as them
+            state = ("refused", None)
         else:
             log.info("Workspace gave no Drive token for the portal: %s", response.status_code)
     except (ZilUnavailable, ValueError, TypeError):
         log.warning("Drive token from Workspace failed", exc_info=True)
-    cache.set(key, token, ttl)
-    return token or None
+    cache.set(key, state, ttl)
+    return state
 
 
-def _metadata(file_id, email):
-    """{name, mimeType} of the file as `email` sees it, or None. Cached by file and person."""
+def drive_token(email):
+    """A read-only Drive token acting as `email` (a Zil Workspace account), or None. Cached."""
+    return _token_state(email)[1]
+
+
+def _lookup(file_id, email, fresh=False):
+    """{"status": "ok" | "broken" | "unknown", "meta": {name, mimeType} | None} of the file as `email`
+    sees it. "broken" only when it is certain (no such person, Google says not found or no access);
+    a timeout or an outage is "unknown". Cached by file and person."""
+    email = str(email or "").strip().lower()
     cache_key = f"zil_drive_meta:{email}:{file_id}"
-    cached = cache.get(cache_key)
-    if cached is not None:
-        return cached or None
-    meta = {}
-    token = drive_token(email)
+    if fresh:
+        cache.delete(cache_key)
+    else:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+    state, token = _token_state(email)
+    result = {"status": "broken" if state == "refused" else "unknown", "meta": None}
     if token:
         try:
             response = requests.get(
@@ -98,25 +118,55 @@ def _metadata(file_id, email):
             if response.status_code == 200:
                 body = response.json()
                 meta = {"name": str(body.get("name") or ""), "mimeType": str(body.get("mimeType") or "").lower()}
-            else:
+                result = {"status": "ok", "meta": meta}
+            elif response.status_code in (403, 404):
+                result = {"status": "broken", "meta": None}
                 log.info("Drive file %s not readable for the portal: %s", file_id, response.status_code)
+            else:
+                log.info("Drive lookup for %s answered %s", file_id, response.status_code)
         except (requests.RequestException, ValueError):
             log.warning("Drive lookup failed for %s", file_id, exc_info=True)
-    cache.set(cache_key, meta, META_SECONDS if meta else FAILED_SECONDS)
-    return meta or None
+    ttl = {"ok": META_SECONDS, "broken": BROKEN_SECONDS}.get(result["status"], FAILED_SECONDS)
+    cache.set(cache_key, result, ttl)
+    return result
 
 
 def playable(file_id, email):
     """The file's {name, mimeType} when the portal can play it (a video or an image), else None."""
-    meta = _metadata(file_id, email)
+    meta = _lookup(file_id, email)["meta"]
     if meta and meta["mimeType"].startswith(("video/", "image/")):
         return meta
     return None
 
 
+def record_status(link, status):
+    """Keep on the link whether the client can open its Drive file ("ok" / "broken"), for the
+    team's warning in Ops; an "unknown" (an outage) leaves what was known."""
+    if status not in ("ok", "broken"):
+        return
+    metadata = dict(link.metadata or {})
+    if (metadata.get("zil_drive") or {}).get("status") == status:
+        return
+    metadata["zil_drive"] = {"status": status, "checked_at": datetime.now(timezone.utc).isoformat()}
+    type(link).objects.filter(pk=link.pk).update(metadata=metadata)
+    link.metadata = metadata
+
+
+def check_link(link, fresh=False):
+    """Check a work item link's Drive file as whoever pasted it and keep the result on the link.
+    Returns the status, or None when it isn't a Drive file link."""
+    file_id = drive_file_id(link.url)
+    if not file_id:
+        return None
+    email = link.created_by.email if link.created_by_id and link.created_by else ""
+    status = _lookup(file_id, email, fresh=fresh)["status"]
+    record_status(link, status)
+    return status
+
+
 def drive_media(file_id, title, email, stream_url):
     """The portal's media entry for a Drive file linked by `email`: played by the portal through
-    `stream_url` (`drive`), or Drive's own preview (`drive_preview`)."""
+    `stream_url` (`drive`), or `unavailable` when Ops can't read it now."""
     meta = playable(file_id, email)
     media_id = f"drive:{file_id}"
     if meta:
@@ -127,13 +177,8 @@ def drive_media(file_id, title, email, stream_url):
             "type": meta["mimeType"],
             "url": stream_url,
         }
-    return {
-        "id": media_id,
-        "kind": "drive_preview",
-        "name": title,
-        "type": "",
-        "url": f"https://drive.google.com/file/d/{quote(file_id)}/preview",
-    }
+    # the client reads "this video is being processed"; the team sees the warning in Ops
+    return {"id": media_id, "kind": "unavailable", "name": title, "type": "", "url": ""}
 
 
 def open_stream(file_id, email, byte_range):

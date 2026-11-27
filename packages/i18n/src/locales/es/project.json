@@ -456,6 +456,8 @@
     }
   },
   "zil_brand": {
+    "drive_down_calendar": "El video de Drive no se puede abrir: el cliente ve «procesando».",
+    "drive_down_link": "El cliente no puede ver este archivo: se borró o quien pegó el link no tiene acceso. Corregilo y tocá actualizar.",
     "clients_group": "Clientes",
     "my_brands": "Mis marcas",
     "my_brands_description": "Las marcas en las que trabajás en este espacio de trabajo.",
@@ -541,6 +543,13 @@
     "no_comments": "Todavía no hay comentarios.",
     "comment_at": "Comentar en {time} de {name}",
     "go_to_moment": "Ir a {time} del video",
+    "play": "Reproducir",
+    "pause": "Pausar",
+    "mute": "Silenciar",
+    "unmute": "Activar sonido",
+    "fullscreen": "Pantalla completa",
+    "video_processing_title": "Estamos procesando este video",
+    "video_processing_text": "Va a estar disponible en un rato.",
     "comments_load_error": "No pudimos cargar los comentarios.",
     "comment_placeholder": "Escribí tu comentario",
     "send": "Enviar",

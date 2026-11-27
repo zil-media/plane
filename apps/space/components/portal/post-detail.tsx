@@ -6,65 +6,81 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
-import { ExternalLink, MoveRight } from "lucide-react";
+import { Clapperboard, ExternalLink, MoveRight } from "lucide-react";
 import useSWR from "swr";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { DueDatePropertyIcon, LabelPropertyIcon, StateGroupIcon, StatePropertyIcon } from "@plane/propel/icons";
 import { SitesPortalService } from "@plane/services";
 import { Loader } from "@plane/ui";
-import type { TZilPortalMedia } from "@plane/types";
+import type { TZilPortalComment, TZilPortalMedia } from "@plane/types";
 import { getFileURL } from "@plane/utils";
 // local imports
 import { PortalComments } from "./comments";
 import type { TPortalPlayback } from "./comments";
 import { dateLocale, dayLabel, isVideo } from "./helpers";
 import { PortalContent } from "./portal-content";
+import { PortalVideoPlayer } from "./video-player";
+import type { TVideoMarker } from "./video-player";
 
 const portalService = new SitesPortalService();
 
-const DRIVE_PREVIEW = "https://drive.google.com/file/d/";
+/** A comment's text, plain, for its mark's hover. */
+const plainText = (html: string) =>
+  typeof window === "undefined"
+    ? ""
+    : (new DOMParser().parseFromString(html, "text/html").body.textContent ?? "").trim();
 
-/** One image or video of the post: uploaded to Ops, a Drive file streamed by Ops, or Drive's own preview. */
+/** The marks of one video's timeline: the comments pinned to a second of it. */
+const markersOf = (comments: TZilPortalComment[] | undefined, media: string): TVideoMarker[] =>
+  (comments ?? [])
+    .filter((comment) => comment.moment?.media === media)
+    .map((comment) => ({
+      id: comment.id,
+      at: comment.moment?.at ?? 0,
+      author: comment.author,
+      text: plainText(comment.html),
+    }));
+
+/** One image or video of the post: uploaded to Ops or a Drive file streamed by Ops, or, when Ops
+ * can't play a Drive file right now, a "being processed" card (the team gets the warning in Ops). */
 function PostMediaItem({
   item,
+  markers,
+  activeMarker,
   onPlayer,
   onTime,
+  onMarker,
 }: {
   item: TZilPortalMedia;
+  markers: TVideoMarker[];
+  activeMarker: string | null;
   onPlayer: (element: HTMLVideoElement | null) => void;
   onTime: (seconds: number) => void;
+  onMarker: (marker: TVideoMarker) => void;
 }) {
-  if (item.kind === "drive_preview") {
-    // Drive's player (it asks for access when the file isn't shared); only Drive's own address
-    if (!item.url.startsWith(DRIVE_PREVIEW)) return null;
+  const { t } = useTranslation();
+  if (item.kind === "unavailable")
     return (
-      <iframe
-        src={item.url}
-        title={item.name}
-        allow="autoplay; fullscreen"
-        allowFullScreen
-        /* oxlint-disable-next-line react/iframe-missing-sandbox -- Drive's own origin, not ours: its player needs its scripts and its sign-in */
-        sandbox="allow-scripts allow-same-origin allow-popups allow-presentation"
-        className="aspect-video w-full border-0"
-      />
+      <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 p-6 text-center">
+        <Clapperboard className="size-6 text-tertiary" aria-hidden="true" />
+        <p className="text-14 font-medium text-primary">{t("zil_portal.video_processing_title")}</p>
+        <p className="text-13 text-tertiary">{t("zil_portal.video_processing_text")}</p>
+      </div>
     );
-  }
   // uploaded to Ops or a Drive file, both come through Ops' own portal API
   const src = getFileURL(item.url);
   if (isVideo(item.type))
     return (
-      <video
-        ref={onPlayer}
+      <PortalVideoPlayer
         src={src}
-        controls
-        preload="metadata"
-        onTimeUpdate={(event) => onTime(event.currentTarget.currentTime)}
-        onSeeked={(event) => onTime(event.currentTarget.currentTime)}
-        className="max-h-[60vh] w-full object-contain"
-      >
-        <track kind="captions" />
-      </video>
+        name={item.name}
+        markers={markers}
+        activeMarker={activeMarker}
+        onPlayer={onPlayer}
+        onTime={onTime}
+        onMarker={onMarker}
+      />
     );
   return <img src={src} alt={item.name} className="max-h-[60vh] w-full object-contain" />;
 }
@@ -89,17 +105,26 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
   // the post's players, and where the one last played is: a comment can point at that second
   const players = useRef<Record<string, HTMLVideoElement | null>>({});
   const [current, setCurrent] = useState<TPortalPlayback["current"]>(null);
-  useEffect(() => setCurrent(null), [postId]);
+  // the comment whose mark was picked: it stands out in the conversation
+  const [focused, setFocused] = useState<string | null>(null);
+  useEffect(() => {
+    setCurrent(null);
+    setFocused(null);
+  }, [postId]);
+  // the same conversation the comments below show (one request, shared): the timelines' marks
+  const { data: conversation } = useSWR(postId ? `PORTAL_COMMENTS_${projectId}_${postId}` : null, () =>
+    portalService.comments(projectId, postId as string)
+  );
 
   const track = (item: TZilPortalMedia) => (seconds: number) => {
     const at = Math.floor(seconds);
     setCurrent((now) => (now?.media === item.id && now.at === at ? now : { media: item.id, name: item.name, at }));
   };
-  const seek = useCallback((media: string, at: number) => {
+  const seek = useCallback((media: string, at: number, scroll = true) => {
     const player = players.current[media];
     if (!player) return;
     player.currentTime = at;
-    player.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (scroll) player.scrollIntoView({ behavior: "smooth", block: "center" });
     void player.play().catch(() => undefined);
   }, []);
   const pause = useCallback(() => {
@@ -107,7 +132,7 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
   }, [current]);
   // the videos the portal plays itself (Drive's preview can't jump to a second)
   const playable = new Set(
-    (post?.media ?? []).filter((item) => item.kind !== "drive_preview" && isVideo(item.type)).map((item) => item.id)
+    (post?.media ?? []).filter((item) => item.kind !== "unavailable" && isVideo(item.type)).map((item) => item.id)
   );
 
   return (
@@ -168,10 +193,16 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
                             >
                               <PostMediaItem
                                 item={item}
+                                markers={markersOf(conversation?.comments, item.id)}
+                                activeMarker={focused}
                                 onPlayer={(element) => {
                                   players.current[item.id] = element;
                                 }}
                                 onTime={track(item)}
+                                onMarker={(marker) => {
+                                  seek(item.id, marker.at, false);
+                                  setFocused(marker.id);
+                                }}
                               />
                             </div>
                           ))}
@@ -253,7 +284,7 @@ export function PortalPostDetail({ projectId, postId, preview, onClose }: Props)
                         projectId={projectId}
                         postId={post.id}
                         preview={preview}
-                        playback={{ current, playable, seek, pause }}
+                        playback={{ current, playable, seek, pause, focused }}
                       />
                     </div>
                   </div>

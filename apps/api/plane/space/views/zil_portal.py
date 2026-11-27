@@ -62,7 +62,7 @@ from plane.utils.zil_client_portal import (
     visible_issues,
 )
 
-from plane.utils.zil_drive import drive_file_id, drive_media, open_stream, playable
+from plane.utils.zil_drive import check_link, drive_file_id, drive_media, open_stream, playable
 
 from .base import BaseAPIView
 
@@ -122,6 +122,7 @@ def _link_rows(issue):
             "title": link.title or link.url,
             "url": link.url,
             "by": (link.created_by.email if link.created_by else "") or "",
+            "link": link,
         }
         for link in IssueLink.objects.filter(issue_id=issue.id).select_related("created_by").order_by("created_at")
         if str(link.url or "").startswith(("https://", "http://"))
@@ -148,6 +149,8 @@ def _post_media(project_id, issue, rows):
     media = _media(project_id, _attachments([issue.id]).get(issue.id, []))
     for file_id, row in _drive_links(rows).items():
         media.append(drive_media(file_id, row["title"], row["by"], _drive_url(project_id, issue.id, file_id)))
+        # what the client just got, for the team's warning in Ops
+        check_link(row["link"])
     return media
 
 
@@ -282,7 +285,8 @@ class PortalPostEndpoint(PortalBaseEndpoint):
                 **_post(issue, labels, _attachments([issue.id]).get(issue.id, [])),
                 "description_html": issue.description_html or "<p></p>",
                 "media": _post_media(project.id, issue, rows),
-                "links": [{"title": row["title"], "url": row["url"]} for row in rows],
+                # a Drive file is shown as the post's media, not as a link (it may not open for them)
+                "links": [{"title": row["title"], "url": row["url"]} for row in rows if not drive_file_id(row["url"])],
             }
         )
 
@@ -367,7 +371,7 @@ class PortalCommentsEndpoint(PortalBaseEndpoint):
                 at = int(request.data.get("at"))
             except (TypeError, ValueError):
                 at = -1
-            # one the portal plays itself (Drive's own preview can't say where it is)
+            # one the portal plays itself (an unavailable Drive file has no seconds)
             video = next(
                 (
                     m

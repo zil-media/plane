@@ -63,6 +63,17 @@ export function useZilProjectBrand(workspaceSlug: string | undefined, projectId:
   return { data, isLoading, error, updateOps };
 }
 
+/** The work items whose Drive video the brand's clients can't open; nothing for other projects. */
+export function useZilVideoAlerts(workspaceSlug: string | undefined, projectId: string | undefined) {
+  const brand = useZilProjectBrandProject(workspaceSlug, projectId);
+  const { data } = useSWR(
+    workspaceSlug && projectId && brand ? `ZIL_VIDEO_ALERTS_${projectId}` : null,
+    workspaceSlug && projectId ? () => zilBrandService.getVideoAlerts(workspaceSlug, projectId) : null,
+    { revalidateOnFocus: true, shouldRetryOnError: false }
+  );
+  return data?.issues ?? {};
+}
+
 /** The brand's client portal, from the Marca tab: turning it on invites the clients; resend one's link. */
 export function useZilProjectPortal(workspaceSlug: string | undefined, projectId: string | undefined) {
   const { data, isLoading, mutate } = useSWR(

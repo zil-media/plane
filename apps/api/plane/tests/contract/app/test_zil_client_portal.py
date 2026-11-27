@@ -48,6 +48,8 @@ from plane.utils.zil_client_portal import (
     VISIBLE_LABEL,
     dispatch_portal_events,
 )
+from plane.bgtasks.work_item_link_task import crawl_work_item_link_title
+from plane.bgtasks.zil_drive_task import check_drive_link, check_portal_drive_links
 from plane.utils.zil_client import ZilUnavailable
 from plane.utils.zil_drive import drive_file_id
 
@@ -1101,16 +1103,20 @@ class TestDriveVideos:
         workspace.assert_called_once_with("/api/zil/drive-token", {"email": "cm@zil.test"})
         google.assert_called_once()
         assert google.call_args.kwargs["headers"] == {"Authorization": "Bearer ya29.drive-token"}
+        # the Drive file is the post's media, not one more link
+        assert response.json()["links"] == []
         # neither the token nor who pasted the link reach the client
         assert "ya29" not in response.content.decode() and "cm@zil.test" not in response.content.decode()
 
     @pytest.mark.django_db
-    def test_no_token_or_no_author_falls_back_to_drives_preview(self, kfc, cliente, cm, workspace_bridge):
+    def test_no_token_or_no_author_shows_the_video_as_being_processed_and_warns_the_team(
+        self, kfc, cliente, cm, workspace_bridge
+    ):
         project = kfc.project
         refused = item(project, "Reel")
-        drive_link(refused, cm)
+        refused_link = drive_link(refused, cm)
         orphan = item(project, "Otro")
-        drive_link(orphan, None)
+        orphan_link = drive_link(orphan, None)
 
         with (
             mock.patch(WORKSPACE_POST, return_value=workspace_token(status_code=404)) as workspace,
@@ -1119,23 +1125,20 @@ class TestDriveVideos:
             first = as_user(cliente).get(f"/api/public/portal/{project.id}/posts/{refused.id}/").json()["media"][0]
             second = as_user(cliente).get(f"/api/public/portal/{project.id}/posts/{orphan.id}/").json()["media"][0]
 
-        preview = f"https://drive.google.com/file/d/{DRIVE_ID}/preview"
-        assert first == {
-            "id": f"drive:{DRIVE_ID}",
-            "kind": "drive_preview",
-            "name": "Reel final",
-            "type": "",
-            "url": preview,
-        }
-        assert second["kind"] == "drive_preview"
+        assert first == {"id": f"drive:{DRIVE_ID}", "kind": "unavailable", "name": "Reel final", "type": "", "url": ""}
+        assert second["kind"] == "unavailable"
         workspace.assert_called_once()  # nobody to read the orphan link as
         google.assert_not_called()
+        # both are certain: the team sees them in Ops
+        for link in (refused_link, orphan_link):
+            link.refresh_from_db()
+            assert link.metadata["zil_drive"]["status"] == "broken"
 
     @pytest.mark.django_db
     def test_workspace_or_google_down_does_not_break_the_post(self, kfc, cliente, cm, workspace_bridge):
         project = kfc.project
         issue = item(project, "Reel")
-        drive_link(issue, cm)
+        link = drive_link(issue, cm)
         url = f"/api/public/portal/{project.id}/posts/{issue.id}/"
 
         with mock.patch(WORKSPACE_POST, side_effect=ZilUnavailable()):
@@ -1148,7 +1151,96 @@ class TestDriveVideos:
             google_down = as_user(cliente).get(url)
 
         assert down.status_code == google_down.status_code == 200
-        assert down.json()["media"][0]["kind"] == google_down.json()["media"][0]["kind"] == "drive_preview"
+        assert down.json()["media"][0]["kind"] == google_down.json()["media"][0]["kind"] == "unavailable"
+        # an outage is not a broken link: no warning for the team
+        link.refresh_from_db()
+        assert "zil_drive" not in link.metadata
+
+
+@pytest.mark.contract
+class TestDriveWarnings:
+    @pytest.mark.django_db
+    def test_google_not_found_is_broken_and_a_fixed_file_clears_it(self, kfc, cliente, cm, workspace_bridge):
+        project = kfc.project
+        issue = item(project, "Reel")
+        link = drive_link(issue, cm)
+
+        with (
+            mock.patch(WORKSPACE_POST, return_value=workspace_token()),
+            mock.patch(DRIVE_GET, return_value=drive_meta(status_code=404)),
+        ):
+            as_user(cliente).get(f"/api/public/portal/{project.id}/posts/{issue.id}/")
+        link.refresh_from_db()
+        assert link.metadata["zil_drive"]["status"] == "broken"
+
+        # the team fixes it and presses refresh: checked again without the cache
+        with (
+            mock.patch(WORKSPACE_POST, return_value=workspace_token()),
+            mock.patch(DRIVE_GET, return_value=drive_meta()),
+        ):
+            check_drive_link(str(link.id))
+        link.refresh_from_db()
+        assert link.metadata["zil_drive"]["status"] == "ok"
+
+    @pytest.mark.django_db
+    def test_the_periodic_check_covers_what_clients_see_from_a_week_ago(self, kfc, cm, workspace_bridge):
+        project = kfc.project
+        upcoming = item(project, "Próximo", target_date=timezone.now().date() + timedelta(days=3))
+        undated = item(project, "Sin fecha")
+        old = item(project, "Viejo", target_date=timezone.now().date() - timedelta(days=30))
+        hidden = item(project, "Interno", visible=False)
+        links = {issue.name: drive_link(issue, cm) for issue in (upcoming, undated, old, hidden)}
+
+        with (
+            mock.patch(WORKSPACE_POST, return_value=workspace_token()),
+            mock.patch(DRIVE_GET, return_value=drive_meta(status_code=403)),
+        ):
+            checked = check_portal_drive_links()
+
+        assert checked == 2
+        statuses = {}
+        for name, link in links.items():
+            link.refresh_from_db()
+            statuses[name] = (link.metadata.get("zil_drive") or {}).get("status")
+        assert statuses == {"Próximo": "broken", "Sin fecha": "broken", "Viejo": None, "Interno": None}
+
+    @pytest.mark.django_db
+    def test_ops_lists_the_brands_items_with_a_broken_video(self, kfc, cm, create_user, workspace_bridge):
+        project = kfc.project
+        ProjectMember.objects.update_or_create(
+            project=project,
+            member=create_user,
+            defaults={"workspace_id": project.workspace_id, "role": 15, "is_active": True},
+        )
+        broken = item(project, "Reel")
+        fine = item(project, "Carrusel")
+        link = drive_link(broken, cm)
+        drive_link(fine, cm)
+        IssueLink.objects.filter(pk=link.pk).update(metadata={"zil_drive": {"status": "broken"}})
+        IssueLink.objects.filter(issue=fine).update(metadata={"zil_drive": {"status": "ok"}})
+        url = f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/zil-portal/video-alerts/"
+
+        response = as_user(create_user).get(url)
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "issues": {str(broken.id): [{"link_id": str(link.id), "title": "Reel final", "url": link.url}]}
+        }
+
+    @pytest.mark.django_db
+    def test_a_new_drive_link_is_checked_after_its_crawl(self, kfc, cm):
+        issue = item(kfc.project, "Reel")
+        link = drive_link(issue, cm)
+
+        with (
+            mock.patch(
+                "plane.bgtasks.work_item_link_task.crawl_google_drive_link_metadata", return_value={"title": "x"}
+            ),
+            mock.patch("plane.bgtasks.zil_drive_task.check_drive_link.delay") as check,
+        ):
+            crawl_work_item_link_title(str(link.id), link.url)
+
+        check.assert_called_once_with(str(link.id))
 
 
 @pytest.mark.contract
@@ -1289,7 +1381,7 @@ class TestCommentMoments:
         bad = [
             {"media": str(foreign.id), "at": 1},  # another post's video
             {"media": str(image.id), "at": 1},  # not a video
-            {"media": f"drive:{DRIVE_ID}", "at": 1},  # only Drive's preview (the link's author can't open it)
+            {"media": f"drive:{DRIVE_ID}", "at": 1},  # unavailable (the link's author can't open it)
             {"media": "drive:9ZzZzZzZzZzZzZz", "at": 1},  # not linked on the post
             {"media": str(clip.id), "at": -1},
             {"media": str(clip.id), "at": 24 * 60 * 60 + 1},

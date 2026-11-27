@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, TriangleAlert } from "lucide-react";
 
 import { useTranslation } from "@plane/i18n";
 import { LinkIcon, CopyIcon, EditIcon, TrashIcon } from "@plane/propel/icons";
@@ -181,6 +181,13 @@ export const IssueLinkItem = observer(function IssueLinkItem(props: TIssueLinkIt
                   : t("links.not_synced_yet")}
               </span>
             </div>
+            {linkDetail.metadata?.zil_drive?.status === "broken" && (
+              // a brand portal's video its clients can't open (they read "being processed")
+              <p className="mt-1 flex items-start gap-1 text-caption-sm-regular text-warning-primary">
+                <TriangleAlert className="mt-px size-3 flex-shrink-0" aria-hidden="true" />
+                {t("zil_brand.drive_down_link")}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-shrink-0 items-center gap-1">

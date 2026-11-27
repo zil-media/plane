@@ -383,3 +383,9 @@ def crawl_work_item_link_title(id: str, url: str) -> None:
 
     issue_link.metadata = meta_data
     issue_link.save()
+
+    if provider == PROVIDER_GOOGLE_DRIVE:
+        # a brand portal's video: whether the client can open it (the team's warning in Ops)
+        from plane.bgtasks.zil_drive_task import check_drive_link
+
+        check_drive_link.delay(str(issue_link.id))

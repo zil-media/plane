@@ -26,6 +26,8 @@ export type TIssueLinkMetadata = {
   author_name?: string | null;
   // ISO 8601 timestamp of the last successful crawl.
   crawled_at?: string | null;
+  // A brand portal's Drive file: whether the client can open it (checked as whoever pasted it).
+  zil_drive?: { status: "ok" | "broken"; checked_at: string } | null;
 };
 
 export type TIssueLink = TIssueLinkEditableFields & {

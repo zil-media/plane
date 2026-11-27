@@ -404,6 +404,30 @@ class ZilProjectPortalEndpoint(BaseAPIView):
         return Response(serialize_portal(mapping, portal), status=status.HTTP_200_OK)
 
 
+class ZilProjectVideoAlertsEndpoint(BaseAPIView):
+    """GET → {"issues": {issue_id: [{link_id, title, url}]}}: the work items whose Drive video the
+    brand's clients can't open (Ops' calendar marks them; the client reads "being processed")."""
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    def get(self, request, slug, project_id):
+        from plane.db.models import IssueLink
+
+        if brand_mapping(slug, project_id) is None:
+            return Response({"issues": {}}, status=status.HTTP_200_OK)
+        rows = IssueLink.objects.filter(
+            project_id=project_id,
+            metadata__zil_drive__status="broken",
+            issue__deleted_at__isnull=True,
+            issue__archived_at__isnull=True,
+        ).values("id", "issue_id", "title", "url")[:500]
+        issues = {}
+        for row in rows:
+            issues.setdefault(str(row["issue_id"]), []).append(
+                {"link_id": str(row["id"]), "title": row["title"] or row["url"], "url": row["url"]}
+            )
+        return Response({"issues": issues}, status=status.HTTP_200_OK)
+
+
 class ZilProjectPortalInviteEndpoint(BaseAPIView):
     """POST → send a client a new invitation link (the previous one stops working)."""
 

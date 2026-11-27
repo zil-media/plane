@@ -21,6 +21,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "plane.settings.production")
 
 ri = redis_instance()
 
+
 # Configurable metrics push interval (in minutes)
 # Default: 360 (6 hours), set to 5 for development/testing
 def _get_metrics_push_interval_minutes() -> int:
@@ -32,6 +33,7 @@ def _get_metrics_push_interval_minutes() -> int:
         return value if 0 < value <= 10_000_000 else 360
     except (ValueError, OverflowError):
         return 360
+
 
 METRICS_PUSH_INTERVAL_MINUTES = _get_metrics_push_interval_minutes()
 
@@ -100,6 +102,11 @@ app.conf.beat_schedule = {
     "agent-feature-run-sweep": {
         "task": "plane.bgtasks.agent_pipeline_task.feature_run_sweep",
         "schedule": crontab(minute="*/15"),
+    },
+    # Client portal: warn the team in Ops when a post's Drive video stops opening
+    "zil-portal-drive-links": {
+        "task": "plane.bgtasks.zil_drive_task.check_portal_drive_links",
+        "schedule": crontab(minute=20, hour="*/2"),
     },
 }
 

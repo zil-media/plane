@@ -5,7 +5,7 @@
  */
 
 import { API_BASE_URL } from "@plane/constants";
-import type { TIssueComment, TZilPortalSettings } from "@plane/types";
+import type { TIssueComment, TZilPortalSettings, TZilVideoAlerts } from "@plane/types";
 // services
 import { APIService } from "@/services/api.service";
 
@@ -103,6 +103,15 @@ export class ZilBrandService extends APIService {
 
   async getProjectBrand(workspaceSlug: string, projectId: string): Promise<TZilProjectBrand> {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-brand/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /** The work items whose Drive video the brand's clients can't open. */
+  async getVideoAlerts(workspaceSlug: string, projectId: string): Promise<TZilVideoAlerts> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/zil-portal/video-alerts/`)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

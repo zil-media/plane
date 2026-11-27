@@ -27,8 +27,8 @@ export type TZilPortalMedia = {
   name: string;
   type: string;
   url: string;
-  /** uploaded to Ops, a Drive file Ops streams, or Drive's own preview (when it can't) */
-  kind?: "file" | "drive" | "drive_preview";
+  /** uploaded to Ops, a Drive file Ops streams, or a Drive file Ops can't play right now */
+  kind?: "file" | "drive" | "unavailable";
 };
 
 /** The second of a post's video a comment points at. */
@@ -107,4 +107,9 @@ export type TZilPortalSettings = {
   url: string;
   folder_id: string | null;
   clients: TZilPortalClientAccess[];
+};
+
+/** The work items of a brand whose Drive video its clients can't open (Ops' calendar marks them). */
+export type TZilVideoAlerts = {
+  issues: Record<string, { link_id: string; title: string; url: string }[]>;
 };

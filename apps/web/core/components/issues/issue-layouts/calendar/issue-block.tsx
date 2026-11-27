@@ -7,16 +7,19 @@
 import { useState, useRef, forwardRef } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { ListChecks, MoreHorizontal } from "lucide-react";
+import { ListChecks, MoreHorizontal, TriangleAlert } from "lucide-react";
 // plane imports
 import { useOutsideClickDetector } from "@plane/hooks";
+import { useTranslation } from "@plane/i18n";
 import { Popover } from "@plane/propel/popover";
+import { Tooltip } from "@plane/propel/tooltip";
 import type { TIssue } from "@plane/types";
 import { ControlLink } from "@plane/ui";
 import { cn, generateWorkItemLink } from "@plane/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
+import { useZilVideoAlerts } from "@/hooks/use-zil-brands";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
@@ -47,6 +50,10 @@ export const CalendarIssueBlock = observer(
     const menuActionRef = useRef<HTMLDivElement | null>(null);
     // hooks
     const { workspaceSlug } = useParams();
+    const { t } = useTranslation();
+    // a brand portal's post whose Drive video its clients can't open
+    const videoAlerts = useZilVideoAlerts(workspaceSlug?.toString(), issue?.project_id ?? undefined);
+    const videoDown = issue ? (videoAlerts[issue.id] ?? []).length > 0 : false;
     const { getProjectStates } = useProjectState();
     const { getIsIssuePeeked } = useIssueDetail();
     const { handleRedirection } = useIssuePeekOverviewRedirection(isEpic);
@@ -145,6 +152,14 @@ export const CalendarIssueBlock = observer(
                       />
                     )}
                     <div className="truncate text-13 font-medium md:text-11 md:font-regular">{issue.name}</div>
+                    {videoDown && (
+                      <Tooltip tooltipContent={t("zil_brand.drive_down_calendar")} isMobile={isMobile}>
+                        <TriangleAlert
+                          className="size-3 flex-shrink-0 text-warning-primary"
+                          aria-label={t("zil_brand.drive_down_calendar")}
+                        />
+                      </Tooltip>
+                    )}
                     {isChecklistEnabled && checklistTotal > 0 && (
                       <span
                         className={cn("flex flex-shrink-0 items-center gap-0.5 text-11 text-tertiary", {
